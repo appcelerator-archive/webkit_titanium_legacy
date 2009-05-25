@@ -320,11 +320,11 @@ void ResourceHandleManager::downloadTimerCallback(Timer<ResourceHandleManager>* 
             if (d->client())
                 d->client()->didFinishLoading(job);
         } else {
-#ifndef NDEBUG
+//#ifndef NDEBUG
             char* url = 0;
             curl_easy_getinfo(d->m_handle, CURLINFO_EFFECTIVE_URL, &url);
-            fprintf(stderr, "Curl ERROR for url='%s', error: '%s'\n", url, curl_easy_strerror(msg->data.result));
-#endif
+            printf("Curl ERROR for url='%s', error: '%s'\n", url, curl_easy_strerror(msg->data.result));
+//#endif
             if (d->client())
                 d->client()->didFail(job, ResourceError());
         }
@@ -603,7 +603,7 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     ResourceHandleInternal* d = job->getInternal();
     String url = kurl.string();
 
-    if (kurl.isLocalFile()) {
+    if (kurl.isLocalFile() || kurl.protocolIs("app") || kurl.protocolIs("ti") || kurl.protocolIs("app-storage")) {
         String query = kurl.query();
         // Remove any query part sent to a local file.
         if (!query.isEmpty())

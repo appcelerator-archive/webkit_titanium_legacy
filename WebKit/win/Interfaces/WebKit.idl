@@ -109,6 +109,7 @@ import "ocidl.idl";
 #include "IWebScriptCallFrame.idl"
 #include "IWebScriptDebugListener.idl"
 #include "IWebScriptDebugServer.idl"
+#include "IWebScriptEvaluator.idl"
 #include "IWebScrollBarDelegatePrivate.idl"
 #include "IWebScrollBarPrivate.idl"
 #include "IWebSecurityOrigin.idl"

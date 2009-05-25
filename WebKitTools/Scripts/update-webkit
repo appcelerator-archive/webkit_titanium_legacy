@@ -75,18 +75,18 @@ exit 0;
 
 sub runSvnUpdate()
 {
-    open UPDATE, "-|", "svn", "update", @svnOptions or die;
-    my @conflictedChangeLogs;
-    while (my $line = <UPDATE>) {
-        print $line;
-        push @conflictedChangeLogs, $1 if $line =~ m/^C\s+(.+)\s*$/ && basename($1) eq "ChangeLog";
-    }
-    close UPDATE or die;
-
-    if (@conflictedChangeLogs) {
-        print "Attempting to merge conflicted ChangeLogs.\n";
-        my $resolveChangeLogsPath = File::Spec->catfile(dirname($0), "resolve-ChangeLogs");
-        (system($resolveChangeLogsPath, "--no-warnings", @conflictedChangeLogs) == 0)
-            or die "Could not open resolve-ChangeLogs script: $!.\n";
-    }
+#    open UPDATE, "-|", "svn", "update", @svnOptions or die;
+#    my @conflictedChangeLogs;
+#    while (my $line = <UPDATE>) {
+#        print $line;
+#        push @conflictedChangeLogs, $1 if $line =~ m/^C\s+(.+)\s*$/ && basename($1) eq "ChangeLog";
+#    }
+#    close UPDATE or die;
+#
+#    if (@conflictedChangeLogs) {
+#        print "Attempting to merge conflicted ChangeLogs.\n";
+#        my $resolveChangeLogsPath = File::Spec->catfile(dirname($0), "resolve-ChangeLogs");
+#        (system($resolveChangeLogsPath, "--no-warnings", @conflictedChangeLogs) == 0)
+#            or die "Could not open resolve-ChangeLogs script: $!.\n";
+#    }
 }

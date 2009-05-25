@@ -751,7 +751,9 @@ void WebView::scrollBackingStore(FrameView* frameView, int dx, int dy, const Int
     // Scroll the bitmap.
     RECT scrollRectWin(scrollViewRect);
     RECT clipRectWin(clipRect);
-    ::ScrollDC(bitmapDC, dx, dy, &scrollRectWin, &clipRectWin, updateRegion, 0);
+    // fix for repaint issue - http://jira.appcelerator.org/jira/browse/TI-58
+    ::ScrollWindowEx(m_viewWindow, dx, dy, &scrollRectWin, &clipRectWin, updateRegion, 0, 0);
+    //::ScrollDC(bitmapDC, dx, dy, &scrollRectWin, &clipRectWin, updateRegion, 0);
     RECT regionBox;
     ::GetRgnBox(updateRegion, &regionBox);
 
@@ -2170,7 +2172,8 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
     WebKitSetWebDatabasesPathIfNecessary();
     WebKitSetApplicationCachePathIfNecessary();
     
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), new WebInspectorClient(this));
+    m_webInspectorClient = new WebInspectorClient(this);
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient);
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -2745,6 +2748,16 @@ HRESULT STDMETHODCALLTYPE WebView::preferences(
     *prefs = m_preferences.get();
     if (m_preferences)
         m_preferences->AddRef();
+
+    BSTR localStoragePath;
+    if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
+        m_page->settings()->setLocalStorageDatabasePath(String(localStoragePath, SysStringLen(localStoragePath)));
+	
+        WebCore::String databasesDirectory = String(localStoragePath, SysStringLen(localStoragePath));
+        WebKitSetWebDatabasesPath(databasesDirectory);
+
+        SysFreeString(localStoragePath);
+    }
     return S_OK;
 }
 
@@ -4921,7 +4934,7 @@ bool WebView::onIMESetContext(WPARAM, LPARAM)
 HRESULT STDMETHODCALLTYPE WebView::inspector(IWebInspector** inspector)
 {
     if (!m_webInspector)
-        m_webInspector.adoptRef(WebInspector::createInstance(this));
+        m_webInspector.adoptRef(WebInspector::createInstance(this, m_webInspectorClient));
 
     return m_webInspector.copyRefTo(inspector);
 }

@@ -1,5 +1,4 @@
-LIBRARY	"WebKit"
-
+LIBRARY	"WebKit" 
 EXPORTS
         DllGetClassObject   PRIVATE
         DllCanUnloadNow     PRIVATE
@@ -125,6 +124,7 @@ EXPORTS
         ?unlockAtomicallyInitializedStaticMutex@WTF@@YAXXZ
         ?wait@ThreadCondition@WTF@@QAEXAAVMutex@2@@Z
         ?waitForThreadCompletion@WTF@@YAHIPAPAX@Z
+        ?addScriptEvaluator@@YGXPAUIWebScriptEvaluator@@@Z
 
         ; These functions are deprecated
         WebLocalizedString
