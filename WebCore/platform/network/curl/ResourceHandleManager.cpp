@@ -323,7 +323,7 @@ void ResourceHandleManager::downloadTimerCallback(Timer<ResourceHandleManager>* 
 //#ifndef NDEBUG
             char* url = 0;
             curl_easy_getinfo(d->m_handle, CURLINFO_EFFECTIVE_URL, &url);
-            printf("Curl ERROR for url='%s', error: '%s'\n", url, curl_easy_strerror(msg->data.result));
+            printf("==> Curl ERROR for url='%s', error: '%s'\n", url, curl_easy_strerror(msg->data.result));
 //#endif
             if (d->client())
                 d->client()->didFail(job, ResourceError());
@@ -622,10 +622,10 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         ASSERT(error == CURLE_OK);
     }
 #endif
-#ifndef NDEBUG
+//#ifndef NDEBUG
     if (getenv("DEBUG_CURL"))
         curl_easy_setopt(d->m_handle, CURLOPT_VERBOSE, 1);
-#endif
+//#endif
     curl_easy_setopt(d->m_handle, CURLOPT_PRIVATE, job);
     curl_easy_setopt(d->m_handle, CURLOPT_ERRORBUFFER, m_curlErrorBuffer);
     curl_easy_setopt(d->m_handle, CURLOPT_WRITEFUNCTION, writeCallback);
@@ -642,6 +642,12 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     // and/or reporting SSL errors to the user.
     if (ignoreSSLErrors)
         curl_easy_setopt(d->m_handle, CURLOPT_SSL_VERIFYPEER, false);
+
+	char *curl_ca_bundle_path = getenv("CURL_CA_BUNDLE_PATH");
+	if (curl_ca_bundle_path != NULL) {
+		curl_easy_setopt(d->m_handle, CURLOPT_CAINFO, curl_ca_bundle_path);
+	}
+	
     // enable gzip and deflate through Accept-Encoding:
     curl_easy_setopt(d->m_handle, CURLOPT_ENCODING, "");
 
