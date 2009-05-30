@@ -2737,6 +2737,16 @@ HRESULT STDMETHODCALLTYPE WebView::setPreferences(
 
     m_preferences->postPreferencesChangesNotification();
 
+	BSTR localStoragePath;
+    if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
+        m_page->settings()->setLocalStorageDatabasePath(String(localStoragePath, SysStringLen(localStoragePath)));
+	
+        WebCore::String databasesDirectory = String(localStoragePath, SysStringLen(localStoragePath));
+        WebKitSetWebDatabasesPath(databasesDirectory);
+
+        SysFreeString(localStoragePath);
+    }
+
     return S_OK;
 }
 
@@ -2749,15 +2759,6 @@ HRESULT STDMETHODCALLTYPE WebView::preferences(
     if (m_preferences)
         m_preferences->AddRef();
 
-    BSTR localStoragePath;
-    if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
-        m_page->settings()->setLocalStorageDatabasePath(String(localStoragePath, SysStringLen(localStoragePath)));
-	
-        WebCore::String databasesDirectory = String(localStoragePath, SysStringLen(localStoragePath));
-        WebKitSetWebDatabasesPath(databasesDirectory);
-
-        SysFreeString(localStoragePath);
-    }
     return S_OK;
 }
 
