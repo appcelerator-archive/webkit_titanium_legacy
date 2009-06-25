@@ -60,6 +60,7 @@ my $isGtk;
 my $isWx;
 my @wxArgs;
 my $isChromium;
+my $isCairoWin32;
 
 # Variables for Win32 support
 my $vcBuildPath;
@@ -210,13 +211,14 @@ sub argumentsForConfiguration()
     determineArchitecture();
 
     my @args = ();
-    push(@args, '--debug') if $configuration eq "Debug";
-    push(@args, '--release') if $configuration eq "Release";
+    push(@args, '--debug') if $configuration eq "Debug" or $configuration eq 'Debug_Cairo';
+    push(@args, '--release') if $configuration eq "Release" or $configuration eq 'Release_Cairo';
     push(@args, '--32-bit') if $architecture ne "x86_64";
     push(@args, '--qt') if isQt();
     push(@args, '--gtk') if isGtk();
     push(@args, '--wx') if isWx();
     push(@args, '--chromium') if isChromium();
+		push(@args, '--cairo-win32') if isCairoWin32();
     return @args;
 }
 
@@ -343,26 +345,25 @@ sub determinePassedConfiguration
     return if $searchedForPassedConfiguration;
     $searchedForPassedConfiguration = 1;
 
-    my $isWinCairo = checkForArgumentAndRemoveFromARGV("--cairo-win32");
-
+    my $isCairoWin32 = isCairoWin32();
     for my $i (0 .. $#ARGV) {
         my $opt = $ARGV[$i];
         if ($opt =~ /^--debug$/i || $opt =~ /^--devel/i) {
             splice(@ARGV, $i, 1);
             $passedConfiguration = "Debug";
-            $passedConfiguration .= "_Cairo" if ($isWinCairo && isCygwin());
+            $passedConfiguration .= "_Cairo" if ($isCairoWin32 && isCygwin());
             return;
         }
         if ($opt =~ /^--release$/i || $opt =~ /^--deploy/i) {
             splice(@ARGV, $i, 1);
             $passedConfiguration = "Release";
-            $passedConfiguration .= "_Cairo" if ($isWinCairo && isCygwin());
+            $passedConfiguration .= "_Cairo" if ($isCairoWin32 && isCygwin());
             return;
         }
         if ($opt =~ /^--profil(e|ing)$/i) {
             splice(@ARGV, $i, 1);
             $passedConfiguration = "Profiling";
-            $passedConfiguration .= "_Cairo" if ($isWinCairo && isCygwin());
+            $passedConfiguration .= "_Cairo" if ($isCairoWin32 && isCygwin());
             return;
         }
     }
@@ -711,15 +712,24 @@ sub determineQtFeatureDefaults()
     }
 }
 
-sub checkForArgumentAndRemoveFromARGV
+sub checkForArgument
 {
     my $argToCheck = shift;
     foreach my $opt (@ARGV) {
         if ($opt =~ /^$argToCheck$/i ) {
-            @ARGV = grep(!/^$argToCheck$/i, @ARGV);
-            return 1;
+					return 1;
         }
     }
+    return 0;
+}
+
+sub checkForArgumentAndRemoveFromARGV
+{
+    my $argToCheck = shift;
+    if (checkForArgument($argToCheck)) {
+        @ARGV = grep(!/^$argToCheck$/i, @ARGV);
+        return 1;
+		}
     return 0;
 }
 
@@ -799,6 +809,18 @@ sub determineIsChromium()
 {
     return if defined($isChromium);
     $isChromium = checkForArgumentAndRemoveFromARGV("--chromium");
+}
+
+sub isCairoWin32()
+{
+    determineIsCairoWin32();
+    return $isCairoWin32;
+}
+
+sub determineIsCairoWin32()
+{
+	return if defined($isCairoWin32);
+	$isCairoWin32 = checkForArgumentAndRemoveFromARGV("--cairo-win32");
 }
 
 sub isCygwin()

@@ -2,11 +2,14 @@
 <VisualStudioPropertySheet
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="JavaScriptCoreCFLite"
+	Name="WebKitCairo"
 	>
 	<Tool
+		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="&quot;$(WebKitRequirementsDir)\include\cairo&quot;;&quot;$(WebKitRequirementsDir)\include&quot;"
+	/>
+	<Tool
 		Name="VCLinkerTool"
-		AdditionalDependencies="CFLite$(LibraryConfigSuffix).lib"
 		AdditionalLibraryDirectories="&quot;$(WebKitRequirementsDir)\lib&quot;"
 	/>
 </VisualStudioPropertySheet>
