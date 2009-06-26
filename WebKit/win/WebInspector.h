@@ -33,10 +33,11 @@
 #include <wtf/Noncopyable.h>
 
 class WebView;
+class WebInspectorClient;
 
 class WebInspector : public IWebInspector, Noncopyable {
 public:
-    static WebInspector* createInstance(WebView*);
+    static WebInspector* createInstance(WebView*, WebInspectorClient*);
 
     void webViewClosed();
 
@@ -60,12 +61,15 @@ public:
     virtual HRESULT STDMETHODCALLTYPE isJavaScriptProfilingEnabled(BOOL* isProfilingEnabled);
     virtual HRESULT STDMETHODCALLTYPE setJavaScriptProfilingEnabled(BOOL);
 
+    virtual HRESULT STDMETHODCALLTYPE setInspectorURL(BSTR url);
+    virtual HRESULT STDMETHODCALLTYPE setLocalizedStringsURL(BSTR url);
 private:
-    WebInspector(WebView*);
+    WebInspector(WebView*, WebInspectorClient*);
     ~WebInspector();
 
     ULONG m_refCount;
     WebView* m_webView;
+    WebInspectorClient *m_webInspectorClient;
 };
 
 #endif // !defined(WebInspector_h)

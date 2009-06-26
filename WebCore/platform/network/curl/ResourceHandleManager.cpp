@@ -587,7 +587,7 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     ResourceHandleInternal* d = job->getInternal();
     String url = kurl.string();
 
-    if (kurl.isLocalFile()) {
+    if (kurl.isLocalFile() || kurl.protocolIs("app") || kurl.protocolIs("ti") || kurl.protocolIs("app-storage")) {
         String query = kurl.query();
         // Remove any query part sent to a local file.
         if (!query.isEmpty()) {
@@ -629,6 +629,12 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     // and/or reporting SSL errors to the user.
     if (ignoreSSLErrors)
         curl_easy_setopt(d->m_handle, CURLOPT_SSL_VERIFYPEER, false);
+
+    char *curl_ca_bundle_path = getenv("CURL_CA_BUNDLE_PATH");
+    if (curl_ca_bundle_path != NULL) {
+        curl_easy_setopt(d->m_handle, CURLOPT_CAINFO, curl_ca_bundle_path);
+    }
+
     // enable gzip and deflate through Accept-Encoding:
     curl_easy_setopt(d->m_handle, CURLOPT_ENCODING, "");
 

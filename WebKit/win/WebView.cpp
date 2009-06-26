@@ -2320,7 +2320,8 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
         Settings::setShouldPaintNativeControls(shouldPaintNativeControls);
 #endif
 
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), new WebInspectorClient(this));
+    m_webInspectorClient = new WebInspectorClient(this);
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient);
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -2880,6 +2881,15 @@ HRESULT STDMETHODCALLTYPE WebView::setPreferences(
     nc->addObserver(this, WebPreferences::webPreferencesChangedNotification(), static_cast<IWebPreferences*>(m_preferences.get()));
 
     m_preferences->postPreferencesChangesNotification();
+    BSTR localStoragePath;
+    if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
+        m_page->settings()->setLocalStorageDatabasePath(String(localStoragePath, SysStringLen(localStoragePath)));
+
+        WebCore::String databasesDirectory = String(localStoragePath, SysStringLen(localStoragePath));
+        WebKitSetWebDatabasesPath(databasesDirectory);
+
+        SysFreeString(localStoragePath);
+    }
 
     return S_OK;
 }
@@ -5073,7 +5083,7 @@ bool WebView::onIMESetContext(WPARAM, LPARAM)
 HRESULT STDMETHODCALLTYPE WebView::inspector(IWebInspector** inspector)
 {
     if (!m_webInspector)
-        m_webInspector.adoptRef(WebInspector::createInstance(this));
+        m_webInspector.adoptRef(WebInspector::createInstance(this, m_webInspectorClient));
 
     return m_webInspector.copyRefTo(inspector);
 }

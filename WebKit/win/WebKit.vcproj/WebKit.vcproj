@@ -677,6 +677,10 @@
 				RelativePath="..\WebNodeHighlight.h"
 				>
 			</File>
+      <File
+       RelativePath="..\WebScriptElement.cpp"
+       >
+      </File>
 			<File
 				RelativePath="..\WebNotification.h"
 				>
@@ -698,6 +702,10 @@
 				>
 			</File>
 			<File
+        RelativePath="..\WebScriptElement.h"
+        >
+      </File>
+      <File
 				RelativePath="..\WebScriptObject.h"
 				>
 			</File>

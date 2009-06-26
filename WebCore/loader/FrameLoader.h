@@ -61,6 +61,7 @@ namespace WebCore {
     class ResourceError;
     class ResourceLoader;
     class ResourceResponse;
+    class ScriptEvaluator;
     class ScriptSourceCode;
     class ScriptString;
     class ScriptValue;
@@ -297,6 +298,7 @@ namespace WebCore {
 
         ScriptValue executeScript(const ScriptSourceCode&);
         ScriptValue executeScript(const String& script, bool forceUserGesture = false);
+        ScriptValue executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator *evaluator);
 
         void gotoAnchor();
 

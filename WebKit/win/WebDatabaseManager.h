@@ -85,6 +85,7 @@ private:
 };
 
 void WebKitSetWebDatabasesPathIfNecessary();
+void WebKitSetWebDatabasesPath(WebCore::String& databasesDirectory);
 
 #endif
 

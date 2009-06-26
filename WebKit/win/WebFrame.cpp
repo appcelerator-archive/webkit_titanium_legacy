@@ -100,11 +100,13 @@
 
 #include <CoreGraphics/CoreGraphics.h>
 
+#if PLATFORM(CG)
 // CG SPI used for printing
 extern "C" {
     CGAffineTransform CGContextGetBaseCTM(CGContextRef c); 
     void CGContextSetBaseCTM(CGContextRef c, CGAffineTransform m); 
 }
+#endif
 
 using namespace WebCore;
 using namespace HTMLNames;
@@ -1893,11 +1895,11 @@ HRESULT STDMETHODCALLTYPE WebFrame::spoolPages(
     GraphicsContext spoolCtx(pctx);
     spoolCtx.setShouldIncludeChildWindows(true);
 
+#if PLATFORM(CG)
     for (UINT ii = startPage; ii < endPage; ii++) {
         IntRect pageRect = m_pageRects[ii];
-		IntRect printRect = printerRect(printDC);
+        IntRect printRect = printerRect(printDC);
 		
-#if !PLATFORM(CAIRO)
         CGContextSaveGState(pctx);
         CGRect mediaBox = CGRectMake(CGFloat(0),
                                      CGFloat(0),
@@ -1917,7 +1919,6 @@ HRESULT STDMETHODCALLTYPE WebFrame::spoolPages(
         coreFrame->view()->paintContents(&spoolCtx, pageRect);
 
         CGContextTranslateCTM(pctx, CGFloat(pageRect.x()), CGFloat(pageRect.y())-headerHeight);
-#endif
 
         int x = pageRect.x();
         int y = 0;
@@ -1931,11 +1932,10 @@ HRESULT STDMETHODCALLTYPE WebFrame::spoolPages(
             RECT footerRect = {x, y, x+pageRect.width(), y+(int)footerHeight};
             ui->drawFooterInRect(d->webView, &footerRect, (OLE_HANDLE)(LONG64)pctx, ii+1, pageCount);
         }
-#if !PLATFORM(CAIRO)
-		CGContextEndPage(pctx);
+        CGContextEndPage(pctx);
         CGContextRestoreGState(pctx);
-#endif		
     }
+#endif
  
     return S_OK;
 }

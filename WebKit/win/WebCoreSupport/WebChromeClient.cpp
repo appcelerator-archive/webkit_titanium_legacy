@@ -517,6 +517,11 @@ void WebChromeClient::exceededDatabaseQuota(Frame* frame, const String& database
             uiDelegatePrivate->exceededDatabaseQuota(m_webView, kit(frame), origin.get(), BString(databaseIdentifier));
         else {
             // FIXME: remove this workaround once shipping Safari has the necessary delegate implemented.
+            if (1) {
+                const unsigned long long defaultQuota = 5 * 1024 * 1024;
+                origin->setQuota(defaultQuota);
+                return;
+            }
             TCHAR path[MAX_PATH];
             HMODULE safariHandle = GetModuleHandle(TEXT("Safari.exe"));
             if (!safariHandle)

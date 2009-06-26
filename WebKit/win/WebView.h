@@ -877,6 +877,7 @@ protected:
     COMPtr<IWebDownloadDelegate> m_downloadDelegate;
     COMPtr<WebPreferences> m_preferences;
     COMPtr<WebInspector> m_webInspector;
+    WebInspectorClient *m_webInspectorClient;
 
     bool m_userAgentOverridden;
     bool m_useBackForwardList;

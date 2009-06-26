@@ -80,6 +80,7 @@
 #include "ResourceHandle.h"
 #include "ResourceRequest.h"
 #include "ScriptController.h"
+#include "ScriptEvaluator.h"
 #include "ScriptSourceCode.h"
 #include "ScriptString.h"
 #include "ScriptValue.h"
@@ -762,6 +763,29 @@ bool FrameLoader::executeIfJavaScriptURL(const KURL& url, bool userGesture, bool
     }
 
     return true;
+}
+
+ScriptValue FrameLoader::executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator *evaluator)
+{
+    if (!evaluator || mimeType.length() == 0) {
+        return executeScript(sourceCode);
+    }
+
+    if (!m_frame->script()->isEnabled() || m_frame->script()->isPaused())
+        return ScriptValue();
+
+    bool wasRunningScript = m_isRunningScript;
+    m_isRunningScript = true;
+    // FIXME, we should eventually pull this from the ScriptEvaluator
+    ScriptValue result = ScriptValue();
+    evaluator->evaluate(mimeType, sourceCode, (void*)m_frame->script()->windowShell()->window()->globalExec());
+
+    if (!wasRunningScript) {
+        m_isRunningScript = false;
+				Document::updateStyleForAllDocuments();
+    }
+
+    return result;
 }
 
 ScriptValue FrameLoader::executeScript(const String& script, bool forceUserGesture)

@@ -36,6 +36,7 @@ public:
     ~HTMLScriptElement();
 
     virtual bool shouldExecuteAsJavaScript() const;
+    ScriptEvaluator* findEvaluator() const;
     virtual String scriptContent() const;
 
     virtual HTMLTagStatus endTagRequirement() const { return TagStatusRequired; }

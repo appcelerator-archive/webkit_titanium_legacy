@@ -29,6 +29,7 @@
 #include "MappedAttribute.h"
 #include "ScriptEventListener.h"
 #include "Text.h"
+#include "ScriptEvaluator.h"
 
 namespace WebCore {
 
@@ -54,6 +55,11 @@ bool HTMLScriptElement::isURLAttribute(Attribute* attr) const
 bool HTMLScriptElement::shouldExecuteAsJavaScript() const
 {
     return m_data.shouldExecuteAsJavaScript();
+}
+
+ScriptEvaluator* HTMLScriptElement::findEvaluator() const
+{
+    return m_data.findEvaluator();
 }
 
 void HTMLScriptElement::childrenChanged(bool changedByParser, Node* beforeChange, Node* afterChange, int childCountDelta)
