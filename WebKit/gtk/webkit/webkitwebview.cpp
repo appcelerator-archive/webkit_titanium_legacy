@@ -1171,12 +1171,13 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
             0,
             g_signal_accumulator_true_handled,
             NULL,
-            webkit_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT_OBJECT,
-            G_TYPE_BOOLEAN, 4,
+            webkit_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT_OBJECT_STRING,
+            G_TYPE_BOOLEAN, 5,
             WEBKIT_TYPE_WEB_FRAME,
             WEBKIT_TYPE_NETWORK_REQUEST,
             WEBKIT_TYPE_WEB_NAVIGATION_ACTION,
-            WEBKIT_TYPE_WEB_POLICY_DECISION);
+            WEBKIT_TYPE_WEB_POLICY_DECISION,
+            G_TYPE_STRING);
 
     /**
      * WebKitWebView::navigation-policy-decision-requested:

@@ -133,6 +133,7 @@ namespace WebCore {
             , m_currentCFChallenge(0)
 #endif
             , m_failureTimer(loader, &ResourceHandle::fireFailure)
+            , m_titaniumURL(0)
         {
             const KURL& url = m_request.url();
             m_user = url.user();
@@ -223,6 +224,7 @@ namespace WebCore {
 
         ResourceHandle::FailureType m_failureType;
         Timer<ResourceHandle> m_failureTimer;
+        char* m_titaniumURL;
     };
 
 } // namespace WebCore

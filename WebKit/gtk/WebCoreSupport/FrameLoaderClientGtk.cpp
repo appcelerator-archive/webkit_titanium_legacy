@@ -80,6 +80,8 @@ FrameLoaderClient::FrameLoaderClient(WebKitWebFrame* frame)
     , m_hasSentResponseToPlugin(false)
 {
     ASSERT(m_frame);
+    SecurityOrigin::registerURLSchemeAsLocal(String("app", strlen("app")));
+    SecurityOrigin::registerURLSchemeAsLocal(String("ti", strlen("ti")));
 }
 
 FrameLoaderClient::~FrameLoaderClient()
@@ -127,7 +129,7 @@ static String agentOS()
 #endif
 }
 
-static String composeUserAgent()
+String FrameLoaderClient::composeUserAgent()
 {
     // This is a liberal interpretation of http://www.mozilla.org/build/revised-user-agent-strings.html
     // See also http://developer.apple.com/internet/safari/faq.html#anchor2
@@ -372,7 +374,7 @@ static WebKitWebNavigationAction* getNavigationAction(const NavigationAction& ac
                                                      NULL));
 }
 
-void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFunction policyFunction, const NavigationAction& action, const ResourceRequest& resourceRequest, PassRefPtr<FormState>, const String& s)
+void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFunction policyFunction, const NavigationAction& action, const ResourceRequest& resourceRequest, PassRefPtr<FormState>, const String& frameName)
 {
     ASSERT(policyFunction);
     if (!policyFunction)
@@ -394,7 +396,10 @@ void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFuncti
     WebKitWebNavigationAction* navigationAction = getNavigationAction(action);
     gboolean isHandled = false;
 
-    g_signal_emit_by_name(webView, "new-window-policy-decision-requested", m_frame, request, navigationAction, policyDecision, &isHandled);
+    gchar* frameNameStr = strdup(frameName.utf8().data());
+
+    g_signal_emit_by_name(webView, "new-window-policy-decision-requested", m_frame, request, navigationAction, policyDecision, frameNameStr, &isHandled);
+    free(frameNameStr);
 
     g_object_unref(navigationAction);
     g_object_unref(request);

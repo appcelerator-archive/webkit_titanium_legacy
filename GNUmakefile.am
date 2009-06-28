@@ -136,7 +136,7 @@ endif
 
 # Shared libraries
 lib_LTLIBRARIES = \
-	libwebkit-1.0.la
+	libwebkittitanium-1.0.la
 
 # Convenience libraries
 noinst_LTLIBRARIES = \
@@ -156,7 +156,7 @@ nodist_EXTRA_libJavaScriptCore_la_SOURCES = \
 nodist_libJavaScriptCore_la_SOURCES = \
 	$(javascriptcore_built_sources)
 
-libJavaScriptCore_ladir = $(prefix)/include/webkit-1.0/JavaScriptCore
+libJavaScriptCore_ladir = $(prefix)/include/webkittitanium-1.0/JavaScriptCore
 libJavaScriptCore_la_HEADERS = $(javascriptcore_h_api)
 
 libJavaScriptCore_la_SOURCES = \
@@ -205,36 +205,36 @@ libWebCore_la_CPPFLAGS = \
 	$(corekit_cppflags)
 
 # WebKit
-nodist_libwebkit_1_0_la_SOURCES = \
+nodist_libwebkittitanium_1_0_la_SOURCES = \
 	$(webkitgtk_built_sources)
 
-libwebkit_1_0_ladir = $(prefix)/include/webkit-1.0/webkit
-libwebkit_1_0_la_HEADERS = \
+libwebkittitanium_1_0_ladir = $(prefix)/include/webkittitanium-1.0/webkit
+libwebkittitanium_1_0_la_HEADERS = \
 	$(webkitgtk_h_api) \
 	WebKit/gtk/webkit/webkitenumtypes.h
 
-libwebkit_1_0_la_SOURCES = \
+libwebkittitanium_1_0_la_SOURCES = \
 	$(webkitgtk_sources)
 
-libwebkit_1_0_la_CXXFLAGS = \
+libwebkittitanium_1_0_la_CXXFLAGS = \
 	$(global_cxxflags) \
 	$(corekit_cflags)
 
-libwebkit_1_0_la_CFLAGS = \
+libwebkittitanium_1_0_la_CFLAGS = \
 	$(global_cflags) \
 	$(corekit_cflags)
 
-libwebkit_1_0_la_CPPFLAGS = \
+libwebkittitanium_1_0_la_CPPFLAGS = \
 	$(corekit_cppflags) \
 	$(webkitgtk_cppflags) \
 	$(HILDON_CPPFLAGS)
 
-libwebkit_1_0_la_LDFLAGS = \
+libwebkittitanium_1_0_la_LDFLAGS = \
 	-version-info @LIBWEBKITGTK_VERSION@ \
 	$(version_script) \
 	$(no_undefined)
 
-libwebkit_1_0_la_LIBADD = \
+libwebkittitanium_1_0_la_LIBADD = \
 	-lpthread \
 	libJavaScriptCore.la \
 	libWebCore.la \
@@ -326,6 +326,7 @@ webkitgtk_h_api += \
 	WebKit/gtk/webkit/webkitwebframe.h \
 	WebKit/gtk/webkit/webkitwebhistoryitem.h \
 	WebKit/gtk/webkit/webkitwebinspector.h \
+	WebKit/gtk/webkit/webkittitanium.h \
 	WebKit/gtk/webkit/webkitwebnavigationaction.h \
 	WebKit/gtk/webkit/webkitwebpolicydecision.h \
 	WebKit/gtk/webkit/webkitwebsettings.h \
@@ -364,6 +365,7 @@ webkitgtk_sources += \
 	WebKit/gtk/webkit/webkitwebframe.cpp \
 	WebKit/gtk/webkit/webkitwebhistoryitem.cpp \
 	WebKit/gtk/webkit/webkitwebinspector.cpp \
+	WebKit/gtk/webkit/webkittitanium.cpp \
 	WebKit/gtk/webkit/webkitwebnavigationaction.cpp \
 	WebKit/gtk/webkit/webkitwebpolicydecision.cpp \
 	WebKit/gtk/webkit/webkitwebsettings.cpp \
@@ -485,7 +487,7 @@ EXTRA_DIST = \
 	$(srcdir)/WebKit/gtk/resources/*
 
 # extra resource files
-resourcesdir = ${datadir}/webkit-1.0/resources
+resourcesdir = ${datadir}/webkittitanium-1.0/resources
 dist_resources_DATA = \
 	$(shell ls $(srcdir)/WebKit/gtk/resources/*.html)
 
@@ -516,7 +518,7 @@ webkit_tests_cflags = \
 	$(LIBSOUP_CFLAGS)
 
 webkit_tests_ldadd = \
-	libwebkit-1.0.la \
+	libwebkittitanium-1.0.la \
 	$(GTK_LIBS)	\
 	$(GLIB_LIBS) \
 	$(LIBSOUP_LIBS)

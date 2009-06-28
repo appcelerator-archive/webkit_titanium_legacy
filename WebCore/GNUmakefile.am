@@ -1513,6 +1513,8 @@ webcore_sources += \
 	WebCore/platform/network/ResourceRequestBase.h \
 	WebCore/platform/network/ResourceResponseBase.cpp \
 	WebCore/platform/network/ResourceResponseBase.h \
+	WebCore/platform/network/TitaniumProtocols.cpp \
+	WebCore/platform/network/TitaniumProtocols.h \
 	WebCore/platform/text/AtomicString.cpp \
 	WebCore/platform/text/AtomicString.h \
 	WebCore/platform/text/AtomicStringHash.h \

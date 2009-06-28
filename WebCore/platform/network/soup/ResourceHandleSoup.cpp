@@ -52,6 +52,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "TitaniumProtocols.h"
 
 namespace WebCore {
 
@@ -131,6 +132,10 @@ ResourceHandleInternal::~ResourceHandleInternal()
     if (m_idleHandler) {
         g_source_remove(m_idleHandler);
         m_idleHandler = 0;
+    }
+
+    if (m_titaniumURL) {
+        free(m_titaniumURL);
     }
 }
 
@@ -573,6 +578,13 @@ bool ResourceHandle::start(Frame* frame)
     // Used to set the authentication dialog toplevel; may be NULL
     d->m_frame = frame;
 
+    if (equalIgnoringCase(protocol, "app") || equalIgnoringCase(protocol, "ti")) {
+        KURL normalized = TitaniumProtocols::NormalizeURL(url);
+        d->m_titaniumURL = strdup(normalized.string().utf8().data());
+        KURL fileURL = TitaniumProtocols::URLToFileURL(url);
+        return startGio(fileURL);
+    }
+
     if (equalIgnoringCase(protocol, "data"))
         return startData(urlString);
 
@@ -780,9 +792,16 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
 
     ResourceResponse response;
 
-    char* uri = g_file_get_uri(d->m_gfile);
-    response.setURL(KURL(KURL(), uri));
-    g_free(uri);
+    //char* uri = g_file_get_uri(d->m_gfile);
+    //response.setURL(KURL(KURL(), uri));
+    //g_free(uri);
+    if (d->m_titaniumURL != 0) {
+        response.setURL(KURL(d->m_titaniumURL));
+    } else {
+        char* uri = g_file_get_uri(d->m_gfile);
+        response.setURL(KURL(KURL(), uri));
+        g_free(uri);
+    }
 
     GError *error = 0;
     GFileInfo* info = g_file_query_info_finish(d->m_gfile, res, &error);
@@ -818,6 +837,11 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
 
     response.setMimeType(g_file_info_get_content_type(info));
     response.setExpectedContentLength(g_file_info_get_size(info));
+
+    if (d->m_titaniumURL != 0) {
+        response.setHTTPStatusCode(200);
+        response.setHTTPStatusText("OK");
+    }
 
     GTimeVal tv;
     g_file_info_get_modification_time(info, &tv);

@@ -1,0 +1,34 @@
+#ifndef WEBKIT_TITANIUM_H
+#define WEBKIT_TITANIUM_H
+#include <webkit/webkit.h>
+
+typedef void(*NormalizeURLCallback)(const char*, char*, int);
+typedef void(*URLToFileURLCallback)(const char*, char*, int);
+
+G_BEGIN_DECLS
+
+class WEBKIT_API WebKitWebScriptEvaluator {
+    public:
+        virtual bool matchesMimeType(const gchar * mimeType) = 0;
+        virtual void evaluate(const gchar *mimeType, const gchar *sourceCode, void*) = 0;
+};
+
+WEBKIT_API const gchar*
+webkit_titanium_get_user_agent                           ();
+
+WEBKIT_API void
+webkit_titanium_add_script_evaluator                     (WebKitWebScriptEvaluator *evaluator);
+
+WEBKIT_API void
+webkit_titanium_set_normalize_url_cb                     (NormalizeURLCallback cb);
+
+WEBKIT_API void
+webkit_titanium_set_url_to_file_url_cb                   (URLToFileURLCallback cb);
+
+WEBKIT_API void
+webkit_titanium_set_inspector_url                        (const gchar* url);
+
+G_END_DECLS
+
+#endif
+

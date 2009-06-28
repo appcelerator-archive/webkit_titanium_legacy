@@ -31,6 +31,7 @@ using namespace WebCore;
 
 namespace WebKit {
 
+char* CustomGtkWebInspectorPath = 0;
 static void notifyWebViewDestroyed(WebKitWebView* webView, InspectorClient* inspectorClient)
 {
     inspectorClient->webViewDestroyed();
@@ -92,7 +93,14 @@ Page* InspectorClient::createPage()
     g_signal_connect(m_webView, "destroy",
                      G_CALLBACK(notifyWebViewDestroyed), (gpointer)this);
 
-    gchar* inspectorURI = g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/inspector.html", NULL, NULL);
+    gchar* inspectorURI;
+    if (CustomGtkWebInspectorPath) {
+        String url = CustomGtkWebInspectorPath;
+        url.append("/inspector.html");
+        inspectorURI = g_filename_to_uri(url.utf8().data(), NULL, NULL);
+    } else {
+         inspectorURI = g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/inspector.html", NULL, NULL);
+    }
     webkit_web_view_load_uri(m_webView, inspectorURI);
     g_free(inspectorURI);
 
@@ -104,7 +112,17 @@ Page* InspectorClient::createPage()
 String InspectorClient::localizedStringsURL()
 {
     // FIXME: support l10n of localizedStrings.js
-    return String::fromUTF8(g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/localizedStrings.js", NULL, NULL));
+    gchar* stringsURI;
+    if (CustomGtkWebInspectorPath) {
+        String url = CustomGtkWebInspectorPath;
+        url.append("/localizedStrings.js");
+        stringsURI = g_filename_to_uri(url.utf8().data(), NULL, NULL);
+    } else {
+        stringsURI = g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/localizedStrings.js", NULL, NULL);
+    }
+    String result = String::fromUTF8(stringsURI);
+    g_free(stringsURI);
+    return result;
 }
 
 String InspectorClient::hiddenPanels()
