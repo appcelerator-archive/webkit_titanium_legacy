@@ -2387,6 +2387,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 1C9051440BA9E8A70081E9D0 /* DebugRelease.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_$(REAL_PLATFORM_NAME))";
+				ARCHS_macosx_1050 = "$(ARCHS_STANDARD_32_64_BIT)";
+				ONLY_ACTIVE_ARCH = NO;
 				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Release;
@@ -2395,6 +2398,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 1C9051450BA9E8A70081E9D0 /* Base.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_$(REAL_PLATFORM_NAME))";
 			};
 			name = Production;
 		};

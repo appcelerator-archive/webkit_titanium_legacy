@@ -79,7 +79,7 @@
 		1C9051A20BA9F3050081E9D0 /* Version.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		DD66F3D508F73ED700C75FD7 /* Info.plist */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
 		DD66F3D608F73ED700C75FD7 /* JavaScriptGlue.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = JavaScriptGlue.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		DD66F3F508F7401B00C75FD7 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = JavaScriptCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD66F3F508F7401B00C75FD7 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = ../../../JavaScriptCore/build/Release/JavaScriptCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F11798B20262465703CA149D /* JavaScriptGlue.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JavaScriptGlue.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
 		F11798B30262465703CA149D /* JavaScriptGlue.h */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JavaScriptGlue.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
 		F11798B6026246FD03CA149D /* JSUtils.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSUtils.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
@@ -504,6 +504,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 1C9051A00BA9F3050081E9D0 /* DebugRelease.xcconfig */;
 			buildSettings = {
+				ARCHS_1050 = "$(ARCHS_STANDARD_32_64_BIT)";
+				ONLY_ACTIVE_ARCH = NO;
 				STRIP_INSTALLED_PRODUCT = NO;
 			};
 			name = Release;
