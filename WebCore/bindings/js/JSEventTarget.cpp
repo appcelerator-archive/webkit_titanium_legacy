@@ -50,17 +50,22 @@
 #endif
 
 #if ENABLE(WORKERS)
+#include "DedicatedWorkerContext.h"
+#include "JSDedicatedWorkerContext.h"
 #include "JSWorker.h"
-#include "JSWorkerContext.h"
 #include "Worker.h"
-#include "WorkerContext.h"
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+#include "JSSharedWorker.h"
+#include "SharedWorker.h"
 #endif
 
 using namespace JSC;
 
 namespace WebCore {
 
-JSValue toJS(ExecState* exec, EventTarget* target)
+JSValue toJS(ExecState* exec, JSDOMGlobalObject*, EventTarget* target)
 {
     if (!target)
         return jsNull();
@@ -78,16 +83,14 @@ JSValue toJS(ExecState* exec, EventTarget* target)
         return toJS(exec, domWindow);
 
     if (XMLHttpRequest* xhr = target->toXMLHttpRequest())
-        // XMLHttpRequest is always created via JS, so we don't need to use cacheDOMObject() here.
-        return getCachedDOMObjectWrapper(exec->globalData(), xhr);
+        return toJS(exec, xhr);
 
     if (XMLHttpRequestUpload* upload = target->toXMLHttpRequestUpload())
         return toJS(exec, upload);
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
     if (DOMApplicationCache* cache = target->toDOMApplicationCache())
-        // DOMApplicationCache is always created via JS, so we don't need to use cacheDOMObject() here.
-        return getCachedDOMObjectWrapper(exec->globalData(), cache);
+        return toJS(exec, cache);
 #endif
 
     if (MessagePort* messagePort = target->toMessagePort())
@@ -97,8 +100,13 @@ JSValue toJS(ExecState* exec, EventTarget* target)
     if (Worker* worker = target->toWorker())
         return toJS(exec, worker);
 
-    if (WorkerContext* workerContext = target->toWorkerContext())
+    if (DedicatedWorkerContext* workerContext = target->toDedicatedWorkerContext())
         return toJSDOMGlobalObject(workerContext);
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+    if (SharedWorker* sharedWorker = target->toSharedWorker())
+        return toJS(exec, sharedWorker);
 #endif
 
     ASSERT_NOT_REACHED();
@@ -129,7 +137,11 @@ EventTarget* toEventTarget(JSC::JSValue value)
 
 #if ENABLE(WORKERS)
     CONVERT_TO_EVENT_TARGET(Worker)
-    CONVERT_TO_EVENT_TARGET(WorkerContext)
+    CONVERT_TO_EVENT_TARGET(DedicatedWorkerContext)
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+    CONVERT_TO_EVENT_TARGET(SharedWorker)
 #endif
 
     return 0;

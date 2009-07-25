@@ -189,7 +189,7 @@ static inline void addTypesFromClass(NSMutableDictionary *allTypes, Class objCCl
 
 - (NSString *)_responseMIMEType
 {
-    return [[self response] _webcore_MIMEType];
+    return [[self response] MIMEType];
 }
 
 - (BOOL)_transferApplicationCache:(NSString*)destinationBundleIdentifier
@@ -342,7 +342,7 @@ static inline void addTypesFromClass(NSMutableDictionary *allTypes, Class objCCl
     return [WebView canShowMIMETypeAsHTML:MIMEType];
 }
 
--(void)_makeRepresentation
+- (void)_makeRepresentation
 {
     Class repClass = [[self class] _representationClassForMIMEType:[self _responseMIMEType]];
     
@@ -352,8 +352,13 @@ static inline void addTypesFromClass(NSMutableDictionary *allTypes, Class objCCl
         [self _setRepresentation:(id <WebDocumentRepresentation>)newRep];
         [newRep release];
     }
-    
+
     [_private->representation setDataSource:self];
+
+    // The following is a no-op for WebHTMLRepresentation, but for custom document types
+    // like the ones that Safari uses for bookmarks it is the only way the DocumentLoader
+    // will get the proper title.
+    _private->loader->setTitle([_private->representation title]);
 }
 
 - (DocumentLoader*)_documentLoader

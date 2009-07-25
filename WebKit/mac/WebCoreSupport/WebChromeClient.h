@@ -73,7 +73,7 @@ public:
     
     virtual void setResizable(bool);
     
-    virtual void addMessageToConsole(WebCore::MessageSource source, WebCore::MessageLevel level, const WebCore::String& message, unsigned int lineNumber, const WebCore::String& sourceURL);
+    virtual void addMessageToConsole(WebCore::MessageSource source, WebCore::MessageType type, WebCore::MessageLevel level, const WebCore::String& message, unsigned int lineNumber, const WebCore::String& sourceURL);
 
     virtual bool canRunBeforeUnloadConfirmPanel();
     virtual bool runBeforeUnloadConfirmPanel(const WebCore::String& message, WebCore::Frame* frame);
@@ -101,11 +101,14 @@ public:
 
     virtual void mouseDidMoveOverElement(const WebCore::HitTestResult&, unsigned modifierFlags);
 
-    virtual void setToolTip(const WebCore::String&);
+    virtual void setToolTip(const WebCore::String&, WebCore::TextDirection);
 
     virtual void print(WebCore::Frame*);
 #if ENABLE(DATABASE)
     virtual void exceededDatabaseQuota(WebCore::Frame*, const WebCore::String& databaseName);
+#endif
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    virtual void reachedMaxAppCacheSize(int64_t spaceNeeded);
 #endif
     virtual void populateVisitedLinks();
 
@@ -133,7 +136,10 @@ public:
     virtual bool shouldReplaceWithGeneratedFileForUpload(const WebCore::String& path, WebCore::String &generatedFilename);
     virtual WebCore::String generateReplacementFile(const WebCore::String& path);
 
-    virtual void formStateDidChange(const WebCore::Node*) { }
+    virtual void formStateDidChange(const WebCore::Node*);
+
+    virtual void formDidFocus(const WebCore::Node*);
+    virtual void formDidBlur(const WebCore::Node*);
 
     virtual PassOwnPtr<WebCore::HTMLParserQuirks> createHTMLParserQuirks() { return 0; }
 

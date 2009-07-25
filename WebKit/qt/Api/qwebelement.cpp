@@ -46,8 +46,7 @@
 
 using namespace WebCore;
 
-class QWebElementPrivate
-{
+class QWebElementPrivate {
 public:
 };
 
@@ -55,7 +54,6 @@ public:
     \class QWebElement
     \since 4.6
     \brief The QWebElement class provides convenience access to DOM elements in a QWebFrame.
-    \preliminary
 
     QWebElement is the main class to provide easy access to the document model.
     The document model is represented by a tree-like structure of DOM elements.
@@ -743,7 +741,7 @@ QStringList QWebElement::functions() const
             continue;
 
         JSC::UString ustring = (*it).ustring();
-        names << QString::fromUtf16((const ushort*)ustring.rep()->data(),ustring.size());
+        names << QString::fromUtf16((const ushort*)ustring.rep()->data(), ustring.size());
     }
 
     if (state->hadException())
@@ -868,7 +866,7 @@ QStringList QWebElement::scriptableProperties() const
             continue;
 
         JSC::UString ustring = (*it).ustring();
-        names << QString::fromUtf16((const ushort*)ustring.rep()->data(),ustring.size());
+        names << QString::fromUtf16((const ushort*)ustring.rep()->data(), ustring.size());
     }
 
     if (exec->hadException())

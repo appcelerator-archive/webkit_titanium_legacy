@@ -147,6 +147,7 @@ public:
     virtual IntRect boundingBoxRect() const;
     virtual IntRect elementRect() const;
     virtual IntSize size() const;
+    virtual IntPoint clickPoint() const;
     
     void setRenderer(RenderObject* renderer) { m_renderer = renderer; }
     RenderObject* renderer() const { return m_renderer; }
@@ -177,6 +178,7 @@ public:
     virtual Widget* widgetForAttachmentView() const;
     virtual void getDocumentLinks(AccessibilityChildrenVector&);
     virtual FrameView* documentFrameView() const;
+    virtual String language() const;
     
     virtual const AccessibilityChildrenVector& children();
     
@@ -226,6 +228,7 @@ protected:
 private:
     void ariaListboxSelectedChildren(AccessibilityChildrenVector&);
     void ariaListboxVisibleChildren(AccessibilityChildrenVector&);
+    bool ariaIsHidden() const;
 
     Element* menuElementForMenuButton() const;
     Element* menuItemElementForMenu() const; 

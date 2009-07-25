@@ -81,6 +81,7 @@ public:
     JSStringRef role();
     JSStringRef title();
     JSStringRef description();
+    JSStringRef language();
     double x();
     double y();
     double width();
@@ -91,6 +92,9 @@ public:
     int insertionPointLineNumber();
     JSStringRef selectedTextRange();
     bool supportsPressAction();
+    bool isEnabled();
+    double clickPointX();
+    double clickPointY();
 
     // Table-specific attributes
     JSStringRef attributesOfColumnHeaders();

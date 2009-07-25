@@ -1094,7 +1094,8 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
 {
     [super setLayer:newLayer];
 
-    if (_pluginLayer) {
+    if (newLayer && _pluginLayer) {
+        _pluginLayer.get().frame = [newLayer frame];
         _pluginLayer.get().autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
         [newLayer addSublayer:_pluginLayer.get()];
     }
@@ -1465,7 +1466,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
                                                             contentURL:[response URL]
                                                          pluginPageURL:nil
                                                             pluginName:nil // FIXME: Get this from somewhere
-                                                              MIMEType:[response _webcore_MIMEType]];
+                                                              MIMEType:[response MIMEType]];
             [[self dataSource] _documentLoader]->cancelMainResourceLoad(error);
             [error release];
             return;
@@ -1904,7 +1905,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
 -(void)invalidateRect:(NPRect *)invalidRect
 {
     LOG(Plugins, "NPN_InvalidateRect");
-    [self setNeedsDisplayInRect:NSMakeRect(invalidRect->left, invalidRect->top,
+    [self invalidatePluginContentRect:NSMakeRect(invalidRect->left, invalidRect->top,
         (float)invalidRect->right - invalidRect->left, (float)invalidRect->bottom - invalidRect->top)];
 }
 
@@ -1934,13 +1935,13 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
         break;
     }
     
-    [self setNeedsDisplayInRect:invalidRect];
+    [self invalidatePluginContentRect:invalidRect];
 }
 
 -(void)forceRedraw
 {
     LOG(Plugins, "forceRedraw");
-    [self setNeedsDisplay:YES];
+    [self invalidatePluginContentRect:[self bounds]];
     [[self window] displayIfNeeded];
 }
 

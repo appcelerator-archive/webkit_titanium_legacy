@@ -23,6 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#import "config.h"
 #import "DumpRenderTree.h"
 #import "AccessibilityUIElement.h"
 
@@ -318,6 +319,12 @@ JSStringRef AccessibilityUIElement::description()
     return concatenateAttributeAndValue(@"AXDescription", description);
 }
 
+JSStringRef AccessibilityUIElement::language()
+{
+    id description = descriptionOfValue([m_element accessibilityAttributeValue:@"AXLanguage"], m_element);
+    return concatenateAttributeAndValue(@"AXLanguage", description);
+}
+
 double AccessibilityUIElement::x()
 {
     NSValue* positionValue = [m_element accessibilityAttributeValue:NSAccessibilityPositionAttribute];
@@ -340,6 +347,18 @@ double AccessibilityUIElement::height()
 {
     NSValue* sizeValue = [m_element accessibilityAttributeValue:NSAccessibilitySizeAttribute];
     return static_cast<double>([sizeValue sizeValue].height);
+}
+
+double AccessibilityUIElement::clickPointX()
+{
+    NSValue* positionValue = [m_element accessibilityAttributeValue:@"AXClickPoint"];
+    return static_cast<double>([positionValue pointValue].x);        
+}
+
+double AccessibilityUIElement::clickPointY()
+{
+    NSValue* positionValue = [m_element accessibilityAttributeValue:@"AXClickPoint"];
+    return static_cast<double>([positionValue pointValue].x);            
 }
 
 double AccessibilityUIElement::intValue()
@@ -378,6 +397,14 @@ bool AccessibilityUIElement::supportsPressAction()
 {
     NSArray* actions = [m_element accessibilityActionNames];
     return [actions containsObject:NSAccessibilityPressAction];
+}
+
+bool AccessibilityUIElement::isEnabled()
+{
+    id value = [m_element accessibilityAttributeValue:NSAccessibilityEnabledAttribute];
+    if ([value isKindOfClass:[NSNumber class]])
+        return [value boolValue];
+    return false;
 }
 
 // parameterized attributes

@@ -588,19 +588,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\runtime\DateInstance.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\runtime\DateInstance.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\runtime\DateConversion.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\..\runtime\DateConversion.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\runtime\DateInstance.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\runtime\DateInstance.h"
 				>
 			</File>
 			<File
@@ -796,19 +796,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\runtime\JSONObject.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\runtime\JSONObject.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\runtime\JSObject.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\..\runtime\JSObject.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\runtime\JSONObject.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\runtime\JSONObject.h"
 				>
 			</File>
 			<File
@@ -1609,6 +1609,14 @@
 			>
 			<File
 				RelativePath="..\..\assembler\AbstractMacroAssembler.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\assembler\LinkBuffer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\assembler\RepatchBuffer.h"
 				>
 			</File>
 			<File

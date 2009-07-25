@@ -55,6 +55,7 @@
 #include "LocalizedStrings.h"
 #include "NodeList.h"
 #include "Page.h"
+#include "RenderButton.h"
 #include "RenderFieldset.h"
 #include "RenderFileUploadControl.h"
 #include "RenderHTMLCanvas.h"
@@ -656,6 +657,25 @@ String AccessibilityRenderObject::helpText() const
     
     return String();
 }
+    
+String AccessibilityRenderObject::language() const
+{
+    if (!m_renderer)
+        return String();
+    
+    // Defer to parent if this element doesn't have a language set
+    Node* node = m_renderer->node();
+    if (!node)
+        return AccessibilityObject::language();
+    
+    if (!node->isElementNode())
+        return AccessibilityObject::language();
+    
+    String language = static_cast<Element*>(node)->getAttribute(langAttr);
+    if (language.isEmpty())
+        return AccessibilityObject::language();
+    return language;
+}
 
 String AccessibilityRenderObject::textUnderElement() const
 {
@@ -754,6 +774,9 @@ String AccessibilityRenderObject::stringValue() const
     if (m_renderer->isListMarker())
         return static_cast<RenderListMarker*>(m_renderer)->text();
     
+    if (m_renderer->isRenderButton())
+        return static_cast<RenderButton*>(m_renderer)->text();
+
     if (isWebArea()) {
         if (m_renderer->document()->frame())
             return String();
@@ -947,6 +970,10 @@ String AccessibilityRenderObject::accessibilityDescription() const
     if (!m_renderer)
         return String();
 
+    String ariaLabel = getAttribute(aria_labelAttr).string();
+    if (!ariaLabel.isEmpty())
+        return ariaLabel;
+    
     String ariaDescription = ariaDescribedByAttribute();
     if (!ariaDescription.isEmpty())
         return ariaDescription;
@@ -1044,6 +1071,21 @@ IntSize AccessibilityRenderObject::size() const
     return rect.size();
 }
 
+IntPoint AccessibilityRenderObject::clickPoint() const
+{
+    // use the default position unless this is an editable web area, in which case we use the selection bounds.
+    if (!isWebArea() || isReadOnly())
+        return AccessibilityObject::clickPoint();
+    
+    VisibleSelection visSelection = selection();
+    VisiblePositionRange range = VisiblePositionRange(visSelection.visibleStart(), visSelection.visibleEnd());
+    IntRect bounds = boundsForVisiblePositionRange(range);
+#if PLATFORM(MAC)
+    bounds.setLocation(m_renderer->document()->view()->screenToContents(bounds.location()));
+#endif        
+    return IntPoint(bounds.x() + (bounds.width() / 2), bounds.y() - (bounds.height() / 2));
+}
+    
 AccessibilityObject* AccessibilityRenderObject::internalLinkElement() const
 {
     Element* element = anchorElement();
@@ -1167,12 +1209,31 @@ AccessibilityObject* AccessibilityRenderObject::titleUIElement() const
     return 0;   
 }
     
+bool AccessibilityRenderObject::ariaIsHidden() const
+{
+    if (equalIgnoringCase(getAttribute(aria_hiddenAttr).string(), "true"))
+        return true;
+    
+    // aria-hidden hides this object and any children
+    AccessibilityObject* object = parentObject();
+    while (object) {
+        if (object->isAccessibilityRenderObject() && equalIgnoringCase(static_cast<AccessibilityRenderObject*>(object)->getAttribute(aria_hiddenAttr).string(), "true"))
+            return true;
+        object = object->parentObject();
+    }
+
+    return false;
+}
+
 bool AccessibilityRenderObject::accessibilityIsIgnored() const
 {
     // ignore invisible element
     if (!m_renderer || m_renderer->style()->visibility() != VISIBLE)
         return true;
 
+    if (ariaIsHidden())
+        return true;
+    
     if (isPresentationalChildOfAriaRole())
         return true;
         
@@ -1252,13 +1313,13 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
             return false;
         }
         
-        // check for one-dimensional image
-        RenderImage* image = toRenderImage(m_renderer);
-        if (image->height() <= 1 || image->width() <= 1)
-            return true;
-        
-        // check whether rendered image was stretched from one-dimensional file image
         if (isNativeImage()) {
+            // check for one-dimensional image
+            RenderImage* image = toRenderImage(m_renderer);
+            if (image->height() <= 1 || image->width() <= 1)
+                return true;
+            
+            // check whether rendered image was stretched from one-dimensional file image
             if (image->cachedImage()) {
                 IntSize imageSize = image->cachedImage()->imageSize(image->view()->zoomFactor());
                 return imageSize.height() <= 1 || imageSize.width() <= 1;
@@ -1512,6 +1573,10 @@ void AccessibilityRenderObject::setValue(const String& string)
 bool AccessibilityRenderObject::isEnabled() const
 {
     ASSERT(m_renderer);
+    
+    if (equalIgnoringCase(getAttribute(aria_disabledAttr).string(), "true"))
+        return false;
+    
     Node* node = m_renderer->node();
     if (!node || !node->isElementNode())
         return true;
@@ -2143,7 +2208,8 @@ static const ARIARoleMap& createARIARoleMap()
         { "range", SliderRole },
         { "slider", SliderRole },
         { "spinbutton", ProgressIndicatorRole },
-        { "textbox", TextAreaRole }
+        { "textbox", TextAreaRole },
+        { "toolbar", ToolbarRole }
     };
     ARIARoleMap& roleMap = *new ARIARoleMap;
         
@@ -2263,6 +2329,9 @@ AccessibilityRole AccessibilityRenderObject::roleValue() const
     if (node && node->hasTagName(dtTag))
         return DefinitionListTermRole;
 
+    if (node && (node->hasTagName(rpTag) || node->hasTagName(rtTag)))
+        return AnnotationRole;
+    
     if (m_renderer->isBlockFlow() || (node && node->hasTagName(labelTag)))
         return GroupRole;
     
@@ -2323,6 +2392,9 @@ bool AccessibilityRenderObject::canSetFocusAttribute() const
 
 bool AccessibilityRenderObject::canSetValueAttribute() const
 {
+    if (equalIgnoringCase(getAttribute(aria_readonlyAttr).string(), "true"))
+        return false;
+
     if (isWebArea()) 
         return !isReadOnly();
 

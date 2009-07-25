@@ -28,6 +28,9 @@ module html {
                  attribute [ConvertNullToNullString] DOMString defaultValue;
                  attribute boolean         defaultChecked;
         readonly attribute HTMLFormElement form;
+#if !defined(LANGUAGE_COM) || !LANGUAGE_COM
+        readonly attribute ValidityState   validity;
+#endif
                  attribute [ConvertNullToNullString] DOMString accept;
                  attribute [ConvertNullToNullString] DOMString accessKey;
                  attribute [ConvertNullToNullString] DOMString align;
@@ -40,6 +43,7 @@ module html {
                  attribute [ConvertNullToNullString] DOMString name;
                  attribute DOMString       placeholder;
                  attribute boolean         readOnly;
+                 attribute boolean         required;
 #if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
                  attribute [ConvertToString] DOMString size; // DOM level 2 changed this to a long, but our existing API is a string
 #else
@@ -69,7 +73,7 @@ module html {
         readonly attribute URL             absoluteImageURL;
 #endif
 
-#if !defined(LANGUAGE_COM)
+#if !defined(LANGUAGE_COM) || !LANGUAGE_COM
         readonly attribute FileList files;
 #endif
     };

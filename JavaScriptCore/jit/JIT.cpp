@@ -26,6 +26,12 @@
 #include "config.h"
 #include "JIT.h"
 
+// This probably does not belong here; adding here for now as a quick Windows build fix.
+#if ENABLE(ASSEMBLER) && PLATFORM(X86) && !PLATFORM(MAC)
+#include "MacroAssembler.h"
+JSC::MacroAssemblerX86Common::SSE2CheckState JSC::MacroAssemblerX86Common::s_sse2CheckState = NotCheckedSSE2;
+#endif
+
 #if ENABLE(JIT)
 
 #include "CodeBlock.h"
@@ -34,6 +40,8 @@
 #include "JITStubCall.h"
 #include "JSArray.h"
 #include "JSFunction.h"
+#include "LinkBuffer.h"
+#include "RepatchBuffer.h"
 #include "ResultType.h"
 #include "SamplingTool.h"
 
@@ -45,21 +53,21 @@ using namespace std;
 
 namespace JSC {
 
-void ctiPatchNearCallByReturnAddress(ReturnAddressPtr returnAddress, MacroAssemblerCodePtr newCalleeFunction)
+void ctiPatchNearCallByReturnAddress(CodeBlock* codeblock, ReturnAddressPtr returnAddress, MacroAssemblerCodePtr newCalleeFunction)
 {
-    MacroAssembler::RepatchBuffer repatchBuffer;
+    RepatchBuffer repatchBuffer(codeblock);
     repatchBuffer.relinkNearCallerToTrampoline(returnAddress, newCalleeFunction);
 }
 
-void ctiPatchCallByReturnAddress(ReturnAddressPtr returnAddress, MacroAssemblerCodePtr newCalleeFunction)
+void ctiPatchCallByReturnAddress(CodeBlock* codeblock, ReturnAddressPtr returnAddress, MacroAssemblerCodePtr newCalleeFunction)
 {
-    MacroAssembler::RepatchBuffer repatchBuffer;
+    RepatchBuffer repatchBuffer(codeblock);
     repatchBuffer.relinkCallerToTrampoline(returnAddress, newCalleeFunction);
 }
 
-void ctiPatchCallByReturnAddress(ReturnAddressPtr returnAddress, FunctionPtr newCalleeFunction)
+void ctiPatchCallByReturnAddress(CodeBlock* codeblock, ReturnAddressPtr returnAddress, FunctionPtr newCalleeFunction)
 {
-    MacroAssembler::RepatchBuffer repatchBuffer;
+    RepatchBuffer repatchBuffer(codeblock);
     repatchBuffer.relinkCallerToFunction(returnAddress, newCalleeFunction);
 }
 
@@ -275,7 +283,6 @@ void JIT::privateCompileMainPass()
         DEFINE_OP(op_throw)
         DEFINE_OP(op_to_jsnumber)
         DEFINE_OP(op_to_primitive)
-        DEFINE_OP(op_unexpected_load)
 
         case op_get_array_length:
         case op_get_by_id_chain:
@@ -489,6 +496,7 @@ void JIT::privateCompile()
 #if ENABLE(JIT_OPTIMIZE_CALL)
     for (unsigned i = 0; i < m_codeBlock->numberOfCallLinkInfos(); ++i) {
         CallLinkInfo& info = m_codeBlock->callLinkInfo(i);
+        info.ownerCodeBlock = m_codeBlock;
         info.callReturnLocation = patchBuffer.locationOfNearCall(m_callStructureStubCompilationInfo[i].callReturnLocation);
         info.hotPathBegin = patchBuffer.locationOf(m_callStructureStubCompilationInfo[i].hotPathBegin);
         info.hotPathOther = patchBuffer.locationOfNearCall(m_callStructureStubCompilationInfo[i].hotPathOther);
@@ -904,14 +912,14 @@ void JIT::unlinkCall(CallLinkInfo* callLinkInfo)
     // When the JSFunction is deleted the pointer embedded in the instruction stream will no longer be valid
     // (and, if a new JSFunction happened to be constructed at the same location, we could get a false positive
     // match).  Reset the check so it no longer matches.
-    RepatchBuffer repatchBuffer;
+    RepatchBuffer repatchBuffer(callLinkInfo->ownerCodeBlock);
     repatchBuffer.repatch(callLinkInfo->hotPathBegin, JSValue::encode(JSValue()));
 }
 
-void JIT::linkCall(JSFunction* callee, CodeBlock* calleeCodeBlock, JITCode& code, CallLinkInfo* callLinkInfo, int callerArgCount, JSGlobalData* globalData)
+void JIT::linkCall(JSFunction* callee, CodeBlock* callerCodeBlock, CodeBlock* calleeCodeBlock, JITCode& code, CallLinkInfo* callLinkInfo, int callerArgCount, JSGlobalData* globalData)
 {
     ASSERT(calleeCodeBlock);
-    RepatchBuffer repatchBuffer;
+    RepatchBuffer repatchBuffer(callerCodeBlock);
 
     // Currently we only link calls with the exact number of arguments.
     // If this is a native call calleeCodeBlock is null so the number of parameters is unimportant
@@ -932,12 +940,3 @@ void JIT::linkCall(JSFunction* callee, CodeBlock* calleeCodeBlock, JITCode& code
 } // namespace JSC
 
 #endif // ENABLE(JIT)
-
-// This probably does not belong here; adding here for now as a quick Windows build fix.
-#if ENABLE(ASSEMBLER)
-
-#if PLATFORM(X86) && !PLATFORM(MAC)
-JSC::MacroAssemblerX86Common::SSE2CheckState JSC::MacroAssemblerX86Common::s_sse2CheckState = NotCheckedSSE2;
-#endif
-
-#endif

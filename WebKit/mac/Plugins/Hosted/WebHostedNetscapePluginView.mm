@@ -121,6 +121,7 @@ extern "C" {
 
 - (void)setLayer:(CALayer *)newLayer
 {
+    // FIXME: This should use the same implementation as WebNetscapePluginView (and move to the base class).
     [super setLayer:newLayer];
     
     if (_pluginLayer)
@@ -321,7 +322,7 @@ extern "C" {
     // No need for us to be layer backed anymore
     self.wantsLayer = NO;
     
-    [self setNeedsDisplay:YES];
+    [self invalidatePluginContentRect:[self bounds]];
 }
 
 

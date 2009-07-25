@@ -1,4 +1,5 @@
 # Copyright (c) 2009, Google Inc. All rights reserved.
+# Copyright (c) 2009 Apple Inc. All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -29,28 +30,66 @@
 # WebKit's Python module for interacting with Bugzilla
 
 import getpass
+import platform
+import re
 import subprocess
-import sys
 import urllib2
 
+from datetime import datetime # used in timestamp()
+
+# Import WebKit-specific modules.
+from modules.logging import error, log
+
+# WebKit includes a built copy of BeautifulSoup in Scripts/modules
+# so this import should always succeed.
+from .BeautifulSoup import BeautifulSoup
+
 try:
-    from BeautifulSoup import BeautifulSoup
     from mechanize import Browser
 except ImportError, e:
     print """
-BeautifulSoup and mechanize are required.
+mechanize is required.
 
 To install:
-sudo easy_install BeautifulSoup mechanize
+sudo easy_install mechanize
 
 Or from the web:
-http://www.crummy.com/software/BeautifulSoup/
 http://wwwsearch.sourceforge.net/mechanize/
 """
     exit(1)
 
-def log(string):
-    print >> sys.stderr, string
+def credentials_from_git():
+    return [read_config("username"), read_config("password")]
+
+def credentials_from_keychain(username=None):
+    if not is_mac_os_x():
+        return [username, None]
+
+    command = "/usr/bin/security %s -g -s %s" % ("find-internet-password", Bugzilla.bug_server_host)
+    if username:
+        command += " -a %s" % username
+
+    log('Reading Keychain for %s account and password.  Click "Allow" to continue...' % Bugzilla.bug_server_host)
+    keychain_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    value = keychain_process.communicate()[0]
+    exit_code = keychain_process.wait()
+
+    if exit_code:
+        return [username, None]
+
+    match = re.search('^\s*"acct"<blob>="(?P<username>.+)"', value, re.MULTILINE)
+    if match:
+        username = match.group('username')
+
+    password = None
+    match = re.search('^password: "(?P<password>.+)"', value, re.MULTILINE)
+    if match:
+        password = match.group('password')
+
+    return [username, password]
+
+def is_mac_os_x():
+    return platform.mac_ver()[0]
 
 # FIXME: This should not depend on git for config storage
 def read_config(key):
@@ -63,24 +102,45 @@ def read_config(key):
         return None
     return value.rstrip('\n')
 
+def read_credentials():
+    (username, password) = credentials_from_git()
+
+    if not username or not password:
+        (username, password) = credentials_from_keychain(username)
+
+    if not username:
+        username = raw_input("Bugzilla login: ")
+    if not password:
+        password = getpass.getpass("Bugzilla password for %s: " % username)
+
+    return [username, password]
+
+def timestamp():
+    return datetime.now().strftime("%Y%m%d%H%M%S")
+
 class Bugzilla:
     def __init__(self, dryrun=False):
         self.dryrun = dryrun
         self.authenticated = False
-        
-        # Defaults (until we support better option parsing):
-        self.bug_server = "https://bugs.webkit.org/"
-        
+
         self.browser = Browser()
         # Ignore bugs.webkit.org/robots.txt until we fix it to allow this script
         self.browser.set_handle_robots(False)
+
+    # Defaults (until we support better option parsing):
+    bug_server_host = "bugs.webkit.org"
+    bug_server_regex = "https?://%s/" % re.sub('\.', '\\.', bug_server_host)
+    bug_server_url = "https://%s/" % bug_server_host
 
     # This could eventually be a text file
     reviewer_usernames_to_full_names = {
         "abarth" : "Adam Barth",
         "adele" : "Adele Peterson",
+        "andersca" : "Anders Carlsson",
+        "aroben" : "Adam Roben",
         "ap" : "Alexey Proskuryakov",
         "ariya.hidayat" : "Ariya Hidayat",
+        "barraclough" : "Gavin Barraclough",
         "beidson" : "Brady Eidson",
         "darin" : "Darin Adler",
         "ddkilzer" : "David Kilzer",
@@ -88,19 +148,23 @@ class Bugzilla:
         "eric" : "Eric Seidel",
         "fishd" : "Darin Fisher",
         "gns" : "Gustavo Noronha",
+        "hausmann" : "Simon Hausmann",
         "hyatt" : "David Hyatt",
         "jmalonzo" : "Jan Alonzo",
         "justin.garcia" : "Justin Garcia",
         "kevino" : "Kevin Ollivier",
+        "koivisto" : "Antti Koivisto",
         "levin" : "David Levin",
         "mitz" : "Dan Bernstein",
         "mjs" : "Maciej Stachowiak",
         "mrowe" : "Mark Rowe",
         "oliver" : "Oliver Hunt",
         "sam" : "Sam Weinig",
+        "simon.fraser" : "Simon Fraser",
         "staikos" : "George Staikos",
         "timothy" : "Timothy Hatcher",
         "treat" : "Adam Treat",
+        "vestbo" : u'Tor Arne Vestb\xf8',
         "xan.lopez" : "Xan Lopez",
         "zecke" : "Holger Freyther",
         "zimmermann" : "Nikolas Zimmermann",
@@ -111,65 +175,62 @@ class Bugzilla:
             raise Exception("ERROR: Unknown reviewer! " + bugzilla_name)
         return self.reviewer_usernames_to_full_names[bugzilla_name]
 
-    def bug_url_for_bug_id(self, bug_id):
-        bug_base_url = self.bug_server + "show_bug.cgi?id="
-        return "%s%s" % (bug_base_url, bug_id)
+    def bug_url_for_bug_id(self, bug_id, xml=False):
+        content_type = "&ctype=xml" if xml else ""
+        return "%sshow_bug.cgi?id=%s%s" % (self.bug_server_url, bug_id, content_type)
     
     def attachment_url_for_id(self, attachment_id, action="view"):
-        attachment_base_url = self.bug_server + "attachment.cgi?id="
-        return "%s%s&action=%s" % (attachment_base_url, attachment_id, action)
+        action_param = ""
+        if action and action != "view":
+            action_param = "&action=" + action
+        return "%sattachment.cgi?id=%s%s" % (self.bug_server_url, attachment_id, action_param)
 
     def fetch_attachments_from_bug(self, bug_id):
-        bug_url = self.bug_url_for_bug_id(bug_id)
+        bug_url = self.bug_url_for_bug_id(bug_id, xml=True)
         log("Fetching: " + bug_url)
 
         page = urllib2.urlopen(bug_url)
         soup = BeautifulSoup(page)
     
-        attachment_table = soup.find('table', {'cellspacing':"0", 'cellpadding':"4", 'border':"1"})
-    
         attachments = []
-        # Grab a list of non-obsoleted patch files 
-        for attachment_row in attachment_table.findAll('tr'):
-            first_cell = attachment_row.find('td')
-            if not first_cell:
-                continue # This is the header, no cells
-            if first_cell.has_key('colspan'):
-                break # this is the last row
-            
+        for element in soup.findAll('attachment'):
             attachment = {}
-            attachment['obsolete'] = (attachment_row.has_key('class') and attachment_row['class'] == "bz_obsolete")
-            
-            cells = attachment_row.findAll('td')
-            attachment_link = cells[0].find('a')
-            attachment['url'] = self.bug_server + attachment_link['href'] # urls are relative
-            attachment['id'] = attachment['url'].split('=')[1] # e.g. https://bugs.webkit.org/attachment.cgi?id=31223
-            attachment['name'] = attachment_link.string
-            # attachment['type'] = cells[1]
-            # attachment['date'] = cells[2]
-            # attachment['size'] = cells[3]
-            review_status = cells[4]
-            # action_links = cells[5]
+            attachment['bug_id'] = bug_id
+            attachment['is_obsolete'] = (element.has_key('isobsolete') and element['isobsolete'] == "1")
+            attachment['is_patch'] = (element.has_key('ispatch') and element['ispatch'] == "1")
+            attachment['id'] = str(element.find('attachid').string)
+            attachment['url'] = self.attachment_url_for_id(attachment['id'])
+            attachment['name'] = unicode(element.find('desc').string)
+            attachment['type'] = str(element.find('type').string)
 
-            if str(review_status).find("review+") != -1:
-                reviewer = review_status.contents[0].split(':')[0] # name:\n review+\n
-                reviewer_full_name = self.full_name_from_bugzilla_name(reviewer)
-                attachment['reviewer'] = reviewer_full_name
+            review_flag = element.find('flag', attrs={"name" : "review"})
+            if review_flag and review_flag['status'] == '+':
+                reviewer_email = review_flag['setter']
+                # We could lookup the full email address instead once we update full_name_from_bugzilla_name
+                bugzilla_name = reviewer_email.split('@')[0]
+                attachment['reviewer'] = self.full_name_from_bugzilla_name(bugzilla_name)
 
             attachments.append(attachment)
         return attachments
 
+    def fetch_patches_from_bug(self, bug_id):
+        patches = []
+        for attachment in self.fetch_attachments_from_bug(bug_id):
+            if attachment['is_patch'] and not attachment['is_obsolete']:
+                patches.append(attachment)
+        return patches
+
     def fetch_reviewed_patches_from_bug(self, bug_id):
         reviewed_patches = []
         for attachment in self.fetch_attachments_from_bug(bug_id):
-            if 'reviewer' in attachment and not attachment['obsolete']:
+            if 'reviewer' in attachment and not attachment['is_obsolete']:
                 reviewed_patches.append(attachment)
         return reviewed_patches
 
     def fetch_bug_ids_from_commit_queue(self):
         # FIXME: We should have an option for restricting the search by email.  Example:
         # unassigned_only = "&emailassigned_to1=1&emailtype1=substring&email1=unassigned"
-        commit_queue_url = "https://bugs.webkit.org/buglist.cgi?query_format=advanced&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&field0-0-0=flagtypes.name&type0-0-0=equals&value0-0-0=review%2B"
+        commit_queue_url = self.bug_server_url + "buglist.cgi?query_format=advanced&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&field0-0-0=flagtypes.name&type0-0-0=equals&value0-0-0=review%2B"
         log("Loading commit queue")
 
         page = urllib2.urlopen(commit_queue_url)
@@ -190,30 +251,30 @@ class Bugzilla:
             patches_to_land += patches
         return patches_to_land
 
-    def authenticate(self, username=None, password=None):
+    def authenticate(self):
         if self.authenticated:
             return
-        
-        if not username:
-            username = read_config("username")
-            if not username:
-                username = raw_input("Bugzilla login: ")
-        if not password:
-            password = read_config("password")
-            if not password:
-                password = getpass.getpass("Bugzilla password for %s: " % username)
 
-        log("Logging in as %s..." % username)
         if self.dryrun:
+            log("Skipping log in for dry run...")
             self.authenticated = True
             return
-        self.browser.open(self.bug_server + "/index.cgi?GoAheadAndLogIn=1")
+
+        (username, password) = read_credentials()
+
+        log("Logging in as %s..." % username)
+        self.browser.open(self.bug_server_url + "index.cgi?GoAheadAndLogIn=1")
         self.browser.select_form(name="login")
         self.browser['Bugzilla_login'] = username
         self.browser['Bugzilla_password'] = password
-        self.browser.submit()
+        response = self.browser.submit()
 
-        # We really should check the result codes and try again as necessary
+        match = re.search("<title>(.+?)</title>", response.read())
+        # If the resulting page has a title, and it contains the word "invalid" assume it's the login failure page.
+        if match and re.search("Invalid", match.group(1), re.IGNORECASE):
+            # FIXME: We could add the ability to try again on failure.
+            error("Bugzilla login failed: %s" % match.group(1))
+
         self.authenticated = True
 
     def add_patch_to_bug(self, bug_id, patch_file_object, description, comment_text=None, mark_for_review=False):
@@ -224,7 +285,7 @@ class Bugzilla:
             log(comment_text)
             return
         
-        self.browser.open(self.bug_server + "/attachment.cgi?action=enter&bugid=" + bug_id)
+        self.browser.open(self.bug_server_url + "attachment.cgi?action=enter&bugid=" + bug_id)
         self.browser.select_form(name="entryform")
         self.browser['description'] = description
         self.browser['ispatch'] = ("1",)
@@ -232,7 +293,7 @@ class Bugzilla:
             log(comment_text)
             self.browser['comment'] = comment_text
         self.browser['flag_type-1'] = ('?',) if mark_for_review else ('X',)
-        self.browser.add_file(patch_file_object, "text/plain", "bugzilla_requires_a_filename.patch")
+        self.browser.add_file(patch_file_object, "text/plain", "bug-%s-%s.patch" % (bug_id, timestamp()))
         self.browser.submit()
 
     def obsolete_attachment(self, attachment_id, comment_text = None):
@@ -244,13 +305,14 @@ class Bugzilla:
             return
 
         self.browser.open(self.attachment_url_for_id(attachment_id, 'edit'))
-        self.browser.select_form(nr=0)
+        self.browser.select_form(nr=1)
         self.browser.find_control('isobsolete').items[0].selected = True
         # Also clear any review flag (to remove it from review/commit queues)
         self.browser.find_control(type='select', nr=0).value = ("X",)
         if comment_text:
             log(comment_text)
-            self.browser['comment'] = comment_text
+            # Bugzilla has two textareas named 'comment', one is somehow hidden.  We want the first.
+            self.browser.set_value(comment_text, name='comment', nr=0)
         self.browser.submit()
     
     def post_comment_to_bug(self, bug_id, comment_text):
@@ -279,6 +341,6 @@ class Bugzilla:
         if comment_text:
             log(comment_text)
             self.browser['comment'] = comment_text
-        self.browser['knob'] = ['resolve']
+        self.browser['bug_status'] = ['RESOLVED']
         self.browser['resolution'] = ['FIXED']
         self.browser.submit()

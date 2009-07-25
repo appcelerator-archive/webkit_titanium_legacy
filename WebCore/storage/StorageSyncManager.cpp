@@ -33,9 +33,11 @@
 #include "FileSystem.h"
 #include "Frame.h"
 #include "FrameTree.h"
+#include "LocalStorageTask.h"
+#include "LocalStorageThread.h"
 #include "Page.h"
 #include "PageGroup.h"
-#include "StorageArea.h"
+#include "StorageAreaSync.h"
 #include <wtf/StdLibExtras.h>
 
 namespace WebCore {
@@ -51,6 +53,10 @@ StorageSyncManager::StorageSyncManager(const String& path)
     ASSERT(!m_path.isEmpty());
     m_thread = LocalStorageThread::create();
     m_thread->start();
+}
+
+StorageSyncManager::~StorageSyncManager()
+{
 }
 
 String StorageSyncManager::fullDatabaseFilename(SecurityOrigin* origin)
@@ -74,7 +80,7 @@ void StorageSyncManager::close()
     }
 }
 
-bool StorageSyncManager::scheduleImport(PassRefPtr<LocalStorageArea> area)
+bool StorageSyncManager::scheduleImport(PassRefPtr<StorageAreaSync> area)
 {
     ASSERT(isMainThread());
 
@@ -84,7 +90,7 @@ bool StorageSyncManager::scheduleImport(PassRefPtr<LocalStorageArea> area)
     return m_thread;
 }
 
-void StorageSyncManager::scheduleSync(PassRefPtr<LocalStorageArea> area)
+void StorageSyncManager::scheduleSync(PassRefPtr<StorageAreaSync> area)
 {
     ASSERT(isMainThread());
 

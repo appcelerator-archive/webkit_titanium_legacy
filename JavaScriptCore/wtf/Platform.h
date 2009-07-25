@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006, 2007, 2008, 2009 Apple Inc.  All rights reserved.
+ * Copyright (C) 2007-2009 Torch Mobile, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,11 +28,11 @@
 #define WTF_Platform_h
 
 /* PLATFORM handles OS, operating environment, graphics API, and CPU */
-#define PLATFORM(WTF_FEATURE) (defined( WTF_PLATFORM_##WTF_FEATURE ) && WTF_PLATFORM_##WTF_FEATURE)
-#define COMPILER(WTF_FEATURE) (defined( WTF_COMPILER_##WTF_FEATURE ) && WTF_COMPILER_##WTF_FEATURE)
-#define HAVE(WTF_FEATURE) (defined( HAVE_##WTF_FEATURE ) && HAVE_##WTF_FEATURE)
-#define USE(WTF_FEATURE) (defined( WTF_USE_##WTF_FEATURE ) && WTF_USE_##WTF_FEATURE)
-#define ENABLE(WTF_FEATURE) (defined( ENABLE_##WTF_FEATURE ) && ENABLE_##WTF_FEATURE)
+#define PLATFORM(WTF_FEATURE) (defined WTF_PLATFORM_##WTF_FEATURE  && WTF_PLATFORM_##WTF_FEATURE)
+#define COMPILER(WTF_FEATURE) (defined WTF_COMPILER_##WTF_FEATURE  && WTF_COMPILER_##WTF_FEATURE)
+#define HAVE(WTF_FEATURE) (defined HAVE_##WTF_FEATURE  && HAVE_##WTF_FEATURE)
+#define USE(WTF_FEATURE) (defined WTF_USE_##WTF_FEATURE  && WTF_USE_##WTF_FEATURE)
+#define ENABLE(WTF_FEATURE) (defined ENABLE_##WTF_FEATURE  && ENABLE_##WTF_FEATURE)
 
 /* Operating systems - low-level dependencies */
 
@@ -92,12 +93,10 @@
 #define WTF_PLATFORM_SOLARIS 1
 #endif
 
-#if defined (__S60__) || defined (__SYMBIAN32__)
+#if defined (__SYMBIAN32__)
 /* we are cross-compiling, it is not really windows */
 #undef WTF_PLATFORM_WIN_OS
 #undef WTF_PLATFORM_WIN
-#undef WTF_PLATFORM_CAIRO
-#define WTF_PLATFORM_S60 1
 #define WTF_PLATFORM_SYMBIAN 1
 #endif
 
@@ -114,7 +113,7 @@
 /* should be used regardless of operating environment */
 #if   PLATFORM(DARWIN)     \
    || PLATFORM(FREEBSD)    \
-   || PLATFORM(S60)        \
+   || PLATFORM(SYMBIAN)    \
    || PLATFORM(NETBSD)     \
    || defined(unix)        \
    || defined(__unix)      \
@@ -190,7 +189,7 @@
 
 /* Makes PLATFORM(WIN) default to PLATFORM(CAIRO) */
 /* FIXME: This should be changed from a blacklist to a whitelist */
-#if !PLATFORM(MAC) && !PLATFORM(QT) && !PLATFORM(WX) && !PLATFORM(CHROMIUM)
+#if !PLATFORM(MAC) && !PLATFORM(QT) && !PLATFORM(WX) && !PLATFORM(CHROMIUM) && !PLATFORM(WINCE)
 #define WTF_PLATFORM_CAIRO 1
 #endif
 
@@ -310,6 +309,7 @@
 /* --gnu option of the RVCT compiler also defines __GNUC__ */
 #if defined(__GNUC__) && !COMPILER(RVCT)
 #define WTF_COMPILER_GCC 1
+#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
 /* COMPILER(MINGW) */
@@ -338,11 +338,36 @@
 #define ENABLE_JSC_MULTIPLE_THREADS 1
 #endif
 
+#if PLATFORM(WINCE) && !PLATFORM(QT)
+#undef ENABLE_JSC_MULTIPLE_THREADS
+#define ENABLE_JSC_MULTIPLE_THREADS        0
+#define USE_SYSTEM_MALLOC                  0
+#define ENABLE_ICONDATABASE                0
+#define ENABLE_JAVASCRIPT_DEBUGGER         0
+#define ENABLE_FTPDIR                      0
+#define ENABLE_PAN_SCROLLING               0
+#define ENABLE_WML                         1
+#define HAVE_ACCESSIBILITY                 0
+
+#define NOMINMAX       // Windows min and max conflict with standard macros
+#define NOSHLWAPI      // shlwapi.h not available on WinCe
+
+// MSDN documentation says these functions are provided with uspce.lib.  But we cannot find this file.
+#define __usp10__      // disable "usp10.h"
+
+#define _INC_ASSERT    // disable "assert.h"
+#define assert(x)
+
+// _countof is only included in CE6; for CE5 we need to define it ourself
+#ifndef _countof
+#define _countof(x) (sizeof(x) / sizeof((x)[0]))
+#endif
+
+#endif  /* PLATFORM(WINCE) && !PLATFORM(QT) */
+
 /* for Unicode, KDE uses Qt */
 #if PLATFORM(KDE) || PLATFORM(QT)
 #define WTF_USE_QT4_UNICODE 1
-#elif PLATFORM(SYMBIAN)
-#define WTF_USE_SYMBIAN_UNICODE 1
 #elif PLATFORM(GTK)
 /* The GTK+ Unicode backend is configurable */
 #else
@@ -400,6 +425,16 @@
 #define HAVE_ACCESSIBILITY 1
 #endif
 #endif /* !defined(HAVE_ACCESSIBILITY) */
+
+#if PLATFORM(UNIX) && !PLATFORM(SYMBIAN)
+#define HAVE_SIGNAL_H 1
+#endif
+
+#if !PLATFORM(WIN_OS) && !PLATFORM(SOLARIS) && !PLATFORM(SYMBIAN) && !COMPILER(RVCT)
+#define HAVE_TM_GMTOFF 1
+#define HAVE_TM_ZONE 1
+#define HAVE_TIMEGM 1
+#endif     
 
 #if PLATFORM(DARWIN)
 
@@ -548,6 +583,7 @@
 #endif
 #endif
 
+#if ENABLE(JIT)
 #ifndef ENABLE_JIT_OPTIMIZE_CALL
 #define ENABLE_JIT_OPTIMIZE_CALL 1
 #endif
@@ -562,6 +598,7 @@
 #endif
 #ifndef ENABLE_JIT_OPTIMIZE_METHOD_CALLS
 #define ENABLE_JIT_OPTIMIZE_METHOD_CALLS 1
+#endif
 #endif
 
 #if PLATFORM(X86) && COMPILER(MSVC)
@@ -602,7 +639,7 @@
 #endif
 /* Setting this flag prevents the assembler from using RWX memory; this may improve
    security but currectly comes at a significant performance cost. */
-#if PLATFORM_ARM_ARCH(7) && PLATFORM(IPHONE)
+#if PLATFORM(ARM)
 #define ENABLE_ASSEMBLER_WX_EXCLUSIVE 1
 #else
 #define ENABLE_ASSEMBLER_WX_EXCLUSIVE 0
@@ -629,7 +666,7 @@
 
 /* Accelerated compositing */
 #if PLATFORM(MAC)
-#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
+#if !defined(BUILDING_ON_TIGER)
 #define WTF_USE_ACCELERATED_COMPOSITING 1
 #endif
 #endif

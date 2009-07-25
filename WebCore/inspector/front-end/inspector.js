@@ -117,6 +117,26 @@ var WebInspector = {
                 }
             }
         }
+        
+        for (var panelName in WebInspector.panels) {
+            if (WebInspector.panels[panelName] == x)
+                InspectorController.storeLastActivePanel(panelName);
+        }
+    },
+  
+    _createPanels: function()
+    {
+        var hiddenPanels = (InspectorController.hiddenPanels() || "").split(',');
+        if (hiddenPanels.indexOf("elements") === -1)
+            this.panels.elements = new WebInspector.ElementsPanel();
+        if (hiddenPanels.indexOf("resources") === -1)
+            this.panels.resources = new WebInspector.ResourcesPanel();
+        if (hiddenPanels.indexOf("scripts") === -1)
+            this.panels.scripts = new WebInspector.ScriptsPanel();
+        if (hiddenPanels.indexOf("profiles") === -1)
+            this.panels.profiles = new WebInspector.ProfilesPanel();
+        if (hiddenPanels.indexOf("databases") === -1)
+            this.panels.databases = new WebInspector.DatabasesPanel();      
     },
 
     get attached()
@@ -281,17 +301,7 @@ WebInspector.loaded = function()
     this.console = new WebInspector.Console();
 
     this.panels = {};
-    var hiddenPanels = (InspectorController.hiddenPanels() || "").split(',');
-    if (hiddenPanels.indexOf("elements") === -1)
-        this.panels.elements = new WebInspector.ElementsPanel();
-    if (hiddenPanels.indexOf("resources") === -1)
-        this.panels.resources = new WebInspector.ResourcesPanel();
-    if (hiddenPanels.indexOf("scripts") === -1)
-        this.panels.scripts = new WebInspector.ScriptsPanel();
-    if (hiddenPanels.indexOf("profiles") === -1)
-        this.panels.profiles = new WebInspector.ProfilesPanel();
-    if (hiddenPanels.indexOf("databases") === -1)
-        this.panels.databases = new WebInspector.DatabasesPanel();
+    this._createPanels();
 
     var toolbarElement = document.getElementById("toolbar");
     var previousToolbarItem = toolbarElement.children[0];
@@ -306,8 +316,6 @@ WebInspector.loaded = function()
             toolbarElement.insertBefore(panelToolbarItem, toolbarElement.firstChild);
         previousToolbarItem = panelToolbarItem;
     }
-
-    this.currentPanel = this.panels.elements;
 
     this.resourceCategories = {
         documents: new WebInspector.ResourceCategory(WebInspector.UIString("Documents"), "documents"),
@@ -588,6 +596,7 @@ WebInspector.animateStyle = function(animations, duration, callback, complete)
         var start = null;
         var current = null;
         var end = null;
+        var key = null;
         for (key in animation) {
             if (key === "element")
                 element = animation[key];
@@ -979,6 +988,7 @@ WebInspector.addMessageToConsole = function(payload)
 {
     var consoleMessage = new WebInspector.ConsoleMessage(
         payload.source,
+        payload.type,
         payload.level,
         payload.line,
         payload.url,

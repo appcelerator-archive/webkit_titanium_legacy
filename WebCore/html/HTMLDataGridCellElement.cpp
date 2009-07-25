@@ -24,6 +24,9 @@
  */
 
 #include "config.h"
+
+#if ENABLE(DATAGRID)
+
 #include "HTMLDataGridCellElement.h"
 
 #include "HTMLNames.h"
@@ -88,5 +91,6 @@ void HTMLDataGridCellElement::setProgress(float progress)
     setAttribute(progressAttr, String::number(progress));
 }
 
-}
+} // namespace WebCore
 
+#endif

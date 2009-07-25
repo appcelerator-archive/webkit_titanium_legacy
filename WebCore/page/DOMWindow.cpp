@@ -70,10 +70,9 @@
 #endif
 
 #if ENABLE(DOM_STORAGE)
-#include "LocalStorage.h"
-#include "SessionStorage.h"
 #include "Storage.h"
 #include "StorageArea.h"
+#include "StorageNamespace.h"
 #endif
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
@@ -547,12 +546,17 @@ Storage* DOMWindow::sessionStorage() const
 {
     if (m_sessionStorage)
         return m_sessionStorage.get();
-        
-    Page* page = m_frame->page();
+
+    Document* document = this->document();
+    if (!document)
+        return 0;
+
+    Page* page = document->page();
     if (!page)
         return 0;
 
-    Document* document = m_frame->document();
+    if (!page->settings()->sessionStorageEnabled())
+        return 0;
 
     RefPtr<StorageArea> storageArea = page->sessionStorage()->storageArea(document->securityOrigin());
     page->inspectorController()->didUseDOMStorage(storageArea.get(), false, m_frame);
@@ -574,11 +578,10 @@ Storage* DOMWindow::localStorage() const
     if (!page)
         return 0;
 
-    Settings* settings = document->settings();
-    if (!settings || !settings->localStorageEnabled())
+    if (!page->settings()->localStorageEnabled())
         return 0;
 
-    LocalStorage* localStorage = page->group().localStorage();
+    StorageNamespace* localStorage = page->group().localStorage();
     RefPtr<StorageArea> storageArea = localStorage ? localStorage->storageArea(document->securityOrigin()) : 0; 
     if (storageArea) {
         page->inspectorController()->didUseDOMStorage(storageArea.get(), true, m_frame);
@@ -635,7 +638,7 @@ void DOMWindow::postMessageTimerFired(PostMessageTimer* t)
         if (!timer->targetOrigin()->isSameSchemeHostPort(document()->securityOrigin())) {
             String message = String::format("Unable to post message to %s. Recipient has origin %s.\n", 
                 timer->targetOrigin()->toString().utf8().data(), document()->securityOrigin()->toString().utf8().data());
-            console()->addMessage(JSMessageSource, ErrorMessageLevel, message, 0, String());
+            console()->addMessage(JSMessageSource, LogMessageType, ErrorMessageLevel, message, 0, String());
             return;
         }
     }

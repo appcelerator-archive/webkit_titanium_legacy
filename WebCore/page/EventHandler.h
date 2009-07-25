@@ -67,7 +67,9 @@ extern const int ImageDragHysteresis;
 extern const int TextDragHysteresis;
 extern const int GeneralDragHysteresis;
 
-class EventHandler : Noncopyable {
+enum HitTestScrollbars { ShouldHitTestScrollbars, DontHitTestScrollbars };
+
+class EventHandler : public Noncopyable {
 public:
     EventHandler(Frame*);
     ~EventHandler();
@@ -86,7 +88,7 @@ public:
     RenderObject* autoscrollRenderer() const;
     void updateAutoscrollRenderer();
 
-    HitTestResult hitTestResultAtPoint(const IntPoint&, bool allowShadowContent, bool ignoreClipping = false);
+    HitTestResult hitTestResultAtPoint(const IntPoint&, bool allowShadowContent, bool ignoreClipping = false, HitTestScrollbars scrollbars = DontHitTestScrollbars);
 
     bool mousePressed() const { return m_mousePressed; }
     void setMousePressed(bool pressed) { m_mousePressed = pressed; }
@@ -108,6 +110,8 @@ public:
     void setIgnoreWheelEvents(bool);
 
     bool scrollOverflow(ScrollDirection, ScrollGranularity);
+
+    bool scrollRecursively(ScrollDirection, ScrollGranularity);
 
     bool shouldDragAutoNode(Node*, const IntPoint&) const; // -webkit-user-drag == auto
 
@@ -267,6 +271,8 @@ private:
 
     void updateSelectionForMouseDrag(Node* targetNode, const IntPoint& localPoint);
 
+    void updateLastScrollbarUnderMouse(Scrollbar*, bool);
+
     bool capturesDragging() const { return m_capturesDragging; }
 
 #if PLATFORM(MAC) && defined(__OBJC__)
@@ -328,6 +334,10 @@ private:
     double m_mouseDownTimestamp;
     PlatformMouseEvent m_mouseDown;
 
+    bool m_useLatchedWheelEventNode;
+    RefPtr<Node> m_latchedWheelEventNode;
+    bool m_widgetIsLatched;
+    
 #if PLATFORM(MAC)
     NSView *m_mouseDownView;
     bool m_sendingEventToSubview;

@@ -1,4 +1,3 @@
-[%# 1.0@bugzilla.org %]
 [%# The contents of this file are subject to the Mozilla Public
   # License Version 1.1 (the "License"); you may not use this file
   # except in compliance with the License. You may obtain a copy of
@@ -17,25 +16,20 @@
   # Rights Reserved.
   #
   # Contributor(s): Myk Melez <myk@mozilla.org>
+  #                 Frédéric Buclin <LpSolit@gmail.com>
+  #                 Max Kanat-Alexander <mkanat@bugzilla.org>
   #%]
 
 [%# INTERFACE:
-  # verify_fields: boolean; whether or not to verify
-  #   the version, component, and target milestone fields
+  # product: object; the new product.
   # versions: array; versions for the new product.
   # components: array; components for the new product.
   # milestones: array; milestones for the new product.
   # defaults: hash; keys are names of fields, values are defaults for
   #   those fields
-  # verify_bug_group: boolean; whether or not to ask the user
-  #   if they want to add the bug to its new product's group
-  # use_target_milestone: boolean; whether or not to use
-  #   the target milestone field
+  #
+  # verify_bug_groups: If groups need to be confirmed in addition to fields.
   #%]
-
-[%# The global Bugzilla->cgi object is used to obtain form variable values. %]
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
 
 [% PROCESS global/variables.none.tmpl %]
 
@@ -44,68 +38,166 @@
 
 <form action="process_bug.cgi" method="post">
 
+[% SET exclude_items = ['version', 'component', 'target_milestone'] %]
+[% IF verify_bug_groups %]
+  [% exclude_items.push('bit-\d+') %]
+[% END %]
+
 [% PROCESS "global/hidden-fields.html.tmpl"
-     exclude=(verify_fields ? "^version|component|target_milestone$" : "") %]
+     exclude = '^' _ exclude_items.join('|') _ '$' %]
 
+<input type="hidden" name="confirm_product_change" value="1">
+    
 [%# Verify the version, component, and target milestone fields. %]
-[% IF verify_fields %]
-  <h3>Verify Version, Component[% ", Target Milestone" IF use_target_milestone %]</h3>
+<h3>Verify Version, Component
+  [%- ", Target Milestone" 
+      IF Param("usetargetmilestone")
+         && bug.check_can_change_field('target_milestone', 0, 1) %]</h3>
 
-  <p>
-  [% IF use_target_milestone %]
-    You are moving the [% terms.bug %](s) to the product 
-    <b>[% cgi.param("product") FILTER html %]</b>,
-    and the version, component, and/or target milestone fields are no longer
-    correct.  Please set the correct version, component, and target milestone now:
-  [% ELSE %]
-    You are moving the [% terms.bug %](s) to the product 
-    <b>[% cgi.param("product") FILTER html %]</b>,
-    and the version and component fields are no longer correct.
-    Please set the correct version and component now:
-  [% END %]
-  <p>
+<p>
+[% IF Param("usetargetmilestone") 
+   && bug.check_can_change_field('target_milestone', 0, 1) 
+%]
+  You are moving the [% terms.bug %](s) to the product 
+  <b>[% product.name FILTER html %]</b>,
+  and the version, component, and/or target milestone fields are no longer
+  correct.  Please set the correct version, component, and target milestone now:
+[% ELSE %]
+  You are moving the [% terms.bug %](s) to the product 
+  <b>[% product.name FILTER html %]</b>,
+  and the version and component fields are no longer correct.
+  Please set the correct version and component now:
+[% END %]
+</p>
 
-  <table>
-    <tr>
-      <td>
-        <b>Version:</b><br>
-        [% PROCESS "global/select-menu.html.tmpl" name="version" options=versions default=defaults.version %]
-      </td>
-      <td>
-        <b>Component:</b><br>
-        [% PROCESS "global/select-menu.html.tmpl" name="component" options=components default=defaults.component %]
-      </td>
-      [% IF use_target_milestone %]
-        <td>
-          <b>Target Milestone:</b><br>
-        [% PROCESS "global/select-menu.html.tmpl" name="target_milestone" options=milestones default=defaults.target_milestone %]
-        </td>
+<table>
+  <tr>
+    <td>
+      <b>Version:</b><br>
+      [% IF versions.size == 1 %]
+        [% SET default_version = versions.0 %]
+      [% ELSE %]
+        [% SET default_version = defaults.version %]
       [% END %]
-    </tr>
-  </table>
+      [% PROCESS "global/select-menu.html.tmpl" 
+                 name="version"
+                 options=versions
+                 default=default_version
+                 size=10 %]
+    </td>
+    <td>
+      <b>Component:</b><br>
+      [% IF components.size == 1 %]
+        [% SET default_component = components.0 %]
+      [% ELSE %]
+        [% SET default_component = defaults.component %]
+      [% END %]
+      [% PROCESS "global/select-menu.html.tmpl"
+                 name="component"
+                 options=components
+                 default=default_component
+                 size=10 %]
+    </td>
+    [% IF Param("usetargetmilestone") 
+          && bug.check_can_change_field('target_milestone', 0, 1) 
+    %]
+      <td>
+        <b>Target Milestone:</b><br>
+      [% PROCESS "global/select-menu.html.tmpl"
+                 name="target_milestone"
+                 options=milestones
+                 default=defaults.milestone
+                 size=10 %]
+      </td>
+    [% END %]
+  </tr>
+</table>
 
-[% END %]
-
-[% IF verify_bug_group %]
+[% IF verify_bug_groups %]
   <h3>Verify [% terms.Bug %] Group</h3>
+  
+  [% IF old_groups.size %]
+    <p>These groups are not legal for the '[% product.name FILTER html %]'
+    product or you are not allowed to restrict [% terms.bugs %] to these groups.
+    [%+ terms.Bugs %] will no longer be restricted to these groups and may become
+    public if no other group applies:<br>
+    [% FOREACH group = old_groups %]
+      <input type="checkbox" id="bit-[% group.id FILTER html %]"
+             name="bit-[% group.id FILTER html %]" disabled="disabled" value="1">
+      <label for="bit-[% group.id FILTER html %]">
+        [% group.name FILTER html %]: [% group.description FILTER html %]
+      </label>
+      <br>
+    [% END %]
+    </p>
+  [% END %]
 
-  <p>
-    Do you want to add the [% terms.bug %] to its new product's default groups (if any)?
-  </p>
+  [% mandatory_groups = [] %]
+  [% optional_groups = [] %]
 
-  <p>
-    <input type="radio" name="addtonewgroup" value="no"><b>no</b><br>
-    <input type="radio" name="addtonewgroup" value="yes"><b>yes</b><br>
-    <input type="radio" name="addtonewgroup" value="yesifinold" checked="checked">
-      <b>yes, but only if the [% terms.bug %] was in any of its old product's default groups</b><br>
-  </p>
+  [% FOREACH gid = product.group_controls.keys %]
+    [% group = product.group_controls.$gid %]
+    [% NEXT UNLESS group.group.is_active %]
+
+    [% IF group.membercontrol == constants.CONTROLMAPMANDATORY
+          || (group.othercontrol ==  constants.CONTROLMAPMANDATORY && !user.in_group(group.group.name)) %]
+      [% mandatory_groups.push(group) %]
+    [% ELSIF (group.membercontrol != constants.CONTROLMAPNA && user.in_group(group.group.name))
+              || group.othercontrol != constants.CONTROLMAPNA %]
+      [% optional_groups.push(group) %]
+    [% END %]
+  [% END %]
+
+  [% IF optional_groups.size %]
+    <p>These groups are optional. You can decide to restrict [% terms.bugs %] to
+    one or more of the following groups:<br>
+    [% FOREACH group = optional_groups %]
+      <input type="hidden" name="defined_bit-[% group.group.id FILTER html %]"
+             value="1">
+      <input type="checkbox" id="bit-[% group.group.id FILTER html %]"
+             name="bit-[% group.group.id FILTER html %]"
+             [%+ ((group.membercontrol == constants.CONTROLMAPDEFAULT && user.in_group(group.group.name))
+                 || (group.othercontrol == constants.CONTROLMAPDEFAULT && !user.in_group(group.group.name))
+                 || cgi.param("bit-$group.group.id") == 1) ?
+                 'checked="checked"' : ''
+             %] value="1">
+      <label for="bit-[% group.group.id FILTER html %]">
+        [% group.group.name FILTER html %]: [% group.group.description FILTER html %]
+      </label>
+      <br>
+    [% END %]
+    </p>
+  [% END %]
+
+  [% IF mandatory_groups.size %]
+    <p>These groups are mandatory and [% terms.bugs %] will be automatically
+    restricted to these groups:<br>
+    [% FOREACH group = mandatory_groups %]
+      <input type="checkbox" id="bit-[% group.group.id FILTER html %]" checked="checked"
+             name="bit-[% group.group.id FILTER html %]" value="1" disabled="disabled">
+      <label for="bit-[% group.group.id FILTER html %]">
+        [% group.group.name FILTER html %]: [% group.group.description FILTER html %]
+      </label>
+      <br>
+    [% END %]
+    </p>
+  [% END %]
 [% END %]
 
-<input type="submit" value="Commit">
+<input type="submit" id="change_product" value="Commit">
 
 </form>
 <hr>
-<a href="query.cgi">Cancel and Return to the Search Page</a>
+
+[%# If 'id' is defined, then we are editing a single bug.
+  # Else we are editing several bugs at once. %]
+
+[% IF cgi.param('id') AND cgi.param('id').match('^\d+$') %]
+  [% id = cgi.param('id') %]
+  Cancel and Return to [% "$terms.bug $id" FILTER bug_link(id) FILTER none %]
+[% ELSE %]
+  Cancel and Return to <a href="buglist.cgi?regetlastlist=1">the last search results</a>
+[% END %]
 
 [% PROCESS global/footer.html.tmpl %]
 

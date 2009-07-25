@@ -67,6 +67,7 @@ module core {
         boolean resourceTrackingEnabled();
         void enableResourceTracking(in boolean always);
         void disableResourceTracking(in boolean always);
+        void storeLastActivePanel(in DOMString panelName);
 
 #if defined(ENABLE_JAVASCRIPT_DEBUGGER) && ENABLE_JAVASCRIPT_DEBUGGER
         void enableDebuggerFromFrontend(in boolean always);

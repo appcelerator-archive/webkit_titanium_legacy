@@ -123,7 +123,13 @@ namespace WebCore {
         static const int kWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
 
         static const int kWorkerContextRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
-        static const int kWorkerContextInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+        static const int kWorkerContextMinimumInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+
+        static const int kDedicatedWorkerContextRequestCacheIndex = kWorkerContextMinimumInternalFieldCount + 0;
+        static const int kDedicatedWorkerContextInternalFieldCount = kWorkerContextMinimumInternalFieldCount + 1;
+
+        static const int kAbstractWorkerRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kAbstractWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
 #endif
 
         static const int kDOMWindowConsoleIndex = kDefaultWrapperInternalFieldCount + 0;
@@ -403,8 +409,6 @@ namespace WebCore {
 
         DECLARE_CALLBACK(NodeFilterAcceptNode);
 
-        DECLARE_PROPERTY_ACCESSOR(HTMLDataGridElementDataSource);
-
         DECLARE_CALLBACK(HTMLFormElementSubmit);
 
         DECLARE_NAMED_PROPERTY_GETTER(DOMWindow);
@@ -449,6 +453,12 @@ namespace WebCore {
         DECLARE_CALLBACK(SQLResultSetRowListItem);
 
         DECLARE_INDEXED_PROPERTY_GETTER(ClientRectList);
+  
+#if ENABLE(DATAGRID)
+        DECLARE_PROPERTY_ACCESSOR(HTMLDataGridElementDataSource);
+        DECLARE_INDEXED_PROPERTY_GETTER(DataGridColumnList);
+        DECLARE_NAMED_PROPERTY_GETTER(DataGridColumnList);
+#endif      
 
 #if ENABLE(DOM_STORAGE)
         DECLARE_INDEXED_PROPERTY_GETTER(Storage);
@@ -470,14 +480,17 @@ namespace WebCore {
 #endif
 
 #if ENABLE(WORKERS)
+        DECLARE_PROPERTY_ACCESSOR(AbstractWorkerOnerror);
+        DECLARE_CALLBACK(AbstractWorkerAddEventListener);
+        DECLARE_CALLBACK(AbstractWorkerRemoveEventListener);
+
+        DECLARE_PROPERTY_ACCESSOR(DedicatedWorkerContextOnmessage);
+
         DECLARE_PROPERTY_ACCESSOR(WorkerOnmessage);
-        DECLARE_PROPERTY_ACCESSOR(WorkerOnerror);
         DECLARE_CALLBACK(WorkerConstructor);
-        DECLARE_CALLBACK(WorkerAddEventListener);
-        DECLARE_CALLBACK(WorkerRemoveEventListener);
 
         DECLARE_PROPERTY_ACCESSOR_GETTER(WorkerContextSelf);
-        DECLARE_PROPERTY_ACCESSOR(WorkerContextOnmessage);
+        DECLARE_PROPERTY_ACCESSOR(WorkerContextOnerror);
         DECLARE_CALLBACK(WorkerContextImportScripts);
         DECLARE_CALLBACK(WorkerContextSetTimeout);
         DECLARE_CALLBACK(WorkerContextClearTimeout);
@@ -485,6 +498,10 @@ namespace WebCore {
         DECLARE_CALLBACK(WorkerContextClearInterval);
         DECLARE_CALLBACK(WorkerContextAddEventListener);
         DECLARE_CALLBACK(WorkerContextRemoveEventListener);
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+        DECLARE_CALLBACK(SharedWorkerConstructor);
 #endif
 
 #undef DECLARE_INDEXED_ACCESS_CHECK

@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import "config.h"
 #import "ResourceLoadDelegate.h"
 
 #import "DumpRenderTree.h"
@@ -122,6 +123,11 @@
         printf("%s\n", [string UTF8String]);
     }
 
+    if (!done && gLayoutTestController->willSendRequestReturnsNullOnRedirect() && redirectResponse) {
+        printf("Returning null for this redirect\n");
+        return nil;
+    }
+
     NSURL *url = [newRequest URL];
     NSString *host = [url host];
     if (host
@@ -153,6 +159,8 @@
         NSString *string = [NSString stringWithFormat:@"%@ - didReceiveResponse %@", identifier, [response _drt_descriptionSuitableForTestResult]];
         printf("%s\n", [string UTF8String]);
     }
+    if (!done && gLayoutTestController->dumpResourceResponseMIMETypes())
+        printf("%s has MIME type %s\n", [[[[response URL] relativePath] lastPathComponent] UTF8String], [[response MIMEType] UTF8String]);
 }
 
 -(void)webView: (WebView *)wv resource:identifier didReceiveContentLength: (NSInteger)length fromDataSource:(WebDataSource *)dataSource

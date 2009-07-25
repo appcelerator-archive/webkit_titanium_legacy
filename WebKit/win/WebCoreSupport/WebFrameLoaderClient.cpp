@@ -94,9 +94,19 @@ bool WebFrameLoaderClient::hasWebView() const
 
 void WebFrameLoaderClient::forceLayout()
 {
-    FrameView* view = core(m_webFrame)->view();
-    if (view)
-        view->forceLayout(true);
+    Frame* frame = core(m_webFrame);
+    if (!frame)
+        return;
+
+    if (frame->document() && frame->document()->inPageCache())
+        return;
+
+    FrameView* view = frame->view();
+    if (!view)
+        return;
+
+    view->setNeedsLayout();
+    view->forceLayout(true);
 }
 
 void WebFrameLoaderClient::assignIdentifierToInitialRequest(unsigned long identifier, DocumentLoader* loader, const ResourceRequest& request)
@@ -176,6 +186,11 @@ void WebFrameLoaderClient::dispatchWillSendRequest(DocumentLoader* loader, unsig
 
     if (webURLRequest == newWebURLRequest)
         return;
+
+    if (!newWebURLRequest) {
+        request = ResourceRequest();
+        return;
+    }
 
     COMPtr<WebMutableURLRequest> newWebURLRequestImpl(Query, newWebURLRequest);
     if (!newWebURLRequestImpl)
@@ -482,7 +497,7 @@ void WebFrameLoaderClient::updateGlobalHistory()
         return;
 
     DocumentLoader* loader = core(m_webFrame)->loader()->documentLoader();
-    history->visitedURL(loader->urlForHistory(), loader->title(), loader->originalRequestCopy().httpMethod(), loader->urlForHistoryReflectsFailure());
+    history->visitedURL(loader->urlForHistory(), loader->title(), loader->originalRequestCopy().httpMethod(), loader->urlForHistoryReflectsFailure(), !loader->clientRedirectSourceForHistory());
 }
 
 void WebFrameLoaderClient::updateGlobalHistoryRedirectLinks()
@@ -616,7 +631,7 @@ PassRefPtr<Frame> WebFrameLoaderClient::createFrame(const KURL& URL, const Strin
     return childFrame.release();
 }
 
-Widget* WebFrameLoaderClient::createPlugin(const IntSize& pluginSize, HTMLPlugInElement* element, const KURL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
+PassRefPtr<Widget> WebFrameLoaderClient::createPlugin(const IntSize& pluginSize, HTMLPlugInElement* element, const KURL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
 {
     WebView* webView = m_webFrame->webView();
 
@@ -654,7 +669,7 @@ Widget* WebFrameLoaderClient::createPlugin(const IntSize& pluginSize, HTMLPlugIn
     }
 
     Frame* frame = core(m_webFrame);
-    PluginView* pluginView = PluginView::create(frame, pluginSize, element, url, paramNames, paramValues, mimeType, loadManually);
+    RefPtr<PluginView> pluginView = PluginView::create(frame, pluginSize, element, url, paramNames, paramValues, mimeType, loadManually);
 
     if (pluginView->status() == PluginStatusLoadedSuccessfully)
         return pluginView;
@@ -669,7 +684,7 @@ Widget* WebFrameLoaderClient::createPlugin(const IntSize& pluginSize, HTMLPlugIn
     size_t size = paramNames.size();
     for (size_t i = 0; i < size; i++) {
         if (paramNames[i] == "pluginspage") {
-            KURL pluginPageURL = frame->document()->completeURL(parseURL(paramValues[i]));
+            KURL pluginPageURL = frame->document()->completeURL(deprecatedParseURL(paramValues[i]));
             if (pluginPageURL.protocolInHTTPFamily()) {
                 static CFStringRef key = MarshallingHelpers::LPCOLESTRToCFStringRef(WebKitErrorPlugInPageURLStringKey);
                 RetainPtr<CFStringRef> str(AdoptCF, pluginPageURL.string().createCFString());

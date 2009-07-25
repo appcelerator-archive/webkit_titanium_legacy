@@ -213,6 +213,15 @@ static NSString* getValueFunctionNameForTransformOperation(TransformOperation::O
 }
 #endif
 
+#if !HAVE_MODERN_QUARTZCORE
+static TransformationMatrix flipTransform()
+{
+    TransformationMatrix flipper;
+    flipper.flipY();
+    return flipper;
+}
+#endif
+
 static CAMediaTimingFunction* getCAMediaTimingFunction(const TimingFunction& timingFunction)
 {
     switch (timingFunction.type()) {
@@ -324,6 +333,10 @@ GraphicsLayerCA::GraphicsLayerCA(GraphicsLayerClient* client)
     BEGIN_BLOCK_OBJC_EXCEPTIONS
     m_layer.adoptNS([[WebLayer alloc] init]);
     [m_layer.get() setLayerOwner:this];
+
+#if !HAVE_MODERN_QUARTZCORE
+    setContentsOrientation(defaultContentsOrientation());
+#endif
 
 #ifndef NDEBUG
     updateDebugIndicators();
@@ -543,9 +556,8 @@ void GraphicsLayerCA::setSize(const FloatSize& size)
 
     if (m_transformLayer) {
         [m_transformLayer.get() setBounds:rect];
-    
-        // the anchor of the contents layer is always at 0.5, 0.5, so the position
-        // is center-relative
+        // The anchor of the contents layer is always at 0.5, 0.5, so the position
+        // is center-relative.
         [m_layer.get() setPosition:centerPoint];
     }
     
@@ -554,6 +566,7 @@ void GraphicsLayerCA::setSize(const FloatSize& size)
         swapFromOrToTiledLayer(needTiledLayer);
     
     [m_layer.get() setBounds:rect];
+    updateContentsTransform();
 
     // Note that we don't resize m_contentsLayer. It's up the caller to do that.
 
@@ -682,8 +695,7 @@ void GraphicsLayerCA::setPreserves3D(bool preserves3D)
         [m_transformLayer.get() setTransform:[m_layer.get() transform]];
         [m_layer.get() setTransform:CATransform3DIdentity];
         
-        // Transfer the opacity from the old layer to the transform layer.
-        [m_transformLayer.get() setOpacity:m_opacity];
+        // Set the old layer to opacity of 1. Further down we will set the opacity on the transform layer.
         [m_layer.get() setOpacity:1];
 
         // Move this layer to be a child of the transform layer.
@@ -709,7 +721,6 @@ void GraphicsLayerCA::setPreserves3D(bool preserves3D)
 #endif
         [m_layer.get() setContentsRect:[m_transformLayer.get() contentsRect]];
         [m_layer.get() setTransform:[m_transformLayer.get() transform]];
-        [m_layer.get() setOpacity:[m_transformLayer.get() opacity]];
 #ifndef NDEBUG
         [m_layer.get() setZPosition:[m_transformLayer.get() zPosition]];
 #endif
@@ -717,6 +728,8 @@ void GraphicsLayerCA::setPreserves3D(bool preserves3D)
         // Release the transform layer.
         m_transformLayer = 0;
     }
+
+    updateOpacityOnLayer();
 
     END_BLOCK_OBJC_EXCEPTIONS
 }
@@ -824,7 +837,7 @@ void GraphicsLayerCA::setBackfaceVisibility(bool visible)
 
 bool GraphicsLayerCA::setOpacity(float opacity, const Animation* transition, double beginTime)
 {
-    if (forceSoftwareAnimation())
+    if (forceSoftwareAnimation() && transition)
         return false;
         
     float clampedOpacity = max(0.0f, min(opacity, 1.0f));
@@ -844,7 +857,7 @@ bool GraphicsLayerCA::setOpacity(float opacity, const Animation* transition, dou
         //
         if (animIndex < 0 || m_animations[animIndex].isTransition()) {
             BEGIN_BLOCK_OBJC_EXCEPTIONS
-            [primaryLayer() setOpacity:opacity];
+            updateOpacityOnLayer();
             if (animIndex >= 0) {
                 removeAllAnimationsForProperty(AnimatedPropertyOpacity);
                 animIndex = -1;
@@ -869,6 +882,12 @@ bool GraphicsLayerCA::setOpacity(float opacity, const Animation* transition, dou
             return false;
         }
     }
+    
+#if !HAVE_MODERN_QUARTZCORE
+    // Older versions of QuartzCore do not handle opacity in transform layers properly. So we will
+    // always do software animation in that case
+    return false;
+#endif
     
     // If an animation is running, ignore this transition, but still save the value.
     if (animIndex >= 0 && !m_animations[animIndex].isTransition())
@@ -934,14 +953,10 @@ bool GraphicsLayerCA::animateTransform(const TransformValueList& valueList, cons
     
     BEGIN_BLOCK_OBJC_EXCEPTIONS
     
-    // Rules for animation:
-    //
-    //  1)  If functionList is empty or we don't have a big rotation, we do a matrix animation. We could
-    //      use component animation for lists without a big rotation, but there is no need to, and this
-    //      is more efficient.
-    //
-    //  2)  Otherwise we do a component hardware animation.
-    bool isMatrixAnimation = !isValid || !hasBigRotation;
+    // If functionLists don't match we do a matrix animation, otherwise we do a component hardware animation.
+    // Also, we can't do component animation unless we have valueFunction, so we need to do matrix animation
+    // if that's not true as well.
+    bool isMatrixAnimation = !isValid || !caValueFunctionSupported();
         
     // Set transform to identity since we are animating components and we need the base
     // to be the identity transform.
@@ -1043,7 +1058,13 @@ bool GraphicsLayerCA::animateTransform(const TransformValueList& valueList, cons
 
 bool GraphicsLayerCA::animateFloat(AnimatedPropertyID property, const FloatValueList& valueList, const Animation* animation, double beginTime)
 {
-    if (forceSoftwareAnimation() || valueList.size() < 2)
+    if (forceSoftwareAnimation() || valueList.size() < 2
+#if !HAVE_MODERN_QUARTZCORE
+        // Older versions of QuartzCore do not handle opacity in transform layers properly. So we will
+        // always do software animation in that case
+        || property == AnimatedPropertyOpacity
+#endif
+    )
         return false;
         
     // if there is already is an animation for this property and it hasn't changed, ignore it.
@@ -1116,8 +1137,18 @@ void GraphicsLayerCA::setContentsToImage(Image* image)
 #if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
             [m_contentsLayer.get() setMinificationFilter:kCAFilterTrilinear];
 #endif
-            CGImageRef theImage = image->nativeImageForCurrentFrame();
-            [m_contentsLayer.get() setContents:(id)theImage];
+            RetainPtr<CGImageRef> theImage(image->nativeImageForCurrentFrame());
+            CGColorSpaceRef colorSpace = CGImageGetColorSpace(theImage.get());
+
+            static CGColorSpaceRef deviceRGB = CGColorSpaceCreateDeviceRGB();
+            if (CFEqual(colorSpace, deviceRGB)) {
+                // CoreGraphics renders images tagged with DeviceRGB using GenericRGB. When we hand such
+                // images to CA we need to tag them similarly so CA rendering matches CG rendering.
+                static CGColorSpaceRef genericRGB = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+                theImage.adoptCF(CGImageCreateCopyWithColorSpace(theImage.get(), genericRGB));
+            }
+
+            [m_contentsLayer.get() setContents:(id)theImage.get()];
         }
         END_BLOCK_OBJC_EXCEPTIONS
     } else
@@ -1157,6 +1188,39 @@ void GraphicsLayerCA::updateContentsRect()
         [m_contentsLayer.get() setBounds:rect];
         END_BLOCK_OBJC_EXCEPTIONS
     }
+}
+
+void GraphicsLayerCA::setGeometryOrientation(CompositingCoordinatesOrientation orientation)
+{
+    switch (orientation) {
+    case CompositingCoordinatesTopDown:
+#if HAVE_MODERN_QUARTZCORE
+        [m_layer.get() setGeometryFlipped:NO];
+#else
+        setChildrenTransform(TransformationMatrix());
+#endif
+        break;
+        
+    case CompositingCoordinatesBottomUp:
+#if HAVE_MODERN_QUARTZCORE
+        [m_layer.get() setGeometryFlipped:YES];
+#else
+        setChildrenTransform(flipTransform());
+#endif
+        break;
+    }
+}
+
+GraphicsLayerCA::CompositingCoordinatesOrientation GraphicsLayerCA::geometryOrientation() const
+{
+    // CoreAnimation defaults to bottom-up
+    bool layerFlipped;
+#if HAVE_MODERN_QUARTZCORE
+    layerFlipped = [m_layer.get() isGeometryFlipped];
+#else
+    layerFlipped = childrenTransform().m22() == -1;
+#endif
+    return layerFlipped ? CompositingCoordinatesBottomUp : CompositingCoordinatesTopDown;
 }
 
 void GraphicsLayerCA::setBasicAnimation(AnimatedPropertyID property, TransformOperation::OperationType operationType, short index, void* fromVal, void* toVal, bool isTransition, const Animation* transition, double beginTime)
@@ -1446,6 +1510,15 @@ void GraphicsLayerCA::swapFromOrToTiledLayer(bool userTiledLayer)
             [tiledLayer setContentsGravity:@"bottomLeft"];
         else
             [tiledLayer setContentsGravity:@"topLeft"];
+
+#if !HAVE_MODERN_QUARTZCORE
+        // Tiled layer has issues with flipped coordinates.
+        setContentsOrientation(CompositingCoordinatesTopDown);
+#endif
+    } else {
+#if !HAVE_MODERN_QUARTZCORE
+        setContentsOrientation(defaultContentsOrientation());
+#endif
     }
     
     [m_layer.get() setLayerOwner:this];
@@ -1457,13 +1530,14 @@ void GraphicsLayerCA::swapFromOrToTiledLayer(bool userTiledLayer)
     [m_layer.get() setPosition:[oldLayer.get() position]];
     [m_layer.get() setAnchorPoint:[oldLayer.get() anchorPoint]];
     [m_layer.get() setOpaque:[oldLayer.get() isOpaque]];
-    [m_layer.get() setOpacity:[oldLayer.get() opacity]];
+    updateOpacityOnLayer();
     [m_layer.get() setTransform:[oldLayer.get() transform]];
     [m_layer.get() setSublayerTransform:[oldLayer.get() sublayerTransform]];
     [m_layer.get() setDoubleSided:[oldLayer.get() isDoubleSided]];
 #ifndef NDEBUG
     [m_layer.get() setZPosition:[oldLayer.get() zPosition]];
 #endif
+    updateContentsTransform();
     
 #ifndef NDEBUG
     String name = String::format("CALayer(%p) GraphicsLayer(%p) ", m_layer.get(), this) + m_name;
@@ -1487,6 +1561,31 @@ void GraphicsLayerCA::swapFromOrToTiledLayer(bool userTiledLayer)
 #endif
 }
 
+GraphicsLayer::CompositingCoordinatesOrientation GraphicsLayerCA::defaultContentsOrientation() const
+{
+#if !HAVE_MODERN_QUARTZCORE
+    // Older QuartzCore does not support -geometryFlipped, so we manually flip the root
+    // layer geometry, and then flip the contents of each layer back so that the CTM for CG
+    // is unflipped, allowing it to do the correct font auto-hinting.
+    return CompositingCoordinatesBottomUp;
+#else
+    return CompositingCoordinatesTopDown;
+#endif
+}
+
+void GraphicsLayerCA::updateContentsTransform()
+{
+#if !HAVE_MODERN_QUARTZCORE
+    if (contentsOrientation() == CompositingCoordinatesBottomUp) {
+        CGAffineTransform contentsTransform = CGAffineTransformMakeScale(1, -1);
+        contentsTransform = CGAffineTransformTranslate(contentsTransform, 0, -[m_layer.get() bounds].size.height);
+        [m_layer.get() setContentsTransform:contentsTransform];
+    }
+#else
+    ASSERT(contentsOrientation() == CompositingCoordinatesTopDown);
+#endif
+}
+
 void GraphicsLayerCA::setContentsLayer(WebLayer* contentsLayer)
 {
     if (contentsLayer == m_contentsLayer)
@@ -1502,22 +1601,18 @@ void GraphicsLayerCA::setContentsLayer(WebLayer* contentsLayer)
     if (contentsLayer) {
         // Turn off implicit animations on the inner layer.
         [contentsLayer setStyle:[NSDictionary dictionaryWithObject:nullActionsDictionary() forKey:@"actions"]];
-
         m_contentsLayer.adoptNS([contentsLayer retain]);
 
-        bool needToFlip = GraphicsLayer::compositingCoordinatesOrientation() == GraphicsLayer::CompositingCoordinatesBottomUp;
-        CGPoint anchorPoint = needToFlip ? CGPointMake(0.0f, 1.0f) : CGPointZero;
-
-        // If the layer world is flipped, we need to un-flip the contents layer
-        if (needToFlip) {
+        if (defaultContentsOrientation() == CompositingCoordinatesBottomUp) {
             CATransform3D flipper = {
                 1.0f, 0.0f, 0.0f, 0.0f,
                 0.0f, -1.0f, 0.0f, 0.0f,
                 0.0f, 0.0f, 1.0f, 0.0f,
                 0.0f, 0.0f, 0.0f, 1.0f};
             [m_contentsLayer.get() setTransform:flipper];
-        }
-        [m_contentsLayer.get() setAnchorPoint:anchorPoint];
+            [m_contentsLayer.get() setAnchorPoint:CGPointMake(0.0f, 1.0f)];
+        } else
+            [m_contentsLayer.get() setAnchorPoint:CGPointZero];
 
         // Insert the content layer first. Video elements require this, because they have
         // shadow content that must display in front of the video.
@@ -1537,6 +1632,22 @@ void GraphicsLayerCA::setContentsLayer(WebLayer* contentsLayer)
 #endif
 
     END_BLOCK_OBJC_EXCEPTIONS
+}
+
+void GraphicsLayerCA::setOpacityInternal(float accumulatedOpacity)
+{
+    [(preserves3D() ? m_layer.get() : primaryLayer()) setOpacity:accumulatedOpacity];
+}
+
+void GraphicsLayerCA::updateOpacityOnLayer()
+{
+#if !HAVE_MODERN_QUARTZCORE
+    // Distribute opacity either to our own layer or to our children. We pass in the 
+    // contribution from our parent(s).
+    distributeOpacity(parent() ? parent()->accumulatedOpacity() : 1);
+#else
+    [primaryLayer() setOpacity:m_opacity];
+#endif
 }
 
 } // namespace WebCore

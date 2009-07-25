@@ -30,6 +30,8 @@
 #include <qwebpage.h>
 #include <qwebhistory.h>
 #include <qwebframe.h>
+#include <qwebsecurityorigin.h>
+#include <qwebdatabase.h>
 #include <qevent.h>
 #include <qapplication.h>
 #include <qevent.h>
@@ -106,7 +108,6 @@ LayoutTestController::LayoutTestController(WebCore::DumpRenderTree *drt)
     : QObject()
     , m_drt(drt)
 {
-    m_timeoutTimer = 0;
     reset();
 }
 
@@ -119,13 +120,12 @@ void LayoutTestController::reset()
     m_canOpenWindows = false;
     m_waitForDone = false;
     m_dumpTitleChanges = false;
-    if (m_timeoutTimer) {
-        killTimer(m_timeoutTimer);
-        m_timeoutTimer = 0;
-    }
+    m_dumpDatabaseCallbacks = false;
+    m_timeoutTimer.stop();
     m_topLoadingFrame = 0;
     qt_dump_editing_callbacks(false);
     qt_dump_resource_load_callbacks(false);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::PrivateBrowsingEnabled, false);
 }
 
 void LayoutTestController::processWork()
@@ -166,16 +166,15 @@ void LayoutTestController::waitUntilDone()
 {
     //qDebug() << ">>>>waitForDone";
     m_waitForDone = true;
-    m_timeoutTimer = startTimer(11000);
+    m_timeoutTimer.start(11000, this);
 }
 
 void LayoutTestController::notifyDone()
 {
     //qDebug() << ">>>>notifyDone";
-    if (!m_timeoutTimer)
+    if (!m_timeoutTimer.isActive())
         return;
-    killTimer(m_timeoutTimer);
-    m_timeoutTimer = 0;
+    m_timeoutTimer.stop();
     emit done();
     m_isLoading = false;
 }
@@ -240,10 +239,14 @@ void LayoutTestController::provisionalLoad()
         m_topLoadingFrame = frame;
 }
 
-void LayoutTestController::timerEvent(QTimerEvent *)
+void LayoutTestController::timerEvent(QTimerEvent *ev)
 {
-    qDebug() << ">>>>>>>>>>>>> timeout";
-    notifyDone();
+    if (ev->timerId() == m_timeoutTimer.timerId()) {
+        qDebug() << ">>>>>>>>>>>>> timeout";
+        notifyDone();
+    } else {
+        QObject::timerEvent(ev);
+    }
 }
 
 QString LayoutTestController::encodeHostName(const QString &host)
@@ -269,6 +272,11 @@ void LayoutTestController::setJavaScriptProfilingEnabled(bool enable)
 void LayoutTestController::setFixedContentsSize(int width, int height)
 {
     m_topLoadingFrame->page()->setFixedContentsSize(QSize(width, height));
+}
+
+void LayoutTestController::setPrivateBrowsingEnabled(bool enable)
+{
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::PrivateBrowsingEnabled, enable);
 }
 
 bool LayoutTestController::pauseAnimationAtTimeOnElementWithId(const QString &animationName,
@@ -299,6 +307,18 @@ unsigned LayoutTestController::numberOfActiveAnimations() const
 void LayoutTestController::dispatchPendingLoadRequests()
 {
     // FIXME: Implement for testing fix for 6727495
+}
+
+void LayoutTestController::setDatabaseQuota(int size)
+{
+    if (!m_topLoadingFrame)
+        return;
+    m_topLoadingFrame->securityOrigin().setDatabaseQuota(size);
+}
+
+void LayoutTestController::clearAllDatabases()
+{
+    QWebDatabase::removeAllDatabases();
 }
 
 EventSender::EventSender(QWebPage *parent)
@@ -530,4 +550,29 @@ void TextInputController::doCommand(const QString &command)
     QApplication::sendEvent(parent(), &event);
     QKeyEvent event2(QEvent::KeyRelease, keycode, modifiers);
     QApplication::sendEvent(parent(), &event2);
+}
+
+GCController::GCController(QWebPage* parent)
+    : QObject(parent)
+{
+}
+
+extern int qt_drt_javaScriptObjectsCount();
+extern void qt_drt_garbageCollector_collect();
+
+extern void qt_drt_garbageCollector_collectOnAlternateThread(bool waitUntilDone);
+
+void GCController::collect() const
+{
+    qt_drt_garbageCollector_collect();
+}
+
+void GCController::collectOnAlternateThread(bool waitUntilDone) const
+{
+    qt_drt_garbageCollector_collectOnAlternateThread(waitUntilDone);
+}
+
+size_t GCController::getJSObjectCount() const
+{
+    return qt_drt_javaScriptObjectsCount();
 }

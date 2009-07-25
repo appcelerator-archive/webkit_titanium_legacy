@@ -99,6 +99,12 @@ static const char* const UserInitiatedProfileName = "org.webkit.profiles.user-in
 static const char* const resourceTrackingEnabledSettingName = "resourceTrackingEnabled";
 static const char* const debuggerEnabledSettingName = "debuggerEnabled";
 static const char* const profilerEnabledSettingName = "profilerEnabled";
+static const char* const inspectorAttachedHeightName = "inspectorAttachedHeight";
+static const char* const lastActivePanelSettingName = "lastActivePanel";
+
+static const unsigned defaultAttachedHeight = 300;
+static const float minimumAttachedHeight = 250.0f;
+static const float maximumAttachedHeightRatio = 0.75f;
 
 bool InspectorController::addSourceToFrame(const String& mimeType, const String& source, Node* frameNode)
 {
@@ -168,7 +174,7 @@ InspectorController::InspectorController(Page* page, InspectorClient* client)
     , m_page(0)
     , m_scriptState(0)
     , m_windowVisible(false)
-    , m_showAfterVisible(ElementsPanel)
+    , m_showAfterVisible(CurrentPanel)
     , m_nextIdentifier(-2)
     , m_groupLevel(0)
     , m_searchingForNode(false)
@@ -371,14 +377,27 @@ void InspectorController::setWindowVisible(bool visible, bool attached)
     if (m_windowVisible) {
         setAttachedWindow(attached);
         populateScriptObjects();
+
+        // Console panel is implemented as a 'fast view', so there should be
+        // real panel opened along with it.
+        bool showConsole = m_showAfterVisible == ConsolePanel;
+        if (m_showAfterVisible == CurrentPanel || showConsole) {
+          Setting lastActivePanelSetting = setting(lastActivePanelSettingName);
+          if (lastActivePanelSetting.type() == Setting::StringType)
+              m_showAfterVisible = specialPanelForJSName(lastActivePanelSetting.string());
+          else
+              m_showAfterVisible = ElementsPanel;
+        }
+
         if (m_nodeToFocus)
             focusNode();
 #if ENABLE(JAVASCRIPT_DEBUGGER)
         if (m_attachDebuggerWhenShown)
             enableDebugger();
 #endif
-        if (m_showAfterVisible != CurrentPanel)
-            showPanel(m_showAfterVisible);
+        showPanel(m_showAfterVisible);
+        if (showConsole)
+            showPanel(ConsolePanel);
     } else {
 #if ENABLE(JAVASCRIPT_DEBUGGER)
         // If the window is being closed with the debugger enabled,
@@ -391,24 +410,23 @@ void InspectorController::setWindowVisible(bool visible, bool attached)
 #endif
         resetScriptObjects();
     }
-
     m_showAfterVisible = CurrentPanel;
 }
 
-void InspectorController::addMessageToConsole(MessageSource source, MessageLevel level, ScriptCallStack* callStack)
+void InspectorController::addMessageToConsole(MessageSource source, MessageType type, MessageLevel level, ScriptCallStack* callStack)
 {
     if (!enabled())
         return;
 
-    addConsoleMessage(callStack->state(), new ConsoleMessage(source, level, callStack, m_groupLevel, level == TraceMessageLevel));
+    addConsoleMessage(callStack->state(), new ConsoleMessage(source, type, level, callStack, m_groupLevel, type == TraceMessageType));
 }
 
-void InspectorController::addMessageToConsole(MessageSource source, MessageLevel level, const String& message, unsigned lineNumber, const String& sourceID)
+void InspectorController::addMessageToConsole(MessageSource source, MessageType type, MessageLevel level, const String& message, unsigned lineNumber, const String& sourceID)
 {
     if (!enabled())
         return;
 
-    addConsoleMessage(0, new ConsoleMessage(source, level, message, lineNumber, sourceID, m_groupLevel));
+    addConsoleMessage(0, new ConsoleMessage(source, type, level, message, lineNumber, sourceID, m_groupLevel));
 }
 
 void InspectorController::addConsoleMessage(ScriptState* scriptState, ConsoleMessage* consoleMessage)
@@ -440,7 +458,7 @@ void InspectorController::startGroup(MessageSource source, ScriptCallStack* call
 {
     ++m_groupLevel;
 
-    addConsoleMessage(callStack->state(), new ConsoleMessage(source, StartGroupMessageLevel, callStack, m_groupLevel));
+    addConsoleMessage(callStack->state(), new ConsoleMessage(source, StartGroupMessageType, LogMessageLevel, callStack, m_groupLevel));
 }
 
 void InspectorController::endGroup(MessageSource source, unsigned lineNumber, const String& sourceURL)
@@ -450,14 +468,29 @@ void InspectorController::endGroup(MessageSource source, unsigned lineNumber, co
 
     --m_groupLevel;
 
-    addConsoleMessage(0, new ConsoleMessage(source, EndGroupMessageLevel, String(), lineNumber, sourceURL, m_groupLevel));
+    addConsoleMessage(0, new ConsoleMessage(source, EndGroupMessageType, LogMessageLevel, String(), lineNumber, sourceURL, m_groupLevel));
+}
+
+static unsigned constrainedAttachedWindowHeight(unsigned preferredHeight, unsigned totalWindowHeight)
+{
+    return roundf(max(minimumAttachedHeight, min<float>(preferredHeight, totalWindowHeight * maximumAttachedHeightRatio)));
 }
 
 void InspectorController::attachWindow()
 {
     if (!enabled())
         return;
+
+    unsigned inspectedPageHeight = m_inspectedPage->mainFrame()->view()->visibleHeight();
+
     m_client->attachWindow();
+
+    Setting attachedHeight = setting(inspectorAttachedHeightName);
+    unsigned preferredHeight = attachedHeight.type() == Setting::IntegerType ? attachedHeight.integerValue() : defaultAttachedHeight;
+
+    // We need to constrain the window height here in case the user has resized the inspected page's window so that
+    // the user's preferred height would be too big to display.
+    m_client->setAttachedWindowHeight(constrainedAttachedWindowHeight(preferredHeight, inspectedPageHeight));
 }
 
 void InspectorController::detachWindow()
@@ -479,7 +512,18 @@ void InspectorController::setAttachedWindowHeight(unsigned height)
 {
     if (!enabled())
         return;
-    m_client->setAttachedWindowHeight(height);
+    
+    unsigned totalHeight = m_page->mainFrame()->view()->visibleHeight() + m_inspectedPage->mainFrame()->view()->visibleHeight();
+    unsigned attachedHeight = constrainedAttachedWindowHeight(height, totalHeight);
+    
+    setSetting(inspectorAttachedHeightName, Setting(attachedHeight));
+    
+    m_client->setAttachedWindowHeight(attachedHeight);
+}
+
+void InspectorController::storeLastActivePanel(const String& panelName)
+{
+    setSetting(lastActivePanelSettingName, Setting(panelName));
 }
 
 void InspectorController::toggleSearchForNodeInPage()
@@ -635,7 +679,18 @@ void InspectorController::close()
 void InspectorController::showWindow()
 {
     ASSERT(enabled());
+
+    unsigned inspectedPageHeight = m_inspectedPage->mainFrame()->view()->visibleHeight();
+
     m_client->showWindow();
+
+    Setting attachedHeight = setting(inspectorAttachedHeightName);
+    unsigned preferredHeight = attachedHeight.type() == Setting::IntegerType ? attachedHeight.integerValue() : defaultAttachedHeight;
+
+    // This call might not go through (if the window starts out detached), but if the window is initially created attached,
+    // InspectorController::attachWindow is never called, so we need to make sure to set the attachedWindowHeight.
+    // FIXME: Clean up code so we only have to call setAttachedWindowHeight in InspectorController::attachWindow
+    m_client->setAttachedWindowHeight(constrainedAttachedWindowHeight(preferredHeight, inspectedPageHeight));
 }
 
 void InspectorController::closeWindow()
@@ -729,6 +784,8 @@ void InspectorController::didCommitLoad(DocumentLoader* loader)
         m_counts.clear();
 #if ENABLE(JAVASCRIPT_DEBUGGER)
         m_profiles.clear();
+        m_currentUserInitiatedProfileNumber = 1;
+        m_nextUserInitiatedProfileNumber = 1;
 #endif
 #if ENABLE(DATABASE)
         m_databaseResources.clear();
@@ -788,7 +845,9 @@ void InspectorController::addResource(InspectorResource* resource)
 void InspectorController::removeResource(InspectorResource* resource)
 {
     m_resources.remove(resource->identifier());
-    m_knownResources.remove(resource->requestURL());
+    String requestURL = resource->requestURL();
+    if (!requestURL.isNull())
+        m_knownResources.remove(requestURL);
 
     Frame* frame = resource->frame();
     ResourcesMap* resourceMap = m_frameResources.get(frame);
@@ -985,7 +1044,8 @@ void InspectorController::scriptImported(unsigned long identifier, const String&
         resource->updateScriptObject(m_frontend.get());
 }
 
-void InspectorController::enableResourceTracking(bool always) {
+void InspectorController::enableResourceTracking(bool always)
+{
     if (!enabled())
         return;
 
@@ -1003,7 +1063,8 @@ void InspectorController::enableResourceTracking(bool always) {
     m_inspectedPage->mainFrame()->loader()->reload();
 }
 
-void InspectorController::disableResourceTracking(bool always) {
+void InspectorController::disableResourceTracking(bool always)
+{
     if (!enabled())
         return;
 
@@ -1096,7 +1157,7 @@ void InspectorController::addProfileFinishedMessageToConsole(PassRefPtr<Profile>
     message += "/";
     message += UString::from(profile->uid());
     message += "\" finished.";
-    addMessageToConsole(JSMessageSource, LogMessageLevel, message, lineNumber, sourceURL);
+    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message, lineNumber, sourceURL);
 }
 
 void InspectorController::addStartProfilingMessageToConsole(const UString& title, unsigned lineNumber, const UString& sourceURL)
@@ -1104,7 +1165,7 @@ void InspectorController::addStartProfilingMessageToConsole(const UString& title
     UString message = "Profile \"webkit-profile://";
     message += encodeWithURLEscapeSequences(title);
     message += "/0\" started.";
-    addMessageToConsole(JSMessageSource, LogMessageLevel, message, lineNumber, sourceURL);
+    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message, lineNumber, sourceURL);
 }
 
 void InspectorController::addScriptProfile(Profile* profile)
@@ -1114,6 +1175,18 @@ void InspectorController::addScriptProfile(Profile* profile)
 
     JSLock lock(false);
     m_frontend->addProfile(toJS(m_scriptState, profile));
+}
+
+UString InspectorController::getCurrentUserInitiatedProfileName(bool incrementProfileNumber = false)
+{
+    if (incrementProfileNumber)
+        m_currentUserInitiatedProfileNumber = m_nextUserInitiatedProfileNumber++;        
+
+    UString title = UserInitiatedProfileName;
+    title += ".";
+    title += UString::from(m_currentUserInitiatedProfileNumber);
+    
+    return title;
 }
 
 void InspectorController::startUserInitiatedProfilingSoon()
@@ -1132,11 +1205,8 @@ void InspectorController::startUserInitiatedProfiling(Timer<InspectorController>
     }
 
     m_recordingUserInitiatedProfile = true;
-    m_currentUserInitiatedProfileNumber = m_nextUserInitiatedProfileNumber++;
 
-    UString title = UserInitiatedProfileName;
-    title += ".";
-    title += UString::from(m_currentUserInitiatedProfileNumber);
+    UString title = getCurrentUserInitiatedProfileName(true);
 
     ExecState* scriptState = toJSDOMWindow(m_inspectedPage->mainFrame())->globalExec();
     Profiler::profiler()->startProfiling(scriptState, title);
@@ -1153,9 +1223,7 @@ void InspectorController::stopUserInitiatedProfiling()
 
     m_recordingUserInitiatedProfile = false;
 
-    UString title =  UserInitiatedProfileName;
-    title += ".";
-    title += UString::from(m_currentUserInitiatedProfileNumber);
+    UString title = getCurrentUserInitiatedProfileName();
 
     ExecState* scriptState = toJSDOMWindow(m_inspectedPage->mainFrame())->globalExec();
     RefPtr<Profile> profile = Profiler::profiler()->stopProfiling(scriptState, title);
@@ -1497,7 +1565,7 @@ void InspectorController::count(const String& title, unsigned lineNumber, const 
     m_counts.add(identifier, count);
 
     String message = String::format("%s: %d", title.utf8().data(), count);
-    addMessageToConsole(JSMessageSource, LogMessageLevel, message, lineNumber, sourceID);
+    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message, lineNumber, sourceID);
 }
 
 void InspectorController::startTiming(const String& title)
@@ -1516,6 +1584,22 @@ bool InspectorController::stopTiming(const String& title, double& elapsed)
     
     elapsed = currentTime() * 1000 - startTime;
     return true;
+}
+
+InspectorController::SpecialPanels InspectorController::specialPanelForJSName(const String& panelName)
+{
+    if (panelName == "elements")
+        return ElementsPanel;
+    else if (panelName == "resources")
+        return ResourcesPanel;
+    else if (panelName == "scripts")
+        return ScriptsPanel;
+    else if (panelName == "profiles")
+        return ProfilesPanel;
+    else if (panelName == "databases")
+        return DatabasesPanel;
+    else
+        return ElementsPanel;
 }
 
 } // namespace WebCore

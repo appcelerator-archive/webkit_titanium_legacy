@@ -27,6 +27,7 @@
 #define RenderLayerCompositor_h
 
 #include "RenderLayer.h"
+#include "RenderLayerBacking.h"
 
 namespace WebCore {
 
@@ -56,10 +57,23 @@ public:
     // This will make a compositing layer at the root automatically, and hook up to
     // the native view/window system.
     void enableCompositingMode(bool enable = true);
+    
+    // Returns true if the accelerated compositing is enabled
+    bool hasAcceleratedCompositing() const { return m_hasAcceleratedCompositing; }
+    
+    // Copy the acceleratedCompositingEnabledFlag from Settings
+    void cacheAcceleratedCompositingEnabledFlag();
 
-    void setCompositingLayersNeedUpdate(bool needUpdate = true);
-    bool compositingLayersNeedUpdate() const { return m_compositingLayersNeedUpdate; }
+    // Called when the layer hierarchy needs to be udpated (compositing layers have been
+    // created, destroyed or re-parented).
+    void setCompositingLayersNeedRebuild(bool needRebuild = true);
+    bool compositingLayersNeedRebuild() const { return m_compositingLayersNeedRebuild; }
 
+    // Controls whether or not to consult geometry when deciding which layers need
+    // to be composited. Defaults to true.
+    void setCompositingConsultsOverlap(bool b) { m_compositingConsultsOverlap = b; }
+    bool compositingConsultsOverlap() const { return m_compositingConsultsOverlap; }
+    
     void scheduleViewUpdate();
     
     // Rebuild the tree of compositing layers
@@ -70,7 +84,7 @@ public:
     bool updateLayerCompositingState(RenderLayer*, CompositingChangeRepaint = CompositingChangeRepaintNow);
 
     // Update the geometry for compositing children of compositingAncestor.
-    void updateCompositingChildrenGeometry(RenderLayer* compositingAncestor, RenderLayer* layer);
+    void updateCompositingDescendantGeometry(RenderLayer* compositingAncestor, RenderLayer* layer, RenderLayerBacking::UpdateDepth);
     
     // Whether layer's backing needs a graphics layer to do clipping by an ancestor (non-stacking-context parent with overflow).
     bool clippedByAncestor(RenderLayer*) const;
@@ -104,6 +118,8 @@ public:
 
     void updateRootLayerPosition();
     
+    void didStartAcceleratedAnimation();
+    
 #if ENABLE(VIDEO)
     // Use by RenderVideo to ask if it should try to use accelerated compositing.
     bool canAccelerateVideoRendering(RenderVideo*) const;
@@ -125,8 +141,13 @@ private:
     // Repaint the given rect (which is layer's coords), and regions of child layers that intersect that rect.
     void recursiveRepaintLayerRect(RenderLayer* layer, const IntRect& rect);
 
-    void computeCompositingRequirements(RenderLayer*, struct CompositingState&);
-    void rebuildCompositingLayerTree(RenderLayer* layer, struct CompositingState&);
+    typedef HashMap<RenderLayer*, IntRect> OverlapMap;
+    static void addToOverlapMap(OverlapMap&, RenderLayer*, IntRect& layerBounds, bool& boundsComputed);
+    static bool overlapsCompositedLayers(OverlapMap&, const IntRect& layerBounds);
+
+    // Returns true if any layer's compositing changed
+    void computeCompositingRequirements(RenderLayer*, OverlapMap*, struct CompositingState&, bool& layersChanged);
+    void rebuildCompositingLayerTree(RenderLayer* layer, struct CompositingState&, bool updateHierarchy);
 
     // Hook compositing layers together
     void setCompositingParent(RenderLayer* childLayer, RenderLayer* parentLayer);
@@ -137,18 +158,22 @@ private:
     bool layerHas3DContent(const RenderLayer*) const;
 
     void ensureRootPlatformLayer();
-
+    void destroyRootPlatformLayer();
+    
     // Whether a running transition or animation enforces the need for a compositing layer.
-    static bool requiresCompositingForAnimation(RenderObject*);
-    static bool requiresCompositingForTransform(RenderObject*);
+    bool requiresCompositingForAnimation(RenderObject*) const;
+    bool requiresCompositingForTransform(RenderObject*) const;
     bool requiresCompositingForVideo(RenderObject*) const;
 
 private:
     RenderView* m_renderView;
     GraphicsLayer* m_rootPlatformLayer;
+    bool m_hasAcceleratedCompositing;
+    bool m_compositingConsultsOverlap;
     bool m_compositing;
     bool m_rootLayerAttached;
-    bool m_compositingLayersNeedUpdate;
+    bool m_compositingLayersNeedRebuild;
+    
 #if PROFILE_LAYER_REBUILD
     int m_rootLayerUpdateCount;
 #endif

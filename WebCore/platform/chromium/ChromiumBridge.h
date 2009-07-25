@@ -31,6 +31,7 @@
 #ifndef ChromiumBridge_h
 #define ChromiumBridge_h
 
+#include "FileSystem.h"
 #include "LinkHash.h"
 #include "PassRefPtr.h"
 #include "PasteboardPrivate.h"
@@ -82,9 +83,15 @@ namespace WebCore {
         // DNS ----------------------------------------------------------------
         static void prefetchDNS(const String& hostname);
 
+        // File ---------------------------------------------------------------
+        static bool getFileSize(const String& path, long long& result);
+
         // Font ---------------------------------------------------------------
 #if PLATFORM(WIN_OS)
         static bool ensureFontLoaded(HFONT font);
+#endif
+#if PLATFORM(LINUX)
+        static String getFontFamilyForCharacters(const UChar*, size_t numCharacters);
 #endif
 
         // Forms --------------------------------------------------------------
@@ -171,6 +178,25 @@ namespace WebCore {
         // Widget -------------------------------------------------------------
         static void widgetSetCursor(Widget*, const Cursor&);
         static void widgetSetFocus(Widget*);
+
+        // HTML5 DB -----------------------------------------------------------
+
+#if ENABLE(DATABASE)
+        // Opens a database file
+        // 'desiredFlags' is a collection of OR'd SQLite constants that
+        // determine how the file should be opened
+        static PlatformFileHandle databaseOpenFile(const String& fileName, int desiredFlags);
+
+        // Deletes a database file
+        // Returns 'true' if the file was deleted; 'false' otherwise
+        static bool databaseDeleteFile(const String& fileName);
+
+        // Returns the file attributes of the given database file
+        static long databaseGetFileAttributes(const String& fileName);
+
+        // Returns size of the given file
+        static long long databaseGetFileSize(const String& fileName);
+#endif
     };
 
 } // namespace WebCore

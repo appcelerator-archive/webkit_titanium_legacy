@@ -1,3 +1,765 @@
+2009-07-24  Andrei Popescu  <andreip@google.com>
+
+        Reviewed by Anders Carlsson.
+
+        ApplicationCache should have size limit
+        https://bugs.webkit.org/show_bug.cgi?id=22700
+
+        Adds the WebApplicationCache class that is
+        used by the DumpRenderTree test application to
+        configure the Application Cache maximum size.
+
+        * WebCoreSupport/WebApplicationCache.h: Added.
+        * WebCoreSupport/WebApplicationCache.mm: Added.
+        * WebCoreSupport/WebChromeClient.h:
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::reachedMaxAppCacheSize):
+        Adds empty implementation of the reachedMaxAppCacheSize callback.
+        * WebKit.exp:
+
+2009-07-23  Darin Adler  <darin@apple.com>
+
+        * WebView/WebDataSource.mm:
+        (-[WebDataSource _makeRepresentation]): Landed a comment I forgot last time.
+
+2009-07-23  Darin Adler  <darin@apple.com>
+
+        Reviewed by Brady Eidson.
+
+        URL appears in back/forward button menu instead of title for items with custom representation
+        https://bugs.webkit.org/show_bug.cgi?id=27586
+        rdar://problem/5060337
+
+        The problem is that DocumentLoader expects to store a title, but for custom representations
+        it is never passed to the document loader.
+
+        * WebView/WebDataSource.mm:
+        (-[WebDataSource _makeRepresentation]): Added a call to DocumentLoader::setTitle.
+        Works as long as the title does not change during the document's lifetime, which
+        is good enough for the simple cases in Safari.
+
+2009-07-20  Darin Adler  <darin@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        REGRESSION (r39185): Safari adds ".jpeg" extension to images that already have ".JPG" extension
+        https://bugs.webkit.org/show_bug.cgi?id=27472
+
+        * WebView/WebHTMLView.mm:
+        (matchesExtensionOrEquivalent): Changed category method into a C function.
+        Made it require the leading dot when checking for the extension and do it
+        in a non-case-sensitive way.
+        (-[WebHTMLView namesOfPromisedFilesDroppedAtDestination:]): Changed to call
+        the function.
+
+2009-07-21  Roland Steiner  <rolandsteiner@google.com>
+
+        Reviewed by David Levin.
+
+        Add ENABLE_RUBY to list of build options
+        https://bugs.webkit.org/show_bug.cgi?id=27324
+
+        * Configurations/FeatureDefines.xcconfig: Added flag ENABLE_RUBY.
+
+2009-07-17  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Fix of <rdar://problem/5712795> Win: Cannot change the height of the docked Web Inspector (14272)
+        https://bugs.webkit.org/show_bug.cgi?id=14272
+        
+        Removed size calculation code from [WebInspectorWindowController setInitialAttachedHeight] into
+        InspectorController.cpp to make it cross platform, and use InspectorController to store the 
+        user's preferred size for an attached window, instead of NSUserDefaults.
+
+        * WebCoreSupport/WebInspectorClient.mm:
+        (-[WebInspectorWindowController showWindow:]):
+        (-[WebInspectorWindowController setAttachedWindowHeight:]):
+
+2009-07-16  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by David Levin.
+
+        Add --web-sockets flag and ENABLE_WEB_SOCKETS define.
+        https://bugs.webkit.org/show_bug.cgi?id=27206
+        
+        Add ENABLE_WEB_SOCKETS
+
+        * Configurations/FeatureDefines.xcconfig: add ENABLE_WEB_SOCKETS
+
+2009-07-16  Xiaomei Ji  <xji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Fix tooltip does not get its directionality from its element's directionality.
+        https://bugs.webkit.org/show_bug.cgi?id=24187
+
+        Per mitz's suggestion in comment #6, while getting the plain-text 
+        title, we also get the directionality of the title. How to handle 
+        the directionality is up to clients. Clients could ignore it, 
+        or use attribute or unicode control characters to display the title
+        as what they want.
+
+        * Misc/WebElementDictionary.mm:
+        (-[WebElementDictionary _spellingToolTip]): Change spellingToolTip caller due to signature change.
+        (-[WebElementDictionary _title]): Change title caller due to signature change.
+        * WebCoreSupport/WebChromeClient.h: Add directionality as 2nd parameter to setToolTip().
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::setToolTip): Add directionality as 2nd parameter to setToopTip() (without handling it yet).
+
+2009-07-15  Darin Adler  <darin@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Renamed parseURL to deprecatedParseURL.
+
+        * DOM/WebDOMOperations.mm:
+        (-[DOMDocument URLWithAttributeString:]): Renamed.
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::createPlugin): Renamed.
+
+2009-07-15  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27304
+        WebKit should provide usage and eligibility information about the page cache.
+
+        * Misc/WebCoreStatistics.h:
+        * Misc/WebCoreStatistics.mm:
+        (+[WebCoreStatistics numberCachedPages]):
+        (+[WebCoreStatistics numberCachedFrames]):
+        (+[WebCoreStatistics numberAutoreleasedPages]):
+        * WebKit.exp:
+
+        * WebView/WebFrame.mm:
+        (-[WebFrame _cacheabilityDictionary]): Returns a dictionary with all the data about
+          why the frame is not cacheable. If the frame *is* cacheable, the dictionary is
+          empty.
+        * WebView/WebFramePrivate.h:
+
+2009-07-13  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein, Adam Roben.
+
+        "Unrecognized selector" console log when the Safari 4 Welcome page navigates to Top Sites.
+        <rdar://problem/6994893
+
+        attachRootGraphicsLayer() should not assume that the frameView's documentView
+        is a WebHTMLView.
+        
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::attachRootGraphicsLayer):
+
+2009-07-13  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Darin Adler and Kevin Decker.
+
+        <rdar://problem/7053687> Core Animation plug-ins continue to grow larger and larger when opening new tabs (32 bit-only)
+
+        * Plugins/Hosted/WebHostedNetscapePluginView.mm:
+        (-[WebHostedNetscapePluginView setLayer:]):
+        Add a FIXME.
+        
+        * Plugins/WebNetscapePluginView.mm:
+        (-[WebNetscapePluginView setLayer:]):
+        Make sure to set the size of the layer before changing the autoresizing mask so it won't grow everytime it's inserted
+        into the layer tree.
+
+2009-07-13  Greg Bolsinga  <bolsinga@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        Correct these delegate methods' declarations by adding parameter names.
+
+        * WebView/WebUIDelegatePrivate.h:
+
+2009-07-13  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by David Levin.
+
+        Add ENABLE(SHARED_WORKERS) flag and define SharedWorker APIs
+        https://bugs.webkit.org/show_bug.cgi?id=26932
+
+        Added ENABLE(SHARED_WORKERS) flag (disabled by default).
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-07-12  Keishi Hattori  <casey.hattori@gmail.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Refactor ConsoleMessage to add MessageType attribute.
+        https://bugs.webkit.org/show_bug.cgi?id=20625
+
+        * WebCoreSupport/WebChromeClient.h:
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::addMessageToConsole):
+
+2009-07-11  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable support for accelerated compositing and 3d transforms on Leopard.
+        <https://bugs.webkit.org/show_bug.cgi?id=20166>
+        <rdar://problem/6120614>
+
+        Reviewed by Oliver Hunt.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-07-10  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 27007: Build fixes when ICONDATABASE is disabled
+
+        <https://bugs.webkit.org/show_bug.cgi?id=27007>
+
+        Reviewed by Sam Weinig.
+
+        * Misc/WebIconDatabase.mm:
+        (defaultClient): Return 0 if ICONDATABASE is disabled.
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::dispatchDidReceiveIcon): Commented out
+        the body of the method if ICONDATABASE is disabled.
+        (WebFrameLoaderClient::registerForIconNotification): Ditto.
+        * WebCoreSupport/WebIconDatabaseClient.mm: Added #if
+        ENABLE(ICONDATABASE)/#endif guard to source.
+        * WebView/WebView.mm:
+        (-[WebView setFrameLoadDelegate:]): Wrapped code that starts the
+        icon database machinery in #if ENABLE(ICONDATABASE)/#endif.
+        (-[WebView _registerForIconNotification:]): Wrapped method in
+        #if ENABLE(ICONDATABASE)/#endif guard.
+        (-[WebView _dispatchDidReceiveIconFromWebFrame:]): Ditto.
+        * WebView/WebViewInternal.h: Wrapped methods in #if
+        ENABLE(ICONDATABASE)/#endif guard.
+        (-[WebView _registerForIconNotification:]):
+        (-[WebView _dispatchDidReceiveIconFromWebFrame:]):
+
+2009-07-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by John Sullivan.
+
+        Flashing as hardware layers are created and destroyed in some content
+        <rdar://problem/7032246>
+        
+        There's a window of time between the end of one runloop cycle, after CA layers changes
+        have been committed, and the window display at the start of the next cycle when 
+        CA may push updates to the screen before AppKit has drawn the view contents. If
+        we know that we need to do drawing synchronization (which we do when content moves
+        between a layer and the view), then we need to call -disableScreenUpdatesUntilFlush
+        from the existing runloop observer that is set up when layers need repainting to
+        ensure that layer updates don't reach the screen before view-based painting does.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView drawRect:]):
+        Tweak the comments
+        
+        * WebView/WebView.mm:
+        (viewUpdateRunLoopObserverCallBack):
+        (-[WebView _scheduleViewUpdate]):
+        Add a big comment to explain the timing of things.
+        Call -disableScreenUpdatesUntilFlush when the view _needsOneShotDrawingSynchronization.
+
+ 2009-07-09  Brian Weinstein  <bweinstein@apple.com>
+ 
+         Reviewed by Tim Hatcher.
+2009-07-10  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Sam Weinig with the power of Grayskull.
+
+        Enable XSSAuditor by default.
+
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+
+2009-07-10  Greg Bolsinga  <bolsinga@apple.com>
+
+        Reviewed by Antti Koivisto.
+
+        Add delegate methods about focus and blur and state change
+        https://bugs.webkit.org/show_bug.cgi?id=27153
+
+        Call the appropriate private delegate methods from the ChromeClient.
+        
+        * WebCoreSupport/WebChromeClient.h:
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::formStateDidChange):
+        (WebChromeClient::formDidFocus):
+        (WebChromeClient::formDidBlur):
+        * WebView/WebUIDelegatePrivate.h:
+
+2009-07-09  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Tim Hatcher.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27141
+        
+        Updated WebInspectorClient to use Web Inspector Preferences to remember whether or not it should be 
+        docked or a free window instead of NSUserDefaults it used to have.
+
+        * WebCoreSupport/WebInspectorClient.mm:
+        (-[WebInspectorWindowController init]):
+        (-[WebInspectorWindowController showWindow:]):
+        (-[WebInspectorWindowController attach]):
+        (-[WebInspectorWindowController detach]):
+
+2009-07-09  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        https://bugs.webkit.org/show_bug.cgi?id=26903
+
+        Turned on CHANNEL_MESSAGING by default because the MessageChannel API
+        can now be implemented for Web Workers and is reasonably stable.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-07-09  Darin Adler  <darin@apple.com>
+
+        Reviewed by Adele Peterson and Dan Bernstein.
+
+        <rdar://problem/7024972> Cannot set font to Helvetica Neue Light in Mail compose window
+
+        No regression test because this only affects the font panel.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView _addToStyle:fontA:fontB:]): Fix code that detects whether the font would
+        survive a round trip by using the weight corresponding to "bold" or "normal" rather than
+        the actual weight number.
+
+2009-07-09  Beth Dakin and Jon Honeycutt <bdakin@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Make Widget RefCounted to fix:
+
+        <rdar://problem/7038831> REGRESSION (TOT): In Mail, a crash occurs 
+        at WebCore::Widget::afterMouseDown() after clicking To Do's close 
+        box
+        <rdar://problem/6978804> WER #16: Repro Access Violation in 
+        WebCore::PluginView::bindingInstance (1310178023)
+        -and-
+        <rdar://problem/6991251> WER #13: Crash in WebKit!
+        WebCore::PluginView::performRequest+203 (1311461169) 
+
+        * WebCoreSupport/WebFrameLoaderClient.h:
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::createPlugin):
+
+2009-07-09  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Steve Falkenburg.
+
+        Roll out r43848. The quirk is no longer necessary.
+
+        * WebView/WebView.mm:
+        (-[WebView WebCore::_userAgentForURL:WebCore::]):
+
+2009-07-09  Alexey Proskuryakov  <ap@webkit.org>
+
+        Reviewed by Geoff Garen.
+
+        <rdar://problem/6921671> Visit count shouldn't be incremented by redirects.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm: (WebFrameLoaderClient::updateGlobalHistory):
+        Do not increase visit count if there is a redirect source. As a result, only pages that were
+        explicitly visited by the user (by typing a URL, choosing one from bookmarks, or clicking
+        a link) will be counted.
+
+        * History/WebHistory.mm:
+        (-[WebHistoryPrivate visitedURL:withTitle:increaseVisitCount:]):
+        (-[WebHistory _visitedURL:withTitle:method:wasFailure:increaseVisitCount:]):
+        * History/WebHistoryInternal.h:
+        * History/WebHistoryItem.mm:
+        (-[WebHistoryItem _visitedWithTitle:increaseVisitCount:]):
+        * History/WebHistoryItemInternal.h:
+        Marshal this new argument all the way down to WebCore.
+
+2009-07-08  Greg Bolsinga  <bolsinga@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Add -[WebView _isProcessingUserGesture]
+        https://bugs.webkit.org/show_bug.cgi?id=27084
+
+        Add -_isProcessingUserGesture that calls into WebCore::FrameLoader::isProcessingUserGesture()
+        so that WebView code can determine if a user gesture is in progress.
+
+        * WebView/WebView.mm:
+        (-[WebView _isProcessingUserGesture]):
+        * WebView/WebViewPrivate.h:
+
+2009-07-07  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        - Fix <rdar://problem/6544693>.
+        
+        For Flash, don't cache which methods or fields in an object are missing, since they can
+        be added at any time.
+        
+        * Plugins/Hosted/NetscapePluginHostManager.mm:
+        (WebKit::NetscapePluginHostManager::hostForPackage):
+        * Plugins/Hosted/NetscapePluginHostProxy.h:
+        (WebKit::NetscapePluginHostProxy::shouldCacheMissingPropertiesAndMethods):
+        * Plugins/Hosted/NetscapePluginHostProxy.mm:
+        (WebKit::NetscapePluginHostProxy::NetscapePluginHostProxy):
+        * Plugins/Hosted/ProxyInstance.mm:
+        (WebKit::ProxyInstance::methodsNamed):
+        (WebKit::ProxyInstance::fieldNamed):
+
+2009-07-06  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 27006: Build fix when MAC_JAVA_BRIDGE is disabled
+
+        <https://bugs.webkit.org/show_bug.cgi?id=27006>
+
+        Reviewed by Darin Adler.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::createJavaAppletWidget): Wrap contents of
+        the method in #if ENABLE(MAC_JAVA_BRIDGE)/#endif and return 0
+        when this feature is disabled.
+
+2009-07-06  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 27005: Build fixes when NETSCAPE_PLUGIN_API is disabled
+
+        <https://bugs.webkit.org/show_bug.cgi?id=27005>
+
+        Reviewed by Geoff Garen.
+
+        * Plugins/WebPluginController.mm:
+        (-[WebPluginController destroyPlugin:]): Wrap call to
+        ScriptController::cleanupScriptObjectsForPlugin() in
+        #if ENABLE(NETSCAPE_PLUGIN_API)/#endif macro.
+        (-[WebPluginController destroyAllPlugins]): Ditto.
+        * Plugins/WebPluginDatabase.mm:
+        (-[WebPluginDatabase removePluginInstanceViewsFor:]): Wrap
+        WebBaseNetscapePluginView class checks in
+        #if ENABLE(NETSCAPE_PLUGIN_API)/#endif macro.
+        (-[WebPluginDatabase destroyAllPluginInstanceViews]): Ditto.
+
+2009-07-06  David Kilzer  <ddkilzer@apple.com>
+
+        BUILD FIX: Use ENABLE(NETSCAPE_PLUGIN_API) instead of USE(PLUGIN_HOST_PROCESS)
+
+        In r45579, #if/#endif macros for USE(PLUGIN_HOST_PROCESS) were
+        used, but ENABLE(NETSCAPE_PLUGIN_API) should have been used
+        instead.
+
+        * Plugins/WebNetscapeContainerCheckContextInfo.h:
+        * Plugins/WebNetscapeContainerCheckContextInfo.mm:
+        * Plugins/WebNetscapeContainerCheckPrivate.mm:
+
+2009-07-06  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 27004: Build fix for ENABLE(PLUGIN_PROXY_FOR_VIDEO) after r42618
+
+        <https://bugs.webkit.org/show_bug.cgi?id=27004>
+
+        Reviewed by Geoff Garen.
+
+        * Plugins/WebPluginController.mm:
+        (mediaProxyClient): Use core() method to convert from
+        DOMElement to WebCore::Element.
+
+2009-07-06  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 27003: Build fix when USE(PLUGIN_HOST_PROCESS) is disabled
+
+        <https://bugs.webkit.org/show_bug.cgi?id=27003>
+
+        Reviewed by Geoff Garen.
+
+        * Plugins/WebNetscapeContainerCheckContextInfo.h: Added #if
+        USE(PLUGIN_HOST_PROCESS)/#endif guards.
+        * Plugins/WebNetscapeContainerCheckContextInfo.mm: Ditto.
+        * Plugins/WebNetscapeContainerCheckPrivate.mm: Ditto.
+
+2009-07-06  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Adele Peterson.
+
+        Initialize wkIsLatchingWheelEvent.
+        
+        * WebCoreSupport/WebSystemInterface.m:
+        (InitWebCoreSystemInterface):
+
+2009-07-03  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        - fix <rdar://problem/6964278> REGRESSION (r42118): Scrolling redraw
+          problem in FileMaker Pro
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView _recursiveDisplayRectIfNeededIgnoringOpacity:isVisibleRect:rectIsVisibleRectForView:topView:]):
+        Perform layout if needed, even on Mac OS X versions that have
+        -viewWillDraw. This prevents attempts to draw without layout in case
+        -viewWillDraw was not called due to NSView issues or the client
+        did something during the display operation that re-invalidated the
+        layout.
+
+2009-07-02  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        <rdar://problem/6978783> 
+        Software-rendered plug-in does not update correctly when inside a hardware layer
+        
+        Replace calls to setNeedsDisplay: and setNeedsDisplayInRect: with a call to the new method
+        invalidatePluginContentRect:. This new method will ask WebCore to do the repainting, taking
+        transforms into account.
+        
+        * Plugins/Hosted/NetscapePluginInstanceProxy.mm:
+        (WebKit::NetscapePluginInstanceProxy::invalidateRect):
+        * Plugins/Hosted/WebHostedNetscapePluginView.mm:
+        (-[WebHostedNetscapePluginView pluginHostDied]):
+        * Plugins/WebBaseNetscapePluginView.h:
+        * Plugins/WebBaseNetscapePluginView.mm:
+        (-[WebBaseNetscapePluginView windowBecameKey:]):
+        (-[WebBaseNetscapePluginView windowResignedKey:]):
+        (-[WebBaseNetscapePluginView preferencesHaveChanged:]):
+        (-[WebBaseNetscapePluginView invalidatePluginContentRect:]):
+        * Plugins/WebNetscapePluginView.mm:
+        (-[WebNetscapePluginView invalidateRect:]):
+        (-[WebNetscapePluginView invalidateRegion:]):
+        (-[WebNetscapePluginView forceRedraw]):
+
+2009-07-02  Adam Roben  <aroben@apple.com>
+
+        Fix warnings from update-webkit-localizable-strings
+
+        Rubber-stamped by Eric Carlson.
+
+        * WebCoreSupport/WebViewFactory.mm:
+        (-[WebViewFactory mediaElementLoadingStateText]):
+        (-[WebViewFactory mediaElementLiveBroadcastStateText]):
+        Changed the localization comments to match the comments in the Windows
+        version of this file, to avoid warnings about different comments for
+        the same localized string.
+
+2009-07-02  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+        
+        Compositing-related preference methods are not public API; should move to WebPreferencesPrivate.h
+        <rdar://problem/7027363>
+
+        Move accelerated-compositing pref to WebPreferencesPrivate.h
+
+        * WebView/WebPreferences.h:
+        * WebView/WebPreferences.mm:
+        (-[WebPreferences acceleratedCompositingEnabled]):
+        (-[WebPreferences setAcceleratedCompositingEnabled:]):
+        * WebView/WebPreferencesPrivate.h:
+
+2009-07-02  Pierre d'Herbemont  <pdherbemont@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        <rdar://problem/6518119>
+
+        Add localized strings for media controller status messages.
+
+        * WebCoreSupport/WebViewFactory.mm: Add new localized text.
+        (-[WebViewFactory mediaElementLoadingStateText]):
+        (-[WebViewFactory mediaElementLiveBroadcastStateText]):
+
+2009-07-01  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Add a preference/setting to toggle whether content sniffing is enabled for file URLs.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences localFileContentSniffingEnabled]):
+        (-[WebPreferences setLocalFileContentSniffingEnabled:]):
+        * WebView/WebPreferencesPrivate.h:
+
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChangedNotification:]):
+
+2009-07-01  David Hyatt  <hyatt@apple.com>
+
+        Reviewed by Tim Hatcher.
+
+        <rdar://problem/6998524> REGRESSION (r44474): Form text field has focus ring, looks focused,
+        even though the field is not actually focused for keyboard input
+        
+        Add the concept of whether or not the Page is focused by adding a boolean to the focusController.  This allows the
+        focused frame and focused node to both be cached and changed programmatically without causing errors when the Page doesn't
+        have focus.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView becomeFirstResponder]):
+        (-[WebHTMLView resignFirstResponder]):
+
+2009-06-30  Adele Peterson  <adele@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for <rdar://problem/7014389> REGRESSION(4-TOT): Hyperlinks have no tooltips in Mail unless you first click in the message body
+
+        Updated these new methods (added as part of the viewless WebKit effort) that call through to WebHTMLView to use _selectedOrMainFrame, 
+        instead of just selectedFrame.  When the selection changes, I don't think there is a situation where there's no selected frame, but
+        it seems better to keep these two uses the same, since if there is a case, this will be more like the old behavior, before there was
+        a version of _selectionChanged in WebView. 
+
+        * WebView/WebView.mm:
+        (-[WebView _setToolTip:]):
+        (-[WebView _selectionChanged]):
+
+2009-06-30  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Timothy Hatcher.
+
+        <rdar://problem/7006959> 'Save as…’ does not work in Mail
+
+        * WebView/WebFrameView.mm:
+        (-[WebFrameView initWithFrame:]): Call _needMailThreadWorkaroundIfCalledOffMainThread rather than
+        needMailThreadWorkaround, as the latter is intended to be used at the point which a workaround would
+        be applied and thus contains a main thread check.  Since -initWithFrame: is called on the main thread,
+        this was causing us to not switch from exception-throwing to logging for the thread violation behavior.
+
+2009-06-30  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        - fix <rdar://problem/6946611> REGRESSION (r30673): Shade10:" D_Snap
+          to Grid" window is clipping
+
+        * Misc/WebKitVersionChecks.h: Added
+            WEBKIT_FIRST_VERSION_WITHOUT_SHADE10_QUIRK
+        * WebView/WebView.mm:
+        (-[WebView _needsLinkElementTextCSSQuirk]): Added. Returns YES if the
+            client app is a version of Shade 10 earlier than 10.6 and it was
+            linked against a version of WebKit earlier than 531.2.
+        (-[WebView _preferencesChangedNotification:]): Added a call to
+            Settings::setTreatsAnyTextCSSLinkAsStylesheet().
+
+2009-06-29  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        <rdar://problem/7014813> Ask media engine if a movie is streamed or downloaded.
+
+        * WebCoreSupport/WebSystemInterface.m:
+        (InitWebCoreSystemInterface):
+            Add QTMovieGetType.
+
+2009-06-29  David Hyatt  <hyatt@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Put datagrid behind an #ifdef.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-06-26  John Sullivan  <sullivan@apple.com>
+
+        Added support for disabling Stop Speaking when there is no speaking to stop.
+        Also fixed Stop Speaking so that it works (formerly it would throw an exception, and
+        selecting it from the menu would perform a web search instead (!)).
+
+        Reviewed by Tim Hatcher.
+
+        * WebCoreSupport/WebContextMenuClient.h:
+        declare isSpeaking()
+        
+        * WebCoreSupport/WebContextMenuClient.mm:
+        (WebContextMenuClient::isSpeaking):
+        implement by calling through to NSApplication
+        (WebContextMenuClient::stopSpeaking):
+        fixed implementation by correcting the signature of the NSApplication method
+
+2009-06-26  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Simon Fraser  <simon.fraser@apple.com>.
+
+        Additional fix for https://bugs.webkit.org/show_bug.cgi?id=26651
+
+        The flag should always default to true to avoid it getting set
+        to false in a build with accelerated compositing turned off
+        and then disabling accelerated compositing when subsequently
+        running a build with it turned on.
+
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+
+2009-06-26  Brady Eidson  <beidson@apple.com>
+
+        Fix SnowLeopard build.
+
+        * Plugins/Hosted/HostedNetscapePluginStream.mm:
+        (WebKit::HostedNetscapePluginStream::didReceiveResponse):
+
+2009-06-26  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Sam Weinig
+
+        <rdar://problem/6961578> REGRESSION (r43511): Opening .fdf files from Acrobat Professional fails
+
+        Replace all usage of the now obsolete [NSURLResponse _webcore_MIMEType].
+
+        * Plugins/WebBaseNetscapePluginStream.mm:
+        (WebNetscapePluginStream::didReceiveResponse):
+        * Plugins/WebNetscapePluginView.mm:
+        (-[WebNetscapePluginView pluginView:receivedData:]):
+        * Plugins/WebPluginController.mm:
+        (-[WebPluginController pluginView:receivedResponse:]):
+        * WebView/WebDataSource.mm:
+        (-[WebDataSource _responseMIMEType]):
+        * WebView/WebResource.mm:
+        (-[WebResource _initWithData:URL:response:]):
+
+2009-06-26  Alexey Proskuryakov  <ap@webkit.org>
+
+        Reviewed by Sam Weinig.
+
+        <rdar://problem/6651201> Update lookalike character list.
+
+        * Misc/WebNSURLExtras.mm: (isLookalikeCharacter): Added more characters to the list.
+
+2009-06-25  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        <rdar://problem/6989017> 
+        REGRESSION (SnowLeopard): RealPlayer content replays when opening a new tab or switching back to the RealPlayer tab
+        
+        If a plug-in fails in NPP_New, we would try to recreate it whenever the preferences for a web view would change. 
+        
+        Fix this by setting a flag when we fail to instantiate the plug-in, so we only try once.
+        
+        * Plugins/WebBaseNetscapePluginView.h:
+        * Plugins/WebBaseNetscapePluginView.mm:
+        (-[WebBaseNetscapePluginView start]):
+
+2009-06-25  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Simon Fraser  <simon.fraser@apple.com>.
+
+        https://bugs.webkit.org/show_bug.cgi?id=26651
+        
+        Preference is named "WebKitAcceleratedCompositingEnabled"
+        and is a boolean value. When false, prevents compositing layers from
+        being created, which prevents hardware animation from running.
+        Also forces video to do software rendering. Added a cache for
+        the flag in RenderLayerCompositing and made it all work
+        on-the-fly when the flag is changed while a page is loaded.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences acceleratedCompositingEnabled]):
+        (-[WebPreferences setAcceleratedCompositingEnabled:]):
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChangedNotification:]):
+
 2009-06-24  Dan Bernstein  <mitz@apple.com>
 
         Reviewed by Anders Carlsson.

@@ -204,11 +204,11 @@ PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page* page)
 
 bool RenderThemeChromiumWin::supportsFocusRing(const RenderStyle* style) const
 {
-   // Let webkit draw one of its halo rings around any focused element,
-   // except push buttons. For buttons we use the windows PBS_DEFAULTED
-   // styling to give it a blue border.
-   return style->appearance() == ButtonPart
-       || style->appearance() == PushButtonPart;
+    // Let webkit draw one of its halo rings around any focused element,
+    // except push buttons. For buttons we use the windows PBS_DEFAULTED
+    // styling to give it a blue border.
+    return style->appearance() == ButtonPart
+            || style->appearance() == PushButtonPart;
 }
 
 Color RenderThemeChromiumWin::platformActiveSelectionBackgroundColor() const
@@ -425,7 +425,7 @@ bool RenderThemeChromiumWin::paintMenuList(RenderObject* o, const RenderObject::
 // static
 void RenderThemeChromiumWin::setDefaultFontSize(int fontSize)
 {
-    defaultFontSize = static_cast<float>(fontSize);
+    RenderThemeChromiumSkia::setDefaultFontSize(fontSize);
 
     // Reset cached fonts.
     smallSystemFont = menuFont = labelFont = FontDescription();

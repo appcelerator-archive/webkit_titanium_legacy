@@ -288,7 +288,7 @@ void WebChromeClient::setResizable(bool resizable)
     }
 }
 
-void WebChromeClient::addMessageToConsole(MessageSource source, MessageLevel level, const String& message, unsigned line, const String& url)
+void WebChromeClient::addMessageToConsole(MessageSource source, MessageType type, MessageLevel level, const String& message, unsigned line, const String& url)
 {
     COMPtr<IWebUIDelegate> uiDelegate;
     if (SUCCEEDED(m_webView->uiDelegate(&uiDelegate))) {
@@ -494,7 +494,7 @@ void WebChromeClient::mouseDidMoveOverElement(const HitTestResult& result, unsig
     uiDelegate->mouseDidMoveOverElement(m_webView, element.get(), modifierFlags);
 }
 
-void WebChromeClient::setToolTip(const String& toolTip)
+void WebChromeClient::setToolTip(const String& toolTip, TextDirection)
 {
     m_webView->setToolTip(toolTip);
 }
@@ -545,6 +545,15 @@ void WebChromeClient::exceededDatabaseQuota(Frame* frame, const String& database
             }
         }
     }
+}
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+#include "ApplicationCacheStorage.h"
+void WebChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
+{
+    // FIXME: Free some space.
+    notImplemented();
 }
 #endif
 

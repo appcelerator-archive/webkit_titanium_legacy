@@ -29,7 +29,7 @@
 # Simple literals                 - [% " selected" ...
 # Values always used for numbers  - [% (i|j|k|n|count) %]
 # Params                          - [% Param(...
-# Safe functions                  - [% (time2str|GetBugLink)...
+# Safe functions                  - [% (time2str)...
 # Safe vmethods                   - [% foo.size %] [% foo.length %]
 #                                   [% foo.push() %]
 # TT loop variables               - [% loop.count %]
@@ -51,10 +51,6 @@
   'bug.bug_id',
 ],
 
-'sidebar.xul.tmpl' => [
-  'template_version', 
-],
-
 'flag/list.html.tmpl' => [
   'flag.id', 
   'flag.status', 
@@ -66,8 +62,7 @@
   '"value${chartnum}-${rownum}-${colnum}"', 
   '"type${chartnum}-${rownum}-${colnum}"', 
   'field.name', 
-  'field.description', 
-  'type.name', 
+  'type.name',
   'type.description', 
   '"${chartnum}-${rownum}-${newor}"', 
   '"${chartnum}-${newand}-0"', 
@@ -83,7 +78,6 @@
   'field.description',
   'field.accesskey',
   'sel.name',
-  'sel.accesskey',
 ],
 
 'search/search-specific.html.tmpl' => [
@@ -91,8 +85,7 @@
 ],
 
 'search/tabs.html.tmpl' => [
-  'tab.name',
-  'tab.description',
+  'content',
 ],
 
 'request/queue.html.tmpl' => [
@@ -105,17 +98,11 @@
 
 'reports/components.html.tmpl' => [
   'numcols',
-  'comp.description', 
 ],
 
 'reports/duplicates-table.html.tmpl' => [
-  '"&amp;maxrows=$maxrows" IF maxrows',
-  '"&amp;changedsince=$changedsince" IF changedsince',
-  '"&amp;bug_id=$bug_ids_string&amp;sortvisible=1" 
-                                                            IF sortvisible',
   'column.name', 
   'column.description',
-  'bug.id', 
   'bug.count', 
   'bug.delta', 
 ],
@@ -128,8 +115,7 @@
 ],
 
 'reports/keywords.html.tmpl' => [
-  'keyword.description', 
-  'keyword.bugcount', 
+  'keyword.bug_count', 
 ],
 
 'reports/report-table.csv.tmpl' => [
@@ -138,7 +124,6 @@
 ],
 
 'reports/report-table.html.tmpl' => [
-  'buglistbase', 
   '"&amp;$tbl_vals" IF tbl_vals', 
   '"&amp;$col_vals" IF col_vals', 
   '"&amp;$row_vals" IF row_vals', 
@@ -151,7 +136,6 @@
 ],
 
 'reports/report.html.tmpl' => [
-  'imagebase', 
   'width', 
   'height', 
   'imageurl', 
@@ -183,7 +167,6 @@
 
 'reports/series-common.html.tmpl' => [
   'sel.name', 
-  'sel.accesskey', 
   '"onchange=\"$sel.onchange\"" IF sel.onchange', 
 ],
 
@@ -207,14 +190,7 @@
 
 'list/edit-multiple.html.tmpl' => [
   'group.id', 
-  'group.description',
-  'group.description FILTER inactive', 
-  'knum', 
-  'menuname', 
-],
-
-'list/list-simple.html.tmpl' => [
-  'title', 
+  'menuname',
 ],
 
 'list/list.rdf.tmpl' => [
@@ -238,22 +214,8 @@
   'bug.bug_id', 
 ],
 
-'global/help.html.tmpl' => [
-  'h.id', 
-  'h.html', 
-],
-
-'global/banner.html.tmpl' => [
-  'VERSION', 
-],
-
-'global/choose-classification.html.tmpl' => [
-  'classdesc.$p', 
-],
-
 'global/choose-product.html.tmpl' => [
   'target',
-  'proddesc.$p', 
 ],
 
 # You are not permitted to add any values here. Everything in this file should 
@@ -266,9 +228,10 @@
   'javascript', 
   'style', 
   'onload',
-  'h1',
-  'h2',
-  'h3', 
+  'title',
+  '" &ndash; $header" IF header',
+  'subheader',
+  'header_addl_info', 
   'message', 
 ],
 
@@ -277,13 +240,17 @@
   'series.frequency * 2',
 ],
 
+'global/per-bug-queries.html.tmpl' => [
+  '" value=\"$bugids\"" IF bugids',
+],
+
 'global/select-menu.html.tmpl' => [
   'options', 
   'size', 
 ],
 
-'global/useful-links.html.tmpl' => [
-  'email', 
+'global/tabs.html.tmpl' => [
+  'content', 
 ],
 
 # You are not permitted to add any values here. Everything in this file should 
@@ -307,8 +274,7 @@
 ],
 
 'bug/comments.html.tmpl' => [
-  'comment.isprivate', 
-  'comment.when', 
+  'comment.id',
   'bug.bug_id',
 ],
 
@@ -322,10 +288,8 @@
 'bug/dependency-tree.html.tmpl' => [
   'bugid', 
   'maxdepth', 
-  'dependson_ids.join(",")', 
-  'blocked_ids.join(",")', 
-  'dep_id', 
   'hide_resolved', 
+  'ids.join(",")',
   'maxdepth + 1', 
   'maxdepth > 0 && maxdepth <= realdepth ? maxdepth : ""',
   'maxdepth == 1 ? 1
@@ -339,19 +303,17 @@
   'bug.bug_id', 
   'bug.votes', 
   'group.bit', 
-  'group.description', 
   'dep.title', 
   'dep.fieldname', 
-  'accesskey', 
   'bug.${dep.fieldname}.join(\', \')', 
   'selname',
-  'depbug FILTER bug_link(depbug)',
-  '"${bug.dup_id}" FILTER bug_link(bug.dup_id)',
-],
-
-'bug/knob.html.tmpl' => [
-  'bug.bug_id', 
-  'knum', 
+  '" accesskey=\"$accesskey\"" IF accesskey',
+  'inputname',
+  '" colspan=\"$colspan\"" IF colspan',
+  '" size=\"$size\"" IF size',
+  '" maxlength=\"$maxlength\"" IF maxlength',
+  'flag.status',
+  '" spellcheck=\"$spellcheck\"" IF spellcheck',
 ],
 
 'bug/navigate.html.tmpl' => [
@@ -362,13 +324,17 @@
 ],
 
 'bug/show-multiple.html.tmpl' => [
-  'bug.bug_id', 
-  'bug.deadline',
+  'attachment.id', 
+  'flag.status',
+],
+
+'bug/show.html.tmpl' => [
+  'bug.bug_id',
 ],
 
 'bug/show.xml.tmpl' => [
-  'VERSION', 
-  'a.attachid', 
+  'constants.BUGZILLA_VERSION', 
+  'a.id', 
   'field', 
 ],
 
@@ -388,7 +354,7 @@
 ],
 
 'bug/votes/list-for-bug.html.tmpl' => [
-  'voter.count', 
+  'voter.vote_count', 
   'total', 
 ],
 
@@ -400,43 +366,23 @@
   'product.maxvotes', 
 ],
 
-'bug/process/confirm-duplicate.html.tmpl' => [
-  'original_bug_id', 
-  'duplicate_bug_id', 
-],
-
-'bug/process/midair.html.tmpl' => [
-  'bug_id', 
-],
-
-'bug/process/next.html.tmpl' => [
-  'bug.bug_id', 
-],
-
 'bug/process/results.html.tmpl' => [
   'title.$type', 
-  'id', 
-  'linktext.$type',
+  '"$terms.Bug $id" FILTER bug_link(id)',
+  '"$terms.bug $id" FILTER bug_link(id)',
 ],
 
 'bug/create/create.html.tmpl' => [
   'g.bit',
-  'g.description',
   'sel.name',
   'sel.description',
-  'cloned_bug_id'
+  'cloned_bug_id',
 ],
 
 'bug/create/create-guided.html.tmpl' => [
-  'matches.0', 
   'tablecolour',
-  'buildid',
   'sel',
   'productstring', 
-],
-
-'bug/activity/show.html.tmpl' => [
-  'bug_id', 
 ],
 
 'bug/activity/table.html.tmpl' => [
@@ -445,36 +391,39 @@
 ],
 
 'attachment/create.html.tmpl' => [
-  'bugid', 
+  'bug.bug_id',
   'attachment.id', 
 ],
 
 'attachment/created.html.tmpl' => [
-  'attachid', 
-  'bugid', 
-  'contenttype', 
+  'attachment.id',
+  'attachment.bug_id',
 ],
 
 'attachment/edit.html.tmpl' => [
-  'attachid', 
-  'bugid', 
+  'attachment.id', 
+  'attachment.bug_id', 
   'a', 
 ],
 
 'attachment/list.html.tmpl' => [
-  'attachment.attachid', 
+  'attachment.id', 
   'flag.status',
   'bugid',
+  'obsolete_attachments',
+],
+
+'attachment/midair.html.tmpl' => [
+  'attachment.id',
 ],
 
 'attachment/show-multiple.html.tmpl' => [
-  'a.attachid', 
+  'a.id',
   'flag.status'
 ],
 
 'attachment/updated.html.tmpl' => [
-  'attachid', 
-  'bugid', 
+  'attachment.id',
 ],
 
 'attachment/diff-header.html.tmpl' => [
@@ -494,28 +443,23 @@
   'file.plus_lines',
   'bonsai_prefix',
   'section.old_start',
-  'section_num'
+  'section_num',
+  'current_line_old',
+  'current_line_new',
+  'curr_old',
+  'curr_new'
+],
+
+'admin/admin.html.tmpl' => [
+  'class'
 ],
 
 'admin/table.html.tmpl' => [
-  'link_uri',
-  'c.content'
+  'link_uri'
 ],
 
-'admin/classifications/del.html.tmpl' => [
-  'description', 
-],
-
-'admin/classifications/edit.html.tmpl' => [
-  'description', 
-],
-
-'admin/classifications/reclassify.html.tmpl' => [
-  'description', 
-],
-
-'admin/classifications/select.html.tmpl' => [
-  'cl.description', 
+'admin/params/common.html.tmpl' => [
+  'sortlist_separator', 
 ],
 
 'admin/products/groupcontrol/confirm-edit.html.tmpl' => [
@@ -523,8 +467,6 @@
 ],
 
 'admin/products/groupcontrol/edit.html.tmpl' => [
-  'filt_classification', 
-  'filt_product', 
   'group.bugcount', 
   'group.id', 
   'const.CONTROLMAPNA', 
@@ -539,7 +481,6 @@
 
 'admin/products/confirm-delete.html.tmpl' => [
   'classification_url_part', 
-  'bug_count', 
 ],
 
 'admin/products/footer.html.tmpl' => [
@@ -547,18 +488,8 @@
   'classification_text', 
 ],
 
-'admin/keywords/edit.html.tmpl' => [
-  'keyword_id',
-  'bug_count',
-],
-
-'admin/keywords/confirm-delete.html.tmpl' => [
-  'keyword_id',
-  'bug_count',
-],
-
 'admin/flag-type/confirm-delete.html.tmpl' => [
-  'flag_count', 
+  'flag_type.flag_count',
   'flag_type.id', 
 ],
 
@@ -569,32 +500,32 @@
   'type.sortkey || 1',
   'typeLabelLowerPlural',
   'typeLabelLowerSingular',
+  'selname',
 ],
 
 'admin/flag-type/list.html.tmpl' => [
   'type.id', 
-  'type.flag_count', 
 ],
 
 
 'admin/components/confirm-delete.html.tmpl' => [
-  'bug_count'
+  'comp.bug_count'
 ],
 
-'admin/components/deleted.html.tmpl' => [
-  'deleted_bug_count'
+'admin/groups/delete.html.tmpl' => [
+  'shared_queries'
 ],
 
 'admin/users/confirm-delete.html.tmpl' => [
-  'andstring',
-  'responsibilityterms.$responsibility',
+  'attachments',
   'reporter',
   'assignee_or_qa',
   'cc',
+  'component_cc',
   'flags.requestee',
   'flags.setter',
   'longdescs',
-  'namedqueries',
+  'quips',
   'votes',
   'series',
   'watch.watched',
@@ -607,37 +538,20 @@
 'admin/users/edit.html.tmpl' => [
   'otheruser.id',
   'group.id',
-  'perms.directbless',
-  'perms.directmember',
 ],
 
 'admin/components/edit.html.tmpl' => [
-  'bug_count'
+  'comp.bug_count'
 ],
 
-'admin/components/list.html.tmpl' => [
-  'cgi.query_string'
+'admin/workflow/edit.html.tmpl' => [
+  'status.id',
+  'new_status.id',
 ],
 
-'admin/components/select-product.html.tmpl' => [
-  'cgi.query_string'
-],
-
-'admin/milestones/confirm-delete.html.tmpl' => [
-  'bug_count'
-],
-
-'admin/milestones/deleted.html.tmpl' => [
-  'bug_count'
-],
-
-'admin/versions/confirm-delete.html.tmpl' => [
-  'bug_count'
-],
-
-'admin/settings/edit.html.tmpl' => [
-  'name',
-  'checkbox_name'
+'admin/workflow/comment.html.tmpl' => [
+  'status.id',
+  'new_status.id',
 ],
 
 'account/login.html.tmpl' => [
@@ -650,21 +564,13 @@
   'prefname',
 ],
 
-'account/prefs/permissions.html.tmpl' => [
-  'bit_description.name', 
-  'bit_description.desc', 
-],
-
 'account/prefs/prefs.html.tmpl' => [
-  'tab.name', 
-  'tab.description', 
-  'current_tab.name', 
-  'current_tab.description', 
+  'current_tab.label',
+  'current_tab.name',
 ],
 
-'account/prefs/settings.html.tmpl' => [
-  'name',
-  'default_name'
+'account/prefs/saved-searches.html.tmpl' => [
+  'group.id',
 ],
 
 );

@@ -98,9 +98,6 @@ extern "C" {
         WebKitWebWindowFeatures* webWindowFeatures;
 
         WebKitWebFrame* mainFrame;
-        WebCore::String applicationNameForUserAgent;
-        WebCore::String* userAgent;
-
         WebKitWebBackForwardList* backForwardList;
 
         gint lastPopupXPosition;
@@ -224,6 +221,9 @@ extern "C" {
     webkit_web_view_get_selected_text (WebKitWebView* web_view);
 
     WEBKIT_API void
+    webkit_web_view_set_group_name(WebKitWebView* web_view, const gchar* group_name);
+
+    WEBKIT_API void
     webkit_web_settings_add_extra_plugin_directory (WebKitWebView *web_view, const gchar* directory);
 
     GSList*
@@ -234,6 +234,15 @@ extern "C" {
 
     GHashTable*
     webkit_history_items(void);
+
+    WEBKIT_API void
+    webkit_gc_collect_javascript_objects();
+
+    WEBKIT_API void
+    webkit_gc_collect_javascript_objects_on_alternate_thread(gboolean waitUntilDone);
+
+    WEBKIT_API gsize
+    webkit_gc_count_javascript_objects();
 }
 
 #endif

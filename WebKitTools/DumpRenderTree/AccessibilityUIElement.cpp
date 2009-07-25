@@ -237,6 +237,12 @@ static JSValueRef getDescriptionCallback(JSContextRef context, JSObjectRef thisO
     return JSValueMakeString(context, description.get());
 }
 
+static JSValueRef getLanguageCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    JSRetainPtr<JSStringRef> language(Adopt, toAXElement(thisObject)->language());
+    return JSValueMakeString(context, language.get());
+}
+
 static JSValueRef getChildrenCountCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
 {
     return JSValueMakeNumber(context, toAXElement(thisObject)->childrenCount());
@@ -260,6 +266,16 @@ static JSValueRef getWidthCallback(JSContextRef context, JSObjectRef thisObject,
 static JSValueRef getHeightCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
 {
     return JSValueMakeNumber(context, toAXElement(thisObject)->height());
+}
+
+static JSValueRef getClickPointXCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    return JSValueMakeNumber(context, toAXElement(thisObject)->clickPointX());
+}
+
+static JSValueRef getClickPointYCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    return JSValueMakeNumber(context, toAXElement(thisObject)->clickPointY());
 }
 
 static JSValueRef getIntValueCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
@@ -293,6 +309,11 @@ static JSValueRef getSupportsPressActionCallback(JSContextRef context, JSObjectR
     return JSValueMakeBoolean(context, toAXElement(thisObject)->supportsPressAction());
 }
 
+static JSValueRef getIsEnabledCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->isEnabled());
+}
+
 // Destruction
 
 static void finalize(JSObjectRef thisObject)
@@ -313,10 +334,13 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "role", getRoleCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "title", getTitleCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "description", getDescriptionCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "language", getLanguageCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "x", getXCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "y", getYCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "width", getWidthCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "height", getHeightCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "clickPointX", getClickPointXCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "clickPointY", getClickPointYCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "intValue", getIntValueCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "minValue", getMinValueCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "maxValue", getMaxValueCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -324,6 +348,7 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "insertionPointLineNumber", getInsertionPointLineNumberCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "selectedTextRange", getSelectedTextRangeCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "supportsPressAction", getSupportsPressActionCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isEnabled", getIsEnabledCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { 0, 0, 0, 0 }
     };
 

@@ -358,6 +358,9 @@ using namespace WebCore;
     if (_isStarted)
         return;
     
+    if (_triedAndFailedToCreatePlugin)
+        return;
+    
     ASSERT([self webView]);
     
     if (![[[self webView] preferences] arePlugInsEnabled])
@@ -379,8 +382,10 @@ using namespace WebCore;
     if (!wasDeferring)
         page->setDefersLoading(false);
 
-    if (!result)
+    if (!result) {
+        _triedAndFailedToCreatePlugin = YES;
         return;
+    }
     
     _isStarted = YES;
     [[self webView] addPluginInstanceView:self];
@@ -515,14 +520,14 @@ using namespace WebCore;
 - (void)windowBecameKey:(NSNotification *)notification
 {
     [self sendActivateEvent:YES];
-    [self setNeedsDisplay:YES];
+    [self invalidatePluginContentRect:[self bounds]];
     [self restartTimers];
 }
 
 - (void)windowResignedKey:(NSNotification *)notification
 {
     [self sendActivateEvent:NO];
-    [self setNeedsDisplay:YES];
+    [self invalidatePluginContentRect:[self bounds]];
     [self restartTimers];
 }
 
@@ -558,7 +563,7 @@ using namespace WebCore;
             }
         } else {
             [self stop];
-            [self setNeedsDisplay:YES];
+            [self invalidatePluginContentRect:[self bounds]];
         }
     }
 }
@@ -758,6 +763,16 @@ using namespace WebCore;
   
     KURL absoluteURL = targetFrame->loader()->completeURL(relativeURLString);
     return absoluteURL.string().utf8();
+}
+
+- (void)invalidatePluginContentRect:(NSRect)rect
+{
+    if (RenderBoxModelObject *renderer = toRenderBoxModelObject(_element->renderer())) {
+        IntRect contentRect(rect);
+        contentRect.move(renderer->borderLeft() + renderer->paddingLeft(), renderer->borderTop() + renderer->paddingTop());
+        
+        renderer->repaintRectangle(contentRect);
+    }
 }
 
 @end

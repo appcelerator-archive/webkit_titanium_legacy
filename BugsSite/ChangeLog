@@ -1,3 +1,142 @@
+2009-07-07  David Kilzer  <ddkilzer@apple.com>
+
+        Updated BugsSite with local changes on server
+
+        The new files were created by checksetup.pl during the upgrade
+        to Bugzilla 3.2.3.  The rest are self-explanatory.
+
+        * data: Added "bugzilla-update.xml" to svn:ignore.
+        * data/attachments: Added "groups.*" to svn:ignore.
+        * data/params: Updated for a few changed parameters.
+
+        * lib/.htaccess: Added.
+        * skins/contrib/Dusk/IE-fixes.css: Added.
+        * skins/contrib/Dusk/admin.css: Added.
+        * skins/contrib/Dusk/create_attachment.css: Added.
+        * skins/contrib/Dusk/dependency-tree.css: Added.
+        * skins/contrib/Dusk/duplicates.css: Added.
+        * skins/contrib/Dusk/editusers.css: Added.
+        * skins/contrib/Dusk/help.css: Added.
+        * skins/contrib/Dusk/index.css: Added.
+        * skins/contrib/Dusk/panel.css: Added.
+        * skins/contrib/Dusk/params.css: Added.
+        * skins/contrib/Dusk/release-notes.css: Added.
+        * skins/contrib/Dusk/show_bug.css: Added.
+        * skins/contrib/Dusk/show_multiple.css: Added.
+        * skins/contrib/Dusk/summarize-time.css: Added.
+        * skins/contrib/Dusk/voting.css: Added.
+        * skins/contrib/Dusk/yui: Added.
+        * skins/contrib/Dusk/yui/calendar.css: Added.
+        * skins/custom/IE-fixes.css: Added.
+        * skins/custom/admin.css: Added.
+        * skins/custom/buglist.css: Added.
+        * skins/custom/create_attachment.css: Added.
+        * skins/custom/dependency-tree.css: Added.
+        * skins/custom/duplicates.css: Added.
+        * skins/custom/editusers.css: Added.
+        * skins/custom/help.css: Added.
+        * skins/custom/panel.css: Added.
+        * skins/custom/params.css: Added.
+        * skins/custom/release-notes.css: Added.
+        * skins/custom/show_bug.css: Added.
+        * skins/custom/show_multiple.css: Added.
+        * skins/custom/summarize-time.css: Added.
+        * skins/custom/voting.css: Added.
+        * skins/custom/yui: Added.
+        * skins/custom/yui/calendar.css: Added.
+
+2009-07-03  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 26958: Change edit link to review link in request messages
+
+        <https://bugs.webkit.org/show_bug.cgi?id=26958>
+
+        Reviewed by Dan Bernstein.
+
+        * template/en/custom/request/email.txt.tmpl: Copied from BugsSite/template/en/default/request/email.txt.tmpl.
+        Changed link from "action=edit" to "action=review".
+
+2009-07-03  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 26950: Make the summary and alias fields support click-to-edit
+        <https://bugs.webkit.org/show_bug.cgi?id=26950>
+
+        Reviewed by Maciej Stachowiak.
+
+        Original patch by Maciej Stachowiak.
+
+        * js/field.js:
+        (hideEditableField): Updated to add click event listeners to the
+        alias and short description elements to make them easier to
+        edit.  Renamed field_id parameter to field2_id (short
+        description id) and added a field1_id parameter (alias id).
+        (showEditableField): If a third parameter is passed in the
+        ContainerInputArray parameter, use it to find the element to
+        focus.  Otherwise, fall back to the original behavior of
+        focusing the first input field.
+        (hideAliasAndSummary): Changed to pass the id for the alias
+        element to hideEditableField().
+
+2009-07-02  David D. Kilzer  <ddkilzer@apple.com>
+
+        Config file for contrib/recode.pl when upgrading bugs.webkit.org
+
+        Current as of midday on Wednesday, July 1, 2009.
+
+        * contrib/recode-overrides.txt: Added.
+
+2009-07-02  David D. Kilzer  <ddkilzer@apple.com>
+
+        Workaround for WebKit Bug 9630 when running contrib/recode.pl
+
+        A number of WebKit nightly builds included Bug 9630 which caused
+        non-breaking space characters (0xA0) to be submitted within the
+        content of textarea elements.
+
+        * contrib/recode.pl: To work around these 0xA0 characters, try
+        an encoding of cp1252 and use it if it works.
+
+2009-07-02  David D. Kilzer  <ddkilzer@apple.com>
+
+        Don't print "Failed to guess" warning if an override is available
+
+        * contrib/recode.pl: Check that %overrides does NOT contain a
+        key matching the current digest before printing out the warning
+        about a failed charset guess.
+
+2009-07-02  David D. Kilzer  <ddkilzer@apple.com>
+
+        Added --[no-]truncate switch to contrib/recode.pl
+
+        * contrib/recode.pl: Added --[no-]truncate switch to make
+        debugging of failed charset guessing easier.  Often times the
+        illegal character was truncated in the output.
+
+2009-07-02  David D. Kilzer  <ddkilzer@apple.com>
+
+        Changed Perl scripts to use #!/usr/bin/env perl
+
+        perl -pi -e 's@#\!/usr/bin/perl@#\!/usr/bin/env perl@' *.cgi *.pl */*.pl
+
+2009-07-02  David D. Kilzer  <ddkilzer@apple.com>
+
+        Replace Bugzilla favicon with webkit.org favicon
+
+        * favicon.ico: Removed.
+        * images/favicon.ico: Replaced.  Copied from favicon.ico.
+
+2009-07-02  David Kilzer  <ddkilzer@webkit.org>
+
+        Merged BugsSite to Bugzilla-3.2.3
+
+        Updated to the latest-and-greatest stable version.
+
+2009-07-02  David Kilzer  <ddkilzer@webkit.org>
+
+        Merged BugsSite to Bugzilla-3.0.3
+
+        Nothing to see here.  Move along.
+
 2009-06-09  Eric Seidel  <eric@webkit.org>
 
         Reviewed by Adam Roben.

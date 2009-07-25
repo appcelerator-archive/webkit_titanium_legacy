@@ -24,6 +24,9 @@
  */
 
 #include "config.h"
+
+#if ENABLE(DATAGRID)
+
 #include "HTMLDataGridRowElement.h"
 
 #include "HTMLNames.h"
@@ -75,4 +78,6 @@ void HTMLDataGridRowElement::setExpanded(bool expanded)
     setAttribute(expandedAttr, expanded ? "" : 0);
 }
 
-}
+} // namespace WebCore
+
+#endif

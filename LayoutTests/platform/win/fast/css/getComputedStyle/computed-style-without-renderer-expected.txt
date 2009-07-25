@@ -1,7 +1,9 @@
 Computed style of an element whose parent's 'display' value is 'none':
     background-attachment: scroll
+    background-clip: border-box
     background-color: rgb(0, 128, 0)
     background-image: none
+    background-origin: padding-box
     background-position: 0% 0%
     background-repeat: repeat
     border-bottom-color: rgb(0, 0, 0)
@@ -18,6 +20,7 @@ Computed style of an element whose parent's 'display' value is 'none':
     border-top-style: solid
     border-top-width: 16px
     bottom: auto
+    box-shadow: none
     caption-side: top
     clear: none
     clip: auto
@@ -70,6 +73,7 @@ Computed style of an element whose parent's 'display' value is 'none':
     text-decoration: none
     text-indent: 0px
     text-shadow: none
+    text-overflow: clip
     text-transform: none
     top: auto
     unicode-bidi: normal
@@ -112,7 +116,6 @@ Computed style of an element whose parent's 'display' value is 'none':
     -webkit-box-orient: horizontal
     -webkit-box-pack: start
     -webkit-box-reflect: none
-    -webkit-box-shadow: none
     -webkit-box-sizing: content-box
     -webkit-column-break-after: auto
     -webkit-column-break-before: auto

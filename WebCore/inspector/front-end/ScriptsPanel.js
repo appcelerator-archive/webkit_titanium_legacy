@@ -56,6 +56,7 @@ WebInspector.ScriptsPanel = function()
     this.filesSelectElement.className = "status-bar-item";
     this.filesSelectElement.id = "scripts-files";
     this.filesSelectElement.addEventListener("change", this._changeVisibleFile.bind(this), false);
+    this.filesSelectElement.handleKeyEvent = this.handleKeyEvent.bind(this);
     this.topStatusBar.appendChild(this.filesSelectElement);
 
     this.functionsSelectElement = document.createElement("select");
@@ -162,6 +163,39 @@ WebInspector.ScriptsPanel = function()
     this.pauseOnExceptionButton.addEventListener("click", this._togglePauseOnExceptions.bind(this), false);
 
     this._breakpointsURLMap = {};
+
+    this._shortcuts = {};
+
+    var isMac = InspectorController.platform().indexOf("mac-") === 0;
+    var platformSpecificModifier = isMac ? WebInspector.KeyboardShortcut.Modifiers.Meta : WebInspector.KeyboardShortcut.Modifiers.Ctrl;
+
+    // Continue.
+    var handler = this.pauseButton.click.bind(this.pauseButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F8);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Slash, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
+
+    // Step over.
+    var handler = this.stepOverButton.click.bind(this.stepOverButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F10);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.SingleQuote, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
+
+    // Step into.
+    var handler = this.stepIntoButton.click.bind(this.stepIntoButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F11);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Semicolon, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
+
+    // Step out.
+    var handler = this.stepOutButton.click.bind(this.stepOutButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F11, WebInspector.KeyboardShortcut.Modifiers.Shift);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Semicolon, WebInspector.KeyboardShortcut.Modifiers.Shift, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
 
     this.reset();
 }
@@ -326,19 +360,25 @@ WebInspector.ScriptsPanel.prototype = {
             updateInterface = true;
 
         var self = this;
-        function updatingCallbackWrapper(result)
+        function updatingCallbackWrapper(result, exception)
         {
-            callback(result);
+            callback(result, exception);
             if (updateInterface)
                 self.sidebarPanes.scopechain.update(selectedCallFrame);
-        }        
+        }
         this.doEvalInCallFrame(selectedCallFrame, code, updatingCallbackWrapper);
     },
 
     doEvalInCallFrame: function(callFrame, code, callback)
     {
+        var panel = this;
         function delayedEvaluation()
         {
+            if (!code) {
+                // Evaluate into properties in scope of the selected call frame.
+                callback(panel._variablesInScope(callFrame));
+                return;
+            }
             try {
                 callback(callFrame.evaluate(code));
             } catch (e) {
@@ -348,20 +388,15 @@ WebInspector.ScriptsPanel.prototype = {
         setTimeout(delayedEvaluation, 0);
     },
 
-    variablesInScopeForSelectedCallFrame: function()
+    _variablesInScope: function(callFrame)
     {
-        var selectedCallFrame = this.sidebarPanes.callstack.selectedCallFrame;
-        if (!this._paused || !selectedCallFrame)
-            return {};
-
         var result = {};
-        var scopeChain = selectedCallFrame.scopeChain;
+        var scopeChain = callFrame.scopeChain;
         for (var i = 0; i < scopeChain.length; ++i) {
             var scopeObject = scopeChain[i];
             for (var property in scopeObject)
                 result[property] = true;
         }
-
         return result;
     },
 
@@ -484,6 +519,19 @@ WebInspector.ScriptsPanel.prototype = {
         if (!view)
             return;
         this._showScriptOrResource((view.resource || view.script));
+    },
+
+    handleKeyEvent: function(event)
+    {
+        var shortcut = WebInspector.KeyboardShortcut.makeKeyFromEvent(event);
+        var handler = this._shortcuts[shortcut];
+        if (handler) {
+            handler(event);
+            event.preventDefault();
+            event.handled = true;
+        } else {
+            this.sidebarPanes.callstack.handleKeyEvent(event);
+        }
     },
 
     scriptViewForScript: function(script)

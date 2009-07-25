@@ -32,6 +32,8 @@
 #import <math.h>
 
 #import "BitmapImage.h"
+#import "ChromiumBridge.h"
+#import "ColorMac.h"
 #import "CSSStyleSelector.h"
 #import "CSSValueKeywords.h"
 #import "Element.h"
@@ -44,6 +46,7 @@
 #import "Image.h"
 #import "LocalCurrentGraphicsContext.h"
 #import "MediaControlElements.h"
+#import "RenderMedia.h"
 #import "RenderSlider.h"
 #import "RenderView.h"
 #import "SharedBuffer.h"
@@ -168,6 +171,14 @@ Color RenderThemeChromiumMac::activeListBoxSelectionBackgroundColor() const
 {
     NSColor* color = [[NSColor alternateSelectedControlColor] colorUsingColorSpaceName:NSDeviceRGBColorSpace];
     return Color(static_cast<int>(255.0 * [color redComponent]), static_cast<int>(255.0 * [color greenComponent]), static_cast<int>(255.0 * [color blueComponent]));
+}
+
+Color RenderThemeChromiumMac::platformFocusRingColor() const
+{
+    if (ChromiumBridge::layoutTestMode())
+        return oldAquaFocusRingColor();
+
+    return systemColor(CSSValueWebkitFocusRingColor);
 }
 
 static FontWeight toFontWeight(NSInteger appKitFontWeight)
@@ -421,6 +432,9 @@ Color RenderThemeChromiumMac::systemColor(int cssValueId) const
         break;
     case CSSValueThreedlightshadow:
         color = convertNSColorToColor([NSColor controlLightHighlightColor]);
+        break;
+    case CSSValueWebkitFocusRingColor:
+        color = convertNSColorToColor([NSColor keyboardFocusIndicatorColor]);
         break;
     case CSSValueWindow:
         color = convertNSColorToColor([NSColor windowBackgroundColor]);
@@ -1787,6 +1801,12 @@ typedef enum {
     MediaControllerThemeClassic   = 1,
     MediaControllerThemeQT        = 2
 } MediaControllerThemeStyle;
+
+enum WKMediaControllerThemeState {
+    MediaUIPartDisabledFlag = 1 << 0,
+    MediaUIPartPressedFlag = 1 << 1,
+    MediaUIPartDrawEndCapsFlag = 1 << 3,
+};
 #endif
 
 bool RenderThemeChromiumMac::paintMediaFullscreenButton(RenderObject* o, const RenderObject::PaintInfo& paintInfo, const IntRect& r)
@@ -1797,7 +1817,8 @@ bool RenderThemeChromiumMac::paintMediaFullscreenButton(RenderObject* o, const R
         return false;
 
     LocalCurrentGraphicsContext localContext(paintInfo.context);
-    wkDrawMediaUIPart(MediaFullscreenButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r, node->active());
+    wkDrawMediaUIPart(MediaFullscreenButton, MediaControllerThemeClassic,  paintInfo.context->platformContext(), r, 
+        node->active() ? MediaUIPartPressedFlag : 0);
 #endif
     return false;
 }
@@ -1815,7 +1836,8 @@ bool RenderThemeChromiumMac::paintMediaMuteButton(RenderObject* o, const RenderO
         return false;
     
     LocalCurrentGraphicsContext localContext(paintInfo.context);
-    wkDrawMediaUIPart(mediaElement->muted() ? MediaUnMuteButton : MediaMuteButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r, node->active());
+    wkDrawMediaUIPart(mediaElement->muted() ? MediaUnMuteButton : MediaMuteButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r,
+        node->active() ? MediaUIPartPressedFlag : 0);
 #endif
     return false;
 }
@@ -1833,7 +1855,8 @@ bool RenderThemeChromiumMac::paintMediaPlayButton(RenderObject* o, const RenderO
         return false;
 
     LocalCurrentGraphicsContext localContext(paintInfo.context);
-    wkDrawMediaUIPart(mediaElement->canPlay() ? MediaPlayButton : MediaPauseButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r, node->active());
+    wkDrawMediaUIPart(mediaElement->canPlay() ? MediaPlayButton : MediaPauseButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r,
+        node->active() ? MediaUIPartPressedFlag : 0);
 #endif
     return false;
 }
@@ -1846,7 +1869,8 @@ bool RenderThemeChromiumMac::paintMediaSeekBackButton(RenderObject* o, const Ren
         return false;
 
     LocalCurrentGraphicsContext localContext(paintInfo.context);
-    wkDrawMediaUIPart(MediaSeekBackButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r, node->active());
+    wkDrawMediaUIPart(MediaSeekBackButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r,
+        node->active() ? MediaUIPartPressedFlag : 0);
 #endif
     return false;
 }
@@ -1859,7 +1883,8 @@ bool RenderThemeChromiumMac::paintMediaSeekForwardButton(RenderObject* o, const 
         return false;
 
     LocalCurrentGraphicsContext localContext(paintInfo.context);
-    wkDrawMediaUIPart(MediaSeekForwardButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r, node->active());
+    wkDrawMediaUIPart(MediaSeekForwardButton, MediaControllerThemeClassic, paintInfo.context->platformContext(), r,
+        node->active() ? MediaUIPartPressedFlag : 0);
 #endif
     return false;
 }
@@ -1885,7 +1910,8 @@ bool RenderThemeChromiumMac::paintMediaSliderTrack(RenderObject* o, const Render
         currentTime = player->currentTime();
     }
 
-    wkDrawMediaSliderTrack(MediaControllerThemeClassic, paintInfo.context->platformContext(), r, timeLoaded, currentTime, duration);
+    bool shouldDrawEndCaps = !static_cast<RenderMedia*>(mediaElement->renderer())->shouldShowTimeDisplayControls();
+    wkDrawMediaSliderTrack(MediaControllerThemeClassic, paintInfo.context->platformContext(), r, timeLoaded, currentTime, duration, shouldDrawEndCaps ? MediaUIPartDrawEndCapsFlag : 0);
 #endif
     return false;
 }
@@ -1898,7 +1924,8 @@ bool RenderThemeChromiumMac::paintMediaSliderThumb(RenderObject* o, const Render
         return false;
 
     LocalCurrentGraphicsContext localContext(paintInfo.context);
-    wkDrawMediaUIPart(MediaSliderThumb, MediaControllerThemeClassic, paintInfo.context->platformContext(), r, node->active());
+    wkDrawMediaUIPart(MediaSliderThumb, MediaControllerThemeClassic, paintInfo.context->platformContext(), r,
+        node->active() ? MediaUIPartPressedFlag : 0);
 #endif
     return false;
 }

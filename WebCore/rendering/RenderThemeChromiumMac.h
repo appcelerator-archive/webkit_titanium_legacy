@@ -63,6 +63,8 @@ namespace WebCore {
         virtual Color platformActiveSelectionBackgroundColor() const;
         virtual Color platformInactiveSelectionBackgroundColor() const;
         virtual Color activeListBoxSelectionBackgroundColor() const;
+
+        virtual Color platformFocusRingColor() const;
         
         virtual void platformColorsDidChange();
 

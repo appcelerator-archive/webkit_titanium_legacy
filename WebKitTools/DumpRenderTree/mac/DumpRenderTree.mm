@@ -27,6 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import "config.h"
 #import "DumpRenderTree.h"
 
 #import "AccessibilityController.h"
@@ -257,7 +258,7 @@ static void activateFonts()
     NSURL *resourcesDirectory = [NSURL URLWithString:@"DumpRenderTree.resources" relativeToURL:[[NSBundle mainBundle] executableURL]];
     for (unsigned i = 0; fontFileNames[i]; ++i) {
         NSURL *fontURL = [resourcesDirectory URLByAppendingPathComponent:[NSString stringWithUTF8String:fontFileNames[i]]];
-        [fontURLs addObject:fontURL];
+        [fontURLs addObject:[fontURL absoluteURL]];
     }
 
     CFArrayRef errors = 0;
@@ -403,6 +404,7 @@ static void setDefaultsToConsistentValuesForTesting()
     [preferences setDOMPasteAllowed:YES];
     [preferences setShouldPrintBackgrounds:YES];
     [preferences setCacheModel:WebCacheModelDocumentBrowser];
+    [preferences setXSSAuditorEnabled:NO];
 
     // The back/forward cache is causing problems due to layouts during transition from one page to another.
     // So, turn it off for now, but we might want to turn it back on some day.
@@ -615,7 +617,14 @@ static void dumpHistoryItem(WebHistoryItem *item, int indent, BOOL current)
     }
     for (int i = start; i < indent; i++)
         putchar(' ');
-    printf("%s", [[item URLString] UTF8String]);
+    
+    NSString *urlString = [item URLString];
+    if ([[NSURL URLWithString:urlString] isFileURL]) {
+        NSRange range = [urlString rangeOfString:@"/LayoutTests/"];
+        urlString = [@"(file test):" stringByAppendingString:[urlString substringFromIndex:(range.length + range.location)]];
+    }
+    
+    printf("%s", [urlString UTF8String]);
     NSString *target = [item target];
     if (target && [target length] > 0)
         printf(" (in frame \"%s\")", [target UTF8String]);

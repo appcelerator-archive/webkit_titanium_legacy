@@ -1268,12 +1268,20 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
     } else if (wasInPrintingMode)
         [self _web_clearPrintingModeRecursive];
 
-#ifdef BUILDING_ON_TIGER
-
+#ifndef BUILDING_ON_TIGER
+    // There are known cases where -viewWillDraw is not called on all views being drawn.
+    // See <rdar://problem/6964278> for example. Performing layout at this point prevents us from
+    // trying to paint without layout (which WebCore now refuses to do, instead bailing out without
+    // drawing at all), but we may still fail to update and regions dirtied by the layout which are
+    // not already dirty. 
+    if ([self _needsLayout]) {
+        LOG_ERROR("View needs layout. Either -viewWillDraw wasn't called or layout was invalidated during the display operation. Performing layout now.");
+        [self _web_layoutIfNeededRecursive];
+    }
+#else
     // Because Tiger does not have viewWillDraw we need to do layout here.
     [self _web_layoutIfNeededRecursive];
     [_subviews makeObjectsPerformSelector:@selector(_propagateDirtyRectsToOpaqueAncestors)];
-
 #endif
 
     [self _setAsideSubviews];
@@ -2185,22 +2193,13 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
 
 @end
 
-@interface NSString (WebHTMLViewFileInternal)
-- (BOOL)matchesExtensionEquivalent:(NSString *)extension;
-@end
-
-@implementation NSString (WebHTMLViewFileInternal)
-
-- (BOOL)matchesExtensionEquivalent:(NSString *)extension
+static bool matchesExtensionOrEquivalent(NSString *filename, NSString *extension)
 {
-    if ([self hasSuffix:extension])
-        return YES;
-    else if ([extension isEqualToString:@"jpeg"] && [self hasSuffix:@"jpg"])
-        return YES;
-    return NO;
+    NSString *extensionAsSuffix = [@"." stringByAppendingString:extension];
+    return [filename _webkit_hasCaseInsensitiveSuffix:extensionAsSuffix]
+        || ([extension _webkit_isCaseInsensitiveEqualToString:@"jpeg"]
+            && [filename _webkit_hasCaseInsensitiveSuffix:@".jpg"]);
 }
-
-@end
 
 #ifdef BUILDING_ON_TIGER
 
@@ -3173,9 +3172,13 @@ WEBCORE_COMMAND(yankAndSelect)
         
 #if USE(ACCELERATED_COMPOSITING)
     if ([[self _webView] _needsOneShotDrawingSynchronization]) {
-        // Disable screen updates so that drawing into the NSView and
-        // CALayer updates appear on the screen at the same time.
+        // Disable screen updates so that any layer changes committed here
+        // don't show up on the screen before the window flush at the end
+        // of the current window display.
         [[self window] disableScreenUpdatesUntilFlush];
+        
+        // Make sure any layer changes that happened as a result of layout
+        // via -viewWillDraw are committed.
         [CATransaction flush];
         [[self _webView] _setNeedsOneShotDrawingSynchronization:NO];
     }
@@ -3469,7 +3472,7 @@ done:
         wrapper = [[[NSFileWrapper alloc] initRegularFileWithContents:data] autorelease];
         NSString* filename = [response suggestedFilename];
         NSString* trueExtension(tiffResource->image()->filenameExtension());
-        if (![filename matchesExtensionEquivalent:trueExtension])
+        if (!matchesExtensionOrEquivalent(filename, trueExtension))
             filename = [[filename stringByAppendingString:@"."] stringByAppendingString:trueExtension];
         [wrapper setPreferredFilename:filename];
     }
@@ -3586,6 +3589,8 @@ static BOOL isInPasswordField(Frame* coreFrame)
     if (![[self _webView] _isPerformingProgrammaticFocus])
         page->focusController()->setFocusedFrame(frame);
 
+    page->focusController()->setFocused(true);
+
     if (direction == NSDirectSelection)
         return YES;
 
@@ -3601,19 +3606,23 @@ static BOOL isInPasswordField(Frame* coreFrame)
     BOOL resign = [super resignFirstResponder];
     if (resign) {
         [_private->completionController endRevertingChange:NO moveLeft:NO];
+        Frame* coreFrame = core([self _frame]);
+        if (!coreFrame)
+            return resign;
+        Page* page = coreFrame->page();
+        if (!page)
+            return resign;
         if (![self maintainsInactiveSelection]) { 
             [self deselectAll];
-            if (![[self _webView] _isPerformingProgrammaticFocus]) {
+            if (![[self _webView] _isPerformingProgrammaticFocus])
                 [self clearFocus];
-                Frame* coreFrame = core([self _frame]);
-                if (!coreFrame)
-                    return resign;
-                Page* page = coreFrame->page();
-                if (!page)
-                    return resign;
-                page->focusController()->setFocusedFrame(0);
-            }
         }
+        
+        id nextResponder = [[self window] _newFirstResponderAfterResigning];
+        bool nextResponderIsInWebView = [nextResponder isKindOfClass:[NSView class]]
+            && [nextResponder isDescendantOf:[[[self _webView] mainFrame] frameView]];
+        if (!nextResponderIsInWebView)
+            page->focusController()->setFocused(false);
     }
     return resign;
 }
@@ -4278,6 +4287,8 @@ static BOOL isInPasswordField(Frame* coreFrame)
     BOOL aIsItalic = ([fm traitsOfFont:a] & NSItalicFontMask) != 0;
     BOOL bIsItalic = ([fm traitsOfFont:b] & NSItalicFontMask) != 0;
 
+    BOOL aIsBold = aWeight > MIN_BOLD_WEIGHT;
+
     if ([aFamilyName isEqualToString:bFamilyName]) {
         NSString *familyNameForCSS = aFamilyName;
 
@@ -4287,7 +4298,8 @@ static BOOL isInPasswordField(Frame* coreFrame)
         
         // Find the font the same way the rendering code would later if it encountered this CSS.
         NSFontTraitMask traits = aIsItalic ? NSFontItalicTrait : 0;
-        NSFont *foundFont = [WebFontCache fontWithFamily:aFamilyName traits:traits weight:aWeight size:aPointSize];
+        int weight = aIsBold ? STANDARD_BOLD_WEIGHT : STANDARD_WEIGHT;
+        NSFont *foundFont = [WebFontCache fontWithFamily:aFamilyName traits:traits weight:weight size:aPointSize];
 
         // If we don't find a font with the same Postscript name, then we'll have to use the
         // Postscript name to make the CSS specific enough.
@@ -4307,8 +4319,9 @@ static BOOL isInPasswordField(Frame* coreFrame)
     else if (aPointSize > soa)
         [style _setFontSizeDelta:@"1px"];
 
+    // FIXME: Map to the entire range of CSS weight values.
     if (aWeight == bWeight)
-        [style setFontWeight:aWeight > MIN_BOLD_WEIGHT ? @"bold" : @"normal"];
+        [style setFontWeight:aIsBold ? @"bold" : @"normal"];
 
     if (aIsItalic == bIsItalic)
         [style setFontStyle:aIsItalic ? @"italic" :  @"normal"];

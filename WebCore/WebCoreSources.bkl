@@ -125,7 +125,6 @@ This file contains the list of files needed to build WebCore.
         bindings/js/JSPluginCustom.cpp
         bindings/js/JSPluginArrayCustom.cpp
         bindings/js/JSQuarantinedObjectWrapper.cpp
-        bindings/js/JSRGBColor.cpp
         bindings/js/JSSQLResultSetRowListCustom.cpp
         bindings/js/JSSQLTransactionCustom.cpp
         bindings/js/JSStorageCustom.cpp
@@ -280,6 +279,7 @@ This file contains the list of files needed to build WebCore.
         DerivedSources/WebCore/JSElement.cpp
         DerivedSources/WebCore/JSEntity.cpp
         DerivedSources/WebCore/JSEntityReference.cpp
+        DerivedSources/WebCore/JSErrorEvent.cpp
         DerivedSources/WebCore/JSEvent.cpp
         DerivedSources/WebCore/JSEventException.cpp
         DerivedSources/WebCore/JSFile.cpp
@@ -381,6 +381,7 @@ This file contains the list of files needed to build WebCore.
         DerivedSources/WebCore/JSRange.cpp
         DerivedSources/WebCore/JSRangeException.cpp
         DerivedSources/WebCore/JSRect.cpp
+        DerivedSources/WebCore/JSRGBColor.cpp
         DerivedSources/WebCore/JSScreen.cpp
         DerivedSources/WebCore/JSStorage.cpp
         DerivedSources/WebCore/JSStorageEvent.cpp
@@ -395,6 +396,7 @@ This file contains the list of files needed to build WebCore.
         DerivedSources/WebCore/JSTextMetrics.cpp
         DerivedSources/WebCore/JSTreeWalker.cpp
         DerivedSources/WebCore/JSUIEvent.cpp
+        DerivedSources/WebCore/JSValidityState.cpp
         DerivedSources/WebCore/JSWebKitAnimationEvent.cpp
         DerivedSources/WebCore/JSWebKitCSSKeyframeRule.cpp
         DerivedSources/WebCore/JSWebKitCSSKeyframesRule.cpp
@@ -448,6 +450,7 @@ This file contains the list of files needed to build WebCore.
         dom/Element.cpp
         dom/Entity.cpp
         dom/EntityReference.cpp
+        dom/ErrorEvent.cpp
         dom/Event.cpp
         dom/EventNames.cpp
         dom/EventTarget.cpp
@@ -567,6 +570,7 @@ This file contains the list of files needed to build WebCore.
         html/CanvasRenderingContext2D.cpp
         html/CanvasStyle.cpp
         html/CollectionCache.cpp
+        html/DOMDataGridDataSource.cpp
         html/File.cpp
         html/FileList.cpp
         html/FormDataList.cpp
@@ -652,6 +656,7 @@ This file contains the list of files needed to build WebCore.
         html/HTMLViewSourceDocument.cpp
         html/ImageData.cpp
         html/PreloadScanner.cpp
+        html/ValidityState.cpp
     </set>
 
     <set append="1" var="WEBCORE_SOURCES_INSPECTOR">
@@ -701,6 +706,7 @@ This file contains the list of files needed to build WebCore.
         loader/MediaDocument.cpp
         loader/NavigationAction.cpp
         loader/NetscapePlugInStreamLoader.cpp
+        loader/PlaceholderDocument.cpp
         loader/PluginDocument.cpp
         loader/ProgressTracker.cpp
         loader/Request.cpp
@@ -864,6 +870,7 @@ This file contains the list of files needed to build WebCore.
         plugins/PluginArray.cpp
         plugins/PluginData.cpp
         plugins/PluginDatabase.cpp
+        plugins/PluginDebug.cpp
         plugins/PluginInfoStore.cpp
         plugins/PluginMainThreadScheduler.cpp
         plugins/PluginPackage.cpp
@@ -915,7 +922,6 @@ This file contains the list of files needed to build WebCore.
 
     <set append="1" var="WEBCORE_SOURCES_RENDERING">
         rendering/AutoTableLayout.cpp
-        rendering/bidi.cpp
         rendering/break_lines.cpp
         rendering/CounterNode.cpp
         rendering/EllipsisBox.cpp
@@ -930,6 +936,7 @@ This file contains the list of files needed to build WebCore.
         rendering/RenderArena.cpp
         rendering/RenderBR.cpp
         rendering/RenderBlock.cpp
+        rendering/RenderBlockLineLayout.cpp
         rendering/RenderBox.cpp
         rendering/RenderBoxModelObject.cpp
         rendering/RenderButton.cpp
@@ -1010,8 +1017,6 @@ This file contains the list of files needed to build WebCore.
         storage/DatabaseTask.cpp
         storage/DatabaseThread.cpp
         storage/DatabaseTracker.cpp
-        storage/LocalStorage.cpp
-        storage/LocalStorageArea.cpp
         storage/LocalStorageTask.cpp
         storage/LocalStorageThread.cpp
         storage/OriginQuotaManager.cpp
@@ -1021,11 +1026,12 @@ This file contains the list of files needed to build WebCore.
         storage/SQLStatement.cpp
         storage/SQLTransaction.cpp
         storage/Storage.cpp
-        storage/StorageArea.cpp
+        storage/StorageAreaImpl.cpp
+        storage/StorageAreaSync.cpp
         storage/StorageEvent.cpp
+        storage/StorageNamespace.cpp
+        storage/StorageNamespaceImpl.cpp
         storage/StorageMap.cpp
-        storage/SessionStorage.cpp
-        storage/SessionStorageArea.cpp
         storage/StorageSyncManager.cpp
     </set>
 

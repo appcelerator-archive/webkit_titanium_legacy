@@ -141,6 +141,7 @@ enum {
     MOVE_CURSOR,
     PRINT_REQUESTED,
     PLUGIN_WIDGET,
+    CLOSE_WEB_VIEW,
     LAST_SIGNAL
 };
 
@@ -544,6 +545,21 @@ static gboolean webkit_web_view_scroll_event(GtkWidget* widget, GdkEventScroll* 
     return frame->eventHandler()->handleWheelEvent(wheelEvent);
 }
 
+static void webkit_web_view_size_request(GtkWidget* widget, GtkRequisition* requisition)
+{
+    WebKitWebView* web_view = WEBKIT_WEB_VIEW(widget);
+    Frame* coreFrame = core(webkit_web_view_get_main_frame(web_view));
+    if (!coreFrame)
+        return;
+
+    FrameView* view = coreFrame->view();
+    if (!view)
+        return;
+
+    requisition->width = view->contentsWidth();
+    requisition->height = view->contentsHeight();
+}
+
 static void webkit_web_view_size_allocate(GtkWidget* widget, GtkAllocation* allocation)
 {
     GTK_WIDGET_CLASS(webkit_web_view_parent_class)->size_allocate(widget,allocation);
@@ -559,6 +575,21 @@ static void webkit_web_view_size_allocate(GtkWidget* widget, GtkAllocation* allo
     frame->view()->adjustViewSize();
 }
 
+static void webkit_web_view_grab_focus(GtkWidget* widget)
+{
+    if (GTK_WIDGET_IS_SENSITIVE(widget)) {
+        WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+        FocusController* focusController = core(webView)->focusController();
+
+        if (focusController->focusedFrame())
+            focusController->setFocused(true);
+        else
+            focusController->setFocusedFrame(core(webView)->mainFrame());
+    }
+
+    return GTK_WIDGET_CLASS(webkit_web_view_parent_class)->grab_focus(widget);
+}
+
 static gboolean webkit_web_view_focus_in_event(GtkWidget* widget, GdkEventFocus* event)
 {
     // TODO: Improve focus handling as suggested in
@@ -566,9 +597,14 @@ static gboolean webkit_web_view_focus_in_event(GtkWidget* widget, GdkEventFocus*
     GtkWidget* toplevel = gtk_widget_get_toplevel(widget);
     if (GTK_WIDGET_TOPLEVEL(toplevel) && gtk_window_has_toplevel_focus(GTK_WINDOW(toplevel))) {
         WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+        FocusController* focusController = core(webView)->focusController();
 
-        Frame* frame = core(webView)->mainFrame();
-        core(webView)->focusController()->setActive(frame);
+        focusController->setActive(true);
+
+        if (focusController->focusedFrame())
+            focusController->setFocused(true);
+        else
+            focusController->setFocusedFrame(core(webView)->mainFrame());
     }
     return GTK_WIDGET_CLASS(webkit_web_view_parent_class)->focus_in_event(widget, event);
 }
@@ -578,6 +614,7 @@ static gboolean webkit_web_view_focus_out_event(GtkWidget* widget, GdkEventFocus
     WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
 
     core(webView)->focusController()->setActive(false);
+    core(webView)->focusController()->setFocused(false);
 
     return GTK_WIDGET_CLASS(webkit_web_view_parent_class)->focus_out_event(widget, event);
 }
@@ -686,6 +723,11 @@ static WebKitWebView* webkit_web_view_real_create_web_view(WebKitWebView*, WebKi
 }
 
 static gboolean webkit_web_view_real_web_view_ready(WebKitWebView*)
+{
+    return FALSE;
+}
+
+static gboolean webkit_web_view_real_close_web_view(WebKitWebView*)
 {
     return FALSE;
 }
@@ -841,28 +883,28 @@ static gboolean webkit_web_view_real_move_cursor (WebKitWebView* webView, GtkMov
         granularity = ScrollByLine;
         if (count == 1)
             direction = ScrollDown;
-        else if (count == -1)
+        else
             direction = ScrollUp;
         break;
     case GTK_MOVEMENT_VISUAL_POSITIONS:
         granularity = ScrollByLine;
         if (count == 1)
             direction = ScrollRight;
-        else if (count == -1)
+        else
             direction = ScrollLeft;
         break;
     case GTK_MOVEMENT_PAGES:
         granularity = ScrollByPage;
         if (count == 1)
             direction = ScrollDown;
-        else if (count == -1)
+        else
             direction = ScrollUp;
         break;
     case GTK_MOVEMENT_BUFFER_ENDS:
         granularity = ScrollByDocument;
         if (count == 1)
             direction = ScrollDown;
-        else if (count == -1)
+        else
             direction = ScrollUp;
         break;
     default:
@@ -932,9 +974,6 @@ static void webkit_web_view_dispose(GObject* object)
 
         gtk_target_list_unref(priv->paste_target_list);
         priv->paste_target_list = NULL;
-
-        delete priv->userAgent;
-        priv->userAgent = NULL;
     }
 
     G_OBJECT_CLASS(webkit_web_view_parent_class)->dispose(object);
@@ -1104,6 +1143,26 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
             G_TYPE_FROM_CLASS(webViewClass),
             (GSignalFlags)G_SIGNAL_RUN_LAST,
             G_STRUCT_OFFSET (WebKitWebViewClass, web_view_ready),
+            g_signal_accumulator_true_handled,
+            NULL,
+            webkit_marshal_BOOLEAN__VOID,
+            G_TYPE_BOOLEAN, 0);
+
+    /**
+     * WebKitWebView::close-web-view:
+     * @web_view: the object on which the signal is emitted
+     * @return: %TRUE to stop handlers from being invoked for the event or
+     * %FALSE to propagate the event furter
+     *
+     * Emitted when closing a WebView is requested. This occurs when a call
+     * is made from JavaScript's window.close function.
+     *
+     * Since 1.1.11
+     */
+    webkit_web_view_signals[CLOSE_WEB_VIEW] = g_signal_new("close-web-view",
+            G_TYPE_FROM_CLASS(webViewClass),
+            (GSignalFlags)G_SIGNAL_RUN_LAST,
+            G_STRUCT_OFFSET (WebKitWebViewClass, close_web_view),
             g_signal_accumulator_true_handled,
             NULL,
             webkit_marshal_BOOLEAN__VOID,
@@ -1721,6 +1780,7 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
      */
     webViewClass->create_web_view = webkit_web_view_real_create_web_view;
     webViewClass->web_view_ready = webkit_web_view_real_web_view_ready;
+    webViewClass->close_web_view = webkit_web_view_real_close_web_view;
     webViewClass->navigation_requested = webkit_web_view_real_navigation_requested;
     webViewClass->window_object_cleared = webkit_web_view_real_window_object_cleared;
     webViewClass->choose_file = webkit_web_view_real_choose_file;
@@ -1750,7 +1810,9 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
     widgetClass->motion_notify_event = webkit_web_view_motion_event;
     widgetClass->scroll_event = webkit_web_view_scroll_event;
     widgetClass->size_allocate = webkit_web_view_size_allocate;
+    widgetClass->size_request = webkit_web_view_size_request;
     widgetClass->popup_menu = webkit_web_view_popup_menu_handler;
+    widgetClass->grab_focus = webkit_web_view_grab_focus;
     widgetClass->focus_in_event = webkit_web_view_focus_in_event;
     widgetClass->focus_out_event = webkit_web_view_focus_out_event;
     widgetClass->get_accessible = webkit_web_view_get_accessible;
@@ -2051,7 +2113,7 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     gboolean autoLoadImages, autoShrinkImages, printBackgrounds,
         enableScripts, enablePlugins, enableDeveloperExtras, resizableTextAreas,
         enablePrivateBrowsing, enableCaretBrowsing, enableHTML5Database, enableHTML5LocalStorage,
-        enableXSSAuditor;
+        enableXSSAuditor, javascriptCanOpenWindows;
 
     g_object_get(webSettings,
                  "default-encoding", &defaultEncoding,
@@ -2074,6 +2136,7 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
                  "enable-html5-database", &enableHTML5Database,
                  "enable-html5-local-storage", &enableHTML5LocalStorage,
                  "enable-xss-auditor", &enableXSSAuditor,
+                 "javascript-can-open-windows-automatically", &javascriptCanOpenWindows,
                  NULL);
 
     settings->setDefaultTextEncodingName(defaultEncoding);
@@ -2096,6 +2159,7 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     settings->setDatabasesEnabled(enableHTML5Database);
     settings->setLocalStorageEnabled(enableHTML5LocalStorage);
     settings->setXSSAuditorEnabled(enableXSSAuditor);
+    settings->setJavaScriptCanOpenWindowsAutomatically(javascriptCanOpenWindows);
 
     g_free(defaultEncoding);
     g_free(cursiveFontFamily);
@@ -2174,6 +2238,8 @@ static void webkit_web_view_settings_notify(WebKitWebSettings* webSettings, GPar
         settings->setLocalStorageEnabled(g_value_get_boolean(&value));
     else if (name == g_intern_string("enable-xss-auditor"))
         settings->setXSSAuditorEnabled(g_value_get_boolean(&value));
+    else if (name == g_intern_string("javascript-can-open-windows-automatically"))
+        settings->setJavaScriptCanOpenWindowsAutomatically(g_value_get_boolean(&value));
     else if (!g_object_class_find_property(G_OBJECT_GET_CLASS(webSettings), name))
         g_warning("Unexpected setting '%s'", name);
     g_value_unset(&value);
@@ -3380,4 +3446,16 @@ void webkit_web_view_move_cursor(WebKitWebView* webView, GtkMovementStep step, g
 
     gboolean handled;
     g_signal_emit(webView, webkit_web_view_signals[MOVE_CURSOR], 0, step, count, &handled);
+}
+
+void webkit_web_view_set_group_name(WebKitWebView* webView, const gchar* groupName)
+{
+    g_return_if_fail(WEBKIT_IS_WEB_VIEW(webView));
+
+    WebKitWebViewPrivate* priv = webView->priv;
+
+    if (!priv->corePage)
+        return;
+
+    priv->corePage->setGroupName(String::fromUTF8(groupName));
 }

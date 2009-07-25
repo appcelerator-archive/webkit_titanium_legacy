@@ -201,6 +201,7 @@ void ChromeClientWx::setResizable(bool)
 }
 
 void ChromeClientWx::addMessageToConsole(MessageSource source,
+                                          MessageType type,
                                           MessageLevel level,
                                           const String& message,
                                           unsigned int lineNumber,
@@ -364,7 +365,7 @@ void ChromeClientWx::mouseDidMoveOverElement(const HitTestResult&, unsigned modi
     notImplemented();
 }
 
-void ChromeClientWx::setToolTip(const String& tip)
+void ChromeClientWx::setToolTip(const String& tip, TextDirection)
 {
     wxToolTip* tooltip = m_webView->GetToolTip();
     if (!tooltip || tooltip->GetTip() != wxString(tip))
@@ -378,6 +379,13 @@ void ChromeClientWx::print(Frame*)
 
 #if ENABLE(DATABASE)
 void ChromeClientWx::exceededDatabaseQuota(Frame*, const String&)
+{
+    notImplemented();
+}
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+void ChromeClientWx::reachedMaxAppCacheSize(int64_t spaceNeeded)
 {
     notImplemented();
 }

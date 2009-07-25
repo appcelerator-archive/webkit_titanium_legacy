@@ -83,6 +83,9 @@ extern NSString *WebPreferencesRemovedNotification;
 - (BOOL)webArchiveDebugModeEnabled;
 - (void)setWebArchiveDebugModeEnabled:(BOOL)webArchiveDebugModeEnabled;
 
+- (BOOL)localFileContentSniffingEnabled;
+- (void)setLocalFileContentSniffingEnabled:(BOOL)localFileContentSniffingEnabled;
+
 - (BOOL)offlineWebApplicationCacheEnabled;
 - (void)setOfflineWebApplicationCacheEnabled:(BOOL)offlineWebApplicationCacheEnabled;
 
@@ -126,10 +129,15 @@ extern NSString *WebPreferencesRemovedNotification;
 
 - (NSString *)_ftpDirectoryTemplatePath;
 - (void)_setFTPDirectoryTemplatePath:(NSString *)path;
+
 - (void)_setForceFTPDirectoryListings:(BOOL)force;
 - (BOOL)_forceFTPDirectoryListings;
+
 - (NSString *)_localStorageDatabasePath;
 - (void)_setLocalStorageDatabasePath:(NSString *)path;
+
+- (BOOL)acceleratedCompositingEnabled;
+- (void)setAcceleratedCompositingEnabled:(BOOL)enabled;
 
 // Other private methods
 - (void)_postPreferencesChangesNotification;

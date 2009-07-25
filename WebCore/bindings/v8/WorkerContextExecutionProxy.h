@@ -35,6 +35,7 @@
 #if ENABLE(WORKERS)
 
 #include <v8.h>
+#include "ScriptValue.h"
 #include "V8EventListenerList.h"
 #include "V8Index.h"
 #include <wtf/OwnPtr.h>
@@ -47,6 +48,16 @@ namespace WebCore {
     class V8EventListener;
     class V8WorkerContextEventListener;
     class WorkerContext;
+
+    struct WorkerContextExecutionState {
+        WorkerContextExecutionState() : hadException(false), lineNumber(0) { }
+
+        bool hadException;
+        ScriptValue exception;
+        String errorMessage;
+        int lineNumber;
+        String sourceURL;
+    };
 
     class WorkerContextExecutionProxy {
     public:
@@ -73,17 +84,13 @@ namespace WebCore {
         void trackEvent(Event*);
 
         // Evaluate a script file in the current execution environment.
-        v8::Local<v8::Value> evaluate(const String& script, const String& fileName, int baseLine);
+        ScriptValue evaluate(const String& script, const String& fileName, int baseLine, WorkerContextExecutionState*);
 
         // Returns WorkerContext object.
         WorkerContext* workerContext() { return m_workerContext; }
 
         // Returns WorkerContextExecutionProxy object of the currently executing context. 0 will be returned if the current executing context is not the worker context.
         static WorkerContextExecutionProxy* retrieve();
-
-        // Enables HTML5 worker support.
-        static bool isWebWorkersEnabled();
-        static void setIsWebWorkersEnabled(bool);
 
     private:
         void initV8IfNeeded();

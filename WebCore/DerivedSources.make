@@ -45,6 +45,7 @@ VPATH = \
 
 DOM_CLASSES = \
     AbstractView \
+    AbstractWorker \
     Attr \
     BarInfo \
     CDATASection \
@@ -77,6 +78,7 @@ DOM_CLASSES = \
     Counter \
     DataGridColumn \
     DataGridColumnList \
+    DedicatedWorkerContext \
     DOMApplicationCache \
     DOMCoreException \
     DOMImplementation \
@@ -91,6 +93,7 @@ DOM_CLASSES = \
     ElementTimeControl \
     Entity \
     EntityReference \
+    ErrorEvent \
     Event \
     EventException \
     EventListener \
@@ -200,6 +203,7 @@ DOM_CLASSES = \
     Range \
     RangeException \
     Rect \
+    SharedWorker \
     SQLError \
     SQLResultSet \
     SQLResultSetRowList \
@@ -360,6 +364,7 @@ DOM_CLASSES = \
     TimeRanges \
     TreeWalker \
     UIEvent \
+    ValidityState \
     VoidCallback \
     WebKitAnimationEvent \
     WebKitCSSKeyframeRule \
@@ -389,9 +394,7 @@ DOM_CLASSES = \
 .PHONY : all
 
 all : \
-    $(filter-out JSEventListener.h JSEventTarget.h JSRGBColor.h,$(DOM_CLASSES:%=JS%.h)) \
-    \
-    JSRGBColor.lut.h \
+    $(filter-out JSEventListener.h JSEventTarget.h,$(DOM_CLASSES:%=JS%.h)) \
     \
     JSJavaScriptCallFrame.h \
     \
@@ -447,15 +450,19 @@ ifeq ($(ENABLE_DASHBOARD_SUPPORT), 1)
     WEBCORE_CSS_PROPERTY_NAMES := $(WEBCORE_CSS_PROPERTY_NAMES) $(WebCore)/css/DashboardSupportCSSPropertyNames.in
 endif
 
+# The grep commands below reject output containing anything other than:
+# 1. Lines beginning with '#'
+# 2. Lines containing only whitespace
+# These two types of lines will be ignored by make{prop,values}.pl.
 CSSPropertyNames.h : $(WEBCORE_CSS_PROPERTY_NAMES) css/makeprop.pl
-	if sort $(WEBCORE_CSS_PROPERTY_NAMES) | uniq -d | grep -E '^[^#]'; then echo 'Duplicate value!'; exit 1; fi
+	if sort $(WEBCORE_CSS_PROPERTY_NAMES) | uniq -d | grep -E -v '(^#)|(^[[:space:]]*$)'; then echo 'Duplicate value!'; exit 1; fi
 	cat $(WEBCORE_CSS_PROPERTY_NAMES) > CSSPropertyNames.in
 	perl "$(WebCore)/css/makeprop.pl"
 
 CSSValueKeywords.h : $(WEBCORE_CSS_VALUE_KEYWORDS) css/makevalues.pl
 	# Lower case all the values, as CSS values are case-insensitive
 	perl -ne 'print lc' $(WEBCORE_CSS_VALUE_KEYWORDS) > CSSValueKeywords.in
-	if sort CSSValueKeywords.in | uniq -d | grep -E '^[^#]'; then echo 'Duplicate value!'; exit 1; fi
+	if sort CSSValueKeywords.in | uniq -d | grep -E -v '(^#)|(^[[:space:]]*$)'; then echo 'Duplicate value!'; exit 1; fi
 	perl "$(WebCore)/css/makevalues.pl"
 
 # --------
@@ -520,7 +527,7 @@ XPathGrammar.cpp : xml/XPathGrammar.y $(PROJECT_FILE)
 
 # user agent style sheets
 
-USER_AGENT_STYLE_SHEETS = $(WebCore)/css/html4.css $(WebCore)/css/quirks.css $(WebCore)/css/view-source.css $(WebCore)/css/themeWin.css $(WebCore)/css/themeWinQuirks.css 
+USER_AGENT_STYLE_SHEETS = $(WebCore)/css/html.css $(WebCore)/css/quirks.css $(WebCore)/css/view-source.css $(WebCore)/css/themeWin.css $(WebCore)/css/themeWinQuirks.css 
 
 ifeq ($(findstring ENABLE_SVG,$(FEATURE_DEFINES)), ENABLE_SVG)
     USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/svg.css 
@@ -542,19 +549,14 @@ UserAgentStyleSheets.h : css/make-css-file-arrays.pl $(USER_AGENT_STYLE_SHEETS)
 
 # --------
 
-# lookup tables for old-style JavaScript bindings
-
-%.lut.h: %.cpp $(CREATE_HASH_TABLE)
-	$(CREATE_HASH_TABLE) $< -n WebCore > $@
-%Table.cpp: %.cpp $(CREATE_HASH_TABLE)
-	$(CREATE_HASH_TABLE) $< -n WebCore > $@
-
-# --------
-
 # HTML tag and attribute names
 
 ifeq ($(findstring ENABLE_VIDEO,$(FEATURE_DEFINES)), ENABLE_VIDEO)
     HTML_FLAGS := $(HTML_FLAGS) ENABLE_VIDEO=1
+endif
+
+ifeq ($(findstring ENABLE_RUBY,$(FEATURE_DEFINES)), ENABLE_RUBY)
+    HTML_FLAGS := $(HTML_FLAGS) ENABLE_RUBY=1
 endif
 
 ifdef HTML_FLAGS

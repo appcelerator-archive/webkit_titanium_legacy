@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -23,7 +23,7 @@
 
 use strict;
 
-use lib qw(.);
+use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Util;
@@ -34,7 +34,7 @@ my $id = $cgi->param('attach_id');
 detaint_natural($id) if defined $id;
 $id ||= "";
 
-print $cgi->redirect(-location=>"attachment.cgi?id=$id&action=view",
+print $cgi->redirect(-location=>"attachment.cgi?id=$id",
                      -status=>'301 Permanent Redirect');
 
 exit;

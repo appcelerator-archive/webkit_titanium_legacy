@@ -46,17 +46,17 @@ my $makeArgs;
 
 my ($threeDRenderingSupport, $channelMessagingSupport, $databaseSupport, $domStorageSupport,
     $filtersSupport, $geolocationSupport, $gnomeKeyringSupport, $iconDatabaseSupport,
-    $javaScriptDebuggerSupport, $offlineWebApplicationSupport, $svgSupport, $svgAnimationSupport,
-    $svgAsImageSupport, $svgDOMObjCBindingsSupport, $svgFontsSupport, $svgForeignObjectSupport,
-    $svgUseSupport, $videoSupport, $wmlSupport, $workersSupport, $xpathSupport, $xsltSupport,
-    $coverageSupport);
+    $javaScriptDebuggerSupport, $offlineWebApplicationSupport, $rubySupport, $sharedWorkersSupport, 
+    $svgSupport, $svgAnimationSupport, $svgAsImageSupport, $svgDOMObjCBindingsSupport, $svgFontsSupport,
+    $svgForeignObjectSupport, $svgUseSupport, $videoSupport, $webSocketsSupport, $wmlSupport, $workersSupport,
+    $xpathSupport, $xsltSupport, $coverageSupport);
 
 my @features = (
     { option => "3d-rendering", desc => "Toggle 3D rendering support",
-      define => "ENABLE_3D_RENDERING", default => (isAppleMacWebKit() && isSnowLeopard()), value => \$threeDRenderingSupport },
+      define => "ENABLE_3D_RENDERING", default => (isAppleMacWebKit() && !isTiger()), value => \$threeDRenderingSupport },
 
     { option => "channel-messaging", desc => "Toggle MessageChannel and MessagePort support",
-      define => "ENABLE_CHANNEL_MESSAGING", default => 0, value => \$channelMessagingSupport },
+      define => "ENABLE_CHANNEL_MESSAGING", default => 1, value => \$channelMessagingSupport },
 
     { option => "coverage", desc => "Toggle code coverage support",
       define => "", default => 0, value => \$coverageSupport },
@@ -85,6 +85,12 @@ my @features = (
     { option => "offline-web-applications", desc => "Toggle Offline Web Application Support",
       define => "ENABLE_OFFLINE_WEB_APPLICATIONS", default => 1, value => \$offlineWebApplicationSupport },
 
+    { option => "ruby", desc => "Toggle HTML5 Ruby support",
+      define => "ENABLE_RUBY", default => 1, value => \$rubySupport },
+
+    { option => "shared-workers", desc => "Toggle SharedWorkers support",
+      define => "ENABLE_SHARED_WORKERS", default => 0, value => \$sharedWorkersSupport },
+
     { option => "svg", desc => "Toggle SVG support",
       define => "ENABLE_SVG", default => 1, value => \$svgSupport },
 
@@ -108,6 +114,9 @@ my @features = (
 
     { option => "video", desc => "Toggle Video support",
       define => "ENABLE_VIDEO", default => (isAppleWebKit() || isGtk()), value => \$videoSupport },
+
+    { option => "web-sockets", desc => "Toggle Web Sockets support",
+      define => "ENABLE_WEB_SOCKETS", default => 1, value=> \$webSocketsSupport },
 
     { option => "wml", desc => "Toggle WML support",
       define => "ENABLE_WML", default => 0, value => \$wmlSupport },
@@ -145,6 +154,7 @@ my $usage = <<EOF;
 Usage: $programName [options] [options to pass to build system]
   --help                            Show this help message
   --clean                           Cleanup the build directory
+  --debug                           Compile in debug mode
   --cairo-win32                     Build using Cairo (rather than CoreGraphics) on Windows
   --chromium                        Build the Chromium port on Mac/Win/Linux
   --gtk                             Build the GTK+ port
@@ -313,8 +323,6 @@ for my $dir (@projects) {
         if ($dir eq "WebKit") {
             $result = buildVisualStudioProject("win/WebKit.vcproj/WebKit.sln", $clean);
         }
-    } elsif (isChromium()) {
-        $result = buildSconsProject($dir, $clean);
     }
 
     if (exitStatus($result)) {

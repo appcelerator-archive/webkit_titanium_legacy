@@ -111,6 +111,10 @@ using namespace std;
 #define NSAccessibilityAccessKeyAttribute @"AXAccessKey"
 #endif
 
+#ifndef NSAccessibilityLanguageAttribute
+#define NSAccessibilityLanguageAttribute @"AXLanguage"
+#endif
+
 #ifdef BUILDING_ON_TIGER
 typedef unsigned NSUInteger;
 #endif
@@ -1138,6 +1142,9 @@ static NSString* roleValueToNSString(AccessibilityRole value)
     if ([axRole isEqualToString:NSAccessibilityMenuButtonRole])
         return NSAccessibilityRoleDescription(NSAccessibilityMenuButtonRole, [self subrole]);
     
+    if ([axRole isEqualToString:NSAccessibilityToolbarRole])
+        return NSAccessibilityRoleDescription(NSAccessibilityToolbarRole, [self subrole]);
+
     return NSAccessibilityRoleDescription(NSAccessibilityUnknownRole, nil);
 }
 
@@ -1451,6 +1458,13 @@ static NSString* roleValueToNSString(AccessibilityRole value)
             return obj->wrapper();
         return nil;
     }
+    
+    if ([attributeName isEqualToString:NSAccessibilityLanguageAttribute]) 
+        return m_object->language();
+    
+    // this is used only by DumpRenderTree for testing
+    if ([attributeName isEqualToString:@"AXClickPoint"])
+        return [NSValue valueWithPoint:m_object->clickPoint()];
     
     return nil;
 }

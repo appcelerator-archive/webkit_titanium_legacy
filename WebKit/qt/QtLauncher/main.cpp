@@ -37,11 +37,14 @@
 
 #include <QtGui>
 #include <QDebug>
+#include <QtNetwork/QNetworkProxy>
 #if QT_VERSION >= 0x040400 && !defined(QT_NO_PRINTER)
 #include <QPrintPreviewDialog>
 #endif
 
+#ifndef QT_NO_UITOOLS
 #include <QtUiTools/QUiLoader>
+#endif
 
 #include <QVector>
 #include <QTextStream>
@@ -62,20 +65,30 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 public:
     MainWindow(const QString& url = QString()): currentZoom(100) {
+        setAttribute(Qt::WA_DeleteOnClose);
+
         view = new QWebView(this);
         setCentralWidget(view);
 
-        view->setPage(new WebPage(view));
-
+        WebPage* page = new WebPage(view);
+        view->setPage(page);
+        
         connect(view, SIGNAL(loadFinished(bool)),
                 this, SLOT(loadFinished()));
         connect(view, SIGNAL(titleChanged(const QString&)),
                 this, SLOT(setWindowTitle(const QString&)));
         connect(view->page(), SIGNAL(linkHovered(const QString&, const QString&, const QString &)),
                 this, SLOT(showLinkHover(const QString&, const QString&)));
-        connect(view->page(), SIGNAL(windowCloseRequested()), this, SLOT(deleteLater()));
+        connect(view->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
         setupUI();
+
+        // set the proxy to the http_proxy env variable - if present        
+        QUrl proxyUrl = view->guessUrlFromString(qgetenv("http_proxy"));
+        if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
+            int proxyPort = (proxyUrl.port() > 0)  ? proxyUrl.port() : 8080;
+            page->networkAccessManager()->setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort));
+        }
 
         QUrl qurl = view->guessUrlFromString(url);
         if (qurl.isValid()) {
@@ -310,6 +323,7 @@ private:
 QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
 {
     MainWindow *mw = new MainWindow;
+    mw->show();
     return mw->webPage();
 }
 
@@ -318,8 +332,13 @@ QObject *WebPage::createPlugin(const QString &classId, const QUrl &url, const QS
     Q_UNUSED(url);
     Q_UNUSED(paramNames);
     Q_UNUSED(paramValues);
+#ifndef QT_NO_UITOOLS
     QUiLoader loader;
     return loader.createWidget(classId, view());
+#else
+    Q_UNUSED(classId);
+    return 0;
+#endif
 }
 
 class URLLoader : public QObject
@@ -406,30 +425,31 @@ int main(int argc, char **argv)
 
     const QStringList args = app.arguments();
 
-    // robotized
     if (args.contains(QLatin1String("-r"))) {
+        // robotized
         QString listFile = args.at(2);
         if (!(args.count() == 3) && QFile::exists(listFile)) {
             qDebug() << "Usage: QtLauncher -r listfile";
             exit(0);
         }
-        MainWindow window(url);
+        MainWindow window;
         QWebView *view = window.webView();
         URLLoader loader(view, listFile);
         QObject::connect(view, SIGNAL(loadFinished(bool)), &loader, SLOT(loadNext()));
+        loader.loadNext();
         window.show();
         return app.exec();
     } else {
         if (args.count() > 1)
             url = args.at(1);
 
-        MainWindow window(url);
+        MainWindow* window = new MainWindow(url);
 
         // Opens every given urls in new windows
         for (int i = 2; i < args.count(); i++)
-            window.newWindow(args.at(i));
+            window->newWindow(args.at(i));
 
-        window.show();
+        window->show();
         return app.exec();
     }
 }

@@ -34,12 +34,14 @@
 #include "Editor.h"
 #include "Element.h"
 #include "EventHandler.h"
+#include "FileList.h"
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
 #include "HTMLNames.h"
 #include "Image.h"
 #include "MIMETypeRegistry.h"
+#include "NotImplemented.h"
 #include "Page.h"
 #include "Pasteboard.h"
 #include "PlatformMouseEvent.h"
@@ -580,6 +582,12 @@ HashSet<String> ClipboardWin::types() const
     return results;
 }
 
+PassRefPtr<FileList> ClipboardWin::files() const
+{
+    notImplemented();
+    return 0;
+}
+
 void ClipboardWin::setDragImage(CachedImage* image, Node *node, const IntPoint &loc)
 {
     if (policy() != ClipboardImageWritable && policy() != ClipboardWritable) 
@@ -686,7 +694,7 @@ void ClipboardWin::declareAndWriteDragImage(Element* element, const KURL& url, c
     if (imageURL.isEmpty()) 
         return;
 
-    String fullURL = frame->document()->completeURL(parseURL(imageURL)).string();
+    String fullURL = frame->document()->completeURL(deprecatedParseURL(imageURL)).string();
     if (fullURL.isEmpty()) 
         return;
     STGMEDIUM medium = {0};

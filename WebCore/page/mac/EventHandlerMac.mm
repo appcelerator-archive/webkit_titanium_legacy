@@ -45,6 +45,7 @@
 #include "RuntimeApplicationChecks.h"
 #include "Scrollbar.h"
 #include "Settings.h"
+#include "WebCoreSystemInterface.h"
 #include <objc/objc-runtime.h>
 #include <wtf/StdLibExtras.h>
 
@@ -72,7 +73,7 @@ NSEvent *EventHandler::currentNSEvent()
     return currentNSEventSlot().get();
 }
 
-class CurrentEventScope : Noncopyable {
+class CurrentEventScope : public Noncopyable {
 public:
     CurrentEventScope(NSEvent *);
     ~CurrentEventScope();
@@ -107,6 +108,8 @@ bool EventHandler::wheelEvent(NSEvent *event)
 
     CurrentEventScope scope(event);
 
+    m_useLatchedWheelEventNode = wkIsLatchingWheelEvent(event);
+    
     PlatformWheelEvent wheelEvent(event, page->chrome()->platformWindow());
     handleWheelEvent(wheelEvent);
 
@@ -255,10 +258,12 @@ static bool lastEventIsMouseUp()
     return false;
 }
 
-bool EventHandler::passMouseDownEventToWidget(Widget* widget)
+bool EventHandler::passMouseDownEventToWidget(Widget* pWidget)
 {
     // FIXME: This function always returns true. It should be changed either to return
     // false in some cases or the return value should be removed.
+    
+    RefPtr<Widget> widget = pWidget;
 
     if (!widget) {
         LOG_ERROR("hit a RenderWidget without a corresponding Widget, means a frame is half-constructed");
@@ -301,9 +306,9 @@ bool EventHandler::passMouseDownEventToWidget(Widget* widget)
     ASSERT(!m_sendingEventToSubview);
     m_sendingEventToSubview = true;
     NSView *outerView = widget->getOuterView();
-    widget->beforeMouseDown(outerView, widget);
+    widget->beforeMouseDown(outerView, widget.get());
     [view mouseDown:currentNSEvent()];
-    widget->afterMouseDown(outerView, widget);
+    widget->afterMouseDown(outerView, widget.get());
     m_sendingEventToSubview = false;
     
     if (!wasDeferringLoading)
@@ -546,8 +551,8 @@ void EventHandler::mouseDown(NSEvent *event)
     m_mouseDownView = nil;
     
     CurrentEventScope scope(event);
-    m_mouseDown = currentPlatformMouseEvent();
-    handleMousePressEvent(m_mouseDown);
+
+    handleMousePressEvent(currentPlatformMouseEvent());
 
     END_BLOCK_OBJC_EXCEPTIONS;
 }

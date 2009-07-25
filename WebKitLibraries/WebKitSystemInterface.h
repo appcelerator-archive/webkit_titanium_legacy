@@ -179,6 +179,15 @@ void WKGetWheelEventDeltas(NSEvent *, float *deltaX, float *deltaY, BOOL *contin
 
 BOOL WKAppVersionCheckLessThan(NSString *, int, double);
 
+typedef enum {
+    WKMovieTypeUnknown,
+    WKMovieTypeDownload,
+    WKMovieTypeStoredStream,
+    WKMovieTypeLiveStream
+} WKMovieType;
+
+int WKQTMovieGetType(QTMovie* movie);
+
 unsigned WKQTIncludeOnlyModernMediaFileTypes(void);
 int WKQTMovieDataRate(QTMovie* movie);
 float WKQTMovieMaxTimeLoaded(QTMovie* movie);
@@ -190,17 +199,19 @@ CFStringRef WKCopyFoundationCacheDirectory(void);
 
 typedef enum {
     WKMediaUIPartFullscreenButton   = 0,
-    WKMediaUIPartMuteButton         = 1,
-    WKMediaUIPartPlayButton         = 2,
-    WKMediaUIPartSeekBackButton     = 3,
-    WKMediaUIPartSeekForwardButton  = 4,
-    WKMediaUIPartSlider             = 5,
-    WKMediaUIPartSliderThumb        = 6,
-    WKMediaUIPartUnMuteButton       = 7,
-    WKMediaUIPartPauseButton        = 8,
-    WKMediaUIPartTimelineContainer  = 9,
-    WKMediaUIPartCurrentTimeDisplay = 10,
-    WKMediaUIPartTimeRemainingDisplay= 11
+    WKMediaUIPartMuteButton,
+    WKMediaUIPartPlayButton,
+    WKMediaUIPartSeekBackButton,
+    WKMediaUIPartSeekForwardButton,
+    WKMediaUIPartSlider,
+    WKMediaUIPartSliderThumb,
+    WKMediaUIPartRewindButton,
+    WKMediaUIPartSeekToRealtimeButton,
+    WKMediaUIPartUnMuteButton,
+    WKMediaUIPartPauseButton,
+    WKMediaUIPartBackground,
+    WKMediaUIPartCurrentTimeDisplay,
+    WKMediaUIPartTimeRemainingDisplay
 } WKMediaUIPart;
 
 typedef enum {
@@ -208,10 +219,16 @@ typedef enum {
     WKMediaControllerThemeQT        = 2
 } WKMediaControllerThemeStyle;
 
+typedef enum {
+    WKMediaControllerFlagDisabled = 1 << 0,
+    WKMediaControllerFlagPressed = 1 << 1,
+    WKMediaControllerFlagDrawEndCaps = 1 << 3,
+} WKMediaControllerThemeState;
+
 BOOL WKHitTestMediaUIPart(int part, int themeStyle, CGRect bounds, CGPoint point);
 void WKMeasureMediaUIPart(int part, int themeStyle, CGRect *bounds, CGSize *naturalSize);
-void WKDrawMediaUIPart(int part, int themeStyle, CGContextRef context, CGRect rect, BOOL active);
-void WKDrawMediaSliderTrack(int themeStyle, CGContextRef context, CGRect rect, float timeLoaded, float currentTime, float duration);
+void WKDrawMediaUIPart(int part, int themeStyle, CGContextRef context, CGRect rect, unsigned state);
+void WKDrawMediaSliderTrack(int themeStyle, CGContextRef context, CGRect rect, float timeLoaded, float currentTime, float duration, unsigned state);
 
 #if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD) && defined(__x86_64__)
 mach_port_t WKInitializeRenderServer(void);
@@ -241,6 +258,8 @@ void WKSetCAAnimationValueFunction(CAPropertyAnimation*, NSString* function);
 
 unsigned WKInitializeMaximumHTTPConnectionCountPerHost(unsigned preferredConnectionCount);
 
+BOOL WKIsLatchingWheelEvent(NSEvent *);
+    
 #ifdef __cplusplus
 }
 #endif

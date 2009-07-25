@@ -80,7 +80,7 @@ static const PopupContainerSettings dropDownSettings = {
 
 // This class uses WebCore code to paint and handle events for a drop-down list
 // box ("combobox" on Windows).
-class PopupListBox : public FramelessScrollView, public RefCounted<PopupListBox> {
+class PopupListBox : public FramelessScrollView {
 public:
     static PassRefPtr<PopupListBox> create(PopupMenuClient* client, const PopupContainerSettings& settings)
     {
@@ -139,10 +139,6 @@ public:
     // Gets the height of a row.
     int getRowHeight(int index);
 
-    // Returns true if the selection can be changed to index.
-    // Disabled items, or labels cannot be selected.
-    bool isSelectableItem(int index);
-
     const Vector<PopupItem*>& items() const { return m_items; }
 
 private:
@@ -172,8 +168,14 @@ private:
 
     // Closes the popup
     void abandon();
+
+    // Returns true if the selection can be changed to index.
+    // Disabled items, or labels cannot be selected.
+    bool isSelectableItem(int index);
+
     // Select an index in the list, scrolling if necessary.
     void selectIndex(int index);
+
     // Accepts the selected index as the value to be displayed in the <select> widget on
     // the web page, and closes the popup.
     void acceptIndex(int index);
@@ -512,7 +514,7 @@ const WTF::Vector<PopupItem*>& PopupContainer:: popupData() const
 
 bool PopupListBox::handleMouseDownEvent(const PlatformMouseEvent& event)
 {
-    Scrollbar* scrollbar = scrollbarUnderMouse(event);
+    Scrollbar* scrollbar = scrollbarAtPoint(event.pos());
     if (scrollbar) {
         m_capturingScrollbar = scrollbar;
         m_capturingScrollbar->mouseDown(event);
@@ -532,7 +534,7 @@ bool PopupListBox::handleMouseMoveEvent(const PlatformMouseEvent& event)
         return true;
     }
 
-    Scrollbar* scrollbar = scrollbarUnderMouse(event);
+    Scrollbar* scrollbar = scrollbarAtPoint(event.pos());
     if (m_lastScrollbarUnderMouse != scrollbar) {
         // Send mouse exited to the old scrollbar.
         if (m_lastScrollbarUnderMouse)
@@ -884,11 +886,15 @@ int PopupListBox::pointToRowIndex(const IntPoint& point)
 
 void PopupListBox::acceptIndex(int index)
 {
-    ASSERT(index >= -1 && index < numItems());
-    if (index == -1 && m_popupClient) {
-      // Enter pressed with no selection, just close the popup.
-      m_popupClient->hidePopup();
-      return;
+    if (index >= numItems())
+        return;
+
+    if (index < 0) {
+        if (m_popupClient) {
+            // Enter pressed with no selection, just close the popup.
+            m_popupClient->hidePopup();
+        }
+        return;
     }
 
     if (isSelectableItem(index)) {
@@ -904,7 +910,8 @@ void PopupListBox::acceptIndex(int index)
 
 void PopupListBox::selectIndex(int index)
 {
-    ASSERT(index >= 0 && index < numItems());
+    if (index < 0 || index >= numItems())
+        return;
 
     if (index != m_selectedIndex && isSelectableItem(index)) {
         invalidateRow(m_selectedIndex);
@@ -964,6 +971,7 @@ void PopupListBox::scrollToRevealRow(int index)
 
 bool PopupListBox::isSelectableItem(int index)
 {
+    ASSERT(index >= 0 && index < numItems());
     return m_items[index]->type == PopupItem::TypeOption && m_popupClient->itemIsEnabled(index);
 }
 
@@ -999,7 +1007,7 @@ void PopupListBox::selectPreviousRow()
         return;
     }
 
-    // No row are selected, jump to the last item.
+    // No row is selected, jump to the last item.
     selectIndex(numItems() - 1);
     scrollToRevealSelection();
 }

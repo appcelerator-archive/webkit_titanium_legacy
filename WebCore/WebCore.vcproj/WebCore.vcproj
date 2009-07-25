@@ -184,7 +184,7 @@
 		<Configuration
 			Name="Debug_Cairo|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(WebKitLibrariesDir)\tools\vsprops\common.vsprops;$(WebKitLibrariesDir)\tools\vsprops\debug.vsprops;.\WebCoreCommon.vsprops;.\WebCoreCairo.vsprops;.\WebCoreCURL.vsprops"
+			InheritedPropertySheets="$(WebKitLibrariesDir)\tools\vsprops\common.vsprops;$(WebKitLibrariesDir)\tools\vsprops\debug.vsprops;$(WebKitLibrariesDir)\tools\vsprops\WinCairo.vsprops;.\WebCoreCommon.vsprops;.\WebCoreCairo.vsprops;.\WebCoreCURL.vsprops"
 			CharacterSet="1"
 			>
 			<Tool
@@ -238,9 +238,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release_Cairo|Win32"
- 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(WebKitLibrariesDir)\tools\vsprops\common.vsprops;$(WebKitLibrariesDir)\tools\vsprops\release.vsprops;.\WebCoreCommon.vsprops;.\WebCoreCairo.vsprops;.\WebCoreCURL.vsprops"
+			InheritedPropertySheets="$(WebKitLibrariesDir)\tools\vsprops\common.vsprops;$(WebKitLibrariesDir)\tools\vsprops\release.vsprops;$(WebKitLibrariesDir)\tools\vsprops\WinCairo.vsprops;.\WebCoreCommon.vsprops;.\WebCoreCairo.vsprops;.\WebCoreCURL.vsprops"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -416,6 +415,54 @@
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\HTMLNames.h"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSAbstractWorker.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSAbstractWorker.h"
 				>
 			</File>
 			<File
@@ -1858,7 +1905,7 @@
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSDatabase.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSDataGridColumn.cpp"
 				>
 				<FileConfiguration
@@ -1906,7 +1953,7 @@
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSDataGridColumn.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSDataGridColumnList.cpp"
 				>
 				<FileConfiguration
@@ -1952,6 +1999,54 @@
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSDataGridColumnList.h"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSDedicatedWorkerContext.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSDedicatedWorkerContext.h"
 				>
 			</File>
 			<File
@@ -2532,6 +2627,54 @@
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSEntityReference.h"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSErrorEvent.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSErrorEvent.h"
 				>
 			</File>
 			<File
@@ -3447,54 +3590,6 @@
 				>
 			</File>
 			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridElement.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug_Internal|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug_Cairo|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release_Cairo|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridElement.h"
-				>
-			</File>
-                        <File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridCellElement.cpp"
 				>
 				<FileConfiguration
@@ -3542,7 +3637,7 @@
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridCellElement.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridColElement.cpp"
 				>
 				<FileConfiguration
@@ -3590,7 +3685,55 @@
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridColElement.h"
 				>
 			</File>
-                        <File
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridElement.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridElement.h"
+				>
+			</File>
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLDataGridRowElement.cpp"
 				>
 				<FileConfiguration
@@ -6229,6 +6372,10 @@
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorController.cpp"
 				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorController.cpp"
+				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					ExcludedFromBuild="true"
@@ -6269,10 +6416,6 @@
 						Name="VCCLCompilerTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorController.cpp"
-				>
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorController.h"
@@ -7623,7 +7766,51 @@
 				>
 			</File>
 			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSRGBColor.lut.h"
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSRGBColor.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSRGBColor.h"
 				>
 			</File>
 			<File
@@ -7672,6 +7859,54 @@
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSScreen.h"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSSharedWorker.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSSharedWorker.h"
 				>
 			</File>
 			<File
@@ -9593,6 +9828,10 @@
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
 				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
+				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					ExcludedFromBuild="true"
@@ -9633,10 +9872,6 @@
 						Name="VCCLCompilerTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
-				>
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.h"
@@ -14779,6 +15014,54 @@
 				>
 			</File>
 			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSValidityState.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSValidityState.h"
+				>
+			</File>
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSVoidCallback.cpp"
 				>
 				<FileConfiguration
@@ -16825,6 +17108,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\loader\PlaceholderDocument.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\loader\PlaceholderDocument.h"
+				>
+			</File>
+			<File
 				RelativePath="..\loader\PluginDocument.cpp"
 				>
 			</File>
@@ -18071,26 +18362,6 @@
 				<Filter
 					Name="win"
 					>
-					<File
-						RelativePath="..\platform\graphics\win\ColorSafari.cpp"
-						>
-						<FileConfiguration
-							Name="Debug_Cairo|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release_Cairo|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
 					<File
 						RelativePath="..\platform\graphics\win\FontCacheWin.cpp"
 						>
@@ -20161,6 +20432,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\platform\sql\SQLiteFileSystem.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\platform\sql\SQLiteFileSystem.h"
+					>
+				</File>
+				<File
 					RelativePath="..\platform\sql\SQLiteStatement.cpp"
 					>
 				</File>
@@ -21552,7 +21831,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\css\html4.css"
+				RelativePath="..\css\html.css"
 				>
 			</File>
 			<File
@@ -21609,6 +21888,14 @@
 			</File>
 			<File
 				RelativePath="..\css\Rect.h"
+				>
+			</File>
+			<File
+				RelativePath="..\css\RGBColor.h"
+				>
+			</File>
+			<File
+				RelativePath="..\css\RGBColor.cpp"
 				>
 			</File>
 			<File
@@ -21709,14 +21996,6 @@
 			</File>
 			<File
 				RelativePath="..\rendering\AutoTableLayout.h"
-				>
-			</File>
-			<File
-				RelativePath="..\rendering\bidi.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\rendering\bidi.h"
 				>
 			</File>
 			<File
@@ -21844,6 +22123,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\rendering\RenderBlockLineLayout.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\rendering\RenderBox.cpp"
 				>
 			</File>
@@ -21883,7 +22166,7 @@
 				RelativePath="..\rendering\RenderCounter.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="..\rendering\RenderDataGrid.cpp"
 				>
 			</File>
@@ -23308,6 +23591,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\dom\ErrorEvent.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\dom\ErrorEvent.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dom\Event.cpp"
 				>
 			</File>
@@ -23413,14 +23704,6 @@
 			</File>
 			<File
 				RelativePath="..\dom\MessagePortChannel.h"
-				>
-			</File>
-			<File
-				RelativePath="..\dom\default\PlatformMessagePortChannel.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\dom\default\PlatformMessagePortChannel.h"
 				>
 			</File>
 			<File
@@ -23537,6 +23820,14 @@
 			</File>
 			<File
 				RelativePath="..\dom\OverflowEvent.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dom\default\PlatformMessagePortChannel.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\dom\default\PlatformMessagePortChannel.h"
 				>
 			</File>
 			<File
@@ -23768,7 +24059,31 @@
 			Name="workers"
 			>
 			<File
+				RelativePath="..\workers\AbstractWorker.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\workers\AbstractWorker.h"
+				>
+			</File>
+			<File
+				RelativePath="..\workers\DedicatedWorkerContext.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\workers\DedicatedWorkerContext.h"
+				>
+			</File>
+			<File
 				RelativePath="..\workers\GenericWorkerTask.h"
+				>
+			</File>
+			<File
+				RelativePath="..\workers\SharedWorker.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\workers\SharedWorker.h"
 				>
 			</File>
 			<File
@@ -24275,26 +24590,6 @@
 				RelativePath="..\html\CanvasStyle.h"
 				>
 			</File>
-                        <File
-				RelativePath="..\html\DataGridColumn.cpp"
-				>
-			</File>
-                        <File
-				RelativePath="..\html\DataGridColumn.h"
-				>
-			</File>
-                        <File
-				RelativePath="..\html\DataGridColumnList.cpp"
-				>
-			</File>
-                        <File
-				RelativePath="..\html\DataGridColumnList.h"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridDataSource.h"
-				>
-			</File>
 			<File
 				RelativePath="..\html\CollectionCache.cpp"
 				>
@@ -24313,6 +24608,34 @@
 			</File>
 			<File
 				RelativePath="..\html\CollectionType.h"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridColumn.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridColumn.h"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridColumnList.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridColumnList.h"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridDataSource.h"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DOMDataGridDataSource.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DOMDataGridDataSource.h"
 				>
 			</File>
 			<File
@@ -24875,55 +25198,7 @@
 				RelativePath="..\html\HTMLCollection.h"
 				>
 			</File>
-                        <File
-				RelativePath="..\html\HTMLDataGridElement.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug_Internal|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug_Cairo|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release_Cairo|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
 			<File
-				RelativePath="..\html\HTMLDataGridElement.h"
-				>
-			</File>
-                        <File
 				RelativePath="..\html\HTMLDataGridCellElement.cpp"
 				>
 				<FileConfiguration
@@ -24971,7 +25246,7 @@
 				RelativePath="..\html\HTMLDataGridCellElement.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="..\html\HTMLDataGridColElement.cpp"
 				>
 				<FileConfiguration
@@ -25019,7 +25294,55 @@
 				RelativePath="..\html\HTMLDataGridColElement.h"
 				>
 			</File>
-                        <File
+			<File
+				RelativePath="..\html\HTMLDataGridElement.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\html\HTMLDataGridElement.h"
+				>
+			</File>
+			<File
 				RelativePath="..\html\HTMLDataGridRowElement.cpp"
 				>
 				<FileConfiguration
@@ -27932,6 +28255,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\html\ValidityState.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\html\ValidityState.h"
+				>
+			</File>
+			<File
 				RelativePath="..\html\VoidCallback.h"
 				>
 			</File>
@@ -27947,11 +28278,19 @@
 					>
 				</File>
 				<File
+					RelativePath="..\bindings\js\DOMObjectWithSVGContext.h"
+					>
+				</File>
+				<File
 					RelativePath="..\bindings\js\GCController.cpp"
 					>
 				</File>
 				<File
 					RelativePath="..\bindings\js\GCController.h"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JSAbstractWorkerCustom.cpp"
 					>
 				</File>
 				<File
@@ -28059,10 +28398,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSDocumentCustom.cpp"
-					>
-				</File>
-                                <File
 					RelativePath="..\bindings\js\JSDataGridColumnListCustom.cpp"
 					>
 				</File>
@@ -28072,6 +28407,14 @@
 				</File>
 				<File
 					RelativePath="..\bindings\js\JSDataGridDataSource.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JSDedicatedWorkerContextCustom.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JSDocumentCustom.cpp"
 					>
 				</File>
 				<File
@@ -28367,11 +28710,15 @@
 					>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSRGBColor.cpp"
+					RelativePath="..\bindings\js\JSSharedWorkerConstructor.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSRGBColor.h"
+					RelativePath="..\bindings\js\JSSharedWorkerConstructor.h"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JSSharedWorkerCustom.cpp"
 					>
 				</File>
 				<File
@@ -28468,10 +28815,6 @@
 				</File>
 				<File
 					RelativePath="..\bindings\js\JSWorkerContextCustom.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\bindings\js\JSWorkerContextCustom.h"
 					>
 				</File>
 				<File
@@ -28591,6 +28934,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\bindings\js\ScriptSourceProvider.h"
+					>
+				</File>
+				<File
 					RelativePath="..\bindings\js\ScriptState.cpp"
 					>
 				</File>
@@ -28681,6 +29028,10 @@
 			</File>
 			<File
 				RelativePath="..\plugins\PluginDatabase.h"
+				>
+			</File>
+			<File
+				RelativePath="..\plugins\PluginDebug.cpp"
 				>
 			</File>
 			<File
@@ -29988,22 +30339,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\storage\LocalStorage.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\LocalStorage.h"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\LocalStorageArea.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\LocalStorageArea.h"
-				>
-			</File>
-			<File
 				RelativePath="..\storage\LocalStorageTask.cpp"
 				>
 			</File>
@@ -30033,22 +30368,6 @@
 			</File>
 			<File
 				RelativePath="..\storage\OriginUsageRecord.h"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\SessionStorage.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\SessionStorage.h"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\SessionStorageArea.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\storage\SessionStorageArea.h"
 				>
 			</File>
 			<File
@@ -30116,11 +30435,23 @@
 				>
 			</File>
 			<File
-				RelativePath="..\storage\StorageArea.cpp"
+				RelativePath="..\storage\StorageArea.h"
 				>
 			</File>
 			<File
-				RelativePath="..\storage\StorageArea.h"
+				RelativePath="..\storage\StorageAreaImpl.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageAreaImpl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageAreaSync.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageAreaSync.h"
 				>
 			</File>
 			<File
@@ -30137,6 +30468,22 @@
 			</File>
 			<File
 				RelativePath="..\storage\StorageMap.h"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageNamespace.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageNamespace.h"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageNamespaceImpl.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageNamespaceImpl.h"
 				>
 			</File>
 			<File

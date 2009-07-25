@@ -493,7 +493,7 @@ PlatformKeyboardEvent::PlatformKeyboardEvent(QKeyEvent* event)
     m_autoRepeat = event->isAutoRepeat();
     m_ctrlKey = (state & Qt::ControlModifier) != 0;
     m_altKey = (state & Qt::AltModifier) != 0;
-    m_metaKey = (state & Qt::MetaModifier) != 0;    
+    m_metaKey = (state & Qt::MetaModifier) != 0;
     m_windowsVirtualKeyCode = windowsKeyCodeForKeyEvent(event->key());
     m_nativeVirtualKeyCode = event->nativeVirtualKey();
     m_isKeypad = (state & Qt::KeypadModifier) != 0;
@@ -511,6 +511,15 @@ void PlatformKeyboardEvent::disambiguateKeyDownEvent(Type type, bool)
         m_text = String();
         m_unmodifiedText = String();
     } else {
+        /*
+            When we receive shortcut events like Ctrl+V then the text in the QKeyEvent is
+            empty. If we're asked to disambiguate the event into a Char keyboard event,
+            we try to detect this situation and still set the text, to ensure that the
+            general event handling sends a key press event after this disambiguation.
+        */
+        if (m_text.isEmpty() && m_windowsVirtualKeyCode && m_qtEvent->key() < Qt::Key_Escape)
+            m_text.append(UChar(m_windowsVirtualKeyCode));
+
         m_keyIdentifier = String();
         m_windowsVirtualKeyCode = 0;
     }

@@ -114,6 +114,39 @@ bool HTMLInputElement::autoComplete() const
     return true;
 }
 
+bool HTMLInputElement::valueMissing() const
+{
+    if (!isRequiredFormControl() || readOnly() || disabled())
+        return false;
+
+    switch (inputType()) {
+        case TEXT:
+        case SEARCH:
+        case URL:
+        case TELEPHONE:
+        case EMAIL:
+        case PASSWORD:
+        case NUMBER:
+        case FILE:
+            return value().isEmpty();
+        case CHECKBOX:
+            return !checked();
+        case RADIO:
+            return !document()->checkedRadioButtons().checkedButtonForGroup(name());
+        case HIDDEN:
+        case RANGE:
+        case SUBMIT:
+        case IMAGE:
+        case RESET:
+        case BUTTON:
+        case ISINDEX:
+            break;
+    }
+
+    ASSERT_NOT_REACHED();
+    return false;
+}
+
 static inline CheckedRadioButtons& checkedRadioButtons(const HTMLInputElement *element)
 {
     if (HTMLFormElement* form = element->form())
@@ -838,13 +871,25 @@ bool HTMLInputElement::appendFormData(FormDataList& encoding, bool multipart)
             break;
 
         case FILE: {
-            // Can't submit file on GET.
-            if (!multipart)
-                return false;
+            unsigned numFiles = m_fileList->length();
+            if (!multipart) {
+                // Send only the basenames.
+                // 4.10.16.4 and 4.10.16.6 sections in HTML5.
+
+                // Unlike the multipart case, we have no special
+                // handling for the empty fileList because Netscape
+                // doesn't support for non-multipart submission of
+                // file inputs, and Firefox doesn't add "name=" query
+                // parameter.
+
+                for (unsigned i = 0; i < numFiles; ++i) {
+                    encoding.appendData(name(), m_fileList->item(i)->fileName());
+                }
+                return true;
+            }
 
             // If no filename at all is entered, return successful but empty.
             // Null would be more logical, but Netscape posts an empty file. Argh.
-            unsigned numFiles = m_fileList->length();
             if (!numFiles) {
                 encoding.appendFile(name(), File::create(""));
                 return true;
@@ -1567,6 +1612,37 @@ void HTMLInputElement::unregisterForActivationCallbackIfNeeded()
         document()->unregisterForDocumentActivationCallbacks(this);
 }
 
+bool HTMLInputElement::isRequiredFormControl() const
+{
+    if (!required())
+        return false;
+
+    switch (inputType()) {
+        case TEXT:
+        case SEARCH:
+        case URL:
+        case TELEPHONE:
+        case EMAIL:
+        case PASSWORD:
+        case NUMBER:
+        case CHECKBOX:
+        case RADIO:
+        case FILE:
+            return true;
+        case HIDDEN:
+        case RANGE:
+        case SUBMIT:
+        case IMAGE:
+        case RESET:
+        case BUTTON:
+        case ISINDEX:
+            return false;
+    }
+
+    ASSERT_NOT_REACHED();
+    return false;
+}
+
 void HTMLInputElement::cacheSelection(int start, int end)
 {
     m_data.setCachedSelectionStart(start);
@@ -1590,9 +1666,9 @@ void HTMLInputElement::onSearch()
 
 VisibleSelection HTMLInputElement::selection() const
 {
-   if (!renderer() || !isTextField() || m_data.cachedSelectionStart() == -1 || m_data.cachedSelectionEnd() == -1)
+    if (!renderer() || !isTextField() || m_data.cachedSelectionStart() == -1 || m_data.cachedSelectionEnd() == -1)
         return VisibleSelection();
-   return toRenderTextControl(renderer())->selection(m_data.cachedSelectionStart(), m_data.cachedSelectionEnd());
+    return toRenderTextControl(renderer())->selection(m_data.cachedSelectionStart(), m_data.cachedSelectionEnd());
 }
 
 void HTMLInputElement::documentDidBecomeActive()

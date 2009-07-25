@@ -39,7 +39,7 @@ use CGI qw(-no_debug);
 use File::Spec;
 use Template;
 use Test::More tests => ( scalar(@referenced_files) * scalar(@languages)
-                        + $num_actual_files * 2 );
+                        + $num_actual_files );
 
 # Capture the TESTOUT from Test::More or Test::Builder for printing errors.
 # This will handle verbosity for us automatically.
@@ -69,12 +69,12 @@ sub existOnce {
 foreach my $lang (@languages) {
     foreach my $file (@referenced_files) {
         my @path = map(File::Spec->catfile($_, $file),
-                       split(':', $include_path{$lang}));
+                       split(':', $include_path{$lang} . ":" . $include_path{"en"}));
         if (my $path = existOnce(@path)) {
             ok(1, "$path exists");
         } else {
             ok(0, "$file cannot be located --ERROR");
-            print $fh "Looked in:\n  " . join("\n  ", @path);
+            print $fh "Looked in:\n  " . join("\n  ", @path) . "\n";
         }
     }
 }
@@ -86,7 +86,7 @@ foreach my $include_path (@include_paths) {
         INCLUDE_PATH => $include_path ,
         # Need to define filters used in the codebase, they don't
         # actually have to function in this test, just be defined.
-        # See globals.pl for the actual codebase definitions.
+        # See Template.pm for the actual codebase definitions.
 
         # Initialize templates (f.e. by loading plugins like Hook).
         PRE_PROCESS => "global/initialize.none.tmpl",
@@ -96,6 +96,7 @@ foreach my $include_path (@include_paths) {
             html_linebreak => sub { return $_; },
             no_break => sub { return $_; } ,
             js        => sub { return $_ } ,
+            base64   => sub { return $_ } ,
             inactive => [ sub { return sub { return $_; } }, 1] ,
             closed => [ sub { return sub { return $_; } }, 1] ,
             obsolete => [ sub { return sub { return $_; } }, 1] ,
@@ -130,20 +131,6 @@ foreach my $include_path (@include_paths) {
         else {
             ok(1, "$path doesn't exist, skipping test");
         }
-    }
-
-    # check to see that all templates have a version string:
-
-    foreach my $file (@{$actual_files{$include_path}}) {
-        my $path = File::Spec->catfile($include_path, $file);
-        open(TMPL, $path);
-        my $firstline = <TMPL>;
-        if ($firstline =~ /\d+\.\d+\@[\w\.-]+/) {
-            ok(1,"$file has a version string");
-        } else {
-            ok(0,"$file does not have a version string --ERROR");
-        }
-        close(TMPL);
     }
 }
 

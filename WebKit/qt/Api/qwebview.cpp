@@ -30,8 +30,7 @@
 #include "qdir.h"
 #include "qfile.h"
 
-class QWebViewPrivate
-{
+class QWebViewPrivate {
 public:
     QWebViewPrivate(QWebView *view)
         : view(view)
@@ -206,16 +205,15 @@ QWebPage *QWebView::page() const
 
     \sa page()
 */
-void QWebView::setPage(QWebPage *page)
+void QWebView::setPage(QWebPage* page)
 {
     if (d->page == page)
         return;
     if (d->page) {
-        if (d->page->parent() == this) {
+        if (d->page->parent() == this)
             delete d->page;
-        } else {
+        else
             d->page->disconnect(this);
-        }
     }
     d->page = page;
     if (d->page) {
@@ -270,19 +268,24 @@ void QWebView::setPage(QWebPage *page)
     'ftp'. The result is then passed through QUrl's tolerant parser, and
     in the case or success, a valid QUrl is returned, or else a QUrl().
 
-    Examples
-    - webkit.org becomes http://webkit.org
-    - ftp.webkit.org becomes ftp://ftp.webkit.org
-    - localhost becomes http://localhost
-    - /home/user/test.html becomes file:///home/user/test.html (if exists)
+    \section2 Examples:
 
-    Tips when dealing with URLs and strings
-    - When creating a QString from a QByteArray or a char*, always use
+    \list
+    \o webkit.org becomes http://webkit.org
+    \o ftp.webkit.org becomes ftp://ftp.webkit.org
+    \o localhost becomes http://localhost
+    \o /home/user/test.html becomes file:///home/user/test.html (if exists)
+    \endlist
+
+    \section2 Tips when dealing with URLs and strings:
+
+    \list
+    \o When creating a QString from a QByteArray or a char*, always use
       QString::fromUtf8().
-    - Do not use QUrl(string), nor QUrl::toString() anywhere where the URL might
-      be used, such as in the location bar, as those functions loose data.
-      Instead use QUrl::fromEncoded() and QUrl::toEncoded(), respectively.
-
+    \o Do not use QUrl(string), nor QUrl::toString() anywhere where the URL might
+       be used, such as in the location bar, as those functions loose data.
+       Instead use QUrl::fromEncoded() and QUrl::toEncoded(), respectively.
+    \endlist
  */
 QUrl QWebView::guessUrlFromString(const QString &string)
 {
@@ -646,9 +649,18 @@ void QWebView::setRenderHint(QPainter::RenderHint hint, bool enabled)
 
 
 /*!
-    Finds the next occurrence of the string, \a subString, in the page, using
-    the given \a options. Returns true of \a subString was found and selects
-    the match visually; otherwise returns false.
+    Finds the specified string, \a subString, in the page, using the given \a options.
+
+    If the HighlightAllOccurrences flag is passed, the function will highlight all occurrences
+    that exist in the page. All subsequent calls will extend the highlight, rather than
+    replace it, with occurrences of the new string.
+
+    If the HighlightAllOccurrences flag is not passed, the function will select an occurrence
+    and all subsequent calls will replace the current occurrence with the next one.
+
+    To clear the selection, just pass an empty string.
+
+    Returns true if \a subString was found; otherwise returns false.
 
     \sa selectedText(), selectionChanged()
 */
@@ -694,9 +706,8 @@ bool QWebView::event(QEvent *e)
             }
 #endif
 #endif
-        } else if (e->type() == QEvent::Leave) {
+        } else if (e->type() == QEvent::Leave)
             d->page->event(e);
-        }
     }
 
     return QWidget::event(e);
@@ -799,7 +810,7 @@ void QWebView::paintEvent(QPaintEvent *ev)
 
 #ifdef    QWEBKIT_TIME_RENDERING
     int elapsed = time.elapsed();
-    qDebug()<<"paint event on "<<ev->region()<<", took to render =  "<<elapsed;
+    qDebug() << "paint event on " << ev->region() << ", took to render =  " << elapsed;
 #endif
 }
 
@@ -995,9 +1006,8 @@ void QWebView::inputMethodEvent(QInputMethodEvent *e)
 */
 void QWebView::changeEvent(QEvent *e)
 {
-    if (d->page && e->type() == QEvent::PaletteChange) {
+    if (d->page && e->type() == QEvent::PaletteChange)
         d->page->setPalette(palette());
-    }
     QWidget::changeEvent(e);
 }
 

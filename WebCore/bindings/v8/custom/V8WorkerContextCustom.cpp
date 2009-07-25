@@ -49,35 +49,35 @@ namespace WebCore {
 ACCESSOR_GETTER(WorkerContextSelf)
 {
     INC_STATS(L"DOM.WorkerContext.self._get");
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, info.Holder());
+    WorkerContext* workerContext = V8DOMWrapper::convertDOMWrapperToNative<WorkerContext>(info.Holder());
     return WorkerContextExecutionProxy::WorkerContextToV8Object(workerContext);
 }
 
-ACCESSOR_GETTER(WorkerContextOnmessage)
+ACCESSOR_GETTER(WorkerContextOnerror)
 {
-    INC_STATS(L"DOM.WorkerContext.onmessage._get");
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, info.Holder());
-    if (workerContext->onmessage()) {
-        V8WorkerContextEventListener* listener = static_cast<V8WorkerContextEventListener*>(workerContext->onmessage());
+    INC_STATS(L"DOM.WorkerContext.onerror._get");
+    WorkerContext* workerContext = V8DOMWrapper::convertToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, info.Holder());
+    if (workerContext->onerror()) {
+        V8WorkerContextEventListener* listener = static_cast<V8WorkerContextEventListener*>(workerContext->onerror());
         v8::Local<v8::Object> v8Listener = listener->getListenerObject();
         return v8Listener;
     }
     return v8::Undefined();
 }
 
-ACCESSOR_SETTER(WorkerContextOnmessage)
+ACCESSOR_SETTER(WorkerContextOnerror)
 {
-    INC_STATS(L"DOM.WorkerContext.onmessage._set");
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, info.Holder());
-    V8WorkerContextEventListener* oldListener = static_cast<V8WorkerContextEventListener*>(workerContext->onmessage());
+    INC_STATS(L"DOM.WorkerContext.onerror._set");
+    WorkerContext* workerContext = V8DOMWrapper::convertToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, info.Holder());
+    V8WorkerContextEventListener* oldListener = static_cast<V8WorkerContextEventListener*>(workerContext->onerror());
     if (value->IsNull()) {
-        if (workerContext->onmessage()) {
+        if (workerContext->onerror()) {
             v8::Local<v8::Object> oldV8Listener = oldListener->getListenerObject();
             removeHiddenDependency(info.Holder(), oldV8Listener, V8Custom::kWorkerContextRequestCacheIndex);
         }
 
         // Clear the listener.
-        workerContext->setOnmessage(0);
+        workerContext->setOnerror(0);
     } else {
         RefPtr<V8EventListener> listener = workerContext->script()->proxy()->findOrCreateEventListener(v8::Local<v8::Object>::Cast(value), false, false);
         if (listener) {
@@ -86,7 +86,7 @@ ACCESSOR_SETTER(WorkerContextOnmessage)
                 removeHiddenDependency(info.Holder(), oldV8Listener, V8Custom::kWorkerContextRequestCacheIndex);
             }
 
-            workerContext->setOnmessage(listener);
+            workerContext->setOnerror(listener);
             createHiddenDependency(info.Holder(), value, V8Custom::kWorkerContextRequestCacheIndex);
         }
     }
@@ -94,7 +94,7 @@ ACCESSOR_SETTER(WorkerContextOnmessage)
 
 v8::Handle<v8::Value> SetTimeoutOrInterval(const v8::Arguments& args, bool singleShot)
 {
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, args.Holder());
+    WorkerContext* workerContext = V8DOMWrapper::convertDOMWrapperToNative<WorkerContext>(args.Holder());
 
     int argumentCount = args.Length();
     if (argumentCount < 1)
@@ -105,7 +105,7 @@ v8::Handle<v8::Value> SetTimeoutOrInterval(const v8::Arguments& args, bool singl
     int timerId;
 
     if (function->IsString()) {
-        WebCore::String stringFunction = ToWebCoreString(function);
+        WebCore::String stringFunction = toWebCoreString(function);
         timerId = DOMTimer::install(workerContext, new ScheduledAction(stringFunction, workerContext->url()), timeout, singleShot);
     } else if (function->IsFunction()) {
         size_t paramCount = argumentCount >= 2 ? argumentCount - 2 : 0;
@@ -131,8 +131,8 @@ CALLBACK_FUNC_DECL(WorkerContextImportScripts)
     if (!args.Length())
         return v8::Undefined();
 
-    String callerURL = V8Proxy::GetSourceName();
-    int callerLine = V8Proxy::GetSourceLineNumber() + 1;
+    String callerURL = V8Proxy::sourceName();
+    int callerLine = V8Proxy::sourceLineNumber() + 1;
 
     Vector<String> urls;
     for (int i = 0; i < args.Length(); i++) {
@@ -143,7 +143,7 @@ CALLBACK_FUNC_DECL(WorkerContextImportScripts)
         urls.append(toWebCoreString(scriptUrl));
     }
 
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, args.Holder());
+    WorkerContext* workerContext = V8DOMWrapper::convertDOMWrapperToNative<WorkerContext>(args.Holder());
 
     ExceptionCode ec = 0;
     workerContext->importScripts(urls, callerURL, callerLine, ec);
@@ -168,7 +168,7 @@ CALLBACK_FUNC_DECL(WorkerContextSetInterval) {
 CALLBACK_FUNC_DECL(WorkerContextAddEventListener)
 {
     INC_STATS(L"DOM.WorkerContext.addEventListener()");
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, args.Holder());
+    WorkerContext* workerContext = V8DOMWrapper::convertDOMWrapperToNative<WorkerContext>(args.Holder());
 
     RefPtr<V8EventListener> listener = workerContext->script()->proxy()->findOrCreateEventListener(v8::Local<v8::Object>::Cast(args[1]), false, false);
 
@@ -185,7 +185,7 @@ CALLBACK_FUNC_DECL(WorkerContextAddEventListener)
 CALLBACK_FUNC_DECL(WorkerContextRemoveEventListener)
 {
     INC_STATS(L"DOM.WorkerContext.removeEventListener()");
-    WorkerContext* workerContext = V8Proxy::ToNativeObject<WorkerContext>(V8ClassIndex::WORKERCONTEXT, args.Holder());
+    WorkerContext* workerContext = V8DOMWrapper::convertDOMWrapperToNative<WorkerContext>(args.Holder());
     WorkerContextExecutionProxy* proxy = workerContext->script()->proxy();
 
     RefPtr<V8EventListener> listener = proxy->findOrCreateEventListener(v8::Local<v8::Object>::Cast(args[1]), false, true);

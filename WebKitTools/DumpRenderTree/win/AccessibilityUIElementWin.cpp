@@ -177,6 +177,11 @@ JSStringRef AccessibilityUIElement::description()
     return JSStringCreateWithCharacters(description.data(), description.length());
 }
 
+JSStringRef AccessibilityUIElement::language()
+{
+    return JSStringCreateWithCharacters(0, 0);
+}
+
 double AccessibilityUIElement::x()
 {
     long x, y, width, height;
@@ -209,6 +214,16 @@ double AccessibilityUIElement::height()
     return height;
 }
 
+double AccessibilityUIElement::clickPointX()
+{
+    return 0;
+}
+
+double AccessibilityUIElement::clickPointY()
+{
+    return 0;
+}
+
 double AccessibilityUIElement::intValue()
 {
     BSTR valueBSTR;
@@ -231,6 +246,11 @@ double AccessibilityUIElement::maxValue()
 }
 
 bool AccessibilityUIElement::supportsPressAction()
+{
+    return false;
+}
+
+bool AccessibilityUIElement::isEnabled()
 {
     return false;
 }

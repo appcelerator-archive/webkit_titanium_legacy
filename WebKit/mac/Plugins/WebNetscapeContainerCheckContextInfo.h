@@ -28,6 +28,8 @@
 
 #import "WebBaseNetscapePluginView.h"
 
+#if ENABLE(NETSCAPE_PLUGIN_API)
+
 @interface WebNetscapeContainerCheckContextInfo : NSObject {
     uint32 _checkRequestID;
     void (*_callback)(NPP npp, uint32, NPBool, void *);
@@ -40,3 +42,5 @@
 - (void*)context;
 
 @end
+
+#endif // ENABLE(NETSCAPE_PLUGIN_API)

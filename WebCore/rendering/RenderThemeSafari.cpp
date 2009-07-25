@@ -79,8 +79,10 @@ PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page* page)
     // FIXME: This is called before Settings has been initialized by WebKit, so will return a
     // potentially wrong answer the very first time it's called (see
     // <https://bugs.webkit.org/show_bug.cgi?id=26493>).
-    if (Settings::shouldPaintNativeControls())
+    if (Settings::shouldPaintNativeControls()) {
+        RenderTheme::setCustomFocusRingColor(safariTheme->platformFocusRingColor());
         return windowsTheme; // keep the reference of one.
+    }
     return safariTheme; // keep the reference of one.
 }
 
@@ -94,6 +96,17 @@ SOFT_LINK(SafariTheme, paintThemePart, void, __stdcall, (ThemePart part, CGConte
 #if defined(SAFARI_THEME_VERSION) && SAFARI_THEME_VERSION >= 2
 SOFT_LINK(SafariTheme, STPaintProgressIndicator, void, APIENTRY, (ProgressIndicatorType type, CGContextRef context, const CGRect& rect, NSControlSize size, ThemeControlState state, float value), (type, context, rect, size, state, value))
 #endif
+SOFT_LINK_OPTIONAL(SafariTheme, STCopyThemeColor, CGColorRef, APIENTRY, (unsigned color, SafariTheme::ThemeControlState));
+
+static const unsigned stFocusRingColorID = 4;
+
+static const unsigned aquaFocusRingColor = 0xFF7DADD9;
+
+static RGBA32 makeRGBAFromCGColor(CGColorRef color)
+{
+    const CGFloat* components = CGColorGetComponents(color);
+    return makeRGBA(255 * components[0], 255 * components[1], 255 * components[2], 255 * components[3]);
+}
 
 ThemeControlState RenderThemeSafari::determineState(RenderObject* o) const
 {
@@ -147,6 +160,22 @@ Color RenderThemeSafari::activeListBoxSelectionBackgroundColor() const
 {
     // FIXME: This should probably just be a darker version of the platformActiveSelectionBackgroundColor
     return Color(56, 117, 215);
+}
+
+Color RenderThemeSafari::platformFocusRingColor() const
+{
+    static Color focusRingColor;
+
+    if (!focusRingColor.isValid()) {
+        if (STCopyThemeColorPtr()) {
+            RetainPtr<CGColorRef> color(AdoptCF, STCopyThemeColorPtr()(stFocusRingColorID, SafariTheme::ActiveState));
+            focusRingColor = makeRGBAFromCGColor(color.get());
+        }
+        if (!focusRingColor.isValid())
+            focusRingColor = aquaFocusRingColor;
+    }
+
+    return focusRingColor;
 }
 
 static float systemFontSizeForControlSize(NSControlSize controlSize)

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -19,6 +19,7 @@
 # Rights Reserved.
 #
 # Contributor(s): Gervase Markham <gerv@gerv.net>
+#                 Lance Larsh <lance.larsh@oracle.com>
 
 # Glossary:
 # series:   An individual, defined set of data plotted over time.
@@ -34,23 +35,31 @@
 #
 # JS-less chart creation - hard.
 # Broken image on error or no data - need to do much better.
-# Centralise permission checking, so UserInGroup('editbugs') not scattered
-#   everywhere.
+# Centralise permission checking, so Bugzilla->user->in_group('editbugs')
+#   not scattered everywhere.
 # User documentation :-)
 #
 # Bonus:
 # Offer subscription when you get a "series already exists" error?
 
 use strict;
-use lib qw(.);
+use lib qw(. lib);
 
-require "CGI.pl";
+use Bugzilla;
 use Bugzilla::Constants;
+use Bugzilla::Error;
+use Bugzilla::Util;
 use Bugzilla::Chart;
 use Bugzilla::Series;
 use Bugzilla::User;
 
-use vars qw($cgi $template $vars);
+# For most scripts we don't make $cgi and $template global variables. But
+# when preparing Bugzilla for mod_perl, this script used these
+# variables in so many subroutines that it was easier to just
+# make them globals.
+local our $cgi = Bugzilla->cgi;
+local our $template = Bugzilla->template;
+local our $vars = {};
 
 # Go back to query.cgi if we are adding a boolean chart parameter.
 if (grep(/^cmd-/, $cgi->param())) {
@@ -60,14 +69,14 @@ if (grep(/^cmd-/, $cgi->param())) {
     exit;
 }
 
-my $template = Bugzilla->template;
 my $action = $cgi->param('action');
 my $series_id = $cgi->param('series_id');
+$vars->{'doc_section'} = 'reporting.html#charts';
 
 # Because some actions are chosen by buttons, we can't encode them as the value
-# of the action param, because that value is localisation-dependent. So, we
+# of the action param, because that value is localization-dependent. So, we
 # encode it in the name, as "action-<action>". Some params even contain the
-# series_id they apply to (e.g. subscribe, unsubscribe.)
+# series_id they apply to (e.g. subscribe, unsubscribe).
 my @actions = grep(/^action-/, $cgi->param());
 if ($actions[0] && $actions[0] =~ /^action-([^\d]+)(\d*)$/) {
     $action = $1;
@@ -83,15 +92,15 @@ if ($action eq "search") {
     exit;
 }
 
-Bugzilla->login(LOGIN_REQUIRED);
+my $user = Bugzilla->login(LOGIN_REQUIRED);
 
-UserInGroup(Param("chartgroup"))
-  || ThrowUserError("auth_failure", {group  => Param("chartgroup"),
+Bugzilla->user->in_group(Bugzilla->params->{"chartgroup"})
+  || ThrowUserError("auth_failure", {group  => Bugzilla->params->{"chartgroup"},
                                      action => "use",
                                      object => "charts"});
 
 # Only admins may create public queries
-UserInGroup('admin') || $cgi->delete('public');
+Bugzilla->user->in_group('admin') || $cgi->delete('public');
 
 # All these actions relate to chart construction.
 if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/) {
@@ -100,7 +109,7 @@ if ($action =~ /^(assemble|add|remove|sum|subscribe|unsubscribe)$/) {
     if ($action =~ /^subscribe|unsubscribe$/) {
         detaint_natural($series_id) || ThrowCodeError("invalid_series_id");
         my $series = new Bugzilla::Series($series_id);
-        $series->$action($::userid);
+        $series->$action($user->id);
     }
 
     my $chart = new Bugzilla::Chart($cgi);
@@ -200,13 +209,15 @@ sub getSelectedLines {
 # Check if the user is the owner of series_id or is an admin. 
 sub assertCanEdit {
     my ($series_id) = @_;
-    
-    return if UserInGroup("admin");
+    my $user = Bugzilla->user;
+
+    return if $user->in_group('admin');
 
     my $dbh = Bugzilla->dbh;
-    my $iscreator = $dbh->selectrow_array("SELECT creator = ? FROM series " .
+    my $iscreator = $dbh->selectrow_array("SELECT CASE WHEN creator = ? " .
+                                          "THEN 1 ELSE 0 END FROM series " .
                                           "WHERE series_id = ?", undef,
-                                          $::userid, $series_id);
+                                          $user->id, $series_id);
     $iscreator || ThrowUserError("illegal_series_edit");
 }
 
@@ -214,11 +225,11 @@ sub assertCanEdit {
 sub assertCanCreate {
     my ($cgi) = shift;
     
-    UserInGroup("editbugs") || ThrowUserError("illegal_series_creation");
+    Bugzilla->user->in_group("editbugs") || ThrowUserError("illegal_series_creation");
 
     # Check permission for frequency
     my $min_freq = 7;
-    if ($cgi->param('frequency') < $min_freq && !UserInGroup("admin")) {
+    if ($cgi->param('frequency') < $min_freq && !Bugzilla->user->in_group("admin")) {
         ThrowUserError("illegal_frequency", { 'minimum' => $min_freq });
     }    
 }
@@ -262,9 +273,7 @@ sub plot {
     validateWidthAndHeight();
     $vars->{'chart'} = new Bugzilla::Chart($cgi);
 
-    my $format = &::GetFormat("reports/chart",
-                              "",
-                              $cgi->param('ctype'));
+    my $format = $template->get_format("reports/chart", "", scalar($cgi->param('ctype')));
 
     # Debugging PNGs is a pain; we need to be able to see the error messages
     if ($cgi->param('debug')) {
@@ -273,6 +282,8 @@ sub plot {
     }
 
     print $cgi->header($format->{'ctype'});
+    disable_utf8() if ($format->{'ctype'} =~ /^image\//);
+
     $template->process($format->{'template'}, $vars)
       || ThrowTemplateError($template->error());
 }

@@ -40,6 +40,7 @@
 #include "SymbolTable.h"
 #include "Debugger.h"
 #include "Nodes.h"
+#include <wtf/FastAllocBase.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/SegmentedVector.h>
 #include <wtf/Vector.h>
@@ -60,7 +61,7 @@ namespace JSC {
         FinallyContext finallyContext;
     };
 
-    class BytecodeGenerator {
+    class BytecodeGenerator : public WTF::FastAllocBase {
     public:
         typedef DeclarationStacks::VarStack VarStack;
         typedef DeclarationStacks::FunctionStack FunctionStack;
@@ -244,9 +245,6 @@ namespace JSC {
         RegisterID* emitLoad(RegisterID* dst, double);
         RegisterID* emitLoad(RegisterID* dst, const Identifier&);
         RegisterID* emitLoad(RegisterID* dst, JSValue);
-        RegisterID* emitUnexpectedLoad(RegisterID* dst, bool);
-        RegisterID* emitUnexpectedLoad(RegisterID* dst, double);
-        RegisterID* emitLoadGlobalObject(RegisterID* dst, JSObject* globalObject);
 
         RegisterID* emitUnaryOp(OpcodeID, RegisterID* dst, RegisterID* src);
         RegisterID* emitBinaryOp(OpcodeID, RegisterID* dst, RegisterID* src1, RegisterID* src2, OperandTypes);
@@ -398,7 +396,7 @@ namespace JSC {
 
         RegisterID* addParameter(const Identifier&);
         
-        void allocateConstants(size_t);
+        void preserveLastVar();
 
         RegisterID& registerFor(int index)
         {
@@ -419,8 +417,7 @@ namespace JSC {
         unsigned addConstant(FuncDeclNode*);
         unsigned addConstant(FuncExprNode*);
         unsigned addConstant(const Identifier&);
-        RegisterID* addConstant(JSValue);
-        unsigned addUnexpectedConstant(JSValue);
+        RegisterID* addConstantValue(JSValue);
         unsigned addRegExp(RegExp*);
 
         Vector<Instruction>& instructions() { return m_codeBlock->instructions(); }
@@ -449,12 +446,13 @@ namespace JSC {
         RegisterID m_thisRegister;
         RegisterID m_argumentsRegister;
         int m_activationRegisterIndex;
+        WTF::SegmentedVector<RegisterID, 32> m_constantPoolRegisters;
         WTF::SegmentedVector<RegisterID, 32> m_calleeRegisters;
         WTF::SegmentedVector<RegisterID, 32> m_parameters;
         WTF::SegmentedVector<RegisterID, 32> m_globals;
         WTF::SegmentedVector<Label, 32> m_labels;
         WTF::SegmentedVector<LabelScope, 8> m_labelScopes;
-        RefPtr<RegisterID> m_lastConstant;
+        RefPtr<RegisterID> m_lastVar;
         int m_finallyDepth;
         int m_dynamicScopeDepth;
         int m_baseScopeDepth;
@@ -465,7 +463,8 @@ namespace JSC {
 
         int m_nextGlobalIndex;
         int m_nextParameterIndex;
-        int m_nextConstantIndex;
+        int m_firstConstantIndex;
+        int m_nextConstantOffset;
         unsigned m_globalConstantIndex;
 
         int m_globalVarStorageOffset;

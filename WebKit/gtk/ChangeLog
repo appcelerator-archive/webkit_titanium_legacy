@@ -1,3 +1,360 @@
+2009-07-24  Priit Laes  <plaes@plaes.org>
+
+        Reviewed by Xan Lopez.
+
+        [Gtk] Password is saved into gnome-keyring even if auth. fails
+        https://bugs.webkit.org/show_bug.cgi?id=27560
+
+        Check authentication result and save password only when authentication
+        succeeds.
+
+        * webkit/webkitsoupauthdialog.c:
+        (free_authData):
+        (response_callback):
+        (save_password_callback):
+
+2009-07-24  Andrei Popescu  <andreip@google.com>
+
+        Reviewed by Anders Carlsson.
+
+        ApplicationCache should have size limit
+        https://bugs.webkit.org/show_bug.cgi?id=22700
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::reachedMaxAppCacheSize):
+        Adds empty implementation of reachedMaxAppCacheSize.
+        * WebCoreSupport/ChromeClientGtk.h:
+
+2009-07-23  Jan Michael Alonzo  <jmalonzo@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [Gtk] Add implementation of GCController for DRT
+        https://bugs.webkit.org/show_bug.cgi?id=27636
+
+        Add SPI for GCController to use.
+
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebframe.cpp:
+        (webkit_gc_collect_javascript_objects):
+        (webkit_gc_collect_javascript_objects_on_alternate_thread):
+        (webkit_gc_count_javascript_objects):
+
+2009-07-22  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Mark Rowe.
+
+        Fix compiler warning.
+
+        * tests/testwebsettings.c:
+        (test_webkit_web_settings_user_agent):
+
+2009-07-22  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Remove unused variables.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_grab_focus):
+        (webkit_web_view_focus_in_event):
+
+2009-07-21  Priit Laes  <plaes@plaes.org>
+
+        Reviewed by Holger Freyther.
+
+        [GTK+] Missing accelerator in authentication dialog
+        https://bugs.webkit.org/show_bug.cgi?id=25509
+
+        Add accelerator to checkbox text.
+
+        * WebKit/gtk/webkit/webkitsoupauthdialog.c:
+        (show_auth_dialog):
+
+2009-07-21  Priit Laes  <plaes@plaes.org>
+
+        Reviewed by Holger Freyther.
+
+        [GTK] http auth dialog pops up twice after a cancelled atempt
+        https://bugs.webkit.org/show_bug.cgi?id=24818
+
+        Remove workaround required for libsoup versions <=2.26.2 as we depend
+        on 2.27.4 now.
+
+        * webkit/webkitsoupauthdialog.c:
+        (session_authenticate):
+
+2009-07-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Holger Freyther.
+
+        [GTK] Widget size negotiation
+        https://bugs.webkit.org/show_bug.cgi?id=17154
+
+        Implement proper size request for the WebView widget.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::contentsSizeChanged):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_size_request):
+        (webkit_web_view_class_init):
+
+2009-07-16  Holger Hans Peter Freyther  <zecke@selfish.org>
+
+        Reviewed by Jan Alonzo.
+
+        [GTK+] Update the focus handling code.
+
+        Change focus-in to always call setActive(true), call
+        FocusController::setFocusedFrame when no focused frame exists
+        other SelectionController::setActive. This is matching Windows
+        and Qt.
+
+        On focus-out call FocusController::setActive(false) and
+        SelectionController::setFocued(false). This is matching Windows
+        and Qt as well.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_focus_in_event):
+        (webkit_web_view_focus_out_event):
+
+2009-07-16  Xiaomei Ji  <xji@chromium.org>
+
+        Reviewed by Dan Bernstein.
+
+        This is the 2nd part of fixing "RTL: tooltip does not get its directionlity from its element's."
+        https://bugs.webkit.org/show_bug.cgi?id=24187 
+
+        Add one extra parameter to the callee of HitTestResult::title() due to the signature change.
+
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::mouseDidMoveOverElement): Add direction as a parameter to the callee of HitTestResult::title().
+
+2009-07-16  Xiaomei Ji  <xji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Fix tooltip does not get its directionality from its element's directionality.
+        https://bugs.webkit.org/show_bug.cgi?id=24187
+
+        Per mitz's suggestion in comment #6, while getting the plain-text 
+        title, we also get the directionality of the title. How to handle 
+        the directionality is up to clients. Clients could ignore it, 
+        or use attribute or unicode control characters to display the title
+        as what they want.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::setToolTip): Add directionality as 2nd parameter to setToopTip() (without handling it yet).
+        * WebCoreSupport/ChromeClientGtk.h: Add directionality as 2nd parameter to setToolTip().
+
+2009-07-15  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Jan Alonzo.
+
+        Fix enable-xss-auditor property documentation, and default value
+        to match the fact that it is now enabled by default.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+
+2009-07-14  Zoltan Horvath  <hzoltan@inf.u-szeged.hu>
+
+        Reviewed by Darin Adler.
+
+        Change all Noncopyable inheriting visibility to public.
+        https://bugs.webkit.org/show_bug.cgi?id=27225
+
+        Change all Noncopyable inheriting visibility to public because
+        it is needed to the custom allocation framework (bug #20422).
+
+        * webkit/webkitdownload.cpp:
+
+2009-07-13  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Late NEWS file for 1.1.11.
+
+        * NEWS:
+
+2009-07-13  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Changes to the doc control files for 1.1.11.
+
+        * docs/webkitgtk-docs.sgml:
+        * docs/webkitgtk-sections.txt:
+
+2009-07-13  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Holger Freyther.
+
+        Fix unit test to use the correct assumption that the SoupMessage
+        will be NULL when WebKitNetworkRequest is created from an URI.
+
+        * tests/testnetworkrequest.c:
+        (test_network_request_create_destroy):
+
+2009-07-13  Jan Michael Alonzo  <jmalonzo@webkit.org>
+
+        <https://bugs.webkit.org/show_bug.cgi?id=27171> [Gtk]
+        REGRESSION (r45440): fails at fast/events/frame-programmatic-focus.html
+
+        Reviewed by Gustavo Noronha.
+
+        focus-in and focus-out events only get triggered when there's user
+        interaction, hence setFocused(bool) never gets called when
+        focusEvent is triggered when running the layout tests. The
+        solution seems to be to implement grab-focus too so we can call
+        setFocused(bool) when a widget has focus.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_grab_focus):
+        (webkit_web_view_focus_in_event):
+        (webkit_web_view_class_init):
+
+2009-07-13  Jan Michael Alonzo  <jmalonzo@webkit.org>
+
+        https://bugs.webkit.org/show_bug.cgi?id=26718 [Gtk] Add support for javascript windows for DRT
+
+        Reviewed by Gustavo Noronha and Xan Lopez.
+
+        Add API to support opening and closing of JavaScript windows automatically.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::closeWindowSoon):
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        (webkit_web_settings_copy):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_real_close_web_view):
+        (webkit_web_view_class_init):
+        (webkit_web_view_update_settings):
+        (webkit_web_view_settings_notify):
+        (webkit_web_view_set_group_name):
+        * webkit/webkitwebview.h:
+
+2009-07-12  Brent Fulgham  <bfulgham@gmail.com>
+
+        Speculative build fix after http://trac.webkit.org/changeset/45786.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::addMessageToConsole):
+        * WebCoreSupport/ChromeClientGtk.h:
+
+2009-07-09  Beth Dakin and Jon Honeycutt <bdakin@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Make Widget RefCounted to fix:
+
+        <rdar://problem/7038831> REGRESSION (TOT): In Mail, a crash occurs 
+        at WebCore::Widget::afterMouseDown() after clicking To Do's close 
+        box
+        <rdar://problem/6978804> WER #16: Repro Access Violation in 
+        WebCore::PluginView::bindingInstance (1310178023)
+        -and-
+        <rdar://problem/6991251> WER #13: Crash in WebKit!
+        WebCore::PluginView::performRequest+203 (1311461169) 
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::createPlugin):
+        (WebKit::FrameLoaderClient::createJavaAppletWidget):
+        * WebCoreSupport/FrameLoaderClientGtk.h:
+
+2009-07-06  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Jan Alonzo.
+
+        Use soup's content sniffing
+        https://bugs.webkit.org/show_bug.cgi?id=26982
+
+        Add the new Content Sniffing feature provided by libsoup.
+
+        * webkit/webkitprivate.cpp:
+        (webkit_init):
+
+2009-07-05  Holger Hans Peter Freyther  <zecke@selfish.org>
+
+        Reviewed by Xan Lopez.
+
+        Always initialize WebCore.
+
+        It is possible that WebKitWebSettings and other classes get
+        constructed before the WebKitWebView. In this case WebCore is
+        not yet properly initialized. Add webkit_init to every class
+        that can be constructed by API users.
+
+        * webkit/webkitdownload.cpp:
+        (webkit_download_class_init):
+        * webkit/webkitnetworkrequest.cpp:
+        (webkit_network_request_class_init):
+        * webkit/webkitwebbackforwardlist.cpp:
+        (webkit_web_back_forward_list_class_init):
+        * webkit/webkitwebhistoryitem.cpp:
+        (webkit_web_history_item_class_init):
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        * webkit/webkitwebwindowfeatures.cpp:
+        (webkit_web_window_features_class_init):
+
+2009-07-03  Jan Michael Alonzo  <jmalonzo@webkit.org>
+
+        Reviewed by Xan Lopez and Gustavo Noronha.
+
+        Set user-agent from application
+        https://bugs.webkit.org/show_bug.cgi?id=17375
+
+        Add 'user-agent' setter/getter API to WebSettings.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::FrameLoaderClient):
+        (WebKit::FrameLoaderClient::userAgent):
+        * WebCoreSupport/FrameLoaderClientGtk.h:
+        * webkit/webkitprivate.h:
+        * webkit/webkitversion.h.in:
+        * webkit/webkitwebsettings.cpp:
+        (webkit_get_user_agent):
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_finalize):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        (webkit_web_settings_copy):
+        (webkit_web_settings_get_user_agent):
+        * webkit/webkitwebsettings.h:
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_dispose):
+
+2009-07-02  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Holger Freyther.
+
+        Update the new boolean property in FocusController that keeps
+        track of whether or not the Page is focused.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_focus_in_event):
+        (webkit_web_view_focus_out_event):
+
+2009-06-29  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Jan Alonzo.
+
+        Fix a couple of compiler warnings.
+
+        * webkit/webkitwebnavigationaction.cpp:
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_real_move_cursor):
+
+2009-06-28  Xan Lopez  <xlopez@igalia.com>
+
+        Fix the GTK+ build.
+
+        * WebCoreSupport/ContextMenuClientGtk.cpp:
+        (WebKit::ContextMenuClient::isSpeaking):
+        * WebCoreSupport/ContextMenuClientGtk.h:
+
 2009-06-24  Jiahua Huang  <jhuangjiahua@gmail.com>
 
         Reviewed by Holger Freyther.

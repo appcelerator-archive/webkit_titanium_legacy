@@ -1,4 +1,3 @@
-[%# 1.0@bugzilla.org %]
 [%# The contents of this file are subject to the Mozilla Public
   # License Version 1.1 (the "License"); you may not use this file
   # except in compliance with the License. You may obtain a copy of
@@ -46,13 +45,13 @@
 
   <p>
     <strong>
-      Advanced Searching Using Boolean Charts:
+      <a name="chart">Advanced Searching Using Boolean Charts</a>:
     </strong>
   </p>
 
 [%# Whoever wrote the original version of boolean charts had a seriously twisted mind %]
 
-[% jsmagic = "onclick=\"document.forms[0].action='query.cgi#chart'; document.forms[0].method='POST'; return 1;\"" %]
+[% jsmagic = "onclick=\"this.form.action='query.cgi#chart'; this.form.method='POST'; return 1;\"" %]
 
 [% FOREACH chart = default.charts %]
   [% chartnum = loop.count - 1 %]
@@ -61,7 +60,7 @@
       <td>
         <input type="checkbox" id="negate[% chartnum FILTER html %]"
              name="negate[% chartnum FILTER html %]" value="1"
-            [% "checked" IF chart.negate %]>
+            [%+ "checked" IF chart.negate %]>
         <label for="negate[% chartnum FILTER html %]">
           Not (negate this whole chart)
         </label>
@@ -75,8 +74,9 @@
       <td>
         <select name="[% "field${chartnum}-${rownum}-${colnum}" %]">
           [% FOREACH field = fields %]
-            <option value="[% field.name %]"
-              [%- " selected" IF field.name == col.field %]>[% field.description %]</option>
+            <option value="[% field.name %]" [% "selected" IF field.name == col.field %]>
+              [% field_descs.${field.name} || field.description FILTER html %]
+            </option>
           [% END %]
         </select>
 
@@ -100,8 +100,9 @@
       [% ELSE %]
         <td>
           [% newor = colnum + 1 %]
-          <input type="submit" value="Or" 
-                 name="cmd-add[% "${chartnum}-${rownum}-${newor}" %]" [% jsmagic %]>
+          <input type="submit" value="Or" [% jsmagic %]
+                 name="cmd-add[% "${chartnum}-${rownum}-${newor}" %]"
+                 id="cmd-add[% "${chartnum}-${rownum}-${newor}" %]">
         </td>
       [% END %]
       
@@ -116,11 +117,13 @@
     <tr>
       <td>
         [% newand = rownum + 1; newchart = chartnum + 1 %]
-        <input type="submit" value="And" 
-               name="cmd-add[% "${chartnum}-${newand}-0" %]" [% jsmagic %]> 
+        <input type="submit" value="And" [% jsmagic %]
+               name="cmd-add[% "${chartnum}-${newand}-0" %]"
+               id="cmd-add[% "${chartnum}-${newand}-0" %]">
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="submit" value="Add another boolean chart" 
-               name="cmd-add[% newchart %]-0-0" [% jsmagic %]>
+        <input type="submit" value="Add another boolean chart" [% jsmagic %]
+               name="cmd-add[% newchart %]-0-0"
+               id="cmd-add[% newchart %]-0-0">
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       </td>
     </tr>   

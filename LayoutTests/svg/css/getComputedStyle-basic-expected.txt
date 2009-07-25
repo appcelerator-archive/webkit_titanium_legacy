@@ -1,9 +1,13 @@
 rect: style.getPropertyValue(background-attachment) : scroll
 rect: style.getPropertyCSSValue(background-attachment) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(background-clip) : border-box
+rect: style.getPropertyCSSValue(background-clip) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(background-color) : rgba(0, 0, 0, 0)
 rect: style.getPropertyCSSValue(background-color) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(background-image) : none
 rect: style.getPropertyCSSValue(background-image) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(background-origin) : padding-box
+rect: style.getPropertyCSSValue(background-origin) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(background-position) : 0% 0%
 rect: style.getPropertyCSSValue(background-position) : [object CSSValueList]
 rect: style.getPropertyValue(background-repeat) : repeat
@@ -36,6 +40,8 @@ rect: style.getPropertyValue(border-top-width) : 0px
 rect: style.getPropertyCSSValue(border-top-width) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(bottom) : auto
 rect: style.getPropertyCSSValue(bottom) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(box-shadow) : none
+rect: style.getPropertyCSSValue(box-shadow) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(caption-side) : top
 rect: style.getPropertyCSSValue(caption-side) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(clear) : none
@@ -140,6 +146,8 @@ rect: style.getPropertyValue(text-indent) : 0px
 rect: style.getPropertyCSSValue(text-indent) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(text-shadow) : none
 rect: style.getPropertyCSSValue(text-shadow) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(text-overflow) : clip
+rect: style.getPropertyCSSValue(text-overflow) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(text-transform) : none
 rect: style.getPropertyCSSValue(text-transform) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(top) : auto
@@ -224,8 +232,6 @@ rect: style.getPropertyValue(-webkit-box-pack) : start
 rect: style.getPropertyCSSValue(-webkit-box-pack) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-box-reflect) : none
 rect: style.getPropertyCSSValue(-webkit-box-reflect) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-box-shadow) : none
-rect: style.getPropertyCSSValue(-webkit-box-shadow) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-box-sizing) : content-box
 rect: style.getPropertyCSSValue(-webkit-box-sizing) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-column-break-after) : auto
@@ -398,10 +404,14 @@ rect: style.getPropertyValue(glyph-orientation-vertical) : auto
 rect: style.getPropertyCSSValue(glyph-orientation-vertical) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-attachment) : scroll
 g: style.getPropertyCSSValue(background-attachment) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(background-clip) : border-box
+g: style.getPropertyCSSValue(background-clip) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-color) : rgba(0, 0, 0, 0)
 g: style.getPropertyCSSValue(background-color) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-image) : none
 g: style.getPropertyCSSValue(background-image) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(background-origin) : padding-box
+g: style.getPropertyCSSValue(background-origin) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-position) : 0% 0%
 g: style.getPropertyCSSValue(background-position) : [object CSSValueList]
 g: style.getPropertyValue(background-repeat) : repeat
@@ -434,6 +444,8 @@ g: style.getPropertyValue(border-top-width) : 0px
 g: style.getPropertyCSSValue(border-top-width) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(bottom) : auto
 g: style.getPropertyCSSValue(bottom) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(box-shadow) : none
+g: style.getPropertyCSSValue(box-shadow) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(caption-side) : top
 g: style.getPropertyCSSValue(caption-side) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(clear) : none
@@ -538,6 +550,8 @@ g: style.getPropertyValue(text-indent) : 0px
 g: style.getPropertyCSSValue(text-indent) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(text-shadow) : none
 g: style.getPropertyCSSValue(text-shadow) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(text-overflow) : clip
+g: style.getPropertyCSSValue(text-overflow) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(text-transform) : none
 g: style.getPropertyCSSValue(text-transform) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(top) : auto
@@ -622,8 +636,6 @@ g: style.getPropertyValue(-webkit-box-pack) : start
 g: style.getPropertyCSSValue(-webkit-box-pack) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-box-reflect) : none
 g: style.getPropertyCSSValue(-webkit-box-reflect) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-box-shadow) : none
-g: style.getPropertyCSSValue(-webkit-box-shadow) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-box-sizing) : content-box
 g: style.getPropertyCSSValue(-webkit-box-sizing) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-column-break-after) : auto

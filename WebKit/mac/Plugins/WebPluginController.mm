@@ -246,8 +246,10 @@ static NSMutableSet *pluginViews = nil;
             [view pluginDestroy];
         }
         
+#if ENABLE(NETSCAPE_PLUGIN_API)
         if (Frame* frame = core([self webFrame]))
             frame->script()->cleanupScriptObjectsForPlugin(self);
+#endif
         
         [pluginViews removeObject:view];
         [[_documentView _webView] removePluginInstanceView:view];
@@ -296,8 +298,10 @@ static void cancelOutstandingCheck(const void *item, void *context)
             [aView pluginDestroy];
         }
         
+#if ENABLE(NETSCAPE_PLUGIN_API)
         if (Frame* frame = core([self webFrame]))
             frame->script()->cleanupScriptObjectsForPlugin(self);
+#endif
         
         [pluginViews removeObject:aView];
         [[_documentView _webView] removePluginInstanceView:aView];
@@ -419,7 +423,7 @@ static void cancelOutstandingCheck(const void *item, void *context)
                                                         contentURL:[response URL]
                                                      pluginPageURL:nil
                                                         pluginName:nil // FIXME: Get this from somewhere
-                                                          MIMEType:[response _webcore_MIMEType]];
+                                                          MIMEType:[response MIMEType]];
         [_dataSource _documentLoader]->cancelMainResourceLoad(error);
         [error release];
     }        
@@ -451,7 +455,7 @@ static WebCore::HTMLMediaElement* mediaProxyClient(DOMElement* element)
         return nil;
     }
 
-    Node* node = [element _node];
+    Element* node = core(element);
     if (!node || (!node->hasTagName(HTMLNames::videoTag) && !node->hasTagName(HTMLNames::audioTag))) {
         LOG_ERROR("invalid media element passed");
         return nil;

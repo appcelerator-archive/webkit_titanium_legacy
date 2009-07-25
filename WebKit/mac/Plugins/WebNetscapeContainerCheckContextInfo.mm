@@ -25,6 +25,8 @@
 
 #import "WebNetscapeContainerCheckContextInfo.h"
 
+#if ENABLE(NETSCAPE_PLUGIN_API)
+
 @implementation WebNetscapeContainerCheckContextInfo
 
 - (id)initWithCheckRequestID:(uint32)checkRequestID callbackFunc:(void (*)(NPP npp, uint32 checkID, NPBool allowed, void* context))callbackFunc context:(void*)context
@@ -55,3 +57,5 @@
 }
 
 @end
+
+#endif // ENABLE(NETSCAPE_PLUGIN_API)

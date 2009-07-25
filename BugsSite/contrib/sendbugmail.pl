@@ -1,10 +1,10 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 #                    sendbugmail.pl
 #
 # Nick Barnes, Ravenbrook Limited, 2004-04-01.
 #
-# $Id: sendbugmail.pl,v 1.3 2005/02/24 23:42:48 mkanat%kerio.com Exp $
+# $Id$
 # 
 # Bugzilla email script for Bugzilla 2.17.4 and later.  Invoke this to send
 # bugmail for a bug which has been changed directly in the database.
@@ -14,11 +14,14 @@
 # 
 # Usage: perl -T contrib/sendbugmail.pl bug_id user_email
 
-use lib qw(.);
+use lib qw(. lib);
 
-require "globals.pl";
+use Bugzilla;
+use Bugzilla::Util;
 use Bugzilla::BugMail;
 use Bugzilla::User;
+
+my $dbh = Bugzilla->dbh;
 
 sub usage {
     print STDERR "Usage: $0 bug_id user_email\n";
@@ -41,15 +44,16 @@ if (!($bugnum =~ /^(\d+)$/)) {
 
 detaint_natural($bugnum);
 
-SendSQL("SELECT bug_id FROM bugs WHERE bug_id = $bugnum");
+my ($id) = $dbh->selectrow_array("SELECT bug_id FROM bugs WHERE bug_id = ?", 
+                                 undef, $bugnum);
 
-if (!FetchOneColumn()) {
+if (!$id) {
   print STDERR "Bug number $bugnum does not exist.\n";
   usage();
 }
 
 # Validate the changer address.
-my $match = Param('emailregexp');
+my $match = Bugzilla->params->{'emailregexp'};
 if ($changer !~ /$match/) {
     print STDERR "Changer \"$changer\" doesn't match email regular expression.\n";
     usage();

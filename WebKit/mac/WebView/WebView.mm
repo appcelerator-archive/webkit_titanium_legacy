@@ -1055,6 +1055,13 @@ static bool fastDocumentTeardownEnabled()
 #endif
 }
 
+// Indicates if the WebView is in the midst of a user gesture.
+- (BOOL)_isProcessingUserGesture
+{
+    WebFrame *frame = [self mainFrame];
+    return core(frame)->loader()->isProcessingUserGesture();
+}
+
 + (NSString *)_MIMETypeForFile:(NSString *)path
 {
     NSString *extension = [path pathExtension];
@@ -1214,6 +1221,13 @@ static bool fastDocumentTeardownEnabled()
     return needsQuirk;
 }
 
+- (BOOL)_needsLinkElementTextCSSQuirk
+{
+    static BOOL needsQuirk = !WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITHOUT_LINK_ELEMENT_TEXT_CSS_QUIRK)
+        && WKAppVersionCheckLessThan(@"com.e-frontier.shade10", -1, 10.6);
+    return needsQuirk;
+}
+
 - (BOOL)_needsKeyboardEventDisambiguationQuirks
 {
     static BOOL needsQuirks = !WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITH_IE_COMPATIBLE_KEYBOARD_EVENT_DISPATCH) && !applicationIsSafari();
@@ -1285,15 +1299,18 @@ static bool fastDocumentTeardownEnabled()
     } else
         settings->setUserStyleSheetLocation([NSURL URLWithString:@""]);
     settings->setNeedsAdobeFrameReloadingQuirk([self _needsAdobeFrameReloadingQuirk]);
+    settings->setTreatsAnyTextCSSLinkAsStylesheet([self _needsLinkElementTextCSSQuirk]);
     settings->setNeedsKeyboardEventDisambiguationQuirks([self _needsKeyboardEventDisambiguationQuirks]);
     settings->setNeedsLeopardMailQuirks(runningLeopardMail());
     settings->setNeedsTigerMailQuirks(runningTigerMail());
     settings->setNeedsSiteSpecificQuirks(_private->useSiteSpecificSpoofing);
     settings->setWebArchiveDebugModeEnabled([preferences webArchiveDebugModeEnabled]);
+    settings->setLocalFileContentSniffingEnabled([preferences localFileContentSniffingEnabled]);
     settings->setOfflineWebApplicationCacheEnabled([preferences offlineWebApplicationCacheEnabled]);
     settings->setZoomsTextOnly([preferences zoomsTextOnly]);
     settings->setXSSAuditorEnabled([preferences isXSSAuditorEnabled]);
     settings->setEnforceCSSMIMETypeInStrictMode(!WKAppVersionCheckLessThan(@"com.apple.iWeb", -1, 2.1));
+    settings->setAcceleratedCompositingEnabled([preferences acceleratedCompositingEnabled]);
 }
 
 static inline IMP getMethod(id o, SEL s)
@@ -1676,10 +1693,10 @@ static inline IMP getMethod(id o, SEL s)
 {    
     NSView *documentView = [[kit(frameView->frame()) frameView] documentView];
 
-    const HashSet<Widget*>* children = frameView->children();
-    HashSet<Widget*>::const_iterator end = children->end();
-    for (HashSet<Widget*>::const_iterator it = children->begin(); it != end; ++it) {
-        Widget* widget = *it;
+    const HashSet<RefPtr<Widget> >* children = frameView->children();
+    HashSet<RefPtr<Widget> >::const_iterator end = children->end();
+    for (HashSet<RefPtr<Widget> >::const_iterator it = children->begin(); it != end; ++it) {
+        Widget* widget = (*it).get();
         if (widget->isFrameView()) {
             [self _addScrollerDashboardRegionsForFrameView:static_cast<FrameView*>(widget) dashboardRegions:regions];
             continue;
@@ -2691,9 +2708,11 @@ static bool needsWebViewInitThreadWorkaround()
     _private->frameLoadDelegate = delegate;
     [self _cacheFrameLoadDelegateImplementations];
 
+#if ENABLE(ICONDATABASE)
     // If this delegate wants callbacks for icons, fire up the icon database.
     if (_private->frameLoadDelegateImplementations.didReceiveIconForFrameFunc)
         [WebIconDatabase sharedIconDatabase];
+#endif
 }
 
 - frameLoadDelegate
@@ -5100,6 +5119,7 @@ static WebFrameView *containingFrameView(NSView *view)
     return _private->becomingFirstResponderFromOutside;
 }
 
+#if ENABLE(ICONDATABASE)
 - (void)_receivedIconChangedNotification:(NSNotification *)notification
 {
     // Get the URL for this notification
@@ -5140,16 +5160,13 @@ static WebFrameView *containingFrameView(NSView *view)
 
     [self _didChangeValueForKey:_WebMainFrameIconKey];
 }
+#endif // ENABLE(ICONDATABASE)
 
 // Get the appropriate user-agent string for a particular URL.
 - (WebCore::String)_userAgentForURL:(const WebCore::KURL&)url
 {
     if (_private->useSiteSpecificSpoofing) {
-        if (url.host() == "ads.pointroll.com") {
-            // <rdar://problem/6899044> Can't see Apple ad on nytimes.com unless I spoof the user agent
-            DEFINE_STATIC_LOCAL(const String, uaForAdsPointroll, ("Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_7; en-us) AppleWebKit/525.28.3 (KHTML, like Gecko) Version/3.2.3 Safari/525.28.3"));
-            return uaForAdsPointroll;
-        }
+        // No current site-specific spoofs.
     }
 
     if (_private->userAgent.isNull())
@@ -5318,7 +5335,7 @@ static WebFrameView *containingFrameView(NSView *view)
 - (void)_setToolTip:(NSString *)toolTip
 {
     if (_private->usesDocumentViews) {
-        id documentView = [[[self selectedFrame] frameView] documentView];
+        id documentView = [[[self _selectedOrMainFrame] frameView] documentView];
         if ([documentView isKindOfClass:[WebHTMLView class]])
             [documentView _setToolTip:toolTip];
         return;
@@ -5330,7 +5347,7 @@ static WebFrameView *containingFrameView(NSView *view)
 - (void)_selectionChanged
 {
     if (_private->usesDocumentViews) {
-        id documentView = [[[self selectedFrame] frameView] documentView];
+        id documentView = [[[self _selectedOrMainFrame] frameView] documentView];
         if ([documentView isKindOfClass:[WebHTMLView class]])
             [documentView _selectionChanged];
         return;
@@ -5378,19 +5395,45 @@ static WebFrameView *containingFrameView(NSView *view)
         [self didChangeValueForKey:UsingAcceleratedCompositingProperty];
 }
 
+/*
+    The order of events with compositing updates is this:
+    
+   Start of runloop                                        End of runloop
+        |                                                       |
+      --|-------------------------------------------------------|--
+           ^                                           ^     ^
+           |                                           |     |
+    NSWindow update,                                   |  CA commit
+     NSView drawing                                    |
+        flush                                          |
+                                      viewUpdateRunLoopObserverCallBack
+
+    The viewUpdateRunLoopObserverCallBack is required to ensure that
+    layout has happened before CA commits layer changes (it's analagous to
+    -viewWillDraw for NSViews).
+    
+    CA commits on a run loop observer at the end of the cycle.
+    It is also rendering via a CV display link continuously. So we have to
+    ensure that layer updates committed at the end of the runloop cycle don't get
+    to the screen via the display link until the window flush at the start
+    of the next cycle. Thus, viewUpdateRunLoopObserverCallBack has to
+    call -disableScreenUpdatesUntilFlush to stop screen updates until the flush
+    at the start of the next runloop cycle.
+    
+    See also -[WebView drawRect:], where we also do a -disableScreenUpdatesUntilFlush.
+*/
+
 static void viewUpdateRunLoopObserverCallBack(CFRunLoopObserverRef, CFRunLoopActivity, void* info)
 {
     WebView* webView = reinterpret_cast<WebView*>(info);
     [webView _viewWillDrawInternal];
     [webView _clearViewUpdateRunLoopObserver];
+    if ([webView _needsOneShotDrawingSynchronization])
+        [[webView window] disableScreenUpdatesUntilFlush];
 }
 
 - (void)_scheduleViewUpdate
 {
-    // This is the compositing equivalent of -viewWillDraw. When we know that compositing layers
-    // have been set as needing display, we have to make an eager layout happen before the
-    // layers get committed by CoreAnimation.
-
     if (_private->viewUpdateRunLoopObserver)
         return;
 

@@ -96,7 +96,7 @@ public:
 #endif
 };
 
-class MediaPlayer : Noncopyable {
+class MediaPlayer : public Noncopyable {
 public:
     MediaPlayer(MediaPlayerClient*);
     virtual ~MediaPlayer();
@@ -107,6 +107,8 @@ public:
     static void getSupportedTypes(HashSet<String>&);
     static bool isAvailable();
 
+    bool supportsFullscreen() const;
+    bool supportsSave() const;
     IntSize naturalSize();
     bool hasVideo();
     
@@ -159,6 +161,7 @@ public:
     void setAutobuffer(bool);
 
     void paint(GraphicsContext*, const IntRect&);
+    void paintCurrentFrameInContext(GraphicsContext*, const IntRect&);
     
     enum NetworkState { Empty, Idle, Loading, Loaded, FormatError, NetworkError, DecodeError };
     NetworkState networkState();
@@ -166,6 +169,9 @@ public:
     enum ReadyState  { HaveNothing, HaveMetadata, HaveCurrentData, HaveFutureData, HaveEnoughData };
     ReadyState readyState();
     
+    enum MovieLoadType { Unknown, Download, StoredStream, LiveStream };
+    MovieLoadType movieLoadType() const;
+
     void networkStateChanged();
     void readyStateChanged();
     void volumeChanged();

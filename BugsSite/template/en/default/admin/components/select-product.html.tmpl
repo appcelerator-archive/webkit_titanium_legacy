@@ -1,4 +1,3 @@
-[%# 1.0@bugzilla.org %]
 [%# The contents of this file are subject to the Mozilla Public
   # License Version 1.1 (the "License"); you may not use this file
   # except in compliance with the License. You may obtain a copy of
@@ -16,22 +15,15 @@
   # Copyright (C) 1998 Netscape Communications Corporation. All
   # Rights Reserved.
   #
-  # Contributor(s): Gavin Shelley (bugzilla@chimpychompy.org)
+  # Contributor(s): Gavin Shelley <bugzilla@chimpychompy.org>
+  #                 Frédéric Buclin <LpSolit@gmail.com>
   #
   #%]
 
 [%# INTERFACE:
-  # products: array of hashes having the properties:
-  #   - name: string; The name of the product.
-  #   - description: string; The description of the product.
-  #   - bug_count: number; The number of bugs for the product (if 
-  #                showbugcounts defined).
-  #
+  # products: array of product objects
   # showbugcounts: if defined, then bug counts should be included in the table
   #%]
-
-[% USE Bugzilla %]
-[% cgi = Bugzilla.cgi %]
 
 [% PROCESS global/variables.none.tmpl %]
 
@@ -55,28 +47,24 @@
 
 [% IF showbugcounts %]
 
-[%  columns.push({
+  [% columns.push({
       name => 'bug_count'
       heading => "$terms.Bugs"
       align => "right"
       contentlink => "buglist.cgi?product=%%name%%"
-    }) %]
+    })
+  %]
 
 [% END %]
 
 [% PROCESS admin/table.html.tmpl
      columns = columns
      data = products
-     footer = footer_row
 %]
 
-[% IF ! showbugcounts %]
-
-<p><a href="editcomponents.cgi?showbugcounts=1&amp;[% cgi.query_string %]">
-    Redisplay table with [% terms.bug %] counts (slower)</a></p>
-
+[% IF !showbugcounts %]
+  <p><a href="editcomponents.cgi?showbugcounts=1">
+      Redisplay table with [% terms.bug %] counts (slower)</a></p>
 [% END %]
-
-<p>
 
 [% PROCESS global/footer.html.tmpl %]

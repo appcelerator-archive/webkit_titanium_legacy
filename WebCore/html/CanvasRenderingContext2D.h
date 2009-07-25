@@ -54,7 +54,7 @@ namespace WebCore {
 
     typedef int ExceptionCode;
 
-    class CanvasRenderingContext2D : Noncopyable {
+    class CanvasRenderingContext2D : public Noncopyable {
     public:
         CanvasRenderingContext2D(HTMLCanvasElement*);
         
@@ -260,6 +260,7 @@ namespace WebCore {
         
         void prepareGradientForDashboard(CanvasGradient* gradient) const;
         void checkOrigin(const KURL&);
+        void checkOrigin(const String&);
 
         HTMLCanvasElement* m_canvas;
         Vector<State, 1> m_stateStack;

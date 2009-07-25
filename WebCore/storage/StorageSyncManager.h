@@ -28,20 +28,25 @@
 
 #if ENABLE(DOM_STORAGE)
 
-#include "LocalStorageArea.h"
-#include "LocalStorageTask.h"
-#include "LocalStorageThread.h"
+#include "PlatformString.h"
 
+#include <wtf/PassRefPtr.h>
+#include <wtf/RefPtr.h>
 #include <wtf/Threading.h>
 
 namespace WebCore {
 
+    class LocalStorageThread;
+    class SecurityOrigin;
+    class StorageAreaSync;
+
     class StorageSyncManager : public ThreadSafeShared<StorageSyncManager> {
     public:
         static PassRefPtr<StorageSyncManager> create(const String& path);
+        ~StorageSyncManager();
 
-        bool scheduleImport(PassRefPtr<LocalStorageArea>);
-        void scheduleSync(PassRefPtr<LocalStorageArea>);
+        bool scheduleImport(PassRefPtr<StorageAreaSync>);
+        void scheduleSync(PassRefPtr<StorageAreaSync>);
 
         void close();
 

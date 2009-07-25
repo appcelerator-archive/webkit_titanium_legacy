@@ -28,6 +28,10 @@
 #include <limits>
 #include <utility>
 
+#if PLATFORM(QT)
+#include <QDataStream>
+#endif
+
 namespace WTF {
 
     using std::min;
@@ -264,7 +268,7 @@ namespace WTF {
     };
 
     template<typename T>
-    class VectorBufferBase : Noncopyable {
+    class VectorBufferBase : public Noncopyable {
     public:
         void allocateBuffer(size_t newCapacity)
         {
@@ -562,6 +566,32 @@ namespace WTF {
         size_t m_size;
         Buffer m_buffer;
     };
+
+#if PLATFORM(QT)
+    template<typename T>
+    QDataStream& operator<<(QDataStream& stream, const Vector<T>& data)
+    {
+        stream << qint64(data.size());
+        foreach (const T& i, data)
+            stream << i;
+        return stream;
+    }
+
+    template<typename T>
+    QDataStream& operator>>(QDataStream& stream, Vector<T>& data)
+    {
+        data.clear();
+        qint64 count;
+        T item;
+        stream >> count;
+        data.reserveCapacity(count);
+        for (qint64 i = 0; i < count; ++i) {
+            stream >> item;
+            data.append(item);
+        }
+        return stream;
+    }
+#endif
 
     template<typename T, size_t inlineCapacity>
     Vector<T, inlineCapacity>::Vector(const Vector& other)
@@ -904,7 +934,7 @@ namespace WTF {
     inline void Vector<T, inlineCapacity>::remove(size_t position, size_t length)
     {
         ASSERT(position < size());
-        ASSERT(position + length < size());
+        ASSERT(position + length <= size());
         T* beginSpot = begin() + position;
         T* endSpot = beginSpot + length;
         TypeOperations::destruct(beginSpot, endSpot); 
