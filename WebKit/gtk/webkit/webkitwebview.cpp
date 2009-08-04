@@ -2096,6 +2096,7 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     settings->setDatabasesEnabled(enableHTML5Database);
     settings->setLocalStorageEnabled(enableHTML5LocalStorage);
     settings->setXSSAuditorEnabled(enableXSSAuditor);
+    settings->setJavaScriptCanOpenWindowsAutomatically(true);
 
     g_free(defaultEncoding);
     g_free(cursiveFontFamily);
