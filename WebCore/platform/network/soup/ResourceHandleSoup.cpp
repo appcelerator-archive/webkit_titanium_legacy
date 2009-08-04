@@ -579,8 +579,7 @@ bool ResourceHandle::start(Frame* frame)
     d->m_frame = frame;
 
     if (equalIgnoringCase(protocol, "app") || equalIgnoringCase(protocol, "ti")) {
-        KURL normalized = TitaniumProtocols::NormalizeURL(url);
-        d->m_titaniumURL = strdup(normalized.string().utf8().data());
+        d->m_titaniumURL = strdup(url.string().utf8().data());
         KURL fileURL = TitaniumProtocols::URLToFileURL(url);
         return startGio(fileURL);
     }
@@ -795,9 +794,7 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
     //char* uri = g_file_get_uri(d->m_gfile);
     //response.setURL(KURL(KURL(), uri));
     //g_free(uri);
-    if (d->m_titaniumURL != 0) {
-        response.setURL(KURL(d->m_titaniumURL));
-    } else {
+    if (!d->m_titaniumURL) {
         char* uri = g_file_get_uri(d->m_gfile);
         response.setURL(KURL(KURL(), uri));
         g_free(uri);
@@ -835,13 +832,31 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
         return;
     }
 
+    if (d->m_titaniumURL) {
+        KURL url = d->m_request.url();
+        KURL normalized(TitaniumProtocols::NormalizeURL(url));
+        if (strcmp(normalized.string().utf8().data(), url.string().utf8().data())) {
+
+            response.setURL(url);
+            response.setHTTPStatusCode(200);
+            response.setHTTPStatusText("Permanently Moved");
+            response.setHTTPHeaderField("Location", normalized.string().utf8().data());
+
+            ResourceRequest newRequest = handle->request();
+            newRequest.setURL(normalized);
+            if (d->client())
+                d->client()->willSendRequest(handle, newRequest, response);
+        }
+        else
+        {
+            response.setURL(KURL(d->m_titaniumURL));
+            response.setHTTPStatusCode(200);
+            response.setHTTPStatusText("OK");
+        }
+    }
+
     response.setMimeType(g_file_info_get_content_type(info));
     response.setExpectedContentLength(g_file_info_get_size(info));
-
-    if (d->m_titaniumURL != 0) {
-        response.setHTTPStatusCode(200);
-        response.setHTTPStatusText("OK");
-    }
 
     GTimeVal tv;
     g_file_info_get_modification_time(info, &tv);
@@ -866,9 +881,11 @@ bool ResourceHandle::startGio(KURL url)
     // GIO doesn't know how to handle refs and queries, so remove them
     // TODO: use KURL.fileSystemPath after KURLGtk and FileSystemGtk are
     // using GIO internally, and providing URIs instead of file paths
-    url.removeRef();
-    url.setQuery(String());
-    url.setPort(0);
+    if (!d->m_titaniumURL) {
+        url.removeRef();
+        url.setQuery(String());
+        url.setPort(0);
+    }
 
 #if !PLATFORM(WIN_OS)
     // we avoid the escaping for local files, because
