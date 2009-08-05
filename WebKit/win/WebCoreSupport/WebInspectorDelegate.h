@@ -56,6 +56,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE createWebViewWithRequest( 
         /* [in] */ IWebView*,
         /* [in] */ IWebURLRequest*,
+		/* [in] */ IPropertyBag*,
         /* [retval][out] */ IWebView**) { return E_NOTIMPL; }
 
     virtual HRESULT STDMETHODCALLTYPE webViewShow( 

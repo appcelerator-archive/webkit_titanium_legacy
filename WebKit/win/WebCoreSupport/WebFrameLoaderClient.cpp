@@ -367,7 +367,7 @@ Frame* WebFrameLoaderClient::dispatchCreatePage()
         return 0;
 
     COMPtr<IWebView> newWebView;
-    if (FAILED(ui->createWebViewWithRequest(webView, 0, &newWebView)))
+    if (FAILED(ui->createWebViewWithRequest(webView, 0, 0, &newWebView)))
         return 0;
 
     COMPtr<IWebFrame> mainFrame;

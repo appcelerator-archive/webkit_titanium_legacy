@@ -35,6 +35,7 @@ interface IWebFrame;
 interface IWebView;
 interface IWebURLRequest;
 interface IWebUndoTarget;
+interface IPropertyBag;
 
 /*!
     @enum WebMenuItemTag
@@ -194,10 +195,11 @@ interface IWebUIDelegate : IUnknown
         new WebViews will get a webViewShow: call.
         @param sender The WebView sending the delegate method.
         @param request The request to load.
+		@param features A property bag of window features for this web view
         @result The WebView for the new window.
         - (WebView *)webView:(WebView *)sender createWebViewWithRequest:(NSURLRequest *)request;
     */
-    HRESULT createWebViewWithRequest([in] IWebView* sender, [in] IWebURLRequest* request, [out, retval] IWebView** newWebView);
+    HRESULT createWebViewWithRequest([in] IWebView* sender, [in] IWebURLRequest* request, [in] IPropertyBag* features, [out, retval] IWebView** newWebView);
 
     /*!
         @method webViewShow:
