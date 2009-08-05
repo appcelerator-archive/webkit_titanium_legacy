@@ -26,6 +26,7 @@
 #include "config.h"
 #include "WebChromeClient.h"
 
+#include "COMPropertyBag.h"
 #include "WebElementPropertyBag.h"
 #include "WebFrame.h"
 #include "WebHistory.h"
@@ -162,14 +163,32 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
             return 0;
         return core(dialog.get());
     }
-
     Page* page = 0;
     IWebUIDelegate* uiDelegate = 0;
     IWebMutableURLRequest* request = WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest());
 
     if (SUCCEEDED(m_webView->uiDelegate(&uiDelegate))) {
+        HashMap<String, int> map;
+		map.set("fullscreen", features.fullscreen);
+		map.set("resizable", features.resizable);
+		if (features.xSet) {
+		    map.set("x", features.x);
+		}
+		if (features.ySet) {
+		    map.set("y", features.y);
+		}
+		if (features.widthSet) {
+		    map.set("width", features.width);
+		}
+		if (features.heightSet) {
+		    map.set("height", features.height);
+		}
+		
+		COMPtr<COMPropertyBag<int> > windowFeatures;
+		windowFeatures.adoptRef(COMPropertyBag<int>::createInstance(map));
+
         IWebView* webView = 0;
-        if (SUCCEEDED(uiDelegate->createWebViewWithRequest(m_webView, request, &webView))) {
+        if (SUCCEEDED(uiDelegate->createWebViewWithRequest(m_webView, request, windowFeatures.get(), &webView))) {
             page = core(webView);
             webView->Release();
         }
