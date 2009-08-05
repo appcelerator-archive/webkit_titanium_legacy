@@ -33,8 +33,12 @@ try:
 		cygwin_dir = 'C:\\cygwin'
 		bash_exe = os.path.join(cygwin_dir, 'bin', 'bash.exe')
 		cygpath_exe = os.path.join(cygwin_dir, 'bin', 'cygpath.exe')
-		workspace_dir = os.environ["WORKSPACE"]
-		workspace_cyg_dir = run([cygpath_exe, "-u", workspace_dir])
-		run([bash_exe, '-l', '-c', "%s/WebKitTools/Scripts/build-webkit" % workspace_cyg_dir, "--release", "--cairo-win32"])
+
+		if ('WORKSPACE' in os.environ):
+			workspace_dir = os.environ['WORKSPACE']	
+		else:
+			workspace_dir = os.getcwd()
+		workspace_cyg_dir = run([cygpath_exe, "-u", workspace_dir]).strip()
+		run([bash_exe, '-l', '-c', "'%s/WebKitTools/Scripts/build-webkit'" % workspace_cyg_dir, "--release", "--cairo-win32"])
 except OSError, e:
   print "Error building: " + str(e)
