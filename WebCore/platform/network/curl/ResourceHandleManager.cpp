@@ -118,9 +118,19 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
     // Run the code here for local files to resolve the issue.
     // TODO: See if there is a better approach for handling this.
     if (!d->m_response.responseFired()) {
-        const char* hdr;
-        err = curl_easy_getinfo(h, CURLINFO_EFFECTIVE_URL, &hdr);
-        d->m_response.setURL(KURL(hdr));
+
+		if (!d->m_titaniumURL) {
+        	const char* hdr;
+        	err = curl_easy_getinfo(h, CURLINFO_EFFECTIVE_URL, &hdr);
+	        d->m_response.setURL(KURL(hdr));
+
+		} else {
+			KURL titaniumURL = KURL(KURL(), d->m_titaniumURL);
+	        d->m_response.setURL(titaniumURL);
+            d->m_response.setHTTPStatusCode(200);
+            d->m_response.setHTTPStatusText("OK");
+		}
+
         if (d->client())
             d->client()->didReceiveResponse(job, d->m_response);
         d->m_response.setResponseFired(true);
@@ -587,7 +597,13 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     ResourceHandleInternal* d = job->getInternal();
     String url = kurl.string();
 
-    if (kurl.isLocalFile() || kurl.protocolIs("app") || kurl.protocolIs("ti") || kurl.protocolIs("app-storage")) {
+	if (kurl.protocolIs("app") || kurl.protocolIs("ti")) {
+        d->m_titaniumURL = strdup(url.utf8().data());
+        kurl = TitaniumProtocols::URLToFileURL(kurl);
+		url = kurl.string();
+	}
+
+    if (kurl.isLocalFile()) {
         String query = kurl.query();
         // Remove any query part sent to a local file.
         if (!query.isEmpty()) {
@@ -597,8 +613,8 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         }
         // Determine the MIME type based on the path.
         d->m_response.setMimeType(MIMETypeRegistry::getMIMETypeForPath(url));
-    }
-
+    } 
+	
     d->m_handle = curl_easy_init();
 
 #if LIBCURL_VERSION_NUM > 0x071200

@@ -1,6 +1,14 @@
+#include "config.h"
+#include "Base64.h"
+#include "CString.h"
+#include "HTTPParsers.h"
+#include "MIMETypeRegistry.h"
+#include "NotImplemented.h"
+#include "ResourceError.h"
+#include "ResourceHandle.h"
+#include "ResourceHandleInternal.h"
+#include "TextEncoding.h"
 #include "TitaniumProtocols.h"
-#include <cstdio>
-#include <assert.h>
 
 typedef void(*NormalizeURLCallback)(const char*, char*, int);
 typedef void(*URLToPathCallback)(const char*, char*, int);
