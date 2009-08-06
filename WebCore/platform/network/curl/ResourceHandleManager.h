@@ -31,6 +31,7 @@
 #include "Frame.h"
 #include "Timer.h"
 #include "ResourceHandleClient.h"
+#include "TitaniumProtocols.h"
 
 #include <curl/curl.h>
 #include <wtf/Vector.h>

@@ -846,9 +846,8 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
             newRequest.setURL(normalized);
             if (d->client())
                 d->client()->willSendRequest(handle, newRequest, response);
-        }
-        else
-        {
+
+        } else {
             response.setURL(KURL(d->m_titaniumURL));
             response.setHTTPStatusCode(200);
             response.setHTTPStatusText("OK");
@@ -881,11 +880,9 @@ bool ResourceHandle::startGio(KURL url)
     // GIO doesn't know how to handle refs and queries, so remove them
     // TODO: use KURL.fileSystemPath after KURLGtk and FileSystemGtk are
     // using GIO internally, and providing URIs instead of file paths
-    if (!d->m_titaniumURL) {
-        url.removeRef();
-        url.setQuery(String());
-        url.setPort(0);
-    }
+    url.removeRef();
+    url.setQuery(String());
+    url.setPort(0);
 
 #if !PLATFORM(WIN_OS)
     // we avoid the escaping for local files, because

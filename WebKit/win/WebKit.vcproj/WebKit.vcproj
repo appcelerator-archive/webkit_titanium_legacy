@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
-				<VisualStudioProject
-					ProjectType="Visual C++"
-					Version="8.00"
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="8.00"
 	Name="WebKit"
 	ProjectGUID="{0662A8A9-82A3-4638-97D8-EC425D8D87C9}"
 	RootNamespace="WebKit"
@@ -403,36 +403,6 @@
 	</References>
 	<Files>
 		<Filter
-			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
-			>
-			<File
-				RelativePath="..\MarshallingHelpers.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\WebCoreLocalizedStrings.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\WebKitClassFactory.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\WebKitDLL.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\WebKitSystemBits.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\WebNodeHighlight.cpp"
-				>
-			</File>
-		</Filter>
-		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
@@ -511,6 +481,10 @@
 			</File>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath="..\TitaniumProtocolsInterface.h"
 				>
 			</File>
 			<File
@@ -677,10 +651,6 @@
 				RelativePath="..\WebNodeHighlight.h"
 				>
 			</File>
-      <File
-       RelativePath="..\WebScriptElement.cpp"
-       >
-      </File>
 			<File
 				RelativePath="..\WebNotification.h"
 				>
@@ -702,10 +672,10 @@
 				>
 			</File>
 			<File
-        RelativePath="..\WebScriptElement.h"
-        >
-      </File>
-      <File
+				RelativePath="..\WebScriptElement.h"
+				>
+			</File>
+			<File
 				RelativePath="..\WebScriptObject.h"
 				>
 			</File>
@@ -749,6 +719,36 @@
 				RelativePath="..\WindowsTouch.h"
 				>
 			</File>
+			<Filter
+				Name="Source Files"
+				Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+				UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+				>
+				<File
+					RelativePath="..\MarshallingHelpers.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\WebCoreLocalizedStrings.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\WebKitClassFactory.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\WebKitDLL.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\WebKitSystemBits.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\WebNodeHighlight.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Classes"
@@ -795,6 +795,10 @@
 			</File>
 			<File
 				RelativePath="..\MemoryStream.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\TitaniumProtocolsInterface.cpp"
 				>
 			</File>
 			<File
@@ -982,6 +986,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\WebKitCOMAPI.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\WebKitLogging.cpp"
 				>
 			</File>
@@ -1007,6 +1015,10 @@
 			</File>
 			<File
 				RelativePath="..\WebResource.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\WebScriptElement.cpp"
 				>
 			</File>
 			<File
@@ -1195,10 +1207,6 @@
 			</File>
 			<File
 				RelativePath=".\WebKit_debug.def"
-				>
-			</File>
-			<File
-				RelativePath="..\WebKitCOMAPI.cpp"
 				>
 			</File>
 			<File
