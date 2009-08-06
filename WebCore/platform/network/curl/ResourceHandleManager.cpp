@@ -117,23 +117,41 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
     // which means the ResourceLoader's response does not contain the URL.
     // Run the code here for local files to resolve the issue.
     // TODO: See if there is a better approach for handling this.
-    if (!d->m_response.responseFired()) {
+    if (!d->m_response.responseFired() && !d->m_titaniumURL) {
+        const char* hdr;
+        err = curl_easy_getinfo(h, CURLINFO_EFFECTIVE_URL, &hdr);
+        d->m_response.setURL(KURL(hdr));
+    }
 
-		if (!d->m_titaniumURL) {
-        	const char* hdr;
-        	err = curl_easy_getinfo(h, CURLINFO_EFFECTIVE_URL, &hdr);
-	        d->m_response.setURL(KURL(hdr));
+    if (d->m_titaniumURL) {
+        d->m_response.setResponseFired(true);
 
-		} else {
-			KURL titaniumURL = KURL(KURL(), d->m_titaniumURL);
-	        d->m_response.setURL(titaniumURL);
+        KURL titaniumURL = KURL(KURL(), d->m_titaniumURL);
+        KURL normalized(TitaniumProtocols::NormalizeURL(titaniumURL));
+
+        if (equalIgnoringRef(normalized, titaniumURL)) {
+            d->m_response.setURL(titaniumURL);
             d->m_response.setHTTPStatusCode(200);
             d->m_response.setHTTPStatusText("OK");
-		}
+            if (d->client())
+                d->client()->didReceiveResponse(job, d->m_response);
 
-        if (d->client())
-            d->client()->didReceiveResponse(job, d->m_response);
-        d->m_response.setResponseFired(true);
+       } else {
+            d->m_response.setURL(titaniumURL);
+            d->m_response.setHTTPStatusCode(200);
+            d->m_response.setHTTPStatusText("Permanently Moved");
+            d->m_response.setHTTPHeaderField("Location", normalized.string().utf8().data());
+
+            ResourceRequest newRequest = job->request();
+            newRequest.setURL(normalized);
+            if (d->client()) {
+                d->client()->didReceiveResponse(job, d->m_response);
+                d->client()->willSendRequest(job, newRequest, d->m_response);
+            }
+        }
+
+        free(d->m_titaniumURL);
+	d->m_titaniumURL = 0;
     }
 
     if (d->client())
@@ -597,11 +615,11 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     ResourceHandleInternal* d = job->getInternal();
     String url = kurl.string();
 
-	if (kurl.protocolIs("app") || kurl.protocolIs("ti")) {
+    if (kurl.protocolIs("app") || kurl.protocolIs("ti")) {
         d->m_titaniumURL = strdup(url.utf8().data());
         kurl = TitaniumProtocols::URLToFileURL(kurl);
-		url = kurl.string();
-	}
+        url = kurl.string();
+    }
 
     if (kurl.isLocalFile()) {
         String query = kurl.query();
@@ -614,7 +632,7 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         // Determine the MIME type based on the path.
         d->m_response.setMimeType(MIMETypeRegistry::getMIMETypeForPath(url));
     } 
-	
+    
     d->m_handle = curl_easy_init();
 
 #if LIBCURL_VERSION_NUM > 0x071200
