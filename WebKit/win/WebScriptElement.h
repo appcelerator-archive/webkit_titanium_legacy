@@ -8,6 +8,7 @@
 #include <WebCore/BString.h>
 #include <JavaScriptCore/APICast.h>
 #include <JavaScriptCore/JSContextRef.h>
+#include "WebKitTitanium.h"
 
 class EvaluatorAdapter : public WebCore::ScriptEvaluator {
 public:
@@ -37,7 +38,5 @@ public:
 protected:
     IWebScriptEvaluator *evaluator;
 };
-
-void STDMETHODCALLTYPE addScriptEvaluator(IWebScriptEvaluator *evaluator);
 
 #endif
