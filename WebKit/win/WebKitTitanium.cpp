@@ -5,6 +5,7 @@
 #include <WebCore/ScriptElement.h>
 #include "TitaniumProtocols.h"
 #include "WebKitTitanium.h"
+#include "WebMutableURLRequest.h"
 
 void setNormalizeURLCallback(NormalizeURLCallback cb) {
     WebCore::TitaniumProtocols::NormalizeCallback = cb;
@@ -12,4 +13,10 @@ void setNormalizeURLCallback(NormalizeURLCallback cb) {
 
 void setURLToFileURLCallback(URLToFileURLCallback cb) {
     WebCore::TitaniumProtocols::URLCallback = cb;
+}
+
+IWebURLRequest* STDMETHODCALLTYPE createWebURLRequest() {
+	WebMutableURLRequest *request = WebMutableURLRequest::createInstance();
+	
+	return request;
 }

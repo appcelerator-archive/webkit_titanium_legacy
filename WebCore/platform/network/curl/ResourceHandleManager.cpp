@@ -121,6 +121,8 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
         const char* hdr;
         err = curl_easy_getinfo(h, CURLINFO_EFFECTIVE_URL, &hdr);
         d->m_response.setURL(KURL(hdr));
+		if (d->client())
+			d->client()->didReceiveResponse(job, d->m_response);
     }
 
     if (d->m_titaniumURL) {

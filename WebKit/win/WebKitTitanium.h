@@ -20,4 +20,5 @@ extern "C" {
 
 class IWebScriptEvaluator;
 void STDMETHODCALLTYPE addScriptEvaluator(IWebScriptEvaluator *evaluator);
+IWebURLRequest* STDMETHODCALLTYPE createWebURLRequest();
 #endif

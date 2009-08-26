@@ -10,8 +10,8 @@
 #include "TextEncoding.h"
 #include "TitaniumProtocols.h"
 
-typedef void(*NormalizeURLCallback)(const char*, char*, int);
-typedef void(*URLToPathCallback)(const char*, char*, int);
+typedef void(*NormalizeURLCallback)(const char* url, char* buffer, int size);
+typedef void(*URLToPathCallback)(const char* url, char* buffer, int size);
 
 namespace WebCore {
     NormalizeURLCallback TitaniumProtocols::NormalizeCallback = 0;

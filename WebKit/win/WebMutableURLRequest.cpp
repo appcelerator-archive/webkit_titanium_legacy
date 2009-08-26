@@ -27,6 +27,7 @@
 #include "WebKitDLL.h"
 #include "WebMutableURLRequest.h"
 
+#include "COMPropertyBag.h"
 #include "WebKit.h"
 #include "MarshallingHelpers.h"
 #include "WebKit.h"
@@ -146,10 +147,16 @@ HRESULT STDMETHODCALLTYPE WebMutableURLRequest::requestWithURL(
 }
 
 HRESULT STDMETHODCALLTYPE WebMutableURLRequest::allHTTPHeaderFields( 
-    /* [retval][out] */ IPropertyBag** /*result*/)
-{
-    ASSERT_NOT_REACHED();
-    return E_NOTIMPL;
+    /* [retval][out] */ IPropertyBag** result)
+{	
+	const HTTPHeaderMap &headers = m_request.httpHeaderFields();
+	HTTPHeaderMap::const_iterator iter = headers.begin();
+	
+	COMPtr<COMPropertyBag<String, AtomicString, CaseFoldingHash> > headerFields;
+	headerFields.adoptRef(COMPropertyBag<String, AtomicString, CaseFoldingHash>::createInstance(headers));
+	headerFields.copyRefTo(result);
+	
+	return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE WebMutableURLRequest::cachePolicy( 

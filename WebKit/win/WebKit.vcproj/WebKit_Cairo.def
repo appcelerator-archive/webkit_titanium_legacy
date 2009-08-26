@@ -136,3 +136,4 @@ EXPORTS
         ?waitForThreadCompletion@WTF@@YAHIPAPAX@Z
         ?createThread@WTF@@YAIP6APAXPAX@Z0@Z
         ?addScriptEvaluator@@YGXPAUIWebScriptEvaluator@@@Z
+		?createWebURLRequest@@YGPAUIWebURLRequest@@XZ
