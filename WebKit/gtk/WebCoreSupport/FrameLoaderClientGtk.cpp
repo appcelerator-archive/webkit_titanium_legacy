@@ -256,9 +256,18 @@ void FrameLoaderClient::dispatchDidCancelAuthenticationChallenge(DocumentLoader*
     notImplemented();
 }
 
-void FrameLoaderClient::dispatchWillSendRequest(DocumentLoader*, unsigned long, ResourceRequest&, const ResourceResponse&)
+void FrameLoaderClient::dispatchWillSendRequest(DocumentLoader*, unsigned long, ResourceRequest& request, const ResourceResponse&)
 {
-    notImplemented();
+    SoupMessage* soupMessage = request.toSoupMessage();
+    if (!soupMessage)
+        return;
+
+    WebKitWebView* webView = getViewFromFrame(m_frame);
+
+    g_signal_emit_by_name(webView, "will-send-request", m_frame, soupMessage);
+
+    request.updateFromSoupMessage(soupMessage);
+    g_object_unref(soupMessage);
 }
 
 void FrameLoaderClient::assignIdentifierToInitialRequest(unsigned long identifier, DocumentLoader*, const ResourceRequest&)
