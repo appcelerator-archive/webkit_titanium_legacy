@@ -141,7 +141,6 @@ enum {
     MOVE_CURSOR,
     PRINT_REQUESTED,
     PLUGIN_WIDGET,
-    WILL_SEND_REQUEST,
     LAST_SIGNAL
 };
 
@@ -1716,15 +1715,6 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
             webkit_marshal_OBJECT__STRING_STRING_POINTER,
             GTK_TYPE_WIDGET, 3,
             G_TYPE_STRING, G_TYPE_STRING, G_TYPE_HASH_TABLE);
-
-    webkit_web_view_signals[MOVE_CURSOR] = g_signal_new("will-send-request",
-            G_TYPE_FROM_CLASS(webViewClass),
-            (GSignalFlags)(G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION),
-            0,
-            NULL, NULL,
-            webkit_marshal_VOID__OBJECT_OBJECT,
-            G_TYPE_NONE, 2,
-            WEBKIT_TYPE_WEB_FRAME, G_TYPE_POINTER);
 
     /*
      * implementations of virtual methods

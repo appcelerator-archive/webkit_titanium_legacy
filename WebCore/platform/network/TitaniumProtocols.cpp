@@ -9,7 +9,6 @@
 #include "ResourceHandleInternal.h"
 #include "TextEncoding.h"
 #include "TitaniumProtocols.h"
-#include <assert.h>
 
 namespace WebCore {
     NormalizeURLCallback TitaniumProtocols::NormalizeCallback = 0;
