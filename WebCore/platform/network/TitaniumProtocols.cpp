@@ -11,13 +11,13 @@
 #include "TitaniumProtocols.h"
 #include <assert.h>
 
-typedef void(*NormalizeURLCallback)(const char* url, char* buffer, int size);
-typedef void(*URLToPathCallback)(const char* url, char* buffer, int size);
-
 namespace WebCore {
     NormalizeURLCallback TitaniumProtocols::NormalizeCallback = 0;
     URLToPathCallback TitaniumProtocols::URLCallback = 0;
+    CanPreprocessURLCallback TitaniumProtocols::CanPreprocessCallback = 0;
+    PreprocessURLCallback TitaniumProtocols::PreprocessCallback = 0;
 
+    /*static*/
     KURL TitaniumProtocols::NormalizeURL(KURL url) {
         assert(NormalizeCallback != 0);
 
@@ -32,6 +32,7 @@ namespace WebCore {
         return normalizedURL;
     }
 
+    /*static*/
     KURL TitaniumProtocols::URLToFileURL(KURL url) {
         assert(URLCallback != 0);
 
@@ -44,5 +45,48 @@ namespace WebCore {
         delete [] buffer;
 
         return fileURL;
+    }
+
+    /*static*/
+    bool TitaniumProtocols::CanPreprocess(const ResourceRequest& request)
+    {
+        return CanPreprocessCallback(request.url().string().utf8().data());
+    }
+
+    /*static*/
+    String TitaniumProtocols::Preprocess(const ResourceRequest& request, String& mimeType)
+    {
+        HTTPHeaderMap headerMap = request.httpHeaderFields();
+        KeyValuePair* headers = new KeyValuePair[headerMap.size() + 1];
+        KeyValuePair* headerPointer = headers;
+
+        HTTPHeaderMap::const_iterator end = headerMap.end();
+        for (HTTPHeaderMap::const_iterator it = headerMap.begin(); it != end; ++it) {
+            headerPointer->key = strdup(it->first.string().utf8().data());
+            headerPointer->value = strdup(it->second.utf8().data());
+            headerPointer++;
+        }
+        headerPointer->key = headerPointer->value = 0;
+
+        char* cmimeType = 0;
+        char* data = PreprocessCallback(request.url().string().utf8().data(), headers, &cmimeType);
+
+        headerPointer = headers;
+        while (headerPointer->key)
+        {
+            free(headerPointer->key);
+            free(headerPointer->value);
+            headerPointer++;
+        }
+
+        delete [] headers;
+
+        mimeType = String::fromUTF8(cmimeType);
+        String result(String::fromUTF8(data));
+
+        free(data);
+        free(cmimeType);
+
+        return result;
     }
 }

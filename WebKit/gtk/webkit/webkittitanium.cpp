@@ -33,6 +33,14 @@ void webkit_titanium_set_url_to_file_url_cb(URLToFileURLCallback cb) {
     WebCore::TitaniumProtocols::URLCallback = cb;
 }
 
+void webkit_titanium_set_can_preprocess_cb(CanPreprocessURLCallback cb) {
+    WebCore::TitaniumProtocols::CanPreprocessCallback = cb;
+}
+
+void webkit_titanium_set_preprocess_cb(PreprocessURLCallback cb) {
+    WebCore::TitaniumProtocols::PreprocessCallback = cb;
+}
+
 void webkit_titanium_set_inspector_url(const gchar* url) {
    if (WebKit::CustomGtkWebInspectorPath)
        free(WebKit::CustomGtkWebInspectorPath);

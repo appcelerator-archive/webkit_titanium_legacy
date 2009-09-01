@@ -433,6 +433,48 @@ static gboolean parseDataUrl(gpointer callback_data)
     return false;
 }
 
+static gboolean preprocessURL(gpointer callback_data)
+{
+    ResourceHandle* handle = static_cast<ResourceHandle*>(callback_data);
+    ResourceHandleClient* client = handle->client();
+    ResourceHandleInternal* d = handle->getInternal();
+    if (d->m_cancelled)
+        return false;
+
+    d->m_idleHandler = 0;
+
+    ASSERT(client);
+    if (!client)
+        return false;
+
+    String mimeType;
+    String data = TitaniumProtocols::Preprocess(handle->request(), mimeType);
+
+    ResourceResponse response;
+    response.setExpectedContentLength(data.length());
+
+    response.setURL(handle->request().url());
+    response.setMimeType(mimeType);
+    response.setHTTPStatusCode(200);
+    response.setHTTPStatusText("OK");
+    response.setTextEncodingName("UTF-8");
+    response.setLastModifiedDate(time(NULL));
+    client->didReceiveResponse(handle, response);
+
+    if (d->m_cancelled)
+        return false;
+
+    if (data.length() > 0)
+        client->didReceiveData(handle, data.utf8().data(), data.length(), data.length());
+
+    if (d->m_cancelled)
+        return false;
+
+    client->didFinishLoading(handle);
+
+    return false;
+}
+
 bool ResourceHandle::startData(String urlString)
 {
     ResourceHandleInternal* d = this->getInternal();
@@ -441,6 +483,17 @@ bool ResourceHandle::startData(String urlString)
     // and webkit won't never know that the data has been parsed even didFinishLoading is called.
     d->m_idleHandler = g_idle_add(parseDataUrl, this);
     return true;
+}
+
+bool ResourceHandle::startPreprocessed()
+{
+    ResourceHandleInternal* d = this->getInternal();
+
+    // If preprocessURL is called synchronously the job is not yet effectively started
+    // and webkit won't never know that the data has been parsed even didFinishLoading is called.
+    d->m_idleHandler = g_idle_add(preprocessURL, this);
+    return true;
+
 }
 
 static SoupSession* createSoupSession()
@@ -579,9 +632,17 @@ bool ResourceHandle::start(Frame* frame)
     d->m_frame = frame;
 
     if (equalIgnoringCase(protocol, "app") || equalIgnoringCase(protocol, "ti")) {
-        d->m_titaniumURL = strdup(url.string().utf8().data());
-        KURL fileURL = TitaniumProtocols::URLToFileURL(url);
-        return startGio(fileURL);
+        KURL normalized(TitaniumProtocols::NormalizeURL(url));
+        bool isNormalized = strcmp(normalized.string().utf8().data(), url.string().utf8().data()) == 0;
+
+        if (isNormalized && TitaniumProtocols::CanPreprocess(request())) {
+            startPreprocessed();
+
+        } else {
+            d->m_titaniumURL = strdup(url.string().utf8().data());
+            KURL fileURL = TitaniumProtocols::URLToFileURL(url);
+            return startGio(fileURL);
+        }
     }
 
     if (equalIgnoringCase(protocol, "data"))
