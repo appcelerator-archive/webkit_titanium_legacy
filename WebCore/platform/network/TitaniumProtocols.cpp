@@ -9,6 +9,7 @@
 #include "ResourceHandleInternal.h"
 #include "TextEncoding.h"
 #include "TitaniumProtocols.h"
+#include <assert.h>
 
 typedef void(*NormalizeURLCallback)(const char*, char*, int);
 typedef void(*URLToPathCallback)(const char*, char*, int);
