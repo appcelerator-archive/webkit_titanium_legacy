@@ -636,7 +636,7 @@ bool ResourceHandle::start(Frame* frame)
         bool isNormalized = strcmp(normalized.string().utf8().data(), url.string().utf8().data()) == 0;
 
         if (isNormalized && TitaniumProtocols::CanPreprocess(request())) {
-            startPreprocessed();
+            return startPreprocessed();
 
         } else {
             d->m_titaniumURL = strdup(url.string().utf8().data());
