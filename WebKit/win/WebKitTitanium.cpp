@@ -9,6 +9,7 @@
 #include <WebCore/StringHash.h>
 #include <wtf/Vector.h>
 #include <WebCore/ScriptElement.h>
+#include "WebCoreSupport/WebFrameLoaderClient.h"
 #include "TitaniumProtocols.h"
 #include "WebKitTitanium.h"
 

@@ -1,5 +1,6 @@
 #ifndef WebKitTitanium_h
 #define WebKitTitanium_h
+#include <WebKit/WebKit.h>
 
 #ifdef WEBKIT_EXPORTS
 #define WEBKIT_API __declspec(dllexport)
