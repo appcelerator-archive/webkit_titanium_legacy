@@ -583,6 +583,47 @@ void ResourceHandleManager::dispatchSynchronousJob(ResourceHandle* job)
     curl_easy_cleanup(handle->m_handle);
 }
 
+bool ResourceHandleManager::preprocess(ResourceHandle* handle)
+{
+    ResourceHandleClient* client = handle->client();
+    ResourceHandleInternal* d = handle->getInternal();
+    if (d->m_cancelled)
+        return false;
+
+    //d->m_idleHandler = 0;
+
+    ASSERT(client);
+    if (!client)
+        return false;
+
+    String mimeType;
+    String data = TitaniumProtocols::Preprocess(handle->request(), mimeType);
+
+    ResourceResponse response;
+    response.setExpectedContentLength(data.length());
+
+    response.setURL(handle->request().url());
+    response.setMimeType(mimeType);
+    response.setHTTPStatusCode(200);
+    response.setHTTPStatusText("OK");
+    response.setTextEncodingName("UTF-8");
+    response.setLastModifiedDate(time(NULL));
+    client->didReceiveResponse(handle, response);
+
+    if (d->m_cancelled)
+        return false;
+
+    if (data.length() > 0)
+        client->didReceiveData(handle, data.utf8().data(), data.length(), data.length());
+
+    if (d->m_cancelled)
+        return false;
+
+    client->didFinishLoading(handle);
+
+    return false;
+}
+
 void ResourceHandleManager::startJob(ResourceHandle* job)
 {
     KURL kurl = job->request().url();
@@ -590,6 +631,16 @@ void ResourceHandleManager::startJob(ResourceHandle* job)
     if (kurl.protocolIs("data")) {
         parseDataUrl(job);
         return;
+    }
+	
+	if (kurl.protocolIs("app") || kurl.protocolIs("ti"))
+	{
+        KURL normalized(TitaniumProtocols::NormalizeURL(kurl));
+        bool isNormalized = strcmp(normalized.string().utf8().data(), kurl.string().utf8().data()) == 0;
+        if (isNormalized && TitaniumProtocols::CanPreprocess(job->request())) {
+            preprocess(job);
+            return;
+        }
     }
 
     initializeHandle(job);

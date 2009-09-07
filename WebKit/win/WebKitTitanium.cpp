@@ -16,6 +16,14 @@ void setURLToFileURLCallback(URLToFileURLCallback cb) {
     WebCore::TitaniumProtocols::URLCallback = cb;
 }
 
+void setCanPreprocessCallback(CanPreprocessURLCallback cb) {
+    WebCore::TitaniumProtocols::CanPreprocessCallback = cb;
+}
+
+void setPreprocessCallback(PreprocessURLCallback cb) {
+    WebCore::TitaniumProtocols::PreprocessCallback = cb;
+}
+
 IWebURLRequest* STDMETHODCALLTYPE createWebURLRequest() {
 	WebMutableURLRequest *request = WebMutableURLRequest::createInstance();
 	
