@@ -460,13 +460,15 @@ static bool startData(ResourceHandle* handle, String urlString)
     return true;
 }
 
-static bool startPreprocessed()
+static bool startPreprocessed(ResourceHandle* handle)
 {
-    ResourceHandleInternal* d = this->getInternal();
+    ASSERT(handle);
+
+    ResourceHandleInternal* d = handle->getInternal();
 
     // If preprocessURL is called synchronously the job is not yet effectively started
     // and webkit won't never know that the data has been parsed even didFinishLoading is called.
-    d->m_idleHandler = g_idle_add(preprocessURL, this);
+    d->m_idleHandler = g_idle_add(preprocessURL, handle);
     return true;
 
 }
@@ -637,12 +639,12 @@ bool ResourceHandle::start(Frame* frame)
         bool isNormalized = strcmp(normalized.string().utf8().data(), url.string().utf8().data()) == 0;
 
         if (isNormalized && TitaniumProtocols::CanPreprocess(request())) {
-            return startPreprocessed();
+            return startPreprocessed(this);
 
         } else {
             d->m_titaniumURL = strdup(url.string().utf8().data());
             KURL fileURL = TitaniumProtocols::URLToFileURL(url);
-            return startGio(fileURL);
+            return startGio(this, fileURL);
         }
     }
 
@@ -924,10 +926,10 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
             ResourceRequest newRequest = handle->request();
             newRequest.setURL(normalized);
             if (d->client())
-                d->client()->willSendRequest(handle, newRequest, response);
+                d->client()->willSendRequest(handle.get(), newRequest, response);
 
         } else {
-            response.setURL(KURL(d->m_titaniumURL));
+            response.setURL(KURL(KURL(), d->m_titaniumURL));
             response.setHTTPStatusCode(200);
             response.setHTTPStatusText("OK");
         }

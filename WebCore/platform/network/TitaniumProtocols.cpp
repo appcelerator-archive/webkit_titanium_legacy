@@ -1,3 +1,9 @@
+/**
+ * Appcelerator WebKit - licensed under the Apache Public License 2
+ * see LICENSE in the root folder for details on the license.
+ * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
+ */
+
 #include "config.h"
 #include "Base64.h"
 #include "CString.h"
@@ -26,7 +32,7 @@ namespace WebCore {
         // artistic or just wrong.
         char* buffer = new char[4096];
         NormalizeCallback(url.string().utf8().data(), buffer, 4096);
-        KURL normalizedURL = KURL(buffer);
+        KURL normalizedURL(KURL(), buffer);
         delete [] buffer;
 
         return normalizedURL;
@@ -41,7 +47,7 @@ namespace WebCore {
         // artistic or just wrong.
         char* buffer = new char[4096];
         URLCallback(url.string().utf8().data(), buffer, 4096);
-        KURL fileURL = KURL(buffer);
+        KURL fileURL(KURL(), buffer);
         delete [] buffer;
 
         return fileURL;

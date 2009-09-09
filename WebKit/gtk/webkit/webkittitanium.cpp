@@ -1,4 +1,14 @@
+/**
+ * Appcelerator WebKit - licensed under the Apache Public License 2
+ * see LICENSE in the root folder for details on the license.
+ * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
+ */
+
 #include "config.h"
+#include "webkittitanium.h"
+
+#include "webkitprivate.h"
+
 #include "StringHash.h"
 #include <wtf/Vector.h>
 #include "ScriptSourceCode.h"
@@ -8,21 +18,10 @@
 #include "FrameLoaderClientGtk.h"
 #include "InspectorClientGtk.h"
 #include "TitaniumProtocols.h"
-#include <webkit/webkit.h>
-#include <webkit/webkittitanium.h>
 
 namespace WebCore {
     class String;
     class ScriptSourceCode;
-}
-
-gchar userAgentBuffer[1024];
-const gchar* webkit_titanium_get_user_agent()
-{
-    WebCore::String userAgent = WebKit::FrameLoaderClient::composeUserAgent();
-    strncpy(userAgentBuffer, userAgent.utf8().data(), 1023);
-    userAgentBuffer[1023] = '\0';
-    return userAgentBuffer;
 }
 
 void webkit_titanium_set_normalize_url_cb(NormalizeURLCallback cb) {

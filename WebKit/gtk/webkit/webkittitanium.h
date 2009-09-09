@@ -1,6 +1,13 @@
+/**
+ * Appcelerator WebKit - licensed under the Apache Public License 2
+ * see LICENSE in the root folder for details on the license.
+ * Copyright (c) 2009 Appcelerator, Inc. All Rights Reserved.
+ */
+
 #ifndef WEBKIT_TITANIUM_H
 #define WEBKIT_TITANIUM_H
-#include <webkit/webkit.h>
+
+#include <webkit/webkitdefines.h>
 
 G_BEGIN_DECLS
 
@@ -22,9 +29,6 @@ class WEBKIT_API WebKitWebScriptEvaluator {
         virtual bool matchesMimeType(const gchar * mimeType) = 0;
         virtual void evaluate(const gchar *mimeType, const gchar *sourceCode, void*) = 0;
 };
-
-WEBKIT_API const gchar*
-webkit_titanium_get_user_agent                           ();
 
 WEBKIT_API void
 webkit_titanium_add_script_evaluator                     (WebKitWebScriptEvaluator *evaluator);
