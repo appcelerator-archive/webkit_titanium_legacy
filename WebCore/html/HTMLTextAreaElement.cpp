@@ -27,6 +27,7 @@
 #include "HTMLTextAreaElement.h"
 
 #include "ChromeClient.h"
+#include "CSSValueKeywords.h"
 #include "Document.h"
 #include "Event.h"
 #include "EventNames.h"
@@ -106,32 +107,34 @@ int HTMLTextAreaElement::selectionEnd()
     return toRenderTextControl(renderer())->selectionEnd();
 }
 
+static RenderTextControl* rendererAfterUpdateLayout(HTMLTextAreaElement* element)
+{
+    element->document()->updateLayoutIgnorePendingStylesheets();
+    return toRenderTextControl(element->renderer());
+}
+
 void HTMLTextAreaElement::setSelectionStart(int start)
 {
-    if (!renderer())
-        return;
-    toRenderTextControl(renderer())->setSelectionStart(start);
+    if (RenderTextControl* renderer = rendererAfterUpdateLayout(this))
+        renderer->setSelectionStart(start);
 }
 
 void HTMLTextAreaElement::setSelectionEnd(int end)
 {
-    if (!renderer())
-        return;
-    toRenderTextControl(renderer())->setSelectionEnd(end);
+    if (RenderTextControl* renderer = rendererAfterUpdateLayout(this))
+        renderer->setSelectionEnd(end);
 }
 
 void HTMLTextAreaElement::select()
 {
-    if (!renderer())
-        return;
-    toRenderTextControl(renderer())->select();
+    if (RenderTextControl* renderer = rendererAfterUpdateLayout(this))
+        renderer->select();
 }
 
 void HTMLTextAreaElement::setSelectionRange(int start, int end)
 {
-    if (!renderer())
-        return;
-    toRenderTextControl(renderer())->setSelectionRange(start, end);
+    if (RenderTextControl* renderer = rendererAfterUpdateLayout(this))
+        renderer->setSelectionRange(start, end);
 }
 
 void HTMLTextAreaElement::childrenChanged(bool changedByParser, Node* beforeChange, Node* afterChange, int childCountDelta)
@@ -172,6 +175,15 @@ void HTMLTextAreaElement::parseMappedAttribute(MappedAttribute* attr)
             wrap = SoftWrap;
         if (wrap != m_wrap) {
             m_wrap = wrap;
+
+            if (shouldWrapText()) {
+                addCSSProperty(attr, CSSPropertyWhiteSpace, CSSValuePreWrap);
+                addCSSProperty(attr, CSSPropertyWordWrap, CSSValueBreakWord);
+            } else {
+                addCSSProperty(attr, CSSPropertyWhiteSpace, CSSValuePre);
+                addCSSProperty(attr, CSSPropertyWordWrap, CSSValueNormal);
+            }
+
             if (renderer())
                 renderer()->setNeedsLayoutAndPrefWidthsRecalc();
         }
@@ -180,6 +192,8 @@ void HTMLTextAreaElement::parseMappedAttribute(MappedAttribute* attr)
     } else if (attr->name() == alignAttr) {
         // Don't map 'align' attribute.  This matches what Firefox, Opera and IE do.
         // See http://bugs.webkit.org/show_bug.cgi?id=7075
+    } else if (attr->name() == placeholderAttr) {
+        updatePlaceholderVisibility(true);
     } else if (attr->name() == onfocusAttr)
         setAttributeEventListener(eventNames().focusEvent, createAttributeEventListener(this, attr));
     else if (attr->name() == onblurAttr)
@@ -229,7 +243,8 @@ bool HTMLTextAreaElement::isMouseFocusable() const
 void HTMLTextAreaElement::updateFocusAppearance(bool restorePreviousSelection)
 {
     ASSERT(renderer());
-    
+    ASSERT(!document()->childNeedsAndNotInStyleRecalc());
+
     if (!restorePreviousSelection || m_cachedSelectionStart < 0) {
 #if ENABLE(ON_FIRST_TEXTAREA_FOCUS_SELECT_ALL)
         // Devices with trackballs or d-pads may focus on a textarea in route
@@ -254,7 +269,7 @@ void HTMLTextAreaElement::updateFocusAppearance(bool restorePreviousSelection)
 void HTMLTextAreaElement::defaultEventHandler(Event* event)
 {
     if (renderer() && (event->isMouseEvent() || event->isDragEvent() || event->isWheelEvent() || event->type() == eventNames().blurEvent))
-        static_cast<RenderTextControlMultiLine*>(renderer())->forwardEvent(event);
+        toRenderTextControlMultiLine(renderer())->forwardEvent(event);
 
     HTMLFormControlElementWithState::defaultEventHandler(event);
 }
@@ -296,6 +311,7 @@ void HTMLTextAreaElement::setValue(const String& value)
 
     m_value = normalizedValue;
     setFormControlValueMatchesRenderer(true);
+    updatePlaceholderVisibility(false);
     if (inDocument())
         document()->updateStyleIfNeeded();
     if (renderer())
@@ -393,6 +409,31 @@ VisibleSelection HTMLTextAreaElement::selection() const
 bool HTMLTextAreaElement::shouldUseInputMethod() const
 {
     return true;
+}
+
+bool HTMLTextAreaElement::placeholderShouldBeVisible() const
+{
+    return value().isEmpty()
+        && document()->focusedNode() != this
+        && !getAttribute(placeholderAttr).isEmpty();
+}
+
+void HTMLTextAreaElement::updatePlaceholderVisibility(bool placeholderValueChanged)
+{
+    if (renderer())
+        toRenderTextControl(renderer())->updatePlaceholderVisibility(placeholderShouldBeVisible(), placeholderValueChanged);
+}
+
+void HTMLTextAreaElement::dispatchFocusEvent()
+{
+    updatePlaceholderVisibility(false);
+    HTMLFormControlElementWithState::dispatchFocusEvent();
+}
+
+void HTMLTextAreaElement::dispatchBlurEvent()
+{
+    updatePlaceholderVisibility(false);
+    HTMLFormControlElementWithState::dispatchBlurEvent();
 }
 
 } // namespace

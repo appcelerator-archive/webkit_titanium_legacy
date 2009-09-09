@@ -169,6 +169,8 @@ repeat
 repeat-x
 repeat-y
 no-repeat
+# round
+# space
 #
 # CSS_PROP__WEBKIT_BACKGROUND_COMPOSITE:
 #
@@ -260,6 +262,7 @@ table-cell
 table-caption
 -webkit-box
 -webkit-inline-box
+-wap-marquee
 #none
 #
 # CSS_PROP_CURSOR:
@@ -341,6 +344,7 @@ invert
 landscape
 level
 line-through
+local
 loud
 lower
 -webkit-marquee
@@ -504,9 +508,14 @@ media-mute-button
 media-play-button
 media-seek-back-button
 media-seek-forward-button
+media-rewind-button
+media-return-to-realtime-button
 media-slider
 media-sliderthumb
-media-timeline-container
+media-volume-slider-container
+media-volume-slider
+media-volume-sliderthumb
+media-controls-background
 media-current-time-display
 media-time-remaining-display
 menulist
@@ -541,15 +550,17 @@ round
 # border-box/content-box/padding-box should be used instead.
 #
 border
+border-box
 content
+content-box
 padding
 padding-box
 
 #
-# CSS_PROP_BOX_SIZING
+# background-size
 #
-border-box
-content-box
+contain
+cover
 
 #
 # CSS_PROP__KHTML_RTL_ORDERING

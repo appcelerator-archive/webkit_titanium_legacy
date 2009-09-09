@@ -29,19 +29,18 @@
 #if ENABLE(MAC_JAVA_BRIDGE)
 
 #include "Frame.h"
+#include "ScriptController.h"
+#include "StringSourceProvider.h"
 #include "WebCoreFrameView.h"
 #include "jni_runtime.h"
 #include "jni_utility.h"
-#include "ScriptController.h"
 #include "runtime_object.h"
 #include "runtime_root.h"
 #include <interpreter/CallFrame.h>
+#include <runtime/Completion.h>
 #include <runtime/JSGlobalObject.h>
 #include <runtime/JSLock.h>
-#include <runtime/Completion.h>
-#include <runtime/Completion.h>
 #include <wtf/Assertions.h>
-#include <parser/SourceProvider.h>
 
 using WebCore::Frame;
 
@@ -290,7 +289,7 @@ jobject JavaJSObject::call(jstring methodName, jobjectArray args) const
     
     // Lookup the function object.
     ExecState* exec = rootObject->globalObject()->globalExec();
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     
     Identifier identifier(exec, JavaString(methodName));
     JSValue function = _imp->get(exec, identifier);
@@ -315,7 +314,7 @@ jobject JavaJSObject::eval(jstring script) const
     
     JSValue result;
 
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     
     RootObject* rootObject = this->rootObject();
     if (!rootObject)
@@ -346,7 +345,7 @@ jobject JavaJSObject::getMember(jstring memberName) const
 
     ExecState* exec = rootObject->globalObject()->globalExec();
     
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     JSValue result = _imp->get(exec, Identifier(exec, JavaString(memberName)));
 
     return convertValueToJObject(result);
@@ -362,7 +361,7 @@ void JavaJSObject::setMember(jstring memberName, jobject value) const
 
     ExecState* exec = rootObject->globalObject()->globalExec();
 
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     PutPropertySlot slot;
     _imp->put(exec, Identifier(exec, JavaString(memberName)), convertJObjectToValue(exec, value), slot);
 }
@@ -377,7 +376,7 @@ void JavaJSObject::removeMember(jstring memberName) const
         return;
 
     ExecState* exec = rootObject->globalObject()->globalExec();
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     _imp->deleteProperty(exec, Identifier(exec, JavaString(memberName)));
 }
 
@@ -396,7 +395,7 @@ jobject JavaJSObject::getSlot(jint index) const
 
     ExecState* exec = rootObject->globalObject()->globalExec();
 
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     JSValue result = _imp->get(exec, index);
 
     return convertValueToJObject(result);
@@ -416,7 +415,7 @@ void JavaJSObject::setSlot(jint index, jobject value) const
         return;
 
     ExecState* exec = rootObject->globalObject()->globalExec();
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     _imp->put(exec, (unsigned)index, convertJObjectToValue(exec, value));
 }
 
@@ -429,7 +428,7 @@ jstring JavaJSObject::toString() const
     if (!rootObject)
         return 0;
 
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     JSObject *thisObj = const_cast<JSObject*>(_imp);
     ExecState* exec = rootObject->globalObject()->globalExec();
     
@@ -487,7 +486,7 @@ jlong JavaJSObject::createNative(jlong nativeHandle)
 
 jobject JavaJSObject::convertValueToJObject(JSValue value) const
 {
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     
     RootObject* rootObject = this->rootObject();
     if (!rootObject)
@@ -600,7 +599,7 @@ JSValue JavaJSObject::convertJObjectToValue(ExecState* exec, jobject theObject) 
         return imp;
     }
 
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
 
     return JavaInstance::create(theObject, _rootObject)->createRuntimeObject(exec);
 }

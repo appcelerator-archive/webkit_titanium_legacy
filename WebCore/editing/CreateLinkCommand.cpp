@@ -43,7 +43,7 @@ void CreateLinkCommand::doApply()
     if (endingSelection().isNone())
         return;
         
-    RefPtr<HTMLAnchorElement> anchorElement = new HTMLAnchorElement(document());
+    RefPtr<HTMLAnchorElement> anchorElement = HTMLAnchorElement::create(document());
     anchorElement->setHref(m_url);
     
     if (endingSelection().isRange()) {
@@ -51,7 +51,7 @@ void CreateLinkCommand::doApply()
         applyStyledElement(anchorElement.get());
     } else {
         insertNodeAt(anchorElement.get(), endingSelection().start());
-        RefPtr<Text> textNode = new Text(document(), m_url);
+        RefPtr<Text> textNode = Text::create(document(), m_url);
         appendNode(textNode.get(), anchorElement.get());
         setEndingSelection(VisibleSelection(positionBeforeNode(anchorElement.get()), positionAfterNode(anchorElement.get()), DOWNSTREAM));
     }

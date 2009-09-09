@@ -33,7 +33,7 @@
 namespace JSC {
 
     class JSByteArray : public JSObject {
-        friend class VPtrSet;
+        friend struct VPtrSet;
     public:
         bool canAccessIndex(unsigned i) { return i < m_storage->length(); }
         JSValue getIndex(ExecState* exec, unsigned i)
@@ -78,6 +78,7 @@ namespace JSC {
         
         virtual bool getOwnPropertySlot(JSC::ExecState*, const JSC::Identifier& propertyName, JSC::PropertySlot&);
         virtual bool getOwnPropertySlot(JSC::ExecState*, unsigned propertyName, JSC::PropertySlot&);
+        virtual bool getOwnPropertyDescriptor(ExecState*, const Identifier&, PropertyDescriptor&);
         virtual void put(JSC::ExecState*, const JSC::Identifier& propertyName, JSC::JSValue, JSC::PutPropertySlot&);
         virtual void put(JSC::ExecState*, unsigned propertyName, JSC::JSValue);
 

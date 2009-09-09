@@ -1,6 +1,6 @@
 // [Name] variable-reference-invalid-character.js 
 
-createWMLTestCase("Test that invalid variable references aren't detected until variable substitution is executed");
+createDynamicWMLTestCase("Test that invalid variable references aren't detected until variable substitution is executed");
 
 var pElement1;
 var pElement2;
@@ -11,7 +11,7 @@ function setupTestDocument() {
     var cardElement = testDocument.documentElement.firstChild;
 
     var anchorElement = createWMLElement("anchor");
-    anchorElement.appendChild(testDocument.createTextNode("Start test"));
+    anchorElement.textContent = "Start test";
     cardElement.appendChild(anchorElement);
 
     var refreshElement = createWMLElement("refresh");

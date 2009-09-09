@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef LocalStorageTask_h
@@ -34,25 +34,28 @@
 
 namespace WebCore {
 
-    class LocalStorageArea;
+    class StorageAreaSync;
     class LocalStorageThread;
 
+    // FIXME: Rename this class to StorageTask
     class LocalStorageTask : public ThreadSafeShared<LocalStorageTask> {
     public:
         enum Type { AreaImport, AreaSync, TerminateThread };
 
-        static PassRefPtr<LocalStorageTask> createImport(PassRefPtr<LocalStorageArea> area) { return adoptRef(new LocalStorageTask(AreaImport, area)); }
-        static PassRefPtr<LocalStorageTask> createSync(PassRefPtr<LocalStorageArea> area) { return adoptRef(new LocalStorageTask(AreaSync, area)); }
+        ~LocalStorageTask();
+
+        static PassRefPtr<LocalStorageTask> createImport(PassRefPtr<StorageAreaSync> area) { return adoptRef(new LocalStorageTask(AreaImport, area)); }
+        static PassRefPtr<LocalStorageTask> createSync(PassRefPtr<StorageAreaSync> area) { return adoptRef(new LocalStorageTask(AreaSync, area)); }
         static PassRefPtr<LocalStorageTask> createTerminate(PassRefPtr<LocalStorageThread> thread) { return adoptRef(new LocalStorageTask(TerminateThread, thread)); }
 
         void performTask();
 
     private:
-        LocalStorageTask(Type, PassRefPtr<LocalStorageArea>);
+        LocalStorageTask(Type, PassRefPtr<StorageAreaSync>);
         LocalStorageTask(Type, PassRefPtr<LocalStorageThread>);
 
         Type m_type;
-        RefPtr<LocalStorageArea> m_area;
+        RefPtr<StorageAreaSync> m_area;
         RefPtr<LocalStorageThread> m_thread;
     };
 

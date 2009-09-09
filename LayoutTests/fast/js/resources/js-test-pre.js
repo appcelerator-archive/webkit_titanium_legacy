@@ -72,6 +72,24 @@ function stringify(v)
     else return "" + v;
 }
 
+function evalAndLog(_a)
+{
+  if (typeof _a != "string")
+    debug("WARN: tryAndLog() expects a string argument");
+  var exception;
+  var _av;
+  try {
+     _av = eval(_a);
+  } catch (e) {
+     exception = e;
+  }
+
+  if (exception)
+    testFailed(_a + " threw exception " + exception);
+  else
+    debug(_a);
+}
+
 function shouldBe(_a, _b)
 {
   if (typeof _a != "string" || typeof _b != "string")
@@ -185,4 +203,20 @@ function shouldThrow(_a, _e)
     testFailed(_a + " should throw " + (typeof _e == "undefined" ? "an exception" : _ev) + ". Was undefined.");
   else
     testFailed(_a + " should throw " + (typeof _e == "undefined" ? "an exception" : _ev) + ". Was " + _av + ".");
+}
+
+function gc() {
+    if (typeof GCController !== "undefined")
+        GCController.collect();
+    else {
+        function gcRec(n) {
+            if (n < 1)
+                return {};
+            var temp = {i: "ab" + i + (i / 100000)};
+            temp += "foo";
+            gcRec(n-1);
+        }
+        for (var i = 0; i < 1000; i++)
+            gcRec(10)
+    }
 }

@@ -28,6 +28,10 @@ module html {
                  attribute [ConvertNullToNullString] DOMString defaultValue;
                  attribute boolean         defaultChecked;
         readonly attribute HTMLFormElement form;
+                 attribute boolean         formNoValidate;
+#if !defined(LANGUAGE_COM) || !LANGUAGE_COM
+        readonly attribute ValidityState   validity;
+#endif
                  attribute [ConvertNullToNullString] DOMString accept;
                  attribute [ConvertNullToNullString] DOMString accessKey;
                  attribute [ConvertNullToNullString] DOMString align;
@@ -35,11 +39,16 @@ module html {
                  attribute boolean         checked;
                  attribute boolean         disabled;
                  attribute boolean         autofocus;
+#if defined(ENABLE_DATALIST) && ENABLE_DATALIST
+        readonly attribute HTMLElement     list;
+#endif
                  attribute long            maxLength;
                  attribute boolean         multiple;
                  attribute [ConvertNullToNullString] DOMString name;
+                 attribute [Reflect] DOMString       pattern;
                  attribute DOMString       placeholder;
                  attribute boolean         readOnly;
+                 attribute boolean         required;
 #if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
                  attribute [ConvertToString] DOMString size; // DOM level 2 changed this to a long, but our existing API is a string
 #else
@@ -50,7 +59,12 @@ module html {
                  attribute [ConvertNullToNullString, JSCCustomGetter] DOMString type; // readonly dropped as part of DOM level 2
                  attribute [ConvertNullToNullString] DOMString useMap;
                  attribute [ConvertNullToNullString] DOMString value;
+#if defined(ENABLE_DATALIST) && ENABLE_DATALIST
+        readonly attribute HTMLOptionElement selectedOption;
+#endif
         readonly attribute boolean         willValidate;
+        boolean            checkValidity();
+        void               setCustomValidity(in [ConvertUndefinedOrNullToNullString] DOMString error);
         void               select();
         void               click();
         
@@ -69,7 +83,7 @@ module html {
         readonly attribute URL             absoluteImageURL;
 #endif
 
-#if !defined(LANGUAGE_COM)
+#if !defined(LANGUAGE_COM) || !LANGUAGE_COM
         readonly attribute FileList files;
 #endif
     };

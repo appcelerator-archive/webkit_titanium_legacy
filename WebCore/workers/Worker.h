@@ -29,11 +29,12 @@
 
 #if ENABLE(WORKERS)
 
-#include "AtomicStringHash.h"
+#include "AbstractWorker.h"
 #include "ActiveDOMObject.h"
+#include "AtomicStringHash.h"
 #include "EventListener.h"
 #include "EventTarget.h"
-#include "KURL.h"
+#include "MessagePort.h"
 #include "WorkerScriptLoaderClient.h"
 #include <wtf/OwnPtr.h>
 #include <wtf/PassRefPtr.h>
@@ -49,42 +50,29 @@ namespace WebCore {
 
     typedef int ExceptionCode;
 
-    class Worker : public RefCounted<Worker>, public ActiveDOMObject, private WorkerScriptLoaderClient, public EventTarget {
+    class Worker : public AbstractWorker, private WorkerScriptLoaderClient {
     public:
         static PassRefPtr<Worker> create(const String& url, ScriptExecutionContext* context, ExceptionCode& ec) { return adoptRef(new Worker(url, context, ec)); }
         ~Worker();
 
-        virtual ScriptExecutionContext* scriptExecutionContext() const { return ActiveDOMObject::scriptExecutionContext(); }
-
         virtual Worker* toWorker() { return this; }
 
-        void postMessage(const String& message);
+        void postMessage(const String&, ExceptionCode&);
+        void postMessage(const String&, const MessagePortArray*, ExceptionCode&);
+        // FIXME: remove this when we update the ObjC bindings (bug #28774).
+        void postMessage(const String& message, MessagePort*, ExceptionCode&);
 
         void terminate();
 
-        void dispatchMessage(const String&);
+        void dispatchMessage(const String&, PassOwnPtr<MessagePortArray>);
         void dispatchErrorEvent();
 
         virtual bool canSuspend() const;
         virtual void stop();
         virtual bool hasPendingActivity() const;
 
-        virtual void addEventListener(const AtomicString& eventType, PassRefPtr<EventListener>, bool useCapture);
-        virtual void removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture);
-        virtual bool dispatchEvent(PassRefPtr<Event>, ExceptionCode&);
-
-        typedef Vector<RefPtr<EventListener> > ListenerVector;
-        typedef HashMap<AtomicString, ListenerVector> EventListenersMap;
-        EventListenersMap& eventListeners() { return m_eventListeners; }
-
-        using RefCounted<Worker>::ref;
-        using RefCounted<Worker>::deref;
-
         void setOnmessage(PassRefPtr<EventListener> eventListener) { m_onMessageListener = eventListener; }
         EventListener* onmessage() const { return m_onMessageListener.get(); }
-
-        void setOnerror(PassRefPtr<EventListener> eventListener) { m_onErrorListener = eventListener; }
-        EventListener* onerror() const { return m_onErrorListener.get(); }
 
     private:
         Worker(const String&, ScriptExecutionContext*, ExceptionCode&);
@@ -94,14 +82,11 @@ namespace WebCore {
         virtual void refEventTarget() { ref(); }
         virtual void derefEventTarget() { deref(); }
 
-        KURL m_scriptURL;
         OwnPtr<WorkerScriptLoader> m_scriptLoader;
 
         WorkerContextProxy* m_contextProxy; // The proxy outlives the worker to perform thread shutdown.
 
         RefPtr<EventListener> m_onMessageListener;
-        RefPtr<EventListener> m_onErrorListener;
-        EventListenersMap m_eventListeners;
     };
 
 } // namespace WebCore

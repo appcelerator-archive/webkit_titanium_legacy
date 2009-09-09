@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -28,13 +28,12 @@
 
 #if ENABLE(DOM_STORAGE)
 
-#include "LocalStorage.h"
-#include "LocalStorageArea.h"
 #include "LocalStorageThread.h"
+#include "StorageAreaSync.h"
 
 namespace WebCore {
 
-LocalStorageTask::LocalStorageTask(Type type, PassRefPtr<LocalStorageArea> area)
+LocalStorageTask::LocalStorageTask(Type type, PassRefPtr<StorageAreaSync> area)
     : m_type(type)
     , m_area(area)
 {
@@ -48,6 +47,10 @@ LocalStorageTask::LocalStorageTask(Type type, PassRefPtr<LocalStorageThread> thr
 {
     ASSERT(m_thread);
     ASSERT(m_type == TerminateThread);
+}
+
+LocalStorageTask::~LocalStorageTask()
+{
 }
 
 void LocalStorageTask::performTask()
@@ -70,4 +73,3 @@ void LocalStorageTask::performTask()
 }
 
 #endif // ENABLE(DOM_STORAGE)
-

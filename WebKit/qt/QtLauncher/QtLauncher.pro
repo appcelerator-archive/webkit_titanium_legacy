@@ -6,5 +6,8 @@ DESTDIR = ../../../bin
 
 include(../../../WebKit.pri)
 
-macx:QT+=xml network
+QT += network
+macx:QT+=xml
 QMAKE_RPATHDIR = $$OUTPUT_DIR/lib $$QMAKE_RPATHDIR
+
+symbian:TARGET.UID3 = 0x200267D0

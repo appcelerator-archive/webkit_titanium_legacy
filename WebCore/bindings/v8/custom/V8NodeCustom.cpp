@@ -34,30 +34,36 @@
 #include "Document.h"
 #include "EventListener.h"
 
+#include "V8AbstractEventListener.h"
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
 #include "V8CustomEventListener.h"
 #include "V8Node.h"
+#include "V8ObjectEventListener.h"
 #include "V8Proxy.h"
 
 #include <wtf/RefPtr.h>
 
 namespace WebCore {
 
+static inline String toEventType(v8::Local<v8::String> value)
+{
+    String key = toWebCoreString(value);
+    ASSERT(key.startsWith("on"));
+    return key.substring(2);
+}
+
 CALLBACK_FUNC_DECL(NodeAddEventListener)
 {
     INC_STATS("DOM.Node.addEventListener()");
-    Node* node = V8Proxy::DOMWrapperToNode<Node>(args.Holder());
+    Node* node = V8DOMWrapper::convertDOMWrapperToNode<Node>(args.Holder());
 
-    V8Proxy* proxy = V8Proxy::retrieve(node->document()->frame());
-    if (!proxy)
-        return v8::Undefined();
-
-    RefPtr<EventListener> listener = proxy->FindOrCreateV8EventListener(args[1], false);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(node, args[1], false, false);
     if (listener) {
         String type = toWebCoreString(args[0]);
         bool useCapture = args[2]->BooleanValue();
         node->addEventListener(type, listener, useCapture);
+        createHiddenDependency(args.Holder(), args[1], V8Custom::kNodeEventListenerCacheIndex);
     }
     return v8::Undefined();
 }
@@ -65,20 +71,17 @@ CALLBACK_FUNC_DECL(NodeAddEventListener)
 CALLBACK_FUNC_DECL(NodeRemoveEventListener)
 {
     INC_STATS("DOM.Node.removeEventListener()");
-    Node* node = V8Proxy::DOMWrapperToNode<Node>(args.Holder());
+    Node* node = V8DOMWrapper::convertDOMWrapperToNode<Node>(args.Holder());
 
-    V8Proxy* proxy = V8Proxy::retrieve(node->document()->frame());
     // It is possbile that the owner document of the node is detached
-    // from the frame, return immediately in this case.
+    // from the frame.
     // See issue http://b/878909
-    if (!proxy)
-        return v8::Undefined();
-
-    RefPtr<EventListener> listener = proxy->FindV8EventListener(args[1], false);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(node, args[1], false, true);
     if (listener) {
         String type = toWebCoreString(args[0]);
         bool useCapture = args[2]->BooleanValue();
         node->removeEventListener(type, listener.get(), useCapture);
+        removeHiddenDependency(args.Holder(), args[1], V8Custom::kNodeEventListenerCacheIndex);
     }
 
     return v8::Undefined();
@@ -88,14 +91,14 @@ CALLBACK_FUNC_DECL(NodeRemoveEventListener)
 CALLBACK_FUNC_DECL(NodeInsertBefore)
 {
     INC_STATS("DOM.Node.insertBefore");
-    v8::Handle<v8::Value> holder = args.Holder();
-    Node* imp = V8Proxy::DOMWrapperToNode<Node>(holder);
+    v8::Handle<v8::Object> holder = args.Holder();
+    Node* imp = V8DOMWrapper::convertDOMWrapperToNode<Node>(holder);
     ExceptionCode ec = 0;
-    Node* newChild = V8Node::HasInstance(args[0]) ? V8Proxy::DOMWrapperToNode<Node>(args[0]) : 0;
-    Node* refChild = V8Node::HasInstance(args[1]) ? V8Proxy::DOMWrapperToNode<Node>(args[1]) : 0;
+    Node* newChild = V8Node::HasInstance(args[0]) ? V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[0])) : 0;
+    Node* refChild = V8Node::HasInstance(args[1]) ? V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[1])) : 0;
     bool success = imp->insertBefore(newChild, refChild, ec, true);
     if (ec) {
-        V8Proxy::SetDOMException(ec);
+        V8Proxy::setDOMException(ec);
         return v8::Handle<v8::Value>();
     }
     if (success)
@@ -107,14 +110,14 @@ CALLBACK_FUNC_DECL(NodeInsertBefore)
 CALLBACK_FUNC_DECL(NodeReplaceChild)
 {
     INC_STATS("DOM.Node.replaceChild");
-    v8::Handle<v8::Value> holder = args.Holder();
-    Node* imp = V8Proxy::DOMWrapperToNode<Node>(holder);
+    v8::Handle<v8::Object> holder = args.Holder();
+    Node* imp = V8DOMWrapper::convertDOMWrapperToNode<Node>(holder);
     ExceptionCode ec = 0;
-    Node* newChild = V8Node::HasInstance(args[0]) ? V8Proxy::DOMWrapperToNode<Node>(args[0]) : 0;
-    Node* oldChild = V8Node::HasInstance(args[1]) ? V8Proxy::DOMWrapperToNode<Node>(args[1]) : 0;
+    Node* newChild = V8Node::HasInstance(args[0]) ? V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[0])) : 0;
+    Node* oldChild = V8Node::HasInstance(args[1]) ? V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[1])) : 0;
     bool success = imp->replaceChild(newChild, oldChild, ec, true);
     if (ec) {
-        V8Proxy::SetDOMException(ec);
+        V8Proxy::setDOMException(ec);
         return v8::Handle<v8::Value>();
     }
     if (success)
@@ -125,13 +128,13 @@ CALLBACK_FUNC_DECL(NodeReplaceChild)
 CALLBACK_FUNC_DECL(NodeRemoveChild)
 {
     INC_STATS("DOM.Node.removeChild");
-    v8::Handle<v8::Value> holder = args.Holder();
-    Node* imp = V8Proxy::DOMWrapperToNode<Node>(holder);
+    v8::Handle<v8::Object> holder = args.Holder();
+    Node* imp = V8DOMWrapper::convertDOMWrapperToNode<Node>(holder);
     ExceptionCode ec = 0;
-    Node* oldChild = V8Node::HasInstance(args[0]) ? V8Proxy::DOMWrapperToNode<Node>(args[0]) : 0;
+    Node* oldChild = V8Node::HasInstance(args[0]) ? V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[0])) : 0;
     bool success = imp->removeChild(oldChild, ec);
     if (ec) {
-        V8Proxy::SetDOMException(ec);
+        V8Proxy::setDOMException(ec);
         return v8::Handle<v8::Value>();
     }
     if (success)
@@ -143,13 +146,13 @@ CALLBACK_FUNC_DECL(NodeRemoveChild)
 CALLBACK_FUNC_DECL(NodeAppendChild)
 {
     INC_STATS("DOM.Node.appendChild");
-    v8::Handle<v8::Value> holder = args.Holder();
-    Node* imp = V8Proxy::DOMWrapperToNode<Node>(holder);
+    v8::Handle<v8::Object> holder = args.Holder();
+    Node* imp = V8DOMWrapper::convertDOMWrapperToNode<Node>(holder);
     ExceptionCode ec = 0;
-    Node* newChild = V8Node::HasInstance(args[0]) ? V8Proxy::DOMWrapperToNode<Node>(args[0]) : 0;
+    Node* newChild = V8Node::HasInstance(args[0]) ? V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[0])) : 0;
     bool success = imp->appendChild(newChild, ec, true );
     if (ec) {
-        V8Proxy::SetDOMException(ec);
+        V8Proxy::setDOMException(ec);
         return v8::Handle<v8::Value>();
     }
     if (success)

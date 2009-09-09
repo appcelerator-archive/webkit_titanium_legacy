@@ -69,6 +69,7 @@ static Color disabledTextColor(const Color& textColor, const Color& backgroundCo
 
 RenderTextControl::RenderTextControl(Node* node)
     : RenderBlock(node)
+    , m_placeholderVisible(false)
     , m_edited(false)
     , m_userEdited(false)
 {
@@ -92,14 +93,22 @@ void RenderTextControl::styleDidChange(StyleDifference diff, const RenderStyle* 
         // Reset them now to avoid getting a spurious layout hint.
         textBlockRenderer->style()->setHeight(Length());
         textBlockRenderer->style()->setWidth(Length());
-        textBlockRenderer->setStyle(textBlockStyle);
-        for (Node* n = m_innerText->firstChild(); n; n = n->traverseNextNode(m_innerText.get())) {
-            if (n->renderer())
-                n->renderer()->setStyle(textBlockStyle);
-        }
+        setInnerTextStyle(textBlockStyle);
     }
 
     setReplaced(isInline());
+}
+
+void RenderTextControl::setInnerTextStyle(PassRefPtr<RenderStyle> style)
+{
+    if (m_innerText) {
+        RefPtr<RenderStyle> textStyle = style;
+        m_innerText->renderer()->setStyle(textStyle);
+        for (Node* n = m_innerText->firstChild(); n; n = n->traverseNextNode(m_innerText.get())) {
+            if (n->renderer())
+                n->renderer()->setStyle(textStyle);
+        }
+    }
 }
 
 static inline bool updateUserModifyProperty(Node* node, RenderStyle* style)
@@ -235,7 +244,7 @@ void RenderTextControl::setSelectionRange(int start, int end)
     end = max(end, 0);
     start = min(max(start, 0), end);
 
-    document()->updateLayout();
+    ASSERT(!document()->childNeedsAndNotInStyleRecalc());
 
     if (style()->visibility() == HIDDEN || !m_innerText || !m_innerText->renderer() || !m_innerText->renderBox()->height()) {
         cacheSelection(start, end);
@@ -325,26 +334,14 @@ String RenderTextControl::text()
     if (!m_innerText)
         return "";
  
-    Frame* frame = document()->frame();
-    Text* compositionNode = frame ? frame->editor()->compositionNode() : 0;
-
     Vector<UChar> result;
 
     for (Node* n = m_innerText.get(); n; n = n->traverseNextNode(m_innerText.get())) {
         if (n->hasTagName(brTag))
             result.append(&newlineCharacter, 1);
         else if (n->isTextNode()) {
-            Text* text = static_cast<Text*>(n);
-            String data = text->data();
-            unsigned length = data.length();
-            if (text != compositionNode)
-                result.append(data.characters(), length);
-            else {
-                unsigned compositionStart = min(frame->editor()->compositionStart(), length);
-                unsigned compositionEnd = min(max(compositionStart, frame->editor()->compositionEnd()), length);
-                result.append(data.characters(), compositionStart);
-                result.append(data.characters() + compositionEnd, length - compositionEnd);
-            }
+            String data = static_cast<Text*>(n)->data();
+            result.append(data.characters(), data.length());
         }
     }
 
@@ -386,9 +383,6 @@ String RenderTextControl::textWithHardLineBreaks()
     if (!box)
         return "";
 
-    Frame* frame = document()->frame();
-    Text* compositionNode = frame ? frame->editor()->compositionNode() : 0;
-
     Node* breakNode;
     unsigned breakOffset;
     RootInlineBox* line = box->root();
@@ -403,19 +397,7 @@ String RenderTextControl::textWithHardLineBreaks()
             Text* text = static_cast<Text*>(n);
             String data = text->data();
             unsigned length = data.length();
-            unsigned compositionStart = (text == compositionNode)
-                ? min(frame->editor()->compositionStart(), length) : 0;
-            unsigned compositionEnd = (text == compositionNode)
-                ? min(max(compositionStart, frame->editor()->compositionEnd()), length) : 0;
             unsigned position = 0;
-            while (breakNode == n && breakOffset < compositionStart) {
-                result.append(data.characters() + position, breakOffset - position);
-                position = breakOffset;
-                result.append(&newlineCharacter, 1);
-                getNextSoftBreak(line, breakNode, breakOffset);
-            }
-            result.append(data.characters() + position, compositionStart - position);
-            position = compositionEnd;
             while (breakNode == n && breakOffset <= length) {
                 if (breakOffset > position) {
                     result.append(data.characters() + position, breakOffset - position);
@@ -531,6 +513,20 @@ void RenderTextControl::addFocusRingRects(GraphicsContext* graphicsContext, int 
 HTMLElement* RenderTextControl::innerTextElement() const
 {
     return m_innerText.get();
+}
+
+void RenderTextControl::updatePlaceholderVisibility(bool placeholderShouldBeVisible, bool placeholderValueChanged)
+{
+    bool oldPlaceholderVisible = m_placeholderVisible;
+    m_placeholderVisible = placeholderShouldBeVisible;
+    if (oldPlaceholderVisible != m_placeholderVisible || placeholderValueChanged) {
+        // Sets the inner text style to the normal style or :placeholder style.
+        setInnerTextStyle(createInnerTextStyle(textBaseStyle()));
+
+        // updateFromElement() of the subclasses updates the text content
+        // to the element's value(), placeholder(), or the empty string.
+        updateFromElement();
+    }
 }
 
 } // namespace WebCore

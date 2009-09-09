@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -32,6 +32,20 @@
 #include "Storage.h"
 
 namespace WebCore {
+
+PassRefPtr<StorageEvent> StorageEvent::create()
+{
+    return adoptRef(new StorageEvent);
+}
+
+StorageEvent::StorageEvent()
+{
+}
+
+PassRefPtr<StorageEvent> StorageEvent::create(const AtomicString& type, const String& key, const String& oldValue, const String& newValue, const String& uri, PassRefPtr<DOMWindow> source, Storage* storageArea)
+{
+    return adoptRef(new StorageEvent(type, key, oldValue, newValue, uri, source, storageArea));
+}
 
 StorageEvent::StorageEvent(const AtomicString& type, const String& key, const String& oldValue, const String& newValue, const String& uri, PassRefPtr<DOMWindow> source, Storage* storageArea)
     : Event(type, false, true)
@@ -62,4 +76,3 @@ void StorageEvent::initStorageEvent(const AtomicString& type, bool canBubble, bo
 } // namespace WebCore
 
 #endif // ENABLE(DOM_STORAGE)
-

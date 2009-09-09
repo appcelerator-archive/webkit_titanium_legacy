@@ -301,7 +301,7 @@ void WebChromeClient::setResizable(bool b)
     [[m_webView _UIDelegateForwarder] webView:m_webView setResizable:b];
 }
 
-void WebChromeClient::addMessageToConsole(MessageSource source, MessageLevel level, const String& message, unsigned int lineNumber, const String& sourceURL)
+void WebChromeClient::addMessageToConsole(MessageSource source, MessageType type, MessageLevel level, const String& message, unsigned int lineNumber, const String& sourceURL)
 {
     id delegate = [m_webView UIDelegate];
     SEL selector = @selector(webView:addMessageToConsole:);
@@ -505,7 +505,7 @@ void WebChromeClient::mouseDidMoveOverElement(const HitTestResult& result, unsig
     [element release];
 }
 
-void WebChromeClient::setToolTip(const String& toolTip)
+void WebChromeClient::setToolTip(const String& toolTip, TextDirection)
 {
     [m_webView _setToolTip:toolTip];
 }
@@ -534,6 +534,13 @@ void WebChromeClient::exceededDatabaseQuota(Frame* frame, const String& database
     [webOrigin release];
 
     END_BLOCK_OBJC_EXCEPTIONS;
+}
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+void WebChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
+{
+    // FIXME: Free some space.
 }
 #endif
     
@@ -656,17 +663,39 @@ String WebChromeClient::generateReplacementFile(const String& path)
     return [[m_webView _UIDelegateForwarder] webView:m_webView generateReplacementFile:path];
 }
 
+void WebChromeClient::formStateDidChange(const WebCore::Node* node)
+{
+    CallUIDelegate(m_webView, @selector(webView:formStateDidChangeForNode:), kit(const_cast<WebCore::Node*>(node)));
+}
+
+void WebChromeClient::formDidFocus(const WebCore::Node* node)
+{
+    CallUIDelegate(m_webView, @selector(webView:formDidFocusNode:), kit(const_cast<WebCore::Node*>(node)));
+}
+
+void WebChromeClient::formDidBlur(const WebCore::Node* node)
+{
+    CallUIDelegate(m_webView, @selector(webView:formDidBlurNode:), kit(const_cast<WebCore::Node*>(node)));
+}
+
 #if USE(ACCELERATED_COMPOSITING)
 
 void WebChromeClient::attachRootGraphicsLayer(Frame* frame, GraphicsLayer* graphicsLayer)
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
-    WebFrameView *frameView = [kit(frame) frameView];
-    WebHTMLView *documentView = (WebHTMLView *)[frameView documentView];
+
+    NSView *documentView = [[kit(frame) frameView] documentView];
+    if (![documentView isKindOfClass:[WebHTMLView class]]) {
+        // We should never be attaching when we don't have a WebHTMLView.
+        ASSERT(!graphicsLayer);
+        return;
+    }
+
+    WebHTMLView *webHTMLView = (WebHTMLView *)documentView;
     if (graphicsLayer)
-        [documentView attachRootLayer:graphicsLayer->nativeLayer()];
+        [webHTMLView attachRootLayer:graphicsLayer->nativeLayer()];
     else
-        [documentView detachRootLayer];
+        [webHTMLView detachRootLayer];
     END_BLOCK_OBJC_EXCEPTIONS;
 }
 
@@ -677,10 +706,10 @@ void WebChromeClient::setNeedsOneShotDrawingSynchronization()
     END_BLOCK_OBJC_EXCEPTIONS;
 }
 
-void WebChromeClient::scheduleViewUpdate()
+void WebChromeClient::scheduleCompositingLayerSync()
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
-    [m_webView _scheduleViewUpdate];
+    [m_webView _scheduleCompositingLayerSync];
     END_BLOCK_OBJC_EXCEPTIONS;
 }
 

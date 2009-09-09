@@ -40,10 +40,15 @@
 #import <WebCore/Frame.h>
 #import <WebCore/FrameLoader.h>
 #import <WebCore/WebCoreURLResponse.h>
+#import <wtf/RefCountedLeakCounter.h>
 
 using namespace WebCore;
 
 namespace WebKit {
+
+#ifndef NDEBUG
+static WTF::RefCountedLeakCounter hostedNetscapePluginStreamCounter("HostedNetscapePluginStream");
+#endif
 
 HostedNetscapePluginStream::HostedNetscapePluginStream(NetscapePluginInstanceProxy* instance, uint32_t streamID, NSURLRequest *request)
     : m_instance(instance)
@@ -55,6 +60,10 @@ HostedNetscapePluginStream::HostedNetscapePluginStream(NetscapePluginInstancePro
 {
     if (core([instance->pluginView() webFrame])->loader()->shouldHideReferrer([request URL], core([instance->pluginView() webFrame])->loader()->outgoingReferrer()))
         [m_request.get() _web_setHTTPReferrer:nil];
+
+#ifndef NDEBUG
+    hostedNetscapePluginStreamCounter.increment();
+#endif
 }
 
 HostedNetscapePluginStream::HostedNetscapePluginStream(NetscapePluginInstanceProxy* instance, WebCore::FrameLoader* frameLoader)
@@ -63,6 +72,16 @@ HostedNetscapePluginStream::HostedNetscapePluginStream(NetscapePluginInstancePro
     , m_isTerminated(false)
     , m_frameLoader(frameLoader)
 {
+#ifndef NDEBUG
+    hostedNetscapePluginStreamCounter.increment();
+#endif
+}
+
+HostedNetscapePluginStream::~HostedNetscapePluginStream()
+{
+#ifndef NDEBUG
+    hostedNetscapePluginStreamCounter.decrement();
+#endif
 }
 
 void HostedNetscapePluginStream::startStreamWithResponse(NSURLResponse *response)
@@ -160,7 +179,7 @@ void HostedNetscapePluginStream::didReceiveResponse(NetscapePlugInStreamLoader*,
         [theHeaders appendBytes:"\0" length:1];
     }
     
-    startStream([r URL], expectedContentLength, WKGetNSURLResponseLastModifiedDate(r), [r _webcore_MIMEType], theHeaders);
+    startStream([r URL], expectedContentLength, WKGetNSURLResponseLastModifiedDate(r), [r MIMEType], theHeaders);
 }
 
 static NPReason reasonForError(NSError *error)
@@ -178,8 +197,9 @@ void HostedNetscapePluginStream::didFail(WebCore::NetscapePlugInStreamLoader*, c
 {
     if (NetscapePluginHostProxy* hostProxy = m_instance->hostProxy())
         _WKPHStreamDidFail(hostProxy->port(), m_instance->pluginID(), m_streamID, reasonForError(error));
+    m_instance->disconnectStream(this);
 }
-    
+
 bool HostedNetscapePluginStream::wantsAllStreams() const
 {
     // FIXME: Implement.
@@ -218,9 +238,7 @@ void HostedNetscapePluginStream::cancelLoad(NSError *error)
         ASSERT(!m_loader);
         
         DocumentLoader* documentLoader = m_frameLoader->activeDocumentLoader();
-        ASSERT(documentLoader);
-        
-        if (documentLoader->isLoadingMainResource())
+        if (documentLoader && documentLoader->isLoadingMainResource())
             documentLoader->cancelMainResourceLoad(error);
         return;
     }

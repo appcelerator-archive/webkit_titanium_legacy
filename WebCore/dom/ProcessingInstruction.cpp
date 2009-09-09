@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2000 Peter Kelly (pmk@post.com)
- * Copyright (C) 2006, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2006, 2008, 2009 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -35,19 +35,8 @@
 
 namespace WebCore {
 
-ProcessingInstruction::ProcessingInstruction(Document* doc)
-    : ContainerNode(doc)
-    , m_cachedSheet(0)
-    , m_loading(false)
-    , m_alternate(false)
-#if ENABLE(XSLT)
-    , m_isXSL(false)
-#endif
-{
-}
-
-ProcessingInstruction::ProcessingInstruction(Document* doc, const String& target, const String& data)
-    : ContainerNode(doc)
+inline ProcessingInstruction::ProcessingInstruction(Document* document, const String& target, const String& data)
+    : ContainerNode(document)
     , m_target(target)
     , m_data(data)
     , m_cachedSheet(0)
@@ -57,6 +46,11 @@ ProcessingInstruction::ProcessingInstruction(Document* doc, const String& target
     , m_isXSL(false)
 #endif
 {
+}
+
+PassRefPtr<ProcessingInstruction> ProcessingInstruction::create(Document* document, const String& target, const String& data)
+{
+    return adoptRef(new ProcessingInstruction(document, target, data));
 }
 
 ProcessingInstruction::~ProcessingInstruction()
@@ -95,8 +89,9 @@ void ProcessingInstruction::setNodeValue(const String& nodeValue, ExceptionCode&
 
 PassRefPtr<Node> ProcessingInstruction::cloneNode(bool /*deep*/)
 {
-    // ### copy m_localHref
-    return new ProcessingInstruction(document(), m_target, m_data);
+    // FIXME: Is it a problem that this does not copy m_localHref?
+    // What about other data members?
+    return create(document(), m_target, m_data);
 }
 
 // DOM Section 1.1.1
@@ -123,7 +118,7 @@ void ProcessingInstruction::checkStyleSheet()
         bool isCSS = type.isEmpty() || type == "text/css";
 #if ENABLE(XSLT)
         m_isXSL = (type == "text/xml" || type == "text/xsl" || type == "application/xml" ||
-                   type == "application/xhtml+xml" || type == "application/rss+xml" || type == "application/atom=xml");
+                   type == "application/xhtml+xml" || type == "application/rss+xml" || type == "application/atom+xml");
         if (!isCSS && !m_isXSL)
 #else
         if (!isCSS)
@@ -258,8 +253,7 @@ void ProcessingInstruction::removedFromDocument()
 {
     ContainerNode::removedFromDocument();
 
-    if (document()->renderer())
-        document()->removeStyleSheetCandidateNode(this);
+    document()->removeStyleSheetCandidateNode(this);
 
     // FIXME: It's terrible to do a synchronous update of the style selector just because a <style> or <link> element got removed.
     if (m_cachedSheet)

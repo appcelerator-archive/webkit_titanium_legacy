@@ -1,15 +1,25 @@
 rect: style.getPropertyValue(background-attachment) : scroll
 rect: style.getPropertyCSSValue(background-attachment) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(background-clip) : border-box
+rect: style.getPropertyCSSValue(background-clip) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(background-color) : rgba(0, 0, 0, 0)
 rect: style.getPropertyCSSValue(background-color) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(background-image) : none
 rect: style.getPropertyCSSValue(background-image) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(background-origin) : padding-box
+rect: style.getPropertyCSSValue(background-origin) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(background-position) : 0% 0%
 rect: style.getPropertyCSSValue(background-position) : [object CSSValueList]
 rect: style.getPropertyValue(background-repeat) : repeat
 rect: style.getPropertyCSSValue(background-repeat) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(background-size) : auto auto
+rect: style.getPropertyCSSValue(background-size) : [object CSSValueList]
 rect: style.getPropertyValue(border-bottom-color) : rgb(0, 0, 0)
 rect: style.getPropertyCSSValue(border-bottom-color) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(border-bottom-left-radius) : 0px
+rect: style.getPropertyCSSValue(border-bottom-left-radius) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(border-bottom-right-radius) : 0px
+rect: style.getPropertyCSSValue(border-bottom-right-radius) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(border-bottom-style) : none
 rect: style.getPropertyCSSValue(border-bottom-style) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(border-bottom-width) : 0px
@@ -30,12 +40,18 @@ rect: style.getPropertyValue(border-right-width) : 0px
 rect: style.getPropertyCSSValue(border-right-width) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(border-top-color) : rgb(0, 0, 0)
 rect: style.getPropertyCSSValue(border-top-color) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(border-top-left-radius) : 0px
+rect: style.getPropertyCSSValue(border-top-left-radius) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(border-top-right-radius) : 0px
+rect: style.getPropertyCSSValue(border-top-right-radius) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(border-top-style) : none
 rect: style.getPropertyCSSValue(border-top-style) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(border-top-width) : 0px
 rect: style.getPropertyCSSValue(border-top-width) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(bottom) : auto
 rect: style.getPropertyCSSValue(bottom) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(box-shadow) : none
+rect: style.getPropertyCSSValue(box-shadow) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(caption-side) : top
 rect: style.getPropertyCSSValue(caption-side) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(clear) : none
@@ -140,6 +156,8 @@ rect: style.getPropertyValue(text-indent) : 0px
 rect: style.getPropertyCSSValue(text-indent) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(text-shadow) : none
 rect: style.getPropertyCSSValue(text-shadow) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(text-overflow) : clip
+rect: style.getPropertyCSSValue(text-overflow) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(text-transform) : none
 rect: style.getPropertyCSSValue(text-transform) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(top) : auto
@@ -176,6 +194,8 @@ rect: style.getPropertyValue(-webkit-animation-iteration-count) : 1
 rect: style.getPropertyCSSValue(-webkit-animation-iteration-count) : [object CSSValueList]
 rect: style.getPropertyValue(-webkit-animation-name) : none
 rect: style.getPropertyCSSValue(-webkit-animation-name) : [object CSSValueList]
+rect: style.getPropertyValue(-webkit-animation-play-state) : running
+rect: style.getPropertyCSSValue(-webkit-animation-play-state) : [object CSSValueList]
 rect: style.getPropertyValue(-webkit-animation-timing-function) : cubic-bezier(0.25, 0.1, 0.25, 1)
 rect: style.getPropertyCSSValue(-webkit-animation-timing-function) : [object CSSValueList]
 rect: style.getPropertyValue(-webkit-appearance) : none
@@ -188,22 +208,12 @@ rect: style.getPropertyValue(-webkit-background-composite) : source-over
 rect: style.getPropertyCSSValue(-webkit-background-composite) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-background-origin) : padding-box
 rect: style.getPropertyCSSValue(-webkit-background-origin) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-background-size) : auto auto
-rect: style.getPropertyCSSValue(-webkit-background-size) : [object CSSValueList]
-rect: style.getPropertyValue(-webkit-border-bottom-left-radius) : 0px
-rect: style.getPropertyCSSValue(-webkit-border-bottom-left-radius) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-border-bottom-right-radius) : 0px
-rect: style.getPropertyCSSValue(-webkit-border-bottom-right-radius) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-border-fit) : border
 rect: style.getPropertyCSSValue(-webkit-border-fit) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-border-horizontal-spacing) : 0px
 rect: style.getPropertyCSSValue(-webkit-border-horizontal-spacing) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-border-image) : none
 rect: style.getPropertyCSSValue(-webkit-border-image) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-border-top-left-radius) : 0px
-rect: style.getPropertyCSSValue(-webkit-border-top-left-radius) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-border-top-right-radius) : 0px
-rect: style.getPropertyCSSValue(-webkit-border-top-right-radius) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-border-vertical-spacing) : 0px
 rect: style.getPropertyCSSValue(-webkit-border-vertical-spacing) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-box-align) : stretch
@@ -224,8 +234,6 @@ rect: style.getPropertyValue(-webkit-box-pack) : start
 rect: style.getPropertyCSSValue(-webkit-box-pack) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-box-reflect) : none
 rect: style.getPropertyCSSValue(-webkit-box-reflect) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-box-shadow) : none
-rect: style.getPropertyCSSValue(-webkit-box-shadow) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-box-sizing) : content-box
 rect: style.getPropertyCSSValue(-webkit-box-sizing) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-column-break-after) : auto
@@ -398,16 +406,26 @@ rect: style.getPropertyValue(glyph-orientation-vertical) : auto
 rect: style.getPropertyCSSValue(glyph-orientation-vertical) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-attachment) : scroll
 g: style.getPropertyCSSValue(background-attachment) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(background-clip) : border-box
+g: style.getPropertyCSSValue(background-clip) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-color) : rgba(0, 0, 0, 0)
 g: style.getPropertyCSSValue(background-color) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-image) : none
 g: style.getPropertyCSSValue(background-image) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(background-origin) : padding-box
+g: style.getPropertyCSSValue(background-origin) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(background-position) : 0% 0%
 g: style.getPropertyCSSValue(background-position) : [object CSSValueList]
 g: style.getPropertyValue(background-repeat) : repeat
 g: style.getPropertyCSSValue(background-repeat) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(background-size) : auto auto
+g: style.getPropertyCSSValue(background-size) : [object CSSValueList]
 g: style.getPropertyValue(border-bottom-color) : rgb(0, 0, 0)
 g: style.getPropertyCSSValue(border-bottom-color) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(border-bottom-left-radius) : 0px
+g: style.getPropertyCSSValue(border-bottom-left-radius) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(border-bottom-right-radius) : 0px
+g: style.getPropertyCSSValue(border-bottom-right-radius) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(border-bottom-style) : none
 g: style.getPropertyCSSValue(border-bottom-style) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(border-bottom-width) : 0px
@@ -428,12 +446,18 @@ g: style.getPropertyValue(border-right-width) : 0px
 g: style.getPropertyCSSValue(border-right-width) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(border-top-color) : rgb(0, 0, 0)
 g: style.getPropertyCSSValue(border-top-color) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(border-top-left-radius) : 0px
+g: style.getPropertyCSSValue(border-top-left-radius) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(border-top-right-radius) : 0px
+g: style.getPropertyCSSValue(border-top-right-radius) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(border-top-style) : none
 g: style.getPropertyCSSValue(border-top-style) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(border-top-width) : 0px
 g: style.getPropertyCSSValue(border-top-width) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(bottom) : auto
 g: style.getPropertyCSSValue(bottom) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(box-shadow) : none
+g: style.getPropertyCSSValue(box-shadow) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(caption-side) : top
 g: style.getPropertyCSSValue(caption-side) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(clear) : none
@@ -538,6 +562,8 @@ g: style.getPropertyValue(text-indent) : 0px
 g: style.getPropertyCSSValue(text-indent) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(text-shadow) : none
 g: style.getPropertyCSSValue(text-shadow) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(text-overflow) : clip
+g: style.getPropertyCSSValue(text-overflow) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(text-transform) : none
 g: style.getPropertyCSSValue(text-transform) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(top) : auto
@@ -574,6 +600,8 @@ g: style.getPropertyValue(-webkit-animation-iteration-count) : 1
 g: style.getPropertyCSSValue(-webkit-animation-iteration-count) : [object CSSValueList]
 g: style.getPropertyValue(-webkit-animation-name) : none
 g: style.getPropertyCSSValue(-webkit-animation-name) : [object CSSValueList]
+g: style.getPropertyValue(-webkit-animation-play-state) : running
+g: style.getPropertyCSSValue(-webkit-animation-play-state) : [object CSSValueList]
 g: style.getPropertyValue(-webkit-animation-timing-function) : cubic-bezier(0.25, 0.1, 0.25, 1)
 g: style.getPropertyCSSValue(-webkit-animation-timing-function) : [object CSSValueList]
 g: style.getPropertyValue(-webkit-appearance) : none
@@ -586,22 +614,12 @@ g: style.getPropertyValue(-webkit-background-composite) : source-over
 g: style.getPropertyCSSValue(-webkit-background-composite) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-background-origin) : padding-box
 g: style.getPropertyCSSValue(-webkit-background-origin) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-background-size) : auto auto
-g: style.getPropertyCSSValue(-webkit-background-size) : [object CSSValueList]
-g: style.getPropertyValue(-webkit-border-bottom-left-radius) : 0px
-g: style.getPropertyCSSValue(-webkit-border-bottom-left-radius) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-border-bottom-right-radius) : 0px
-g: style.getPropertyCSSValue(-webkit-border-bottom-right-radius) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-border-fit) : border
 g: style.getPropertyCSSValue(-webkit-border-fit) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-border-horizontal-spacing) : 0px
 g: style.getPropertyCSSValue(-webkit-border-horizontal-spacing) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-border-image) : none
 g: style.getPropertyCSSValue(-webkit-border-image) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-border-top-left-radius) : 0px
-g: style.getPropertyCSSValue(-webkit-border-top-left-radius) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-border-top-right-radius) : 0px
-g: style.getPropertyCSSValue(-webkit-border-top-right-radius) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-border-vertical-spacing) : 0px
 g: style.getPropertyCSSValue(-webkit-border-vertical-spacing) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-box-align) : stretch
@@ -622,8 +640,6 @@ g: style.getPropertyValue(-webkit-box-pack) : start
 g: style.getPropertyCSSValue(-webkit-box-pack) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-box-reflect) : none
 g: style.getPropertyCSSValue(-webkit-box-reflect) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-box-shadow) : none
-g: style.getPropertyCSSValue(-webkit-box-shadow) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-box-sizing) : content-box
 g: style.getPropertyCSSValue(-webkit-box-sizing) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-column-break-after) : auto

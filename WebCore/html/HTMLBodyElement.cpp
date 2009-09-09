@@ -3,7 +3,7 @@
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2000 Simon Hausmann (hausmann@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
- * Copyright (C) 2004, 2006, 2007, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2004, 2006, 2007, 2008, 2009 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -24,13 +24,9 @@
 #include "config.h"
 #include "HTMLBodyElement.h"
 
-#include "CSSHelper.h"
-#include "CSSMutableStyleDeclaration.h"
-#include "CSSPropertyNames.h"
 #include "CSSStyleSelector.h"
 #include "CSSStyleSheet.h"
 #include "CSSValueKeywords.h"
-#include "Document.h"
 #include "EventNames.h"
 #include "Frame.h"
 #include "FrameView.h"
@@ -43,8 +39,8 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
-HTMLBodyElement::HTMLBodyElement(const QualifiedName& tagName, Document* doc)
-    : HTMLElement(tagName, doc)
+HTMLBodyElement::HTMLBodyElement(const QualifiedName& tagName, Document* document)
+    : HTMLElement(tagName, document)
 {
     ASSERT(hasTagName(bodyTag));
 }
@@ -89,7 +85,7 @@ bool HTMLBodyElement::mapToEntry(const QualifiedName& attrName, MappedAttributeE
 void HTMLBodyElement::parseMappedAttribute(MappedAttribute *attr)
 {
     if (attr->name() == backgroundAttr) {
-        String url = parseURL(attr->value());
+        String url = deprecatedParseURL(attr->value());
         if (!url.isEmpty())
             addCSSImageProperty(attr, CSSPropertyBackgroundImage, document()->completeURL(url).string());
     } else if (attr->name() == marginwidthAttr || attr->name() == leftmarginAttr) {
@@ -139,10 +135,16 @@ void HTMLBodyElement::parseMappedAttribute(MappedAttribute *attr)
         document()->setWindowAttributeEventListener(eventNames().beforeunloadEvent, createAttributeEventListener(document()->frame(), attr));
     else if (attr->name() == onunloadAttr)
         document()->setWindowAttributeEventListener(eventNames().unloadEvent, createAttributeEventListener(document()->frame(), attr));
+    else if (attr->name() == onpagehideAttr)
+        document()->setWindowAttributeEventListener(eventNames().pagehideEvent, createAttributeEventListener(document()->frame(), attr));
+    else if (attr->name() == onpageshowAttr)
+        document()->setWindowAttributeEventListener(eventNames().pageshowEvent, createAttributeEventListener(document()->frame(), attr));
     else if (attr->name() == onblurAttr)
         document()->setWindowAttributeEventListener(eventNames().blurEvent, createAttributeEventListener(document()->frame(), attr));
     else if (attr->name() == onfocusAttr)
         document()->setWindowAttributeEventListener(eventNames().focusEvent, createAttributeEventListener(document()->frame(), attr));
+    else if (attr->name() == onhashchangeAttr)
+        document()->setWindowAttributeEventListener(eventNames().hashchangeEvent, createAttributeEventListener(document()->frame(), attr));
     else if (attr->name() == onresizeAttr)
         document()->setWindowAttributeEventListener(eventNames().resizeEvent, createAttributeEventListener(document()->frame(), attr));
     else if (attr->name() == onscrollAttr)
@@ -192,16 +194,6 @@ String HTMLBodyElement::aLink() const
 void HTMLBodyElement::setALink(const String& value)
 {
     setAttribute(alinkAttr, value);
-}
-
-String HTMLBodyElement::background() const
-{
-    return getAttribute(backgroundAttr);
-}
-
-void HTMLBodyElement::setBackground(const String& value)
-{
-    setAttribute(backgroundAttr, value);
 }
 
 String HTMLBodyElement::bgColor() const
@@ -315,7 +307,7 @@ void HTMLBodyElement::addSubresourceAttributeURLs(ListHashSet<KURL>& urls) const
 {
     HTMLElement::addSubresourceAttributeURLs(urls);
 
-    addSubresourceURL(urls, document()->completeURL(background()));
+    addSubresourceURL(urls, document()->completeURL(getAttribute(backgroundAttr)));
 }
 
 void HTMLBodyElement::didMoveToNewOwnerDocument()
@@ -337,7 +329,7 @@ EventListener* HTMLBodyElement::onblur() const
 
 void HTMLBodyElement::setOnblur(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().blurEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().blurEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onerror() const
@@ -347,7 +339,7 @@ EventListener* HTMLBodyElement::onerror() const
 
 void HTMLBodyElement::setOnerror(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().errorEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().errorEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onfocus() const
@@ -357,7 +349,7 @@ EventListener* HTMLBodyElement::onfocus() const
 
 void HTMLBodyElement::setOnfocus(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().focusEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().focusEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onload() const
@@ -367,7 +359,7 @@ EventListener* HTMLBodyElement::onload() const
 
 void HTMLBodyElement::setOnload(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().loadEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().loadEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onbeforeunload() const
@@ -377,9 +369,19 @@ EventListener* HTMLBodyElement::onbeforeunload() const
 
 void HTMLBodyElement::setOnbeforeunload(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().beforeunloadEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().beforeunloadEvent, eventListener);
 }
 
+EventListener* HTMLBodyElement::onhashchange() const
+{
+    return document()->getWindowAttributeEventListener(eventNames().hashchangeEvent);
+}
+
+void HTMLBodyElement::setOnhashchange(PassRefPtr<EventListener> eventListener)
+{
+    document()->setWindowAttributeEventListener(eventNames().hashchangeEvent, eventListener);
+}    
+                                                                                
 EventListener* HTMLBodyElement::onmessage() const
 {
     return document()->getWindowAttributeEventListener(eventNames().messageEvent);
@@ -387,7 +389,7 @@ EventListener* HTMLBodyElement::onmessage() const
 
 void HTMLBodyElement::setOnmessage(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().messageEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().messageEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onoffline() const
@@ -397,7 +399,7 @@ EventListener* HTMLBodyElement::onoffline() const
 
 void HTMLBodyElement::setOnoffline(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().offlineEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().offlineEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::ononline() const
@@ -407,7 +409,7 @@ EventListener* HTMLBodyElement::ononline() const
 
 void HTMLBodyElement::setOnonline(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().onlineEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().onlineEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onresize() const
@@ -417,7 +419,7 @@ EventListener* HTMLBodyElement::onresize() const
 
 void HTMLBodyElement::setOnresize(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().resizeEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().resizeEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onstorage() const
@@ -427,7 +429,7 @@ EventListener* HTMLBodyElement::onstorage() const
 
 void HTMLBodyElement::setOnstorage(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().storageEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().storageEvent, eventListener);
 }
 
 EventListener* HTMLBodyElement::onunload() const
@@ -437,7 +439,7 @@ EventListener* HTMLBodyElement::onunload() const
 
 void HTMLBodyElement::setOnunload(PassRefPtr<EventListener> eventListener)
 {
-    document()->setAttributeEventListener(eventNames().unloadEvent, eventListener);
+    document()->setWindowAttributeEventListener(eventNames().unloadEvent, eventListener);
 }
 
 } // namespace WebCore

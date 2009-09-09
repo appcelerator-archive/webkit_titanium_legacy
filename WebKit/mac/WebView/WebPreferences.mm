@@ -345,9 +345,11 @@ static WebCacheModel cacheModelForMainBundle(void)
         [NSNumber numberWithBool:YES],  WebKitAuthorAndUserStylesEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],   WebKitApplicationChromeModeEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],   WebKitWebArchiveDebugModeEnabledPreferenceKey,
+        [NSNumber numberWithBool:NO],   WebKitLocalFileContentSniffingEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],   WebKitOfflineWebApplicationCacheEnabledPreferenceKey,
         [NSNumber numberWithBool:YES],  WebKitZoomsTextOnlyPreferenceKey,
-        [NSNumber numberWithBool:NO],   WebKitXSSAuditorEnabledPreferenceKey,
+        [NSNumber numberWithBool:YES],  WebKitXSSAuditorEnabledPreferenceKey,
+        [NSNumber numberWithBool:YES],  WebKitAcceleratedCompositingEnabledPreferenceKey,
         nil];
 
     // This value shouldn't ever change, which is assumed in the initialization of WebKitPDFDisplayModePreferenceKey above
@@ -791,6 +793,16 @@ static WebCacheModel cacheModelForMainBundle(void)
     [self _setBoolValue:flag forKey:WebKitWebArchiveDebugModeEnabledPreferenceKey];
 }
 
+- (BOOL)localFileContentSniffingEnabled
+{
+    return [self _boolValueForKey:WebKitLocalFileContentSniffingEnabledPreferenceKey];
+}
+
+- (void)setLocalFileContentSniffingEnabled:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitLocalFileContentSniffingEnabledPreferenceKey];
+}
+
 - (BOOL)offlineWebApplicationCacheEnabled
 {
     return [self _boolValueForKey:WebKitOfflineWebApplicationCacheEnabledPreferenceKey];
@@ -1086,11 +1098,6 @@ static NSString *classIBCreatorID = nil;
     [self _setBoolValue:DOMPasteAllowed forKey:WebKitDOMPasteAllowedPreferenceKey];
 }
 
-- (void)_setFTPDirectoryTemplatePath:(NSString *)path
-{
-    [self _setStringValue:[path stringByStandardizingPath] forKey:WebKitFTPDirectoryTemplatePath];
-}
-
 - (NSString *)_localStorageDatabasePath
 {
     return [[self _stringValueForKey:WebKitLocalStorageDatabasePathPreferenceKey] stringByStandardizingPath];
@@ -1106,14 +1113,29 @@ static NSString *classIBCreatorID = nil;
     return [[self _stringValueForKey:WebKitFTPDirectoryTemplatePath] stringByStandardizingPath];
 }
 
-- (void)_setForceFTPDirectoryListings:(BOOL)force
+- (void)_setFTPDirectoryTemplatePath:(NSString *)path
 {
-    [self _setBoolValue:force forKey:WebKitForceFTPDirectoryListings];
+    [self _setStringValue:[path stringByStandardizingPath] forKey:WebKitFTPDirectoryTemplatePath];
 }
 
 - (BOOL)_forceFTPDirectoryListings
 {
     return [self _boolValueForKey:WebKitForceFTPDirectoryListings];
+}
+
+- (void)_setForceFTPDirectoryListings:(BOOL)force
+{
+    [self _setBoolValue:force forKey:WebKitForceFTPDirectoryListings];
+}
+
+- (BOOL)acceleratedCompositingEnabled
+{
+    return [self _boolValueForKey:WebKitAcceleratedCompositingEnabledPreferenceKey];
+}
+
+- (void)setAcceleratedCompositingEnabled:(BOOL)enabled
+{
+    [self _setBoolValue:enabled forKey:WebKitAcceleratedCompositingEnabledPreferenceKey];
 }
 
 - (void)didRemoveFromWebView
@@ -1130,6 +1152,12 @@ static NSString *classIBCreatorID = nil;
 {
     ++_private->numWebViews;
 }
+
+- (void)_setPreferenceForTestWithValue:(NSString *)value forKey:(NSString *)key
+{
+    [self _setStringValue:value forKey:key];
+}
+
 @end
 
 @implementation WebPreferences (WebInternal)

@@ -54,6 +54,7 @@ namespace WebCore {
         virtual Color platformInactiveSelectionBackgroundColor() const;
         virtual Color platformActiveSelectionForegroundColor() const;
         virtual Color platformInactiveSelectionForegroundColor() const;
+        virtual Color platformFocusRingColor() const;
 
         // To change the blink interval, override caretBlinkIntervalInternal instead of this one so that we may share layout test code an intercepts.
         virtual double caretBlinkInterval() const;
@@ -88,6 +89,12 @@ namespace WebCore {
         virtual void adjustSearchFieldResultsButtonStyle(CSSStyleSelector*, RenderStyle*, Element*) const;
         virtual bool paintSearchFieldResultsButton(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
 
+        virtual bool paintMediaControlsBackground(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
+        virtual bool paintMediaSliderTrack(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
+        virtual bool paintMediaVolumeSliderTrack(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
+        virtual void adjustSliderThumbSize(RenderObject*) const;
+        virtual bool paintMediaSliderThumb(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
+        virtual bool paintMediaVolumeSliderThumb(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
         virtual bool paintMediaPlayButton(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
         virtual bool paintMediaMuteButton(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
 
@@ -105,6 +112,9 @@ namespace WebCore {
         virtual void adjustMenuListButtonStyle(CSSStyleSelector*, RenderStyle*, Element*) const;
         virtual bool paintMenuListButton(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
 
+        virtual bool paintSliderTrack(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
+        virtual bool paintSliderThumb(RenderObject*, const RenderObject::PaintInfo&, const IntRect&);
+
         // These methods define the padding for the MenuList's inner block.
         virtual int popupInternalPaddingLeft(RenderStyle*) const;
         virtual int popupInternalPaddingRight(RenderStyle*) const;
@@ -115,6 +125,13 @@ namespace WebCore {
         virtual int buttonInternalPaddingRight() const;
         virtual int buttonInternalPaddingTop() const;
         virtual int buttonInternalPaddingBottom() const;
+
+        // Provide a way to pass the default font size from the Settings object
+        // to the render theme.  FIXME: http://b/1129186 A cleaner way would be
+        // to remove the default font size from this object and have callers
+        // that need the value to get it directly from the appropriate Settings
+        // object.
+        static void setDefaultFontSize(int);
 
     protected:
         static const String& defaultGUIFont();

@@ -49,21 +49,25 @@ CALLBACK_FUNC_DECL(HTMLAudioElementConstructor)
     if (!args.IsConstructCall())
         return throwError("DOM object constructor cannot be called as a function.");
 
-    Document* document = V8Proxy::retrieveFrame()->document();
+    Frame* frame = V8Proxy::retrieveFrameForCurrentContext();
+    if (!frame)
+        return throwError("Audio constructor associated frame is unavailable", V8Proxy::ReferenceError);
+
+    Document* document = frame->document();
     if (!document)
-        return throwError("Audio constructor associated document is unavailable", V8Proxy::REFERENCE_ERROR);
+        return throwError("Audio constructor associated document is unavailable", V8Proxy::ReferenceError);
 
     // Make sure the document is added to the DOM Node map. Otherwise, the HTMLAudioElement instance
     // may end up being the only node in the map and get garbage-ccollected prematurely.
-    V8Proxy::NodeToV8Object(document);
+    V8DOMWrapper::convertNodeToV8Object(document);
 
-    RefPtr<HTMLAudioElement> audio = new HTMLAudioElement(HTMLNames::audioTag, V8Proxy::retrieveFrame()->document());
+    RefPtr<HTMLAudioElement> audio = new HTMLAudioElement(HTMLNames::audioTag, document);
     if (args.Length() > 0)
         audio->setSrc(toWebCoreString(args[0]));
 
-    V8Proxy::SetDOMWrapper(args.Holder(), V8ClassIndex::ToInt(V8ClassIndex::NODE), audio.get());
+    V8DOMWrapper::setDOMWrapper(args.Holder(), V8ClassIndex::ToInt(V8ClassIndex::NODE), audio.get());
     audio->ref();
-    V8Proxy::SetJSWrapperForDOMNode(audio.get(), v8::Persistent<v8::Object>::New(args.Holder()));
+    V8DOMWrapper::setJSWrapperForDOMNode(audio.get(), v8::Persistent<v8::Object>::New(args.Holder()));
     return args.Holder();
 }
 

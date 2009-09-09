@@ -42,8 +42,8 @@ const ClassInfo JSNamedNodesCollection::s_info = { "Collection", 0, 0, 0 };
 // Such a collection is usually very short-lived, it only exists
 // for constructs like document.forms.<name>[1],
 // so it shouldn't be a problem that it's storing all the nodes (with the same name). (David)
-JSNamedNodesCollection::JSNamedNodesCollection(ExecState* exec, const Vector<RefPtr<Node> >& nodes)
-    : DOMObject(getDOMStructure<JSNamedNodesCollection>(exec))
+JSNamedNodesCollection::JSNamedNodesCollection(ExecState* exec, JSDOMGlobalObject* globalObject, const Vector<RefPtr<Node> >& nodes)
+    : DOMObjectWithGlobalPointer(getDOMStructure<JSNamedNodesCollection>(exec, globalObject), globalObject)
     , m_nodes(new Vector<RefPtr<Node> >(nodes))
 {
 }
@@ -86,7 +86,40 @@ bool JSNamedNodesCollection::getOwnPropertySlot(ExecState* exec, const Identifie
         }
     }
 
-    return DOMObject::getOwnPropertySlot(exec, propertyName, slot);
+    return DOMObjectWithGlobalPointer::getOwnPropertySlot(exec, propertyName, slot);
+}
+
+bool JSNamedNodesCollection::getOwnPropertyDescriptor(ExecState* exec, const Identifier& propertyName, PropertyDescriptor& descriptor)
+{
+    if (propertyName == exec->propertyNames().length) {
+        descriptor.setDescriptor(jsNumber(exec, m_nodes->size()), ReadOnly | DontDelete | DontEnum);
+        return true;
+    }
+    
+    bool ok;
+    unsigned index = propertyName.toUInt32(&ok);
+    if (ok && index < m_nodes->size()) {
+        PropertySlot slot;
+        slot.setCustomIndex(this, index, indexGetter);
+        descriptor.setDescriptor(slot.getValue(exec, propertyName), ReadOnly | DontDelete);
+        return true;
+    }
+    
+    // For IE compatibility, we need to be able to look up elements in a
+    // document.formName.name result by id as well as be index.
+    
+    AtomicString atomicPropertyName = propertyName;
+    for (unsigned i = 0; i < m_nodes->size(); i++) {
+        Node* node = (*m_nodes)[i].get();
+        if (node->hasAttributes() && node->attributes()->id() == atomicPropertyName) {
+            PropertySlot slot;
+            slot.setCustomIndex(this, i, indexGetter);
+            descriptor.setDescriptor(slot.getValue(exec, propertyName), ReadOnly | DontDelete);
+            return true;
+        }
+    }
+    
+    return DOMObjectWithGlobalPointer::getOwnPropertyDescriptor(exec, propertyName, descriptor);
 }
 
 } // namespace WebCore

@@ -109,6 +109,7 @@ namespace WebCore {
         virtual bool isWheelEvent() const;
         virtual bool isBeforeTextInsertedEvent() const;
         virtual bool isOverflowEvent() const;
+        virtual bool isPageTransitionEvent() const;
         virtual bool isProgressEvent() const;
         virtual bool isXMLHttpRequestProgressEvent() const;
         virtual bool isWebKitAnimationEvent() const;
@@ -119,7 +120,10 @@ namespace WebCore {
 #if ENABLE(DOM_STORAGE)
         virtual bool isStorageEvent() const;
 #endif
-
+#if ENABLE(WORKERS)
+        virtual bool isErrorEvent() const;
+#endif
+        
         bool propagationStopped() const { return m_propagationStopped; }
 
         bool defaultPrevented() const { return m_defaultPrevented; }

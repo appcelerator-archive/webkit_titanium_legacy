@@ -27,6 +27,7 @@
 #include "config.h"
 
 #include "AtomicString.h"
+#include "CSSComputedStyleDeclaration.h"
 #include "CSSMutableStyleDeclaration.h"
 #include "CSSPropertyNames.h"
 #include "CSSValueKeywords.h"
@@ -39,6 +40,7 @@
 #include "FormatBlockCommand.h"
 #include "Frame.h"
 #include "HTMLFontElement.h"
+#include "HTMLHRElement.h"
 #include "HTMLImageElement.h"
 #include "IndentOutdentCommand.h"
 #include "InsertListCommand.h"
@@ -89,64 +91,85 @@ static Frame* targetFrame(Frame* frame, Event* event)
     return node->document()->frame();
 }
 
-static bool executeApplyStyle(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, const String& propertyValue)
+static bool applyCommandToFrame(Frame* frame, EditorCommandSource source, EditAction action, CSSMutableStyleDeclaration* style)
 {
-    RefPtr<CSSMutableStyleDeclaration> style = CSSMutableStyleDeclaration::create();
-    style->setProperty(propertyID, propertyValue);
     // FIXME: We don't call shouldApplyStyle when the source is DOM; is there a good reason for that?
     switch (source) {
         case CommandFromMenuOrKeyBinding:
-            frame->editor()->applyStyleToSelection(style.get(), action);
+            frame->editor()->applyStyleToSelection(style, action);
             return true;
         case CommandFromDOM:
         case CommandFromDOMWithUserInterface:
-            frame->editor()->applyStyle(style.get());
+            frame->editor()->applyStyle(style);
             return true;
     }
     ASSERT_NOT_REACHED();
     return false;
 }
 
-static bool executeApplyStyle(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, const char* propertyValue)
+static bool executeApplyStyle(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, const String& propertyValue)
 {
-    return executeApplyStyle(frame, source, action, propertyID, String(propertyValue));
+    RefPtr<CSSMutableStyleDeclaration> style = CSSMutableStyleDeclaration::create();
+    style->setProperty(propertyID, propertyValue);
+    return applyCommandToFrame(frame, source, action, style.get());
 }
 
 static bool executeApplyStyle(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, int propertyValue)
 {
     RefPtr<CSSMutableStyleDeclaration> style = CSSMutableStyleDeclaration::create();
     style->setProperty(propertyID, propertyValue);
-    // FIXME: We don't call shouldApplyStyle when the source is DOM; is there a good reason for that?
-    switch (source) {
-        case CommandFromMenuOrKeyBinding:
-            frame->editor()->applyStyleToSelection(style.get(), action);
-            return true;
-        case CommandFromDOM:
-        case CommandFromDOMWithUserInterface:
-            frame->editor()->applyStyle(style.get());
-            return true;
+    return applyCommandToFrame(frame, source, action, style.get());
+}
+
+// FIXME: executeToggleStyleInList does not handle complicated cases such as <b><u>hello</u>world</b> properly.
+//        This function must use Editor::selectionHasStyle to determine the current style but we cannot fix this
+//        until https://bugs.webkit.org/show_bug.cgi?id=27818 is resolved.
+static bool executeToggleStyleInList(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, CSSValue* value)
+{
+    ExceptionCode ec = 0;
+    Node* nodeToRemove = 0;
+    RefPtr<CSSComputedStyleDeclaration> selectionStyle = frame->selectionComputedStyle(nodeToRemove);
+    RefPtr<CSSValue> selectedCSSValue = selectionStyle->getPropertyCSSValue(propertyID);
+    String newStyle = "none";
+    if (selectedCSSValue->isValueList()) {
+        RefPtr<CSSValueList> selectedCSSValueList = static_cast<CSSValueList*>(selectedCSSValue.get());
+        if (!selectedCSSValueList->removeAll(value))
+            selectedCSSValueList->append(value);
+        if (selectedCSSValueList->length())
+            newStyle = selectedCSSValueList->cssText();
+
+    } else if (selectedCSSValue->cssText() == "none")
+        newStyle = value->cssText();
+
+    ASSERT(ec == 0);
+    if (nodeToRemove) {
+        nodeToRemove->remove(ec);
+        ASSERT(ec == 0);
     }
-    ASSERT_NOT_REACHED();
-    return false;
+
+    // FIXME: We shouldn't be having to convert new style into text.  We should have setPropertyCSSValue.
+    RefPtr<CSSMutableStyleDeclaration> newMutableStyle = CSSMutableStyleDeclaration::create();
+    newMutableStyle->setProperty(propertyID, newStyle,ec);
+    return applyCommandToFrame(frame, source, action, newMutableStyle.get());
 }
 
 static bool executeToggleStyle(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, const char* offValue, const char* onValue)
 {
     RefPtr<CSSMutableStyleDeclaration> style = CSSMutableStyleDeclaration::create();
-    style->setProperty(propertyID, onValue);
-    style->setProperty(propertyID, frame->editor()->selectionStartHasStyle(style.get()) ? offValue : onValue);
-    // FIXME: We don't call shouldApplyStyle when the source is DOM; is there a good reason for that?
-    switch (source) {
-        case CommandFromMenuOrKeyBinding:
-            frame->editor()->applyStyleToSelection(style.get(), action);
-            return true;
-        case CommandFromDOM:
-        case CommandFromDOMWithUserInterface:
-            frame->editor()->applyStyle(style.get());
-            return true;
-    }
-    ASSERT_NOT_REACHED();
-    return false;
+    style->setProperty(propertyID, onValue); // We need to add this style to pass it to selectionStartHasStyle / selectionHasStyle
+
+    // Style is considered present when
+    // mac: present at the beginning of selection
+    // other: present throughout the selection
+    Settings* settings = frame->document()->settings();
+    bool styleIsPresent;
+    if (settings && settings->editingBehavior() == EditingMacBehavior)
+        styleIsPresent = frame->editor()->selectionStartHasStyle(style.get());
+    else
+        styleIsPresent = frame->editor()->selectionHasStyle(style.get()) == TrueTriState;
+
+    style->setProperty(propertyID, styleIsPresent ? offValue : onValue);
+    return applyCommandToFrame(frame, source, action, style.get());
 }
 
 static bool executeApplyParagraphStyle(Frame* frame, EditorCommandSource source, EditAction action, int propertyID, const String& propertyValue)
@@ -176,7 +199,7 @@ static bool executeInsertFragment(Frame* frame, PassRefPtr<DocumentFragment> fra
 
 static bool executeInsertNode(Frame* frame, PassRefPtr<Node> content)
 {
-    RefPtr<DocumentFragment> fragment = new DocumentFragment(frame->document());
+    RefPtr<DocumentFragment> fragment = DocumentFragment::create(frame->document());
     ExceptionCode ec = 0;
     fragment->appendChild(content, ec);
     if (ec)
@@ -445,9 +468,9 @@ static bool executeInsertBacktab(Frame* frame, Event* event, EditorCommandSource
 
 static bool executeInsertHorizontalRule(Frame* frame, Event*, EditorCommandSource, const String& value)
 {
-    RefPtr<HTMLElement> hr = new HTMLElement(hrTag, frame->document());
+    RefPtr<HTMLHRElement> hr = new HTMLHRElement(hrTag, frame->document());
     if (!value.isEmpty())
-        hr->setId(value);
+        hr->setAttribute(idAttr, value);
     return executeInsertNode(frame, hr.release());
 }
 
@@ -937,7 +960,8 @@ static bool executeSetMark(Frame* frame, Event*, EditorCommandSource, const Stri
 
 static bool executeStrikethrough(Frame* frame, Event*, EditorCommandSource source, const String&)
 {
-    return executeToggleStyle(frame, source, EditActionChangeAttributes, CSSPropertyWebkitTextDecorationsInEffect, "none", "line-through");
+    RefPtr<CSSPrimitiveValue> lineThrough = CSSPrimitiveValue::createIdentifier(CSSValueLineThrough);
+    return executeToggleStyleInList(frame, source, EditActionUnderline, CSSPropertyWebkitTextDecorationsInEffect, lineThrough.get());
 }
 
 static bool executeStyleWithCSS(Frame* frame, Event*, EditorCommandSource, const String& value)
@@ -990,8 +1014,8 @@ static bool executeTranspose(Frame* frame, Event*, EditorCommandSource, const St
 
 static bool executeUnderline(Frame* frame, Event*, EditorCommandSource source, const String&)
 {
-    // FIXME: This currently clears overline, line-through, and blink as an unwanted side effect.
-    return executeToggleStyle(frame, source, EditActionUnderline, CSSPropertyWebkitTextDecorationsInEffect, "none", "underline");
+    RefPtr<CSSPrimitiveValue> underline = CSSPrimitiveValue::createIdentifier(CSSValueUnderline);
+    return executeToggleStyleInList(frame, source, EditActionUnderline, CSSPropertyWebkitTextDecorationsInEffect, underline.get());
 }
 
 static bool executeUndo(Frame* frame, Event*, EditorCommandSource, const String&)
@@ -1170,7 +1194,7 @@ static TriState stateOrderedList(Frame* frame, Event*)
 
 static TriState stateStrikethrough(Frame* frame, Event*)
 {
-    return stateStyle(frame, CSSPropertyTextDecoration, "line-through");
+    return stateStyle(frame, CSSPropertyWebkitTextDecorationsInEffect, "line-through");
 }
 
 static TriState stateStyleWithCSS(Frame* frame, Event*)
@@ -1205,7 +1229,7 @@ static TriState stateTextWritingDirectionRightToLeft(Frame* frame, Event*)
 
 static TriState stateUnderline(Frame* frame, Event*)
 {
-    return stateStyle(frame, CSSPropertyTextDecoration, "underline");
+    return stateStyle(frame, CSSPropertyWebkitTextDecorationsInEffect, "underline");
 }
 
 static TriState stateUnorderedList(Frame* frame, Event*)

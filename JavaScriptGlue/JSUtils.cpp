@@ -104,7 +104,7 @@ JSUserObject* KJSValueToJSObject(JSValue inValue, ExecState *exec)
 {
     JSUserObject* result = 0;
 
-    if (inValue.isObject(&UserObjectImp::info)) {
+    if (inValue.inherits(&UserObjectImp::info)) {
         UserObjectImp* userObjectImp = static_cast<UserObjectImp *>(asObject(inValue));
         result = userObjectImp->GetJSUserObject();
         if (result)
@@ -128,7 +128,7 @@ JSUserObject* KJSValueToJSObject(JSValue inValue, ExecState *exec)
 //--------------------------------------------------------------------------
 JSValue JSObjectKJSValue(JSUserObject* ptr)
 {
-    JSLock lock(true);
+    JSLock lock(LockForReal);
 
     JSValue result = jsUndefined();
     if (ptr)
@@ -203,7 +203,7 @@ CFTypeRef KJSValueToCFTypeInternal(JSValue inValue, ExecState *exec, ObjectImpLi
 
     CFTypeRef result = 0;
 
-    JSLock lock(true);
+    JSLock lock(LockForReal);
 
         if (inValue.isBoolean())
             {
@@ -237,8 +237,8 @@ CFTypeRef KJSValueToCFTypeInternal(JSValue inValue, ExecState *exec, ObjectImpLi
 
         if (inValue.isObject())
             {
-                            if (inValue.isObject(&UserObjectImp::info)) {
-                                UserObjectImp* userObjectImp = static_cast<UserObjectImp *>(asObject(inValue));
+                if (inValue.inherits(&UserObjectImp::info)) {
+                    UserObjectImp* userObjectImp = static_cast<UserObjectImp *>(asObject(inValue));
                     JSUserObject* ptr = userObjectImp->GetJSUserObject();
                     if (ptr)
                     {
@@ -394,7 +394,7 @@ static pthread_once_t globalObjectKeyOnce = PTHREAD_ONCE_INIT;
 
 static void unprotectGlobalObject(void* data) 
 {
-    JSLock lock(true);
+    JSLock lock(LockForReal);
     gcUnprotect(static_cast<JSGlueGlobalObject*>(data));
 }
 

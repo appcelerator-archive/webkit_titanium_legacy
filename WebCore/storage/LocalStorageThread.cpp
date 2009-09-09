@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -28,9 +28,8 @@
 
 #if ENABLE(DOM_STORAGE)
 
-#include "LocalStorage.h"
-#include "LocalStorageArea.h"
 #include "LocalStorageTask.h"
+#include "StorageAreaSync.h"
 
 namespace WebCore {
 
@@ -87,13 +86,13 @@ void* LocalStorageThread::localStorageThread()
     return 0;
 }
 
-void LocalStorageThread::scheduleImport(PassRefPtr<LocalStorageArea> area)
+void LocalStorageThread::scheduleImport(PassRefPtr<StorageAreaSync> area)
 {
     ASSERT(!m_queue.killed() && m_threadID);
     m_queue.append(LocalStorageTask::createImport(area));
 }
 
-void LocalStorageThread::scheduleSync(PassRefPtr<LocalStorageArea> area)
+void LocalStorageThread::scheduleSync(PassRefPtr<StorageAreaSync> area)
 {
     ASSERT(!m_queue.killed() && m_threadID);
     m_queue.append(LocalStorageTask::createSync(area));
@@ -102,7 +101,7 @@ void LocalStorageThread::scheduleSync(PassRefPtr<LocalStorageArea> area)
 void LocalStorageThread::terminate()
 {
     ASSERT(isMainThread());
-    
+
     // Ideally we'd never be killing a thread that wasn't live, so ASSERT it.
     // But if we do in a release build, make sure to not wait on a condition that will never get signalled
     ASSERT(!m_queue.killed() && m_threadID);
@@ -110,9 +109,9 @@ void LocalStorageThread::terminate()
         return;
 
     MutexLocker locker(m_terminateLock);
-    
+
     m_queue.append(LocalStorageTask::createTerminate(this));
-    
+
     m_terminateCondition.wait(m_terminateLock);
 }
 
@@ -121,7 +120,7 @@ void LocalStorageThread::performTerminate()
     ASSERT(!isMainThread());
 
     m_queue.kill();
-        
+
     MutexLocker locker(m_terminateLock);
     m_terminateCondition.signal();
 }
@@ -129,4 +128,3 @@ void LocalStorageThread::performTerminate()
 }
 
 #endif // ENABLE(DOM_STORAGE)
-

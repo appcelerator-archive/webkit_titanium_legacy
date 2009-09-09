@@ -205,24 +205,26 @@ bool StringImpl::containsOnlyWhitespace()
     return true;
 }
 
-PassRefPtr<StringImpl> StringImpl::substring(unsigned pos, unsigned len)
+PassRefPtr<StringImpl> StringImpl::substring(unsigned start, unsigned length)
 {
-    if (pos >= m_length)
+    if (start >= m_length)
         return empty();
-    if (len > m_length - pos)
-        len = m_length - pos;
-    return create(m_data + pos, len);
+    unsigned maxLength = m_length - start;
+    if (length >= maxLength) {
+        if (!start)
+            return this;
+        length = maxLength;
+    }
+    return create(m_data + start, length);
 }
 
-PassRefPtr<StringImpl> StringImpl::substringCopy(unsigned pos, unsigned len)
+PassRefPtr<StringImpl> StringImpl::substringCopy(unsigned start, unsigned length)
 {
-    if (pos >= m_length)
-        pos = m_length;
-    if (len > m_length - pos)
-        len = m_length - pos;
-    if (!len)
+    start = min(start, m_length);
+    length = min(length, m_length - start);
+    if (!length)
         return adoptRef(new StringImpl);
-    return substring(pos, len);
+    return create(m_data + start, length);
 }
 
 UChar32 StringImpl::characterStartingAt(unsigned i)
@@ -537,9 +539,8 @@ static bool equal(const UChar* a, const char* b, int length)
     return true;
 }
 
-static bool equalIgnoringCase(const UChar* a, const char* b, int length)
+bool equalIgnoringCase(const UChar* a, const char* b, unsigned length)
 {
-    ASSERT(length >= 0);
     while (length--) {
         unsigned char bc = *b++;
         if (foldCase(*a++) != foldCase(bc))
@@ -925,6 +926,18 @@ bool equalIgnoringCase(StringImpl* a, const char* b)
     }
 
     return equal && !b[length];
+}
+
+bool equalIgnoringNullity(StringImpl* a, StringImpl* b)
+{
+    if (StringHash::equal(a, b))
+        return true;
+    if (!a && b && !b->length())
+        return true;
+    if (!b && a && !a->length())
+        return true;
+
+    return false;
 }
 
 Vector<char> StringImpl::ascii()

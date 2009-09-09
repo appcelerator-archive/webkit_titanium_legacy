@@ -36,11 +36,13 @@
 #include "HTMLFrameOwnerElement.h"
 #include "markup.h"
 #include "Page.h"
+#include "PlatformString.h"
 #include "RenderTreeAsText.h"
 #include "RenderObject.h"
 #include "RenderView.h"
 #include "ScriptController.h"
 #include "ScriptValue.h"
+#include "SubstituteData.h"
 #include "TextEncoding.h"
 
 #include "JSDOMBinding.h"
@@ -72,8 +74,7 @@ wxWebFrame::wxWebFrame(wxWebView* container, wxWebFrame* parent, WebViewFrameDat
     m_textMagnifier(1.0),
     m_isEditable(false),
     m_isInitialized(false),
-    m_beingDestroyed(false),
-    m_title(wxEmptyString)
+    m_beingDestroyed(false)
 {
 
     m_impl = new WebFramePrivate();
@@ -85,13 +86,16 @@ wxWebFrame::wxWebFrame(wxWebView* container, wxWebFrame* parent, WebViewFrameDat
     }
     
     WebCore::FrameLoaderClientWx* loaderClient = new WebCore::FrameLoaderClientWx();
-    
-    m_impl->frame = WebCore::Frame::create(container->m_impl->page, parentFrame, loaderClient);
-    m_impl->frame->deref();
+    RefPtr<WebCore::Frame> newFrame = WebCore::Frame::create(container->m_impl->page, parentFrame, loaderClient);
 
-    loaderClient->setFrame(m_impl->frame.get());
+    m_impl->frame = newFrame.get();
+
+    loaderClient->setFrame(this);
     loaderClient->setWebView(container);
     
+    if (data && data->ownerElement)
+        m_impl->frame->ref();
+
     m_impl->frame->init();
         
     m_isInitialized = true;
@@ -99,13 +103,14 @@ wxWebFrame::wxWebFrame(wxWebView* container, wxWebFrame* parent, WebViewFrameDat
 
 wxWebFrame::~wxWebFrame()
 {
-    m_impl->frame->loader()->detachFromParent();
+    if (m_impl)
+        delete m_impl;
 }
 
 WebCore::Frame* wxWebFrame::GetFrame()
 {
     if (m_impl)
-        return m_impl->frame.get();
+        return m_impl->frame;
         
     return 0;
 }
@@ -141,10 +146,16 @@ wxString wxWebFrame::GetPageSource()
 void wxWebFrame::SetPageSource(const wxString& source, const wxString& baseUrl)
 {
     if (m_impl->frame && m_impl->frame->loader()) {
-        WebCore::FrameLoader* loader = m_impl->frame->loader();
-        loader->begin(WebCore::KURL(WebCore::KURL(), static_cast<const char*>(baseUrl.mb_str(wxConvUTF8)), WebCore::UTF8Encoding()));
-        loader->write(static_cast<const WebCore::String>(source));
-        loader->end();
+        WebCore::KURL url(WebCore::KURL(), static_cast<const char*>(baseUrl.mb_str(wxConvUTF8)));
+
+        wxCharBuffer charBuffer(source.mb_str(wxConvUTF8));
+        const char* contents = charBuffer;
+
+        WTF::PassRefPtr<WebCore::SharedBuffer> sharedBuffer = WebCore::SharedBuffer::create(contents, strlen(contents));
+        WebCore::SubstituteData substituteData(sharedBuffer, WebCore::String("text/html"), WebCore::String("UTF-8"), WebCore::blankURL(), url);
+
+        m_impl->frame->loader()->stop();
+        m_impl->frame->loader()->load(WebCore::ResourceRequest(url), substituteData, false);
     }
 }
 

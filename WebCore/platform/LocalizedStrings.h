@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003, 2006 Apple Computer, Inc.  All rights reserved.
+ * Copyright (C) 2003, 2006, 2009 Apple Computer, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -115,6 +115,7 @@ namespace WebCore {
     String AXHeadingText();
     String AXDefinitionListTermText();
     String AXDefinitionListDefinitionText();
+    String AXARIAContentGroupText(const String& ariaType);
     
     String AXButtonActionVerb();
     String AXRadioButtonActionVerb();
@@ -132,6 +133,12 @@ namespace WebCore {
 #endif
 
     String imageTitle(const String& filename, const IntSize& size);
+
+    String mediaElementLoadingStateText();
+    String mediaElementLiveBroadcastStateText();
+    String localizedMediaControlElementString(const String&);
+    String localizedMediaControlElementHelpText(const String&);
+    String localizedMediaTimeDescription(float);
 }
 
 #endif

@@ -30,35 +30,18 @@
 #include "config.h"
 #include "MessagePortChannel.h"
 
-#include "PlatformMessagePortChannel.h"
-
 namespace WebCore {
 
-PassOwnPtr<MessagePortChannel> MessagePortChannel::create(PassRefPtr<PlatformMessagePortChannel> channel)
+
+PassOwnPtr<MessagePortChannel::EventData> MessagePortChannel::EventData::create(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
 {
-    return new MessagePortChannel(channel);
+    return new EventData(message, channels);
 }
 
-PassOwnPtr<MessagePortChannel::EventData> MessagePortChannel::EventData::create(const String& message, PassOwnPtr<MessagePortChannel> channel)
-{
-    return new EventData(message, channel);
-}
-
-MessagePortChannel::EventData::EventData(const String& message, PassOwnPtr<MessagePortChannel> channel)
+MessagePortChannel::EventData::EventData(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
     : m_message(message.copy())
-    , m_channel(channel)
+    , m_channels(channels)
 {
-}
-
-MessagePortChannel::MessagePortChannel(PassRefPtr<PlatformMessagePortChannel> channel)
-    : m_channel(channel)
-{
-}
-
-MessagePortChannel::~MessagePortChannel()
-{
-    // Make sure we close our platform channel when the base is freed, to keep the channel objects from leaking.
-    m_channel->close();
 }
 
 } // namespace WebCore

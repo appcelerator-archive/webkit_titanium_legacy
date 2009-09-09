@@ -78,7 +78,7 @@ public:
     void removeImgElement(HTMLImageElement*);
 
     bool prepareSubmit(Event*);
-    void submit(Event* = 0, bool activateSubmitButton = false, bool lockHistory = false, bool lockBackForwardList = false);
+    void submit(Event* = 0, bool activateSubmitButton = false, bool lockHistory = false);
     void reset();
 
     // Used to indicate a malformed state to keep from applying the bottom margin of the form.
@@ -96,6 +96,9 @@ public:
     String name() const;
     void setName(const String&);
 
+    bool noValidate() const;
+    void setNoValidate(bool);
+
     String acceptCharset() const { return m_formDataBuilder.acceptCharset(); }
     void setAcceptCharset(const String&);
 
@@ -107,7 +110,11 @@ public:
 
     virtual String target() const;
     void setTarget(const String&);
-    
+
+    HTMLFormControlElement* defaultButton() const;
+
+    bool checkValidity();
+
     PassRefPtr<HTMLFormControlElement> elementForAlias(const AtomicString&);
     void addElementAlias(HTMLFormControlElement*, const AtomicString& alias);
 

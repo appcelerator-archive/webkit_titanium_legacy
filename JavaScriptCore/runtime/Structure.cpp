@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2008, 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -159,8 +159,8 @@ Structure::~Structure()
         if (m_previous->m_usingSingleTransitionSlot) {
             m_previous->m_transitions.singleTransition = 0;
         } else {
-            ASSERT(m_previous->m_transitions.table->contains(make_pair(m_nameInPrevious.get(), make_pair(m_attributesInPrevious, m_specificValueInPrevious))));
-            m_previous->m_transitions.table->remove(make_pair(m_nameInPrevious.get(), make_pair(m_attributesInPrevious, m_specificValueInPrevious)));
+            ASSERT(m_previous->m_transitions.table->contains(make_pair(m_nameInPrevious.get(), m_attributesInPrevious), m_specificValueInPrevious));
+            m_previous->m_transitions.table->remove(make_pair(m_nameInPrevious.get(), m_attributesInPrevious), m_specificValueInPrevious);
         }
     }
 
@@ -385,14 +385,14 @@ PassRefPtr<Structure> Structure::addPropertyTransitionToExistingStructure(Struct
         Structure* existingTransition = structure->m_transitions.singleTransition;
         if (existingTransition && existingTransition->m_nameInPrevious.get() == propertyName.ustring().rep()
             && existingTransition->m_attributesInPrevious == attributes
-            && existingTransition->m_specificValueInPrevious == specificValue) {
+            && (existingTransition->m_specificValueInPrevious == specificValue || existingTransition->m_specificValueInPrevious == 0)) {
 
             ASSERT(structure->m_transitions.singleTransition->m_offset != noOffset);
             offset = structure->m_transitions.singleTransition->m_offset;
             return existingTransition;
         }
     } else {
-        if (Structure* existingTransition = structure->m_transitions.table->get(make_pair(propertyName.ustring().rep(), make_pair(attributes, specificValue)))) {
+        if (Structure* existingTransition = structure->m_transitions.table->get(make_pair(propertyName.ustring().rep(), attributes), specificValue)) {
             ASSERT(existingTransition->m_offset != noOffset);
             offset = existingTransition->m_offset;
             return existingTransition;
@@ -457,9 +457,9 @@ PassRefPtr<Structure> Structure::addPropertyTransition(Structure* structure, con
         structure->m_usingSingleTransitionSlot = false;
         StructureTransitionTable* transitionTable = new StructureTransitionTable;
         structure->m_transitions.table = transitionTable;
-        transitionTable->add(make_pair(existingTransition->m_nameInPrevious.get(), make_pair(existingTransition->m_attributesInPrevious, existingTransition->m_specificValueInPrevious)), existingTransition);
+        transitionTable->add(make_pair(existingTransition->m_nameInPrevious.get(), existingTransition->m_attributesInPrevious), existingTransition, existingTransition->m_specificValueInPrevious);
     }
-    structure->m_transitions.table->add(make_pair(propertyName.ustring().rep(), make_pair(attributes, specificValue)), transition.get());
+    structure->m_transitions.table->add(make_pair(propertyName.ustring().rep(), attributes), transition.get(), specificValue);
     return transition.release();
 }
 
@@ -825,6 +825,16 @@ size_t Structure::put(const Identifier& propertyName, unsigned attributes, JSCel
 
     checkConsistency();
     return newOffset;
+}
+
+bool Structure::hasTransition(UString::Rep* rep, unsigned attributes)
+{
+    if (m_usingSingleTransitionSlot) {
+        return m_transitions.singleTransition
+            && m_transitions.singleTransition->m_nameInPrevious == rep
+            && m_transitions.singleTransition->m_attributesInPrevious == attributes;
+    }
+    return m_transitions.table->hasTransition(make_pair(rep, attributes));
 }
 
 size_t Structure::remove(const Identifier& propertyName)

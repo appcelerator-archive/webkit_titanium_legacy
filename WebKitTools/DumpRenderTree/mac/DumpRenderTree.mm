@@ -27,6 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import "config.h"
 #import "DumpRenderTree.h"
 
 #import "AccessibilityController.h"
@@ -257,7 +258,7 @@ static void activateFonts()
     NSURL *resourcesDirectory = [NSURL URLWithString:@"DumpRenderTree.resources" relativeToURL:[[NSBundle mainBundle] executableURL]];
     for (unsigned i = 0; fontFileNames[i]; ++i) {
         NSURL *fontURL = [resourcesDirectory URLByAppendingPathComponent:[NSString stringWithUTF8String:fontFileNames[i]]];
-        [fontURLs addObject:fontURL];
+        [fontURLs addObject:[fontURL absoluteURL]];
     }
 
     CFArrayRef errors = 0;
@@ -290,6 +291,11 @@ WebView *createWebViewAndOffscreenWindow()
     // Put it at -10000, -10000 in "flipped coordinates", since WebCore and the DOM use flipped coordinates.
     NSRect windowRect = NSOffsetRect(rect, -10000, [[[NSScreen screens] objectAtIndex:0] frame].size.height - rect.size.height + 10000);
     DumpRenderTreeWindow *window = [[DumpRenderTreeWindow alloc] initWithContentRect:windowRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];
+
+#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
+    [window setColorSpace:[[NSScreen mainScreen] colorSpace]];
+#endif
+
     [[window contentView] addSubview:webView];
     [window orderBack:nil];
     [window setAutodisplay:NO];
@@ -348,7 +354,8 @@ static NSString *libraryPathForDumpRenderTree()
     return [@"~/Library/Application Support/DumpRenderTree" stringByExpandingTildeInPath];
 }
 
-static void setDefaultsToConsistentValuesForTesting()
+// Called before each test.
+static void resetDefaultsToConsistentValues()
 {
     // Give some clear to undocumented defaults values
     static const int NoFontSmoothing = 0;
@@ -378,15 +385,10 @@ static void setDefaultsToConsistentValuesForTesting()
     NSString *path = libraryPathForDumpRenderTree();
     [defaults setObject:[path stringByAppendingPathComponent:@"Databases"] forKey:WebDatabaseDirectoryDefaultsKey];
     [defaults setObject:[path stringByAppendingPathComponent:@"LocalCache"] forKey:WebKitLocalCacheDefaultsKey];
-    NSURLCache *sharedCache =
-        [[NSURLCache alloc] initWithMemoryCapacity:1024 * 1024
-                                      diskCapacity:0
-                                          diskPath:[path stringByAppendingPathComponent:@"URLCache"]];
-    [NSURLCache setSharedURLCache:sharedCache];
-    [sharedCache release];
 
     WebPreferences *preferences = [WebPreferences standardPreferences];
 
+    [preferences setAllowUniversalAccessFromFileURLs:YES];
     [preferences setStandardFontFamily:@"Times"];
     [preferences setFixedFontFamily:@"Courier"];
     [preferences setSerifFontFamily:@"Times"];
@@ -403,10 +405,41 @@ static void setDefaultsToConsistentValuesForTesting()
     [preferences setDOMPasteAllowed:YES];
     [preferences setShouldPrintBackgrounds:YES];
     [preferences setCacheModel:WebCacheModelDocumentBrowser];
+    [preferences setXSSAuditorEnabled:NO];
+
+    [preferences setPrivateBrowsingEnabled:NO];
+    [preferences setAuthorAndUserStylesEnabled:YES];
+    [preferences setJavaScriptCanOpenWindowsAutomatically:YES];
+    [preferences setOfflineWebApplicationCacheEnabled:YES];
+    [preferences setDeveloperExtrasEnabled:NO];
+    [preferences setXSSAuditorEnabled:NO];
+    [preferences setLoadsImagesAutomatically:YES];
+    if (persistentUserStyleSheetLocation) {
+        [preferences setUserStyleSheetLocation:[NSURL URLWithString:(NSString *)(persistentUserStyleSheetLocation.get())]];
+        [preferences setUserStyleSheetEnabled:YES];
+    } else
+        [preferences setUserStyleSheetEnabled:NO];
 
     // The back/forward cache is causing problems due to layouts during transition from one page to another.
     // So, turn it off for now, but we might want to turn it back on some day.
     [preferences setUsesPageCache:NO];
+
+    [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookieAcceptPolicy:NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain];
+}
+
+// Called once on DumpRenderTree startup.
+static void setDefaultsToConsistentValuesForTesting()
+{
+    resetDefaultsToConsistentValues();
+
+    NSString *path = libraryPathForDumpRenderTree();
+    NSURLCache *sharedCache =
+        [[NSURLCache alloc] initWithMemoryCapacity:1024 * 1024
+                                      diskCapacity:0
+                                          diskPath:[path stringByAppendingPathComponent:@"URLCache"]];
+    [NSURLCache setSharedURLCache:sharedCache];
+    [sharedCache release];
+
 }
 
 static void crashHandler(int sig)
@@ -615,7 +648,14 @@ static void dumpHistoryItem(WebHistoryItem *item, int indent, BOOL current)
     }
     for (int i = start; i < indent; i++)
         putchar(' ');
-    printf("%s", [[item URLString] UTF8String]);
+    
+    NSString *urlString = [item URLString];
+    if ([[NSURL URLWithString:urlString] isFileURL]) {
+        NSRange range = [urlString rangeOfString:@"/LayoutTests/"];
+        urlString = [@"(file test):" stringByAppendingString:[urlString substringFromIndex:(range.length + range.location)]];
+    }
+    
+    printf("%s", [urlString UTF8String]);
     NSString *target = [item target];
     if (target && [target length] > 0)
         printf(" (in frame \"%s\")", [target UTF8String]);
@@ -1034,28 +1074,19 @@ static void resetWebViewToConsistentStateBeforeTesting()
     [webView setPolicyDelegate:nil];
     [policyDelegate setPermissive:NO];
     [policyDelegate setControllerToNotifyDone:0];
+    [frameLoadDelegate resetToConsistentState];
     [webView _setDashboardBehavior:WebDashboardBehaviorUseBackwardCompatibilityMode to:NO];
     [webView _clearMainFrameName];
     [[webView undoManager] removeAllActions];
+    [WebView _removeAllUserContentFromGroup:[webView groupName]];
 
-    WebPreferences *preferences = [webView preferences];
-    [preferences setPrivateBrowsingEnabled:NO];
-    [preferences setAuthorAndUserStylesEnabled:YES];
-    [preferences setJavaScriptCanOpenWindowsAutomatically:YES];
-    [preferences setOfflineWebApplicationCacheEnabled:YES];
-    [preferences setDeveloperExtrasEnabled:NO];
-    [preferences setXSSAuditorEnabled:NO];
-
-    if (persistentUserStyleSheetLocation) {
-        [preferences setUserStyleSheetLocation:[NSURL URLWithString:(NSString *)(persistentUserStyleSheetLocation.get())]];
-        [preferences setUserStyleSheetEnabled:YES];
-    } else
-        [preferences setUserStyleSheetEnabled:NO];
+    resetDefaultsToConsistentValues();
 
     [[mainFrame webView] setSmartInsertDeleteEnabled:YES];
     [[[mainFrame webView] inspector] setJavaScriptProfilingEnabled:NO];
 
     [WebView _setUsesTestModeFocusRingColor:YES];
+    [WebView _resetOriginAccessWhiteLists];
 }
 
 static void runTest(const string& testPathOrURL)

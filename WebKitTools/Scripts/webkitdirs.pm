@@ -94,6 +94,7 @@ sub determineBaseProductDir
 {
     return if defined $baseProductDir;
     determineSourceDir();
+
     if (isAppleMacWebKit()) {
         # Silently remove ~/Library/Preferences/xcodebuild.plist which can
         # cause build failure. The presence of
@@ -121,38 +122,36 @@ sub determineBaseProductDir
                 undef $baseProductDir unless $baseProductDir =~ /^\//;
             }
         }
-    } else {
-        $baseProductDir = $ENV{"WEBKITOUTPUTDIR"};
-        if (isAppleWinWebKit() && $baseProductDir) {
-            my $unixBuildPath = `cygpath --unix \"$baseProductDir\"`;
-            chomp $unixBuildPath;
-            $baseProductDir = $unixBuildPath;
-        }
     }
 
-    if ($baseProductDir && isAppleMacWebKit()) {
+    if (!defined($baseProductDir)) { # Port-spesific checks failed, use default
+        $baseProductDir = $ENV{"WEBKITOUTPUTDIR"} || "$sourceDir/WebKitBuild";
+    }
+
+    if (isGit() && isGitBranchBuild()) {
+        my $branch = gitBranch();
+        $baseProductDir = "$baseProductDir/$branch";
+    }
+
+    if (isAppleMacWebKit()) {
         $baseProductDir =~ s|^\Q$(SRCROOT)/..\E$|$sourceDir|;
         $baseProductDir =~ s|^\Q$(SRCROOT)/../|$sourceDir/|;
         $baseProductDir =~ s|^~/|$ENV{HOME}/|;
         die "Can't handle Xcode product directory with a ~ in it.\n" if $baseProductDir =~ /~/;
         die "Can't handle Xcode product directory with a variable in it.\n" if $baseProductDir =~ /\$/;
-        @baseProductDirOption = ();
+        @baseProductDirOption = ("SYMROOT=$baseProductDir", "OBJROOT=$baseProductDir");
     }
 
-    if (!defined($baseProductDir)) {
-        $baseProductDir = "$sourceDir/WebKitBuild";
+    if (isCygwin()) {
+        my $dosBuildPath = `cygpath --windows \"$baseProductDir\"`;
+        chomp $dosBuildPath;
+        $ENV{"WEBKITOUTPUTDIR"} = $dosBuildPath;
+    }
 
-        if (isGit() && isGitBranchBuild()) {
-            my $branch = gitBranch();
-            $baseProductDir = "$baseProductDir/$branch";
-        }
-
-        @baseProductDirOption = ("SYMROOT=$baseProductDir", "OBJROOT=$baseProductDir") if (isAppleMacWebKit());
-        if (isCygwin()) {
-            my $dosBuildPath = `cygpath --windows \"$baseProductDir\"`;
-            chomp $dosBuildPath;
-            $ENV{"WEBKITOUTPUTDIR"} = $dosBuildPath;
-        }
+    if (isAppleWinWebKit()) {
+        my $unixBuildPath = `cygpath --unix \"$baseProductDir\"`;
+        chomp $unixBuildPath;
+        $baseProductDir = $unixBuildPath;
     }
 }
 
@@ -470,9 +469,17 @@ sub safariPath
         # Use Safari.app in product directory if present (good for Safari development team).
         if (isAppleMacWebKit() && -d "$configurationProductDir/Safari.app") {
             $safariBundle = "$configurationProductDir/Safari.app";
-        } elsif (isAppleWinWebKit() && -x "$configurationProductDir/bin/Safari.exe") {
-            $safariBundle = "$configurationProductDir/bin/Safari.exe";
-        } else {
+        } elsif (isAppleWinWebKit()) {
+            my $path = "$configurationProductDir/Safari.exe";
+            my $debugPath = "$configurationProductDir/Safari_debug.exe";
+
+            if (configurationForVisualStudio() =~ /Debug/ && -x $debugPath) {
+                $safariBundle = $debugPath;
+            } elsif (-x $path) {
+                $safariBundle = $path;
+            }
+        }
+        if (!$safariBundle) {
             return installedSafariPath();
         }
     }
@@ -799,6 +806,11 @@ sub isDebianBased()
     return -e "/etc/debian_version";
 }
 
+sub isFedoraBased()
+{
+    return -e "/etc/fedora-release";
+}
+
 sub isChromium()
 {
     determineIsChromium();
@@ -831,6 +843,16 @@ sub isCygwin()
 sub isDarwin()
 {
     return ($^O eq "darwin") || 0;
+}
+
+sub isWindows()
+{
+    return isCygwin() || ($^O eq "MSWin32") || 0;
+}
+
+sub isLinux()
+{
+    return ($^O eq "linux") || 0;
 }
 
 sub isAppleWebKit()
@@ -917,7 +939,7 @@ sub relativeScriptsDir()
 sub launcherPath()
 {
     my $relativeScriptsPath = relativeScriptsDir();
-    if (isGtk() || isQt()) {
+    if (isGtk() || isQt() || isWx()) {
         return "$relativeScriptsPath/run-launcher";
     } elsif (isAppleWebKit()) {
         return "$relativeScriptsPath/run-safari";
@@ -930,6 +952,8 @@ sub launcherName()
         return "GtkLauncher";
     } elsif (isQt()) {
         return "QtLauncher";
+    } elsif (isWx()) {
+        return "wxBrowser";
     } elsif (isAppleWebKit()) {
         return "Safari";
     }
@@ -975,23 +999,21 @@ sub setupCygwinEnv()
     return if !isCygwin();
     return if $vcBuildPath;
 
-    my $programFilesPath = `cygpath "$ENV{'PROGRAMFILES'}"`;
-    chomp $programFilesPath;
-    $vcBuildPath = "$programFilesPath/Microsoft Visual Studio 8/Common7/IDE/devenv.com";
+    my $vsInstallDir;
+    my $programFilesPath = $ENV{'PROGRAMFILES'} || "C:\\Program Files";
+    if ($ENV{'VSINSTALLDIR'}) {
+        $vsInstallDir = $ENV{'VSINSTALLDIR'};
+    } else {
+        $vsInstallDir = "$programFilesPath/Microsoft Visual Studio 8";
+    }
+    $vsInstallDir = `cygpath "$vsInstallDir"`;
+    chomp $vsInstallDir;
+    $vcBuildPath = "$vsInstallDir/Common7/IDE/devenv.com";
     if (-e $vcBuildPath) {
         # Visual Studio is installed; we can use pdevenv to build.
         $vcBuildPath = File::Spec->catfile(sourceDir(), qw(WebKitTools Scripts pdevenv));
     } else {
         # Visual Studio not found, try VC++ Express
-        my $vsInstallDir;
-        if ($ENV{'VSINSTALLDIR'}) {
-            $vsInstallDir = $ENV{'VSINSTALLDIR'};
-        } else {
-            $programFilesPath = $ENV{'PROGRAMFILES'} || "C:\\Program Files";
-            $vsInstallDir = "$programFilesPath/Microsoft Visual Studio 8";
-        }
-        $vsInstallDir = `cygpath "$vsInstallDir"`;
-        chomp $vsInstallDir;
         $vcBuildPath = "$vsInstallDir/Common7/IDE/VCExpress.exe";
         if (! -e $vcBuildPath) {
             print "*************************************************************\n";
@@ -1055,22 +1077,45 @@ sub buildVisualStudioProject
     return system @command;
 }
 
-sub buildSconsProject
+sub downloadWafIfNeeded
 {
-    my ($project, $shouldClean) = @_;
-    print "Building from $project/$project.scons\n";
+    # get / update waf if needed
+    my $waf = "$sourceDir/WebKitTools/wx/waf";
+    my $wafURL = 'http://wxwebkit.wxcommunity.com/downloads/deps/waf';
+    if (!-f $waf) {
+        my $result = system "curl -o $waf $wafURL";
+        chmod 0755, $waf;
+    }
+}
 
-    my $sconsCommand = "scons";
+sub buildWafProject
+{
+    my ($project, $shouldClean, @options) = @_;
+    
+    # set the PYTHONPATH for waf
+    my $pythonPath = $ENV{'PYTHONPATH'};
+    if (!defined($pythonPath)) {
+        $pythonPath = '';
+    }
+    my $sourceDir = sourceDir();
+    my $newPythonPath = "$sourceDir/WebKitTools/wx/build:$pythonPath";
     if (isCygwin()) {
-        # HACK: Launch scons with Win32 python instead of CYGWIN python
-        # Scons + MSVC only works under Win32 python
-        # http://scons.tigris.org/issues/show_bug.cgi?id=2266
-        $sconsCommand = "cmd /c 'C:\\Python26\\Scripts\\scons'";
+        $newPythonPath = `cygpath --mixed --path $newPythonPath`;
+    }
+    $ENV{'PYTHONPATH'} = $newPythonPath;
+    
+    print "Building $project\n";
+
+    my $wafCommand = "$sourceDir/WebKitTools/wx/waf";
+    if (isCygwin()) {
+        $wafCommand = `cygpath --windows "$wafCommand"`;
+        chomp($wafCommand);
     }
     if ($shouldClean) {
-        return system $sconsCommand, "--clean";
+        return system $wafCommand, "clean", "distclean";
     }
-    return system $sconsCommand;
+    
+    return system $wafCommand, 'configure', 'build', 'install', @options;
 }
 
 sub retrieveQMakespecVar
@@ -1228,13 +1273,13 @@ sub buildQMakeProject($@)
         push @buildArgs, "CONFIG-=release";
         push @buildArgs, "CONFIG+=debug";
     } else {
-        push @buildArgs, "CONFIG+=release";
         my $passedConfig = passedConfiguration() || "";
         if (!isDarwin() || $passedConfig =~ m/release/i) {
+            push @buildArgs, "CONFIG+=release";
             push @buildArgs, "CONFIG-=debug";
         } else {
+            push @buildArgs, "CONFIG+=debug";
             push @buildArgs, "CONFIG+=debug_and_release";
-            push @buildArgs, "CONFIG+=build_all";
         }
     }
 

@@ -30,46 +30,27 @@
 #include "qdir.h"
 #include "qfile.h"
 
-class QWebViewPrivate
-{
+class QWebViewPrivate {
 public:
     QWebViewPrivate(QWebView *view)
         : view(view)
         , page(0)
         , renderHints(QPainter::TextAntialiasing)
-#ifndef QT_NO_CURSOR
-        , cursorSetByWebCore(false)
-        , usesWebCoreCursor(true)
-#endif
     {}
+
+    void _q_pageDestroyed();
 
     QWebView *view;
     QWebPage *page;
 
     QPainter::RenderHints renderHints;
-
-#ifndef QT_NO_CURSOR
-    /*
-     * We keep track of if we have called setCursor and if the CursorChange
-     * event is sent due our setCursor call and if we currently use the WebCore
-     * Cursor and use it to decide if we can update to another WebCore Cursor.
-     */
-    bool cursorSetByWebCore;
-    bool usesWebCoreCursor;
-
-    void setCursor(const QCursor& newCursor)
-    {
-        webCoreCursor = newCursor;
-
-        if (usesWebCoreCursor) {
-            cursorSetByWebCore = true;
-            view->setCursor(webCoreCursor);
-        }
-    }
-
-    QCursor webCoreCursor;
-#endif
 };
+
+void QWebViewPrivate::_q_pageDestroyed()
+{
+    page = 0;
+    view->setPage(0);
+}
 
 /*!
     \class QWebView
@@ -87,7 +68,7 @@ public:
     \image qwebview-url.png
 
     A web site can be loaded onto QWebView with the load() function. Like all
-    Qt Widgets, the show() function must be invoked in order to display
+    Qt widgets, the show() function must be invoked in order to display
     QWebView. The snippet below illustrates this:
 
     \snippet webkitsnippets/simple/main.cpp Using QWebView
@@ -147,7 +128,8 @@ public:
     if you do not require QWidget attributes. Nevertheless, QtWebKit depends
     on QtGui, so you should use a QApplication instead of QCoreApplication.
 
-    \sa {Previewer Example}, {Browser}
+    \sa {Previewer Example}, {Web Browser}, {Form Extractor Example},
+    {Google Chat Example}, {Fancy Browser Example}
 */
 
 /*!
@@ -206,16 +188,15 @@ QWebPage *QWebView::page() const
 
     \sa page()
 */
-void QWebView::setPage(QWebPage *page)
+void QWebView::setPage(QWebPage* page)
 {
     if (d->page == page)
         return;
     if (d->page) {
-        if (d->page->parent() == this) {
+        if (d->page->parent() == this)
             delete d->page;
-        } else {
+        else
             d->page->disconnect(this);
-        }
     }
     d->page = page;
     if (d->page) {
@@ -243,6 +224,8 @@ void QWebView::setPage(QWebPage *page)
 
         connect(d->page, SIGNAL(microFocusChanged()),
                 this, SLOT(updateMicroFocus()));
+        connect(d->page, SIGNAL(destroyed()),
+                this, SLOT(_q_pageDestroyed()));
     }
     setAttribute(Qt::WA_OpaquePaintEvent, d->page);
     update();
@@ -270,19 +253,24 @@ void QWebView::setPage(QWebPage *page)
     'ftp'. The result is then passed through QUrl's tolerant parser, and
     in the case or success, a valid QUrl is returned, or else a QUrl().
 
-    Examples
-    - webkit.org becomes http://webkit.org
-    - ftp.webkit.org becomes ftp://ftp.webkit.org
-    - localhost becomes http://localhost
-    - /home/user/test.html becomes file:///home/user/test.html (if exists)
+    \section1 Examples:
 
-    Tips when dealing with URLs and strings
-    - When creating a QString from a QByteArray or a char*, always use
+    \list
+    \o webkit.org becomes http://webkit.org
+    \o ftp.webkit.org becomes ftp://ftp.webkit.org
+    \o localhost becomes http://localhost
+    \o /home/user/test.html becomes file:///home/user/test.html (if exists)
+    \endlist
+
+    \section2 Tips when dealing with URLs and strings:
+
+    \list
+    \o When creating a QString from a QByteArray or a char*, always use
       QString::fromUtf8().
-    - Do not use QUrl(string), nor QUrl::toString() anywhere where the URL might
-      be used, such as in the location bar, as those functions loose data.
-      Instead use QUrl::fromEncoded() and QUrl::toEncoded(), respectively.
-
+    \o Do not use QUrl(string), nor QUrl::toString() anywhere where the URL might
+       be used, such as in the location bar, as those functions loose data.
+       Instead use QUrl::fromEncoded() and QUrl::toEncoded(), respectively.
+    \endlist
  */
 QUrl QWebView::guessUrlFromString(const QString &string)
 {
@@ -612,6 +600,8 @@ qreal QWebView::textSizeMultiplier() const
     These hints are used to initialize QPainter before painting the web page.
 
     QPainter::TextAntialiasing is enabled by default.
+
+    \sa QPainter::renderHints()
 */
 QPainter::RenderHints QWebView::renderHints() const
 {
@@ -646,9 +636,18 @@ void QWebView::setRenderHint(QPainter::RenderHint hint, bool enabled)
 
 
 /*!
-    Finds the next occurrence of the string, \a subString, in the page, using
-    the given \a options. Returns true of \a subString was found and selects
-    the match visually; otherwise returns false.
+    Finds the specified string, \a subString, in the page, using the given \a options.
+
+    If the HighlightAllOccurrences flag is passed, the function will highlight all occurrences
+    that exist in the page. All subsequent calls will extend the highlight, rather than
+    replace it, with occurrences of the new string.
+
+    If the HighlightAllOccurrences flag is not passed, the function will select an occurrence
+    and all subsequent calls will replace the current occurrence with the next one.
+
+    To clear the selection, just pass an empty string.
+
+    Returns true if \a subString was found; otherwise returns false.
 
     \sa selectedText(), selectionChanged()
 */
@@ -679,24 +678,30 @@ bool QWebView::event(QEvent *e)
         if (e->type() == QEvent::ShortcutOverride) {
             d->page->event(e);
 #ifndef QT_NO_CURSOR
-        } else if (e->type() == static_cast<QEvent::Type>(WebCore::SetCursorEvent::EventType)) {
-            d->setCursor(static_cast<WebCore::SetCursorEvent*>(e)->cursor());
 #if QT_VERSION >= 0x040400
         } else if (e->type() == QEvent::CursorChange) {
-            // Okay we might use the WebCore Cursor now.
-            d->usesWebCoreCursor = d->cursorSetByWebCore;
-            d->cursorSetByWebCore = false;
-
-            // Go back to the WebCore Cursor. QWidget::unsetCursor is appromixated with this
-            if (!d->usesWebCoreCursor && cursor().shape() == Qt::ArrowCursor) {
-                d->usesWebCoreCursor = true;
-                d->setCursor(d->webCoreCursor);
+            // might be a QWidget::unsetCursor()
+            if (cursor().shape() == Qt::ArrowCursor) {
+                QVariant prop = property("WebCoreCursor");
+                if (prop.isValid()) {
+                    QCursor webCoreCursor = qvariant_cast<QCursor>(prop);
+                    if (webCoreCursor.shape() != Qt::ArrowCursor)
+                        setCursor(webCoreCursor);
+                }
+            }
+        } else if (e->type() == QEvent::DynamicPropertyChange) {
+            const QByteArray& propName = static_cast<QDynamicPropertyChangeEvent *>(e)->propertyName();
+            if (!qstrcmp(propName, "WebCoreCursor")) {
+                QVariant prop = property("WebCoreCursor");
+                if (prop.isValid()) {
+                    QCursor webCoreCursor = qvariant_cast<QCursor>(prop);
+                    setCursor(webCoreCursor);
+                }
             }
 #endif
 #endif
-        } else if (e->type() == QEvent::Leave) {
+        } else if (e->type() == QEvent::Leave)
             d->page->event(e);
-        }
     }
 
     return QWidget::event(e);
@@ -799,7 +804,7 @@ void QWebView::paintEvent(QPaintEvent *ev)
 
 #ifdef    QWEBKIT_TIME_RENDERING
     int elapsed = time.elapsed();
-    qDebug()<<"paint event on "<<ev->region()<<", took to render =  "<<elapsed;
+    qDebug() << "paint event on " << ev->region() << ", took to render =  " << elapsed;
 #endif
 }
 
@@ -995,9 +1000,8 @@ void QWebView::inputMethodEvent(QInputMethodEvent *e)
 */
 void QWebView::changeEvent(QEvent *e)
 {
-    if (d->page && e->type() == QEvent::PaletteChange) {
+    if (d->page && e->type() == QEvent::PaletteChange)
         d->page->setPalette(palette());
-    }
     QWidget::changeEvent(e);
 }
 
@@ -1081,3 +1085,6 @@ void QWebView::changeEvent(QEvent *e)
 
     \sa QWebPage::linkDelegationPolicy()
 */
+
+#include "moc_qwebview.cpp"
+

@@ -33,8 +33,7 @@
 #include "SVGTests.h"
 #include "SVGZoomAndPan.h"
 
-namespace WebCore
-{
+namespace WebCore {
     class SVGAngle;
     class SVGLength;
     class SVGTransform;
@@ -46,8 +45,7 @@ namespace WebCore
                           public SVGLangSpace,
                           public SVGExternalResourcesRequired,
                           public SVGFitToViewBox,
-                          public SVGZoomAndPan
-    {
+                          public SVGZoomAndPan {
     public:
         SVGSVGElement(const QualifiedName&, Document*);
         virtual ~SVGSVGElement();
@@ -96,8 +94,8 @@ namespace WebCore
         float getCurrentTime() const;
         void setCurrentTime(float seconds);
 
-        unsigned long suspendRedraw(unsigned long max_wait_milliseconds);
-        void unsuspendRedraw(unsigned long suspend_handle_id, ExceptionCode&);
+        unsigned suspendRedraw(unsigned maxWaitMilliseconds);
+        void unsuspendRedraw(unsigned suspendHandleId);
         void unsuspendRedrawAll();
         void forceRedraw();
 

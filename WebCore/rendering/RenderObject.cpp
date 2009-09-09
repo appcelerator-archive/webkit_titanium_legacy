@@ -4,6 +4,7 @@
  *           (C) 2000 Dirk Mueller (mueller@kde.org)
  *           (C) 2004 Allan Sandfeld Jensen (kde@carewolf.com)
  * Copyright (C) 2004, 2005, 2006, 2007, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -142,6 +143,12 @@ RenderObject* RenderObject::createObject(Node* node, RenderStyle* style)
             o = new (arena) RenderTableCell(node);
             break;
         case TABLE_CAPTION:
+#if ENABLE(WCSS)
+        // As per the section 17.1 of the spec WAP-239-WCSS-20011026-a.pdf, 
+        // the marquee box inherits and extends the characteristics of the 
+        // principal block box ([CSS2] section 9.2.1).
+        case WAP_MARQUEE:
+#endif
             o = new (arena) RenderBlock(node);
             break;
         case BOX:
@@ -197,7 +204,6 @@ RenderObject::RenderObject(Node* node)
     , m_selectionState(SelectionNone)
     , m_hasColumns(false)
     , m_cellWidthChanged(false)
-    , m_replacedHasOverflow(false)
 {
 #ifndef NDEBUG
     renderObjectCounter.increment();
@@ -247,9 +253,10 @@ bool RenderObject::isHTMLMarquee() const
 
 static void updateListMarkerNumbers(RenderObject* child)
 {
-    for (RenderObject* r = child; r; r = r->nextSibling())
-        if (r->isListItem())
-            static_cast<RenderListItem*>(r)->updateValue();
+    for (RenderObject* sibling = child; sibling; sibling = sibling->nextSibling()) {
+        if (sibling->isListItem())
+            toRenderListItem(sibling)->updateValue();
+    }
 }
 
 void RenderObject::addChild(RenderObject* newChild, RenderObject* beforeChild)
@@ -285,7 +292,7 @@ void RenderObject::addChild(RenderObject* newChild, RenderObject* beforeChild)
         RenderTable* table;
         RenderObject* afterChild = beforeChild ? beforeChild->previousSibling() : children->lastChild();
         if (afterChild && afterChild->isAnonymous() && afterChild->isTable())
-            table = static_cast<RenderTable*>(afterChild);
+            table = toRenderTable(afterChild);
         else {
             table = new (renderArena()) RenderTable(document() /* is anonymous */);
             RefPtr<RenderStyle> newStyle = RenderStyle::create();
@@ -595,7 +602,7 @@ void RenderObject::setLayerNeedsFullRepaint()
 RenderBlock* RenderObject::containingBlock() const
 {
     if (isTableCell()) {
-        const RenderTableCell* cell = static_cast<const RenderTableCell*>(this);
+        const RenderTableCell* cell = toRenderTableCell(this);
         if (parent() && cell->section())
             return cell->table();
         return 0;
@@ -649,10 +656,10 @@ static bool mustRepaintFillLayers(const RenderObject* renderer, const FillLayer*
     if (!layer->xPosition().isZero() || !layer->yPosition().isZero())
         return true;
 
-    if (layer->isSizeSet()) {
-        if (layer->size().width().isPercent() || layer->size().height().isPercent())
+    if (layer->size().type == SizeLength) {
+        if (layer->size().size.width().isPercent() || layer->size().size.height().isPercent())
             return true;
-    } else if (img->usesImageContainerSize())
+    } else if (layer->size().type == Contain || layer->size().type == Cover || img->usesImageContainerSize())
         return true;
 
     return false;
@@ -774,7 +781,7 @@ void RenderObject::drawLineForBoxSide(GraphicsContext* graphicsContext, int x1, 
                         break;
                     case BSRight:
                         drawLineForBoxSide(graphicsContext, x1, y1 + max((adjbw1 * 2 + 1) / 3, 0),
-                                   x1 + third, y2 - max(( adjbw2 * 2 + 1) / 3, 0),
+                                   x1 + third, y2 - max((adjbw2 * 2 + 1) / 3, 0),
                                    s, c, textcolor, SOLID, adjbw1bigthird, adjbw2bigthird);
                         drawLineForBoxSide(graphicsContext, x2 - third, y1 + max((-adjbw1 * 2 + 1) / 3, 0),
                                    x2, y2 - max((-adjbw2 * 2 + 1) / 3, 0),
@@ -1213,12 +1220,11 @@ bool RenderObject::repaintAfterLayoutIfNeeded(RenderBoxModelObject* repaintConta
     // two rectangles (but typically only one).
     RenderStyle* outlineStyle = outlineStyleForRepaint();
     int ow = outlineStyle->outlineSize();
-    ShadowData* boxShadow = style()->boxShadow();
     int width = abs(newOutlineBox.width() - oldOutlineBox.width());
     if (width) {
-        int shadowRight = 0;
-        for (ShadowData* shadow = boxShadow; shadow; shadow = shadow->next)
-            shadowRight = max(shadow->x + shadow->blur, shadowRight);
+        int shadowLeft;
+        int shadowRight;
+        style()->getBoxShadowHorizontalExtent(shadowLeft, shadowRight);
 
         int borderRight = isBox() ? toRenderBox(this)->borderRight() : 0;
         int borderWidth = max(-outlineStyle->outlineOffset(), max(borderRight, max(style()->borderTopRightRadius().width(), style()->borderBottomRightRadius().width()))) + max(ow, shadowRight);
@@ -1234,9 +1240,9 @@ bool RenderObject::repaintAfterLayoutIfNeeded(RenderBoxModelObject* repaintConta
     }
     int height = abs(newOutlineBox.height() - oldOutlineBox.height());
     if (height) {
-        int shadowBottom = 0;
-        for (ShadowData* shadow = boxShadow; shadow; shadow = shadow->next)
-            shadowBottom = max(shadow->y + shadow->blur, shadowBottom);
+        int shadowTop;
+        int shadowBottom;
+        style()->getBoxShadowVerticalExtent(shadowTop, shadowBottom);
 
         int borderBottom = isBox() ? toRenderBox(this)->borderBottom() : 0;
         int borderHeight = max(-outlineStyle->outlineOffset(), max(borderBottom, max(style()->borderBottomLeftRadius().height(), style()->borderBottomRightRadius().height()))) + max(ow, shadowBottom);
@@ -1609,14 +1615,19 @@ void RenderObject::styleDidChange(StyleDifference diff, const RenderStyle*)
 
 void RenderObject::updateFillImages(const FillLayer* oldLayers, const FillLayer* newLayers)
 {
-    // FIXME: This will be slow when a large number of images is used.  Fix by using a dict.
-    for (const FillLayer* currOld = oldLayers; currOld; currOld = currOld->next()) {
-        if (currOld->image() && (!newLayers || !newLayers->containsImage(currOld->image())))
-            currOld->image()->removeClient(this);
-    }
+    // Optimize the common case
+    if (oldLayers && !oldLayers->next() && newLayers && !newLayers->next() && (oldLayers->image() == newLayers->image()))
+        return;
+    
+    // Go through the new layers and addClients first, to avoid removing all clients of an image.
     for (const FillLayer* currNew = newLayers; currNew; currNew = currNew->next()) {
-        if (currNew->image() && (!oldLayers || !oldLayers->containsImage(currNew->image())))
+        if (currNew->image())
             currNew->image()->addClient(this);
+    }
+
+    for (const FillLayer* currOld = oldLayers; currOld; currOld = currOld->next()) {
+        if (currOld->image())
+            currOld->image()->removeClient(this);
     }
 }
 
@@ -1699,7 +1710,7 @@ void RenderObject::getTransformFromContainer(const RenderObject* containerObject
         transform.multLeft(layer->currentTransform());
     
 #if ENABLE(3D_RENDERING)
-    if (containerObject && containerObject->style()->hasPerspective()) {
+    if (containerObject && containerObject->hasLayer() && containerObject->style()->hasPerspective()) {
         // Perpsective on the container affects us, so we have to factor it in here.
         ASSERT(containerObject->hasLayer());
         FloatPoint perspectiveOrigin = toRenderBox(containerObject)->layer()->perspectiveOrigin();
@@ -1738,8 +1749,8 @@ IntSize RenderObject::offsetFromContainer(RenderObject* o) const
 
 IntRect RenderObject::localCaretRect(InlineBox*, int, int* extraWidthToEndOfLine)
 {
-   if (extraWidthToEndOfLine)
-       *extraWidthToEndOfLine = 0;
+    if (extraWidthToEndOfLine)
+        *extraWidthToEndOfLine = 0;
 
     return IntRect();
 }
@@ -1822,7 +1833,12 @@ void RenderObject::destroy()
         children->destroyLeftoverChildren();
 
     // If this renderer is being autoscrolled, stop the autoscroll timer
-    if (document()->frame()->eventHandler()->autoscrollRenderer() == this)
+    
+    // FIXME: RenderObject::destroy should not get called with a renderar whose document
+    // has a null frame, so we assert this. However, we don't want release builds to crash which is why we
+    // check that the frame is not null.
+    ASSERT(document()->frame());
+    if (document()->frame() && document()->frame()->eventHandler()->autoscrollRenderer() == this)
         document()->frame()->eventHandler()->stopAutoscrollTimer(true);
 
     if (m_hasCounterNodeMap)
@@ -1980,6 +1996,27 @@ void RenderObject::layout()
     setNeedsLayout(false);
 }
 
+PassRefPtr<RenderStyle> RenderObject::uncachedFirstLineStyle(RenderStyle* style) const
+{
+    if (!document()->usesFirstLineRules())
+        return 0;
+
+    ASSERT(!isText());
+
+    RefPtr<RenderStyle> result;
+
+    if (isBlockFlow()) {
+        if (RenderBlock* firstLineBlock = this->firstLineBlock())
+            result = firstLineBlock->getUncachedPseudoStyle(FIRST_LINE, style, firstLineBlock == this ? style : 0);
+    } else if (!isAnonymous() && isRenderInline()) {
+        RenderStyle* parentStyle = parent()->firstLineStyle();
+        if (parentStyle != parent()->style())
+            result = getUncachedPseudoStyle(FIRST_LINE_INHERITED, parentStyle, style);
+    }
+
+    return result.release();
+}
+
 RenderStyle* RenderObject::firstLineStyleSlowCase() const
 {
     ASSERT(document()->usesFirstLineRules());
@@ -2016,13 +2053,15 @@ RenderStyle* RenderObject::getCachedPseudoStyle(PseudoId pseudo, RenderStyle* pa
     return 0;
 }
 
-PassRefPtr<RenderStyle> RenderObject::getUncachedPseudoStyle(PseudoId pseudo, RenderStyle* parentStyle) const
+PassRefPtr<RenderStyle> RenderObject::getUncachedPseudoStyle(PseudoId pseudo, RenderStyle* parentStyle, RenderStyle* ownStyle) const
 {
-    if (pseudo < FIRST_INTERNAL_PSEUDOID && !style()->hasPseudoStyle(pseudo))
+    if (pseudo < FIRST_INTERNAL_PSEUDOID && !ownStyle && !style()->hasPseudoStyle(pseudo))
         return 0;
     
-    if (!parentStyle)
+    if (!parentStyle) {
+        ASSERT(!ownStyle);
         parentStyle = style();
+    }
 
     Node* n = node();
     while (n && !n->isElementNode())
@@ -2217,10 +2256,12 @@ void RenderObject::adjustRectForOutlineAndShadow(IntRect& rect) const
         int shadowBottom = 0;
 
         do {
-            shadowLeft = min(boxShadow->x - boxShadow->blur - outlineSize, shadowLeft);
-            shadowRight = max(boxShadow->x + boxShadow->blur + outlineSize, shadowRight);
-            shadowTop = min(boxShadow->y - boxShadow->blur - outlineSize, shadowTop);
-            shadowBottom = max(boxShadow->y + boxShadow->blur + outlineSize, shadowBottom);
+            if (boxShadow->style == Normal) {
+                shadowLeft = min(boxShadow->x - boxShadow->blur - boxShadow->spread - outlineSize, shadowLeft);
+                shadowRight = max(boxShadow->x + boxShadow->blur + boxShadow->spread + outlineSize, shadowRight);
+                shadowTop = min(boxShadow->y - boxShadow->blur - boxShadow->spread - outlineSize, shadowTop);
+                shadowBottom = max(boxShadow->y + boxShadow->blur + boxShadow->spread + outlineSize, shadowBottom);
+            }
 
             boxShadow = boxShadow->next;
         } while (boxShadow);

@@ -37,7 +37,7 @@
 
 namespace JSC {
 
-namespace ARM {
+namespace ARMRegisters {
     typedef enum {
         r0,
         r1,
@@ -407,8 +407,8 @@ register writeback
 
 class ARMv7Assembler {
 public:
-    typedef ARM::RegisterID RegisterID;
-    typedef ARM::FPRegisterID FPRegisterID;
+    typedef ARMRegisters::RegisterID RegisterID;
+    typedef ARMRegisters::FPRegisterID FPRegisterID;
 
     // (HS, LO, HI, LS) -> (AE, B, A, BE)
     // (VS, VC) -> (O, NO)
@@ -480,7 +480,7 @@ private:
     // ARMv7, Appx-A.6.3
     bool BadReg(RegisterID reg)
     {
-        return (reg == ARM::sp) || (reg == ARM::pc);
+        return (reg == ARMRegisters::sp) || (reg == ARMRegisters::pc);
     }
 
     bool isSingleRegister(FPRegisterID reg)
@@ -692,16 +692,16 @@ public:
     void add(RegisterID rd, RegisterID rn, ARMThumbImmediate imm)
     {
         // Rd can only be SP if Rn is also SP.
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isValid());
 
-        if (rn == ARM::sp) {
+        if (rn == ARMRegisters::sp) {
             if (!(rd & 8) && imm.isUInt10()) {
                 m_formatter.oneWordOp5Reg3Imm8(OP_ADD_SP_imm_T1, rd, imm.getUInt10() >> 2);
                 return;
-            } else if ((rd == ARM::sp) && imm.isUInt9()) {
+            } else if ((rd == ARMRegisters::sp) && imm.isUInt9()) {
                 m_formatter.oneWordOp9Imm7(OP_ADD_SP_imm_T2, imm.getUInt9() >> 2);
                 return;
             }
@@ -725,9 +725,9 @@ public:
 
     void add(RegisterID rd, RegisterID rn, RegisterID rm, ShiftTypeAndAmount shift)
     {
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(!BadReg(rm));
         m_formatter.twoWordOp12Reg4FourFours(OP_ADD_reg_T3, rn, FourFours(shift.hi4(), rd, shift.lo4(), rm));
     }
@@ -749,9 +749,9 @@ public:
     void add_S(RegisterID rd, RegisterID rn, ARMThumbImmediate imm)
     {
         // Rd can only be SP if Rn is also SP.
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isEncodedImm());
 
         if (!((rd | rn) & 8)) {
@@ -770,9 +770,9 @@ public:
     // Not allowed in an IT (if then) block?
     void add_S(RegisterID rd, RegisterID rn, RegisterID rm, ShiftTypeAndAmount shift)
     {
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(!BadReg(rm));
         m_formatter.twoWordOp12Reg4FourFours(OP_ADD_S_reg_T3, rn, FourFours(shift.hi4(), rd, shift.lo4(), rm));
     }
@@ -838,7 +838,7 @@ public:
     // Only allowed in IT (if then) block if last instruction.
     JmpSrc blx(RegisterID rm)
     {
-        ASSERT(rm != ARM::pc);
+        ASSERT(rm != ARMRegisters::pc);
         m_formatter.oneWordOp8RegReg143(OP_BLX, rm, (RegisterID)8);
         return JmpSrc(m_formatter.size());
     }
@@ -857,7 +857,7 @@ public:
 
     void cmn(RegisterID rn, ARMThumbImmediate imm)
     {
-        ASSERT(rn != ARM::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isEncodedImm());
 
         m_formatter.twoWordOp5i6Imm4Reg4EncodedImm(OP_CMN_imm, rn, (RegisterID)0xf, imm);
@@ -865,7 +865,7 @@ public:
 
     void cmp(RegisterID rn, ARMThumbImmediate imm)
     {
-        ASSERT(rn != ARM::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isEncodedImm());
 
         if (!(rn & 8) && imm.isUInt8())
@@ -876,7 +876,7 @@ public:
 
     void cmp(RegisterID rn, RegisterID rm, ShiftTypeAndAmount shift)
     {
-        ASSERT(rn != ARM::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(!BadReg(rm));
         m_formatter.twoWordOp12Reg4FourFours(OP_CMP_reg_T2, rn, FourFours(shift.hi4(), 0xf, shift.lo4(), rm));
     }
@@ -938,15 +938,15 @@ public:
         m_formatter.oneWordOp8Imm8(OP_IT, ifThenElse(cond, inst2if, inst3if, inst4if));
     }
 
-    // rt == ARM::pc only allowed if last instruction in IT (if then) block.
+    // rt == ARMRegisters::pc only allowed if last instruction in IT (if then) block.
     void ldr(RegisterID rt, RegisterID rn, ARMThumbImmediate imm)
     {
-        ASSERT(rn != ARM::pc); // LDR (literal)
+        ASSERT(rn != ARMRegisters::pc); // LDR (literal)
         ASSERT(imm.isUInt12());
 
         if (!((rt | rn) & 8) && imm.isUInt7())
             m_formatter.oneWordOp5Imm5Reg3Reg3(OP_LDR_imm_T1, imm.getUInt7() >> 2, rn, rt);
-        else if ((rn == ARM::sp) && !(rt & 8) && imm.isUInt10())
+        else if ((rn == ARMRegisters::sp) && !(rt & 8) && imm.isUInt10())
             m_formatter.oneWordOp5Reg3Imm8(OP_LDR_imm_T2, rt, imm.getUInt10() >> 2);
         else
             m_formatter.twoWordOp12Reg4Reg4Imm12(OP_LDR_imm_T3, rn, rt, imm.getUInt12());
@@ -965,8 +965,8 @@ public:
     // if (wback) REG[rn] = _tmp
     void ldr(RegisterID rt, RegisterID rn, int offset, bool index, bool wback)
     {
-        ASSERT(rt != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT(rt != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(index || wback);
         ASSERT(!wback | (rt != rn));
     
@@ -985,10 +985,10 @@ public:
         m_formatter.twoWordOp12Reg4Reg4Imm12(OP_LDR_imm_T4, rn, rt, offset);
     }
 
-    // rt == ARM::pc only allowed if last instruction in IT (if then) block.
+    // rt == ARMRegisters::pc only allowed if last instruction in IT (if then) block.
     void ldr(RegisterID rt, RegisterID rn, RegisterID rm, unsigned shift=0)
     {
-        ASSERT(rn != ARM::pc); // LDR (literal)
+        ASSERT(rn != ARMRegisters::pc); // LDR (literal)
         ASSERT(!BadReg(rm));
         ASSERT(shift <= 3);
 
@@ -998,10 +998,10 @@ public:
             m_formatter.twoWordOp12Reg4FourFours(OP_LDR_reg_T2, rn, FourFours(rt, 0, shift, rm));
     }
 
-    // rt == ARM::pc only allowed if last instruction in IT (if then) block.
+    // rt == ARMRegisters::pc only allowed if last instruction in IT (if then) block.
     void ldrh(RegisterID rt, RegisterID rn, ARMThumbImmediate imm)
     {
-        ASSERT(rn != ARM::pc); // LDR (literal)
+        ASSERT(rn != ARMRegisters::pc); // LDR (literal)
         ASSERT(imm.isUInt12());
 
         if (!((rt | rn) & 8) && imm.isUInt6())
@@ -1023,8 +1023,8 @@ public:
     // if (wback) REG[rn] = _tmp
     void ldrh(RegisterID rt, RegisterID rn, int offset, bool index, bool wback)
     {
-        ASSERT(rt != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT(rt != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(index || wback);
         ASSERT(!wback | (rt != rn));
     
@@ -1046,7 +1046,7 @@ public:
     void ldrh(RegisterID rt, RegisterID rn, RegisterID rm, unsigned shift=0)
     {
         ASSERT(!BadReg(rt));   // Memory hint
-        ASSERT(rn != ARM::pc); // LDRH (literal)
+        ASSERT(rn != ARMRegisters::pc); // LDRH (literal)
         ASSERT(!BadReg(rm));
         ASSERT(shift <= 3);
 
@@ -1197,16 +1197,16 @@ public:
         m_formatter.twoWordOp12Reg4FourFours(OP_SMULL_T1, rn, FourFours(rdLo, rdHi, 0, rm));
     }
 
-    // rt == ARM::pc only allowed if last instruction in IT (if then) block.
+    // rt == ARMRegisters::pc only allowed if last instruction in IT (if then) block.
     void str(RegisterID rt, RegisterID rn, ARMThumbImmediate imm)
     {
-        ASSERT(rt != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT(rt != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isUInt12());
 
         if (!((rt | rn) & 8) && imm.isUInt7())
             m_formatter.oneWordOp5Imm5Reg3Reg3(OP_STR_imm_T1, imm.getUInt7() >> 2, rn, rt);
-        else if ((rn == ARM::sp) && !(rt & 8) && imm.isUInt10())
+        else if ((rn == ARMRegisters::sp) && !(rt & 8) && imm.isUInt10())
             m_formatter.oneWordOp5Reg3Imm8(OP_STR_imm_T2, rt, imm.getUInt10() >> 2);
         else
             m_formatter.twoWordOp12Reg4Reg4Imm12(OP_STR_imm_T3, rn, rt, imm.getUInt12());
@@ -1225,8 +1225,8 @@ public:
     // if (wback) REG[rn] = _tmp
     void str(RegisterID rt, RegisterID rn, int offset, bool index, bool wback)
     {
-        ASSERT(rt != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT(rt != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(index || wback);
         ASSERT(!wback | (rt != rn));
     
@@ -1245,10 +1245,10 @@ public:
         m_formatter.twoWordOp12Reg4Reg4Imm12(OP_STR_imm_T4, rn, rt, offset);
     }
 
-    // rt == ARM::pc only allowed if last instruction in IT (if then) block.
+    // rt == ARMRegisters::pc only allowed if last instruction in IT (if then) block.
     void str(RegisterID rt, RegisterID rn, RegisterID rm, unsigned shift=0)
     {
-        ASSERT(rn != ARM::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(!BadReg(rm));
         ASSERT(shift <= 3);
 
@@ -1261,12 +1261,12 @@ public:
     void sub(RegisterID rd, RegisterID rn, ARMThumbImmediate imm)
     {
         // Rd can only be SP if Rn is also SP.
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isValid());
 
-        if ((rn == ARM::sp) && (rd == ARM::sp) && imm.isUInt9()) {
+        if ((rn == ARMRegisters::sp) && (rd == ARMRegisters::sp) && imm.isUInt9()) {
             m_formatter.oneWordOp9Imm7(OP_SUB_SP_imm_T1, imm.getUInt9() >> 2);
             return;
         } else if (!((rd | rn) & 8)) {
@@ -1289,9 +1289,9 @@ public:
 
     void sub(RegisterID rd, RegisterID rn, RegisterID rm, ShiftTypeAndAmount shift)
     {
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(!BadReg(rm));
         m_formatter.twoWordOp12Reg4FourFours(OP_SUB_reg_T2, rn, FourFours(shift.hi4(), rd, shift.lo4(), rm));
     }
@@ -1309,12 +1309,12 @@ public:
     void sub_S(RegisterID rd, RegisterID rn, ARMThumbImmediate imm)
     {
         // Rd can only be SP if Rn is also SP.
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(imm.isValid());
 
-        if ((rn == ARM::sp) && (rd == ARM::sp) && imm.isUInt9()) {
+        if ((rn == ARMRegisters::sp) && (rd == ARMRegisters::sp) && imm.isUInt9()) {
             m_formatter.oneWordOp9Imm7(OP_SUB_SP_imm_T1, imm.getUInt9() >> 2);
             return;
         } else if (!((rd | rn) & 8)) {
@@ -1333,9 +1333,9 @@ public:
     // Not allowed in an IT (if then) block?
     void sub_S(RegisterID rd, RegisterID rn, RegisterID rm, ShiftTypeAndAmount shift)
     {
-        ASSERT((rd != ARM::sp) || (rn == ARM::sp));
-        ASSERT(rd != ARM::pc);
-        ASSERT(rn != ARM::pc);
+        ASSERT((rd != ARMRegisters::sp) || (rn == ARMRegisters::sp));
+        ASSERT(rd != ARMRegisters::pc);
+        ASSERT(rn != ARMRegisters::pc);
         ASSERT(!BadReg(rm));
         m_formatter.twoWordOp12Reg4FourFours(OP_SUB_S_reg_T2, rn, FourFours(shift.hi4(), rd, shift.lo4(), rm));
     }
@@ -1528,51 +1528,51 @@ public:
         ASSERT(from.m_offset != -1);
         ASSERT(reinterpret_cast<intptr_t>(to) & 1);
 
-        patchPointer(reinterpret_cast<uint16_t*>(reinterpret_cast<intptr_t>(code) + from.m_offset) - 1, to);
+        setPointer(reinterpret_cast<uint16_t*>(reinterpret_cast<intptr_t>(code) + from.m_offset) - 1, to);
     }
 
-    static void patchPointer(void* code, JmpDst where, void* value)
+    static void linkPointer(void* code, JmpDst where, void* value)
     {
-        patchPointer(reinterpret_cast<char*>(code) + where.m_offset, value);
+        setPointer(reinterpret_cast<char*>(code) + where.m_offset, value);
     }
 
     static void relinkJump(void* from, void* to)
     {
-        ExecutableAllocator::MakeWritable unprotect(reinterpret_cast<uint16_t*>(from) - 2, 2 * sizeof(uint16_t));
-
         ASSERT(!(reinterpret_cast<intptr_t>(from) & 1));
         ASSERT(!(reinterpret_cast<intptr_t>(to) & 1));
 
         intptr_t relative = reinterpret_cast<intptr_t>(to) - reinterpret_cast<intptr_t>(from);
         linkWithOffset(reinterpret_cast<uint16_t*>(from), relative);
+
+        ExecutableAllocator::cacheFlush(reinterpret_cast<uint16_t*>(from) - 2, 2 * sizeof(uint16_t));
     }
     
     static void relinkCall(void* from, void* to)
     {
-        ExecutableAllocator::MakeWritable unprotect(reinterpret_cast<uint16_t*>(from) - 5, 4 * sizeof(uint16_t));
-
         ASSERT(!(reinterpret_cast<intptr_t>(from) & 1));
         ASSERT(reinterpret_cast<intptr_t>(to) & 1);
 
-        patchPointer(reinterpret_cast<uint16_t*>(from) - 1, to);
+        setPointer(reinterpret_cast<uint16_t*>(from) - 1, to);
+
+        ExecutableAllocator::cacheFlush(reinterpret_cast<uint16_t*>(from) - 5, 4 * sizeof(uint16_t));
     }
 
     static void repatchInt32(void* where, int32_t value)
     {
-        ExecutableAllocator::MakeWritable unprotect(reinterpret_cast<uint16_t*>(where) - 4, 4 * sizeof(uint16_t));
-
         ASSERT(!(reinterpret_cast<intptr_t>(where) & 1));
         
-        patchInt32(where, value);
+        setInt32(where, value);
+
+        ExecutableAllocator::cacheFlush(reinterpret_cast<uint16_t*>(where) - 4, 4 * sizeof(uint16_t));
     }
 
     static void repatchPointer(void* where, void* value)
     {
-        ExecutableAllocator::MakeWritable unprotect(reinterpret_cast<uint16_t*>(where) - 4, 4 * sizeof(uint16_t));
-
         ASSERT(!(reinterpret_cast<intptr_t>(where) & 1));
         
-        patchPointer(where, value);
+        setPointer(where, value);
+
+        ExecutableAllocator::cacheFlush(reinterpret_cast<uint16_t*>(where) - 4, 4 * sizeof(uint16_t));
     }
 
     static void repatchLoadPtrToLEA(void* where)
@@ -1582,8 +1582,8 @@ public:
         uint16_t* loadOp = reinterpret_cast<uint16_t*>(where) + 4;
         ASSERT((*loadOp & 0xfff0) == OP_LDR_reg_T2);
 
-        ExecutableAllocator::MakeWritable unprotect(loadOp, sizeof(uint16_t));
         *loadOp = OP_ADD_reg_T3 | (*loadOp & 0xf);
+        ExecutableAllocator::cacheFlush(loadOp, sizeof(uint16_t));
     }
 
 private:
@@ -1610,11 +1610,9 @@ private:
         m_formatter.vfpOp(0x0b00ed00 | offset | (up << 7) | (isLoad << 4) | doubleRegisterMask(rd, 6, 28) | rn);
     }
 
-    static void patchInt32(void* code, uint32_t value)
+    static void setInt32(void* code, uint32_t value)
     {
         uint16_t* location = reinterpret_cast<uint16_t*>(code);
-
-        ExecutableAllocator::MakeWritable unprotect(location - 4, 4 * sizeof(uint16_t));
 
         uint16_t lo16 = value;
         uint16_t hi16 = value >> 16;
@@ -1623,11 +1621,13 @@ private:
         spliceLo11(location - 3, lo16);
         spliceHi5(location - 2, hi16);
         spliceLo11(location - 1, hi16);
+
+        ExecutableAllocator::cacheFlush(location - 4, 4 * sizeof(uint16_t));
     }
 
-    static void patchPointer(void* code, void* value)
+    static void setPointer(void* code, void* value)
     {
-        patchInt32(code, reinterpret_cast<uint32_t>(value));
+        setInt32(code, reinterpret_cast<uint32_t>(value));
     }
 
     // Linking & patching:

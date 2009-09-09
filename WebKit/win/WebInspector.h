@@ -35,7 +35,7 @@
 class WebView;
 class WebInspectorClient;
 
-class WebInspector : public IWebInspector, Noncopyable {
+class WebInspector : public IWebInspector, public Noncopyable {
 public:
     static WebInspector* createInstance(WebView*, WebInspectorClient*);
 

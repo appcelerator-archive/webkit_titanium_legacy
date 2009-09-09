@@ -23,6 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#import "config.h"
 #import "DumpRenderTree.h"
 #import "AccessibilityController.h"
 
@@ -51,4 +52,8 @@ AccessibilityUIElement AccessibilityController::rootElement()
     // FIXME: we could do some caching here.
     id accessibilityObject = [[mainFrame frameView] documentView];
     return AccessibilityUIElement(accessibilityObject);
+}
+
+void AccessibilityController::setLogFocusEvents(bool)
+{
 }

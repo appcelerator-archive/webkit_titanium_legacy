@@ -1,30 +1,7 @@
 <body>
 <p>Test replacing global constructors in a worker context.</p>
 <div id=result></div>
-<script>
-function log(message)
-{
-    document.getElementById("result").innerHTML += message + "<br>";
-}
-
-if (window.layoutTestController) {
-    layoutTestController.dumpAsText();
-    layoutTestController.waitUntilDone();
-}
-
-var worker = new Worker('resources/worker-common.js');
-worker.postMessage("eval self.MessageEvent = 'PASS'; MessageEvent;");
-worker.postMessage("eval foo//bar");
-
-worker.onmessage = function(evt) {
-    if (!/foo\/\/bar/.test(evt.data))
-        log(evt.data);
-    else {
-        log("DONE");
-        if (window.layoutTestController)
-            layoutTestController.notifyDone();
-    }
-}
+<script src="resources/worker-create-common.js"></script>
+<script src="resources/worker-replace-global-constructor.js">
 </script>
 </body>
-</html>

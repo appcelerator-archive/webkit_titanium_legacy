@@ -73,6 +73,8 @@ public:
     virtual void storeSetting(const WebCore::String& key, const WebCore::InspectorController::Setting&);
     virtual void removeSetting(const WebCore::String& key);
 
+    virtual void inspectorWindowObjectCleared();
+
 private:
     ~WebInspectorClient();
 

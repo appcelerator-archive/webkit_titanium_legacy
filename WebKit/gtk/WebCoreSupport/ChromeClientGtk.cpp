@@ -215,7 +215,21 @@ void ChromeClient::setResizable(bool)
 
 void ChromeClient::closeWindowSoon()
 {
-    notImplemented();
+    // We may not have a WebView as create-web-view can return NULL.
+    if (!m_webView)
+        return;
+
+    webkit_web_view_stop_loading(m_webView);
+
+    gboolean isHandled = false;
+    g_signal_emit_by_name(m_webView, "close-web-view", &isHandled);
+
+    if (isHandled)
+        return;
+
+    // FIXME: should we clear the frame group name here explicitly? Mac does it.
+    // But this gets cleared in Page's destructor anyway.
+    // webkit_web_view_set_group_name(m_webView, "");
 }
 
 bool ChromeClient::canTakeFocus(FocusDirection)
@@ -238,7 +252,7 @@ bool ChromeClient::runBeforeUnloadConfirmPanel(const WebCore::String& message, W
     return runJavaScriptConfirm(frame, message);
 }
 
-void ChromeClient::addMessageToConsole(WebCore::MessageSource source, WebCore::MessageLevel level, const WebCore::String& message, unsigned int lineNumber, const WebCore::String& sourceId)
+void ChromeClient::addMessageToConsole(WebCore::MessageSource source, WebCore::MessageType type, WebCore::MessageLevel level, const WebCore::String& message, unsigned int lineNumber, const WebCore::String& sourceId)
 {
     gboolean retval;
     g_signal_emit_by_name(m_webView, "console-message", message.utf8().data(), lineNumber, sourceId.utf8().data(), &retval);
@@ -377,9 +391,49 @@ PlatformWidget ChromeClient::platformWindow() const
     return GTK_WIDGET(m_webView);
 }
 
-void ChromeClient::contentsSizeChanged(Frame*, const IntSize&) const
+void ChromeClient::contentsSizeChanged(Frame* frame, const IntSize& size) const
 {
-    notImplemented();
+    // We need to queue a resize request only if the size changed,
+    // otherwise we get into an infinite loop!
+    GtkWidget* widget = GTK_WIDGET(m_webView);
+    if (GTK_WIDGET_REALIZED(widget) &&
+        (widget->requisition.height != size.height()) &&
+        (widget->requisition.width != size.width()))
+        gtk_widget_queue_resize_no_redraw(widget);
+}
+
+void ChromeClient::scrollbarsModeDidChange() const
+{
+    WebKitWebFrame* webFrame = webkit_web_view_get_main_frame(m_webView);
+
+    g_object_notify(G_OBJECT(webFrame), "horizontal-scrollbar-policy");
+    g_object_notify(G_OBJECT(webFrame), "vertical-scrollbar-policy");
+
+    gboolean isHandled;
+    g_signal_emit_by_name(webFrame, "scrollbars-policy-changed", &isHandled);
+
+    if (isHandled)
+        return;
+
+    GtkWidget* parent = gtk_widget_get_parent(GTK_WIDGET(m_webView));
+    if (!parent || !GTK_IS_SCROLLED_WINDOW(parent))
+        return;
+
+    GtkPolicyType horizontalPolicy = webkit_web_frame_get_horizontal_scrollbar_policy(webFrame);
+    GtkPolicyType verticalPolicy = webkit_web_frame_get_vertical_scrollbar_policy(webFrame);
+
+    // ScrolledWindow doesn't like to display only part of a widget if
+    // the scrollbars are completely disabled; We have a disparity
+    // here on what the policy requested by the web app is and what we
+    // can represent; the idea is not to show scrollbars, only.
+    if (horizontalPolicy == GTK_POLICY_NEVER)
+        horizontalPolicy = GTK_POLICY_AUTOMATIC;
+
+    if (verticalPolicy == GTK_POLICY_NEVER)
+        verticalPolicy = GTK_POLICY_AUTOMATIC;
+
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(parent),
+                                   horizontalPolicy, verticalPolicy);
 }
 
 void ChromeClient::mouseDidMoveOverElement(const HitTestResult& hit, unsigned modifierFlags)
@@ -403,7 +457,8 @@ void ChromeClient::mouseDidMoveOverElement(const HitTestResult& hit, unsigned mo
     if (isLink) {
         KURL url = hit.absoluteLinkURL();
         if (!url.isEmpty() && url != m_hoveredLinkURL) {
-            CString titleString = hit.title().utf8();
+            TextDirection dir;
+            CString titleString = hit.title(dir).utf8();
             CString urlString = url.prettyURL().utf8();
             g_signal_emit_by_name(m_webView, "hovering-over-link", titleString.data(), urlString.data());
             m_hoveredLinkURL = url;
@@ -414,7 +469,7 @@ void ChromeClient::mouseDidMoveOverElement(const HitTestResult& hit, unsigned mo
     }
 }
 
-void ChromeClient::setToolTip(const String& toolTip)
+void ChromeClient::setToolTip(const String& toolTip, TextDirection)
 {
 #if GTK_CHECK_VERSION(2,12,0)
     if (toolTip.isEmpty())
@@ -441,13 +496,25 @@ void ChromeClient::print(Frame* frame)
 }
 
 #if ENABLE(DATABASE)
-void ChromeClient::exceededDatabaseQuota(Frame* frame, const String&)
+void ChromeClient::exceededDatabaseQuota(Frame* frame, const String& databaseName)
 {
-    // Set to 5M for testing
-    // FIXME: Make this configurable
-    notImplemented();
-    const unsigned long long defaultQuota = 5 * 1024 * 1024;
+    guint64 defaultQuota = webkit_get_default_web_database_quota();
     DatabaseTracker::tracker().setQuota(frame->document()->securityOrigin(), defaultQuota);
+
+    WebKitWebFrame* webFrame = kit(frame);
+    WebKitWebView* webView = getViewFromFrame(webFrame);
+
+    WebKitSecurityOrigin* origin = webkit_web_frame_get_security_origin(webFrame);
+    WebKitWebDatabase* webDatabase = webkit_security_origin_get_web_database(origin, databaseName.utf8().data());
+    g_signal_emit_by_name(webView, "database-quota-exceeded", webFrame, webDatabase);
+}
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+void ChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
+{
+    // FIXME: Free some space.
+    notImplemented();
 }
 #endif
 

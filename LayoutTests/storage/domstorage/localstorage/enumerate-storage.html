@@ -3,18 +3,12 @@
 <script src="resources/clearLocalStorage.js"></script>
 <script>
 
-if (layoutTestController)
+if (window.layoutTestController)
     layoutTestController.dumpAsText();
 
 function log(a)
 {
     document.getElementById("logger").innerHTML += a + "<br>";
-}
-
-function finish()
-{
-    if (layoutTestController)
-        layoutTestController.notifyDone()
 }
 
 function startTest()

@@ -77,9 +77,12 @@ void CSSSelector::extractPseudoType() const
     DEFINE_STATIC_LOCAL(AtomicString, before, ("before"));
     DEFINE_STATIC_LOCAL(AtomicString, checked, ("checked"));
     DEFINE_STATIC_LOCAL(AtomicString, fileUploadButton, ("-webkit-file-upload-button"));
+    DEFINE_STATIC_LOCAL(AtomicString, defaultString, ("default"));
     DEFINE_STATIC_LOCAL(AtomicString, disabled, ("disabled"));
     DEFINE_STATIC_LOCAL(AtomicString, readOnly, ("read-only"));
     DEFINE_STATIC_LOCAL(AtomicString, readWrite, ("read-write"));
+    DEFINE_STATIC_LOCAL(AtomicString, valid, ("valid"));
+    DEFINE_STATIC_LOCAL(AtomicString, invalid, ("invalid"));
     DEFINE_STATIC_LOCAL(AtomicString, drag, ("-webkit-drag"));
     DEFINE_STATIC_LOCAL(AtomicString, dragAlias, ("-khtml-drag")); // was documented with this name in Apple documentation, so keep an alia
     DEFINE_STATIC_LOCAL(AtomicString, empty, ("empty"));
@@ -105,15 +108,22 @@ void CSSSelector::extractPseudoType() const
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsMuteButton, ("-webkit-media-controls-mute-button"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsPlayButton, ("-webkit-media-controls-play-button"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsTimeline, ("-webkit-media-controls-timeline"));
+    DEFINE_STATIC_LOCAL(AtomicString, mediaControlsVolumeSlider, ("-webkit-media-controls-volume-slider"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsSeekBackButton, ("-webkit-media-controls-seek-back-button"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsSeekForwardButton, ("-webkit-media-controls-seek-forward-button"));
+    DEFINE_STATIC_LOCAL(AtomicString, mediaControlsRewindButton, ("-webkit-media-controls-rewind-button"));
+    DEFINE_STATIC_LOCAL(AtomicString, mediaControlsReturnToRealtimeButton, ("-webkit-media-controls-return-to-realtime-button"));
+    DEFINE_STATIC_LOCAL(AtomicString, mediaControlsStatusDisplay, ("-webkit-media-controls-status-display"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsFullscreenButton, ("-webkit-media-controls-fullscreen-button"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsTimelineContainer, ("-webkit-media-controls-timeline-container"));
+    DEFINE_STATIC_LOCAL(AtomicString, mediaControlsVolumeSliderContainer, ("-webkit-media-controls-volume-slider-container"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsCurrentTimeDisplay, ("-webkit-media-controls-current-time-display"));
     DEFINE_STATIC_LOCAL(AtomicString, mediaControlsTimeRemainingDisplay, ("-webkit-media-controls-time-remaining-display"));
     DEFINE_STATIC_LOCAL(AtomicString, notStr, ("not("));
     DEFINE_STATIC_LOCAL(AtomicString, onlyChild, ("only-child"));
     DEFINE_STATIC_LOCAL(AtomicString, onlyOfType, ("only-of-type"));
+    DEFINE_STATIC_LOCAL(AtomicString, optional, ("optional"));
+    DEFINE_STATIC_LOCAL(AtomicString, required, ("required"));
     DEFINE_STATIC_LOCAL(AtomicString, resizer, ("-webkit-resizer"));
     DEFINE_STATIC_LOCAL(AtomicString, root, ("root"));
     DEFINE_STATIC_LOCAL(AtomicString, scrollbar, ("-webkit-scrollbar"));
@@ -165,12 +175,18 @@ void CSSSelector::extractPseudoType() const
     else if (m_value == fileUploadButton) {
         m_pseudoType = PseudoFileUploadButton;
         element = true;
-    } else if (m_value == disabled)
+    } else if (m_value == defaultString)
+        m_pseudoType = PseudoDefault;
+    else if (m_value == disabled)
         m_pseudoType = PseudoDisabled;
     else if (m_value == readOnly)
         m_pseudoType = PseudoReadOnly;
     else if (m_value == readWrite)
         m_pseudoType = PseudoReadWrite;
+    else if (m_value == valid)
+        m_pseudoType = PseudoValid;
+    else if (m_value == invalid)
+        m_pseudoType = PseudoInvalid;
     else if (m_value == drag || m_value == dragAlias)
         m_pseudoType = PseudoDrag;
     else if (m_value == enabled)
@@ -230,17 +246,32 @@ void CSSSelector::extractPseudoType() const
     } else if (m_value == mediaControlsTimeline) {
         m_pseudoType = PseudoMediaControlsTimeline;
         element = true;
+    } else if (m_value == mediaControlsVolumeSlider) {
+        m_pseudoType = PseudoMediaControlsVolumeSlider;
+        element = true;
     } else if (m_value == mediaControlsSeekBackButton) {
         m_pseudoType = PseudoMediaControlsSeekBackButton;
         element = true;
     } else if (m_value == mediaControlsSeekForwardButton) {
         m_pseudoType = PseudoMediaControlsSeekForwardButton;
         element = true;
+    } else if (m_value == mediaControlsRewindButton) {
+        m_pseudoType = PseudoMediaControlsRewindButton;
+        element = true;
+    } else if (m_value == mediaControlsReturnToRealtimeButton) {
+        m_pseudoType = PseudoMediaControlsReturnToRealtimeButton;
+        element = true;
+    } else if (m_value == mediaControlsStatusDisplay) {
+        m_pseudoType = PseudoMediaControlsStatusDisplay;
+        element = true;
     } else if (m_value == mediaControlsFullscreenButton) {
         m_pseudoType = PseudoMediaControlsFullscreenButton;
         element = true;
     } else if (m_value == mediaControlsTimelineContainer) {
         m_pseudoType = PseudoMediaControlsTimelineContainer;
+        element = true;
+    } else if (m_value == mediaControlsVolumeSliderContainer) {
+        m_pseudoType = PseudoMediaControlsVolumeSliderContainer;
         element = true;
     } else if (m_value == notStr)
         m_pseudoType = PseudoNot;
@@ -274,6 +305,10 @@ void CSSSelector::extractPseudoType() const
         m_pseudoType = PseudoSingleButton;
     else if (m_value == noButton)
         m_pseudoType = PseudoNoButton;
+    else if (m_value == optional)
+        m_pseudoType = PseudoOptional;
+    else if (m_value == required)
+        m_pseudoType = PseudoRequired;
     else if (m_value == scrollbarCorner) {
         element = true;
         m_pseudoType = PseudoScrollbarCorner;

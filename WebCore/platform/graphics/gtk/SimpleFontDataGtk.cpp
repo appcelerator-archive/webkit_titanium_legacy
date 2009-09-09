@@ -99,7 +99,7 @@ bool SimpleFontData::containsCharacters(const UChar* characters, int length) con
     if (!face)
         return false;
 
-    for (unsigned i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++) {
         if (FcFreeTypeCharIndex(face, characters[i]) == 0) {
             cairo_ft_scaled_font_unlock_face(m_platformData.m_scaledFont);
             return false;
@@ -128,12 +128,6 @@ float SimpleFontData::platformWidthForGlyph(Glyph glyph) const
     if (cairo_scaled_font_status(m_platformData.m_scaledFont) == CAIRO_STATUS_SUCCESS && extents.x_advance != 0)
         w = (float)extents.x_advance;
     return w;
-}
-
-void SimpleFontData::setFont(cairo_t* cr) const
-{
-    ASSERT(cr);
-    m_platformData.setFont(cr);
 }
 
 }

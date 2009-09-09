@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -23,6 +23,7 @@
 # Make it harder for us to do dangerous things in Perl.
 use diagnostics;
 use strict;
+use lib qw(lib);
 
 use Test::Harness qw(&runtests $verbose);
 

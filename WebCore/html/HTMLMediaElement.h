@@ -65,13 +65,23 @@ public:
     
     virtual bool isVideo() const { return false; }
     virtual bool hasVideo() const { return false; }
-    
+    virtual bool hasAudio() const;
+
+    void rewind(float timeDelta);
+    void returnToRealtime();
+
+    // Eventually overloaded in HTMLVideoElement
+    virtual bool supportsFullscreen() const { return false; };
+    virtual bool supportsSave() const;
+
     void scheduleLoad();
     
     virtual void defaultEventHandler(Event*);
     
     // Pauses playback without changing any states or generating events
     void setPausedInternal(bool);
+    
+    MediaPlayer::MovieLoadType movieLoadType() const;
     
     bool inActiveDocument() const { return m_inActiveDocument; }
     
@@ -181,6 +191,7 @@ private:
     void stopPeriodicTimers();
 
     void seek(float time, ExceptionCode&);
+    void finishSeek();
     void checkIfSeekNeeded();
     
     void scheduleTimeupdateEvent(bool periodicEvent);
@@ -191,6 +202,7 @@ private:
     // loading
     void selectMediaResource();
     void loadResource(const KURL&, ContentType&);
+    void scheduleNextSourceChild();
     void loadNextSourceChild();
     void userCancelledLoad();
     bool havePotentialSourceChild();
@@ -206,6 +218,8 @@ private:
     void loadInternal();
     void playInternal();
     void pauseInternal();
+
+    void prepareForLoad();
     
     bool processingUserGesture() const;
     bool processingMediaPlayerCallback() const { return m_processingMediaPlayerCallback > 0; }
@@ -219,10 +233,12 @@ private:
     bool stoppedDueToErrors() const;
     bool pausedForUserInteraction() const;
 
+    float minTimeSeekable() const;
+    float maxTimeSeekable() const;
+
     // Restrictions to change default behaviors. This is a effectively a compile time choice at the moment
     //  because there are no accessor methods.
-    enum BehaviorRestrictions 
-    { 
+    enum BehaviorRestrictions {
         NoRestrictions = 0,
         RequireUserGestureForLoadRestriction = 1 << 0,
         RequireUserGestureForRateChangeRestriction = 1 << 1,

@@ -31,6 +31,7 @@
 #import "DragController.h"
 #import "Editor.h"
 #import "FoundationExtras.h"
+#import "FileList.h"
 #import "Frame.h"
 #import "Image.h"
 #import "Page.h"
@@ -62,7 +63,7 @@ bool ClipboardMac::hasData()
     return m_pasteboard && [m_pasteboard.get() types] && [[m_pasteboard.get() types] count] > 0;
 }
     
-static NSString *cocoaTypeFromMIMEType(const String& type)
+static NSString *cocoaTypeFromHTMLClipboardType(const String& type)
 {
     String qType = type.stripWhiteSpace();
 
@@ -81,10 +82,9 @@ static NSString *cocoaTypeFromMIMEType(const String& type)
     
     // Try UTI now
     NSString *mimeType = qType;
-    CFStringRef UTIType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (CFStringRef)mimeType, NULL);
-    if (UTIType) {
-        CFStringRef pbType = UTTypeCopyPreferredTagWithClass(UTIType, kUTTagClassNSPboardType);
-        CFRelease(UTIType);
+    RetainPtr<CFStringRef> utiType(AdoptCF, UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (CFStringRef)mimeType, NULL));
+    if (utiType) {
+        CFStringRef pbType = UTTypeCopyPreferredTagWithClass(utiType.get(), kUTTagClassNSPboardType);
         if (pbType)
             return HardAutorelease(pbType);
     }
@@ -93,28 +93,41 @@ static NSString *cocoaTypeFromMIMEType(const String& type)
     return qType;
 }
 
-static String MIMETypeFromCocoaType(NSString *type)
+static String utiTypeFromCocoaType(NSString *type)
+{
+    RetainPtr<CFStringRef> utiType(AdoptCF, UTTypeCreatePreferredIdentifierForTag(kUTTagClassNSPboardType, (CFStringRef)type, NULL));
+    if (utiType) {
+        RetainPtr<CFStringRef> mimeType(AdoptCF, UTTypeCopyPreferredTagWithClass(utiType.get(), kUTTagClassMIMEType));
+        if (mimeType)
+            return String(mimeType.get());
+    }
+    return String();
+}
+
+static void addHTMLClipboardTypesForCocoaType(HashSet<String>& resultTypes, NSString *cocoaType, NSPasteboard *pasteboard)
 {
     // UTI may not do these right, so make sure we get the right, predictable result
-    if ([type isEqualToString:NSStringPboardType])
-        return "text/plain";
-    if ([type isEqualToString:NSURLPboardType] || [type isEqualToString:NSFilenamesPboardType])
-        return "text/uri-list";
-    
-    // Now try the general UTI mechanism
-    CFStringRef UTIType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassNSPboardType, (CFStringRef)type, NULL);
-    if (UTIType) {
-        CFStringRef mimeType = UTTypeCopyPreferredTagWithClass(UTIType, kUTTagClassMIMEType);
-        CFRelease(UTIType);
-        if (mimeType) {
-            String result = mimeType;
-            CFRelease(mimeType);
-            return result;
+    if ([cocoaType isEqualToString:NSStringPboardType])
+        resultTypes.add("text/plain");
+    else if ([cocoaType isEqualToString:NSURLPboardType])
+        resultTypes.add("text/uri-list");
+    else if ([cocoaType isEqualToString:NSFilenamesPboardType]) {
+        // If file list is empty, add nothing.
+        // Note that there is a chance that the file list count could have changed since we grabbed the types array.
+        // However, this is not really an issue for us doing a sanity check here.
+        NSArray *fileList = [pasteboard propertyListForType:NSFilenamesPboardType];
+        if ([fileList count]) {
+            // It is unknown if NSFilenamesPboardType always implies NSURLPboardType in Cocoa,
+            // but NSFilenamesPboardType should imply both 'text/uri-list' and 'Files'
+            resultTypes.add("text/uri-list");
+            resultTypes.add("Files");
         }
+    } else if (String utiType = utiTypeFromCocoaType(cocoaType))
+        resultTypes.add(utiType);
+    else {
+        // No mapping, just pass the whole string though
+        resultTypes.add(cocoaType);
     }
-
-    // No mapping, just pass the whole string though
-    return type;
 }
 
 void ClipboardMac::clearData(const String& type)
@@ -124,7 +137,7 @@ void ClipboardMac::clearData(const String& type)
 
     // note NSPasteboard enforces changeCount itself on writing - can't write if not the owner
 
-    NSString *cocoaType = cocoaTypeFromMIMEType(type);
+    NSString *cocoaType = cocoaTypeFromHTMLClipboardType(type);
     if (cocoaType)
         [m_pasteboard.get() setString:@"" forType:cocoaType];
 }
@@ -139,7 +152,7 @@ void ClipboardMac::clearAllData()
     [m_pasteboard.get() declareTypes:[NSArray array] owner:nil];
 }
 
-static NSArray *absoluteURLsFromPasteboardFilenames(NSPasteboard* pasteboard, bool onlyFirstURL)
+static NSArray *absoluteURLsFromPasteboardFilenames(NSPasteboard* pasteboard, bool onlyFirstURL = false)
 {
     NSArray *fileList = [pasteboard propertyListForType:NSFilenamesPboardType];
 
@@ -163,7 +176,7 @@ static NSArray *absoluteURLsFromPasteboardFilenames(NSPasteboard* pasteboard, bo
     return urls;
 }
 
-static NSArray *absoluteURLsFromPasteboard(NSPasteboard* pasteboard, bool onlyFirstURL)
+static NSArray *absoluteURLsFromPasteboard(NSPasteboard* pasteboard, bool onlyFirstURL = false)
 {
     // NOTE: We must always check [availableTypes containsObject:] before accessing pasteboard data
     // or CoreFoundation will printf when there is not data of the corresponding type.
@@ -191,12 +204,12 @@ String ClipboardMac::getData(const String& type, bool& success) const
     if (policy() != ClipboardReadable)
         return String();
 
-    NSString *cocoaType = cocoaTypeFromMIMEType(type);
+    NSString *cocoaType = cocoaTypeFromHTMLClipboardType(type);
     NSString *cocoaValue = nil;
 
     // Grab the value off the pasteboard corresponding to the cocoaType
     if ([cocoaType isEqualToString:NSURLPboardType]) {
-        // "URL" and "text/url-list" both map to NSURLPboardType in cocoaTypeFromMIMEType(), "URL" only wants the first URL
+        // "URL" and "text/url-list" both map to NSURLPboardType in cocoaTypeFromHTMLClipboardType(), "URL" only wants the first URL
         bool onlyFirstURL = (type == "URL");
         NSArray *absoluteURLs = absoluteURLsFromPasteboard(m_pasteboard.get(), onlyFirstURL);
         cocoaValue = [absoluteURLs componentsJoinedByString:@"\n"];
@@ -221,7 +234,7 @@ bool ClipboardMac::setData(const String &type, const String &data)
         return false;
     // note NSPasteboard enforces changeCount itself on writing - can't write if not the owner
 
-    NSString *cocoaType = cocoaTypeFromMIMEType(type);
+    NSString *cocoaType = cocoaTypeFromHTMLClipboardType(type);
     NSString *cocoaData = data;
 
     if ([cocoaType isEqualToString:NSURLPboardType]) {
@@ -262,16 +275,37 @@ HashSet<String> ClipboardMac::types() const
 
     HashSet<String> result;
     NSUInteger count = [types count];
+    // FIXME: This loop could be split into two stages. One which adds all the HTML5 specified types
+    // and a second which adds all the extra types from the cocoa clipboard (which is Mac-only behavior).
     for (NSUInteger i = 0; i < count; i++) {
         NSString *pbType = [types objectAtIndex:i];
         if ([pbType isEqualToString:@"NeXT plain ascii pasteboard type"])
             continue;   // skip this ancient type that gets auto-supplied by some system conversion
 
-        String str = MIMETypeFromCocoaType(pbType);
-        if (!result.contains(str))
-            result.add(str);
+        addHTMLClipboardTypesForCocoaType(result, pbType, m_pasteboard.get());
     }
+
     return result;
+}
+
+// FIXME: We could cache the computed fileList if necessary
+// Currently each access gets a new copy, setData() modifications to the
+// clipboard are not reflected in any FileList objects the page has accessed and stored
+PassRefPtr<FileList> ClipboardMac::files() const
+{
+    if (policy() != ClipboardReadable)
+        return FileList::create();
+
+    NSArray *absoluteURLs = absoluteURLsFromPasteboardFilenames(m_pasteboard.get());
+    NSUInteger count = [absoluteURLs count];
+
+    RefPtr<FileList> fileList = FileList::create();
+    for (NSUInteger x = 0; x < count; x++) {
+        NSURL *absoluteURL = [NSURL URLWithString:[absoluteURLs objectAtIndex:x]];
+        ASSERT([absoluteURL isFileURL]);
+        fileList->append(File::create([absoluteURL path]));
+    }
+    return fileList.release(); // We will always return a FileList, sometimes empty
 }
 
 // The rest of these getters don't really have any impact on security, so for now make no checks

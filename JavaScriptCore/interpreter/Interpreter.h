@@ -31,30 +31,30 @@
 
 #include "ArgList.h"
 #include "FastAllocBase.h"
-#include "HashMap.h"
 #include "JSCell.h"
 #include "JSValue.h"
 #include "JSObject.h"
 #include "Opcode.h"
 #include "RegisterFile.h"
 
+#include <wtf/HashMap.h>
+
 namespace JSC {
 
     class CodeBlock;
-    class EvalNode;
-    class FunctionBodyNode;
-    class Instruction;
+    class EvalExecutable;
+    class FunctionExecutable;
     class InternalFunction;
-    class AssemblerBuffer;
     class JSFunction;
     class JSGlobalObject;
-    class ProgramNode;
+    class ProgramExecutable;
     class Register;
     class ScopeChainNode;
     class SamplingTool;
     struct CallFrameClosure;
     struct HandlerInfo;
-
+    struct Instruction;
+    
     enum DebugHookID {
         WillExecuteProgram,
         DidExecuteProgram,
@@ -66,7 +66,7 @@ namespace JSC {
 
     enum { MaxMainThreadReentryDepth = 256, MaxSecondaryThreadReentryDepth = 32 };
 
-    class Interpreter : public WTF::FastAllocBase {
+    class Interpreter : public FastAllocBase {
         friend class JIT;
         friend class CachedCall;
     public:
@@ -95,9 +95,9 @@ namespace JSC {
 
         bool isOpcode(Opcode);
         
-        JSValue execute(ProgramNode*, CallFrame*, ScopeChainNode*, JSObject* thisObj, JSValue* exception);
-        JSValue execute(FunctionBodyNode*, CallFrame*, JSFunction*, JSObject* thisObj, const ArgList& args, ScopeChainNode*, JSValue* exception);
-        JSValue execute(EvalNode* evalNode, CallFrame* exec, JSObject* thisObj, ScopeChainNode* scopeChain, JSValue* exception);
+        JSValue execute(ProgramExecutable*, CallFrame*, ScopeChainNode*, JSObject* thisObj, JSValue* exception);
+        JSValue execute(FunctionExecutable*, CallFrame*, JSFunction*, JSObject* thisObj, const ArgList& args, ScopeChainNode*, JSValue* exception);
+        JSValue execute(EvalExecutable* evalNode, CallFrame* exec, JSObject* thisObj, ScopeChainNode* scopeChain, JSValue* exception);
 
         JSValue retrieveArguments(CallFrame*, JSFunction*) const;
         JSValue retrieveCaller(CallFrame*, InternalFunction*) const;
@@ -115,11 +115,11 @@ namespace JSC {
     private:
         enum ExecutionFlag { Normal, InitializeAndReturn };
 
-        CallFrameClosure prepareForRepeatCall(FunctionBodyNode*, CallFrame*, JSFunction*, int argCount, ScopeChainNode*, JSValue* exception);
+        CallFrameClosure prepareForRepeatCall(FunctionExecutable*, CallFrame*, JSFunction*, int argCount, ScopeChainNode*, JSValue* exception);
         void endRepeatCall(CallFrameClosure&);
         JSValue execute(CallFrameClosure&, JSValue* exception);
 
-        JSValue execute(EvalNode*, CallFrame*, JSObject* thisObject, int globalRegisterOffset, ScopeChainNode*, JSValue* exception);
+        JSValue execute(EvalExecutable*, CallFrame*, JSObject* thisObject, int globalRegisterOffset, ScopeChainNode*, JSValue* exception);
 
 #if USE(INTERPRETER)
         NEVER_INLINE bool resolve(CallFrame*, Instruction*, JSValue& exceptionValue);

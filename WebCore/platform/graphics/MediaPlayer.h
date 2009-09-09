@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Apple Inc. All rights reserved.
+ * Copyright (C) 2007, 2008, 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,7 +96,7 @@ public:
 #endif
 };
 
-class MediaPlayer : Noncopyable {
+class MediaPlayer : public Noncopyable {
 public:
     MediaPlayer(MediaPlayerClient*);
     virtual ~MediaPlayer();
@@ -107,8 +107,11 @@ public:
     static void getSupportedTypes(HashSet<String>&);
     static bool isAvailable();
 
+    bool supportsFullscreen() const;
+    bool supportsSave() const;
     IntSize naturalSize();
-    bool hasVideo();
+    bool hasVideo() const;
+    bool hasAudio() const;
     
     void setFrameView(FrameView* frameView) { m_frameView = frameView; }
     FrameView* frameView() { return m_frameView; }
@@ -159,6 +162,7 @@ public:
     void setAutobuffer(bool);
 
     void paint(GraphicsContext*, const IntRect&);
+    void paintCurrentFrameInContext(GraphicsContext*, const IntRect&);
     
     enum NetworkState { Empty, Idle, Loading, Loaded, FormatError, NetworkError, DecodeError };
     NetworkState networkState();
@@ -166,6 +170,9 @@ public:
     enum ReadyState  { HaveNothing, HaveMetadata, HaveCurrentData, HaveFutureData, HaveEnoughData };
     ReadyState readyState();
     
+    enum MovieLoadType { Unknown, Download, StoredStream, LiveStream };
+    MovieLoadType movieLoadType() const;
+
     void networkStateChanged();
     void readyStateChanged();
     void volumeChanged();

@@ -31,69 +31,73 @@
 
 #include "WorkerMessagingProxy.h"
 
+#include "DedicatedWorkerContext.h"
+#include "DedicatedWorkerThread.h"
 #include "DOMWindow.h"
 #include "Document.h"
 #include "GenericWorkerTask.h"
 #include "MessageEvent.h"
 #include "ScriptExecutionContext.h"
 #include "Worker.h"
-#include "WorkerContext.h"
-#include "WorkerThread.h"
 
 namespace WebCore {
 
 class MessageWorkerContextTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<MessageWorkerContextTask> create(const String& message)
+    static PassRefPtr<MessageWorkerContextTask> create(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
     {
-        return adoptRef(new MessageWorkerContextTask(message));
+        return adoptRef(new MessageWorkerContextTask(message, channels));
     }
 
 private:
-    MessageWorkerContextTask(const String& message)
+    MessageWorkerContextTask(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
         : m_message(message.copy())
+        , m_channels(channels)
     {
     }
 
     virtual void performTask(ScriptExecutionContext* scriptContext)
     {
         ASSERT(scriptContext->isWorkerContext());
-        WorkerContext* context = static_cast<WorkerContext*>(scriptContext);
-
-        context->dispatchMessage(m_message);
-
+        DedicatedWorkerContext* context = static_cast<DedicatedWorkerContext*>(scriptContext);
+        OwnPtr<MessagePortArray> ports = MessagePort::entanglePorts(*scriptContext, m_channels.release());
+        context->dispatchMessage(m_message, ports.release());
         context->thread()->workerObjectProxy().confirmMessageFromWorkerObject(context->hasPendingActivity());
     }
 
 private:
     String m_message;
+    OwnPtr<MessagePortChannelArray> m_channels;
 };
 
 class MessageWorkerTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<MessageWorkerTask> create(const String& message, WorkerMessagingProxy* messagingProxy)
+    static PassRefPtr<MessageWorkerTask> create(const String& message, PassOwnPtr<MessagePortChannelArray> channels, WorkerMessagingProxy* messagingProxy)
     {
-        return adoptRef(new MessageWorkerTask(message, messagingProxy));
+        return adoptRef(new MessageWorkerTask(message, channels, messagingProxy));
     }
 
 private:
-    MessageWorkerTask(const String& message, WorkerMessagingProxy* messagingProxy)
+    MessageWorkerTask(const String& message, PassOwnPtr<MessagePortChannelArray> channels, WorkerMessagingProxy* messagingProxy)
         : m_message(message.copy())
+        , m_channels(channels)
         , m_messagingProxy(messagingProxy)
     {
     }
 
-    virtual void performTask(ScriptExecutionContext*)
+    virtual void performTask(ScriptExecutionContext* scriptContext)
     {
         Worker* workerObject = m_messagingProxy->workerObject();
         if (!workerObject || m_messagingProxy->askedToTerminate())
             return;
 
-        workerObject->dispatchMessage(m_message);
+        OwnPtr<MessagePortArray> ports = MessagePort::entanglePorts(*scriptContext, m_channels.release());
+        workerObject->dispatchMessage(m_message, ports.release());
     }
 
 private:
     String m_message;
+    OwnPtr<MessagePortChannelArray> m_channels;
     WorkerMessagingProxy* m_messagingProxy;
 };
 
@@ -115,7 +119,16 @@ private:
 
     virtual void performTask(ScriptExecutionContext* context)
     {
-        if (!m_messagingProxy->askedToTerminate())
+        Worker* workerObject = m_messagingProxy->workerObject();
+        if (!workerObject)
+            return;
+
+        // We don't bother checking the askedToTerminate() flag here, because exceptions should *always* be reported even if the thread is terminated.
+        // This is intentionally different than the behavior in MessageWorkerTask, because terminated workers no longer deliver messages (section 4.6 of the WebWorker spec), but they do report exceptions.
+
+        bool errorHandled = workerObject->dispatchScriptErrorEvent(m_errorMessage, m_sourceURL, m_lineNumber);
+
+        if (!errorHandled)
             context->reportException(m_errorMessage, m_lineNumber, m_sourceURL);
     }
 
@@ -141,6 +154,27 @@ private:
     virtual void performTask(ScriptExecutionContext*)
     {
         m_messagingProxy->workerContextDestroyedInternal();
+    }
+
+    WorkerMessagingProxy* m_messagingProxy;
+};
+
+class WorkerTerminateTask : public ScriptExecutionContext::Task {
+public:
+    static PassRefPtr<WorkerTerminateTask> create(WorkerMessagingProxy* messagingProxy)
+    {
+        return adoptRef(new WorkerTerminateTask(messagingProxy));
+    }
+
+private:
+    WorkerTerminateTask(WorkerMessagingProxy* messagingProxy)
+        : m_messagingProxy(messagingProxy)
+    {
+    }
+
+    virtual void performTask(ScriptExecutionContext*)
+    {
+        m_messagingProxy->terminateWorkerContext();
     }
 
     WorkerMessagingProxy* m_messagingProxy;
@@ -200,26 +234,26 @@ WorkerMessagingProxy::~WorkerMessagingProxy()
 
 void WorkerMessagingProxy::startWorkerContext(const KURL& scriptURL, const String& userAgent, const String& sourceCode)
 {
-    RefPtr<WorkerThread> thread = WorkerThread::create(scriptURL, userAgent, sourceCode, *this, *this);
+    RefPtr<DedicatedWorkerThread> thread = DedicatedWorkerThread::create(scriptURL, userAgent, sourceCode, *this, *this);
     workerThreadCreated(thread);
     thread->start();
 }
 
-void WorkerMessagingProxy::postMessageToWorkerObject(const String& message)
+void WorkerMessagingProxy::postMessageToWorkerObject(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
 {
-    m_scriptExecutionContext->postTask(MessageWorkerTask::create(message, this));
+    m_scriptExecutionContext->postTask(MessageWorkerTask::create(message, channels.release(), this));
 }
 
-void WorkerMessagingProxy::postMessageToWorkerContext(const String& message)
+void WorkerMessagingProxy::postMessageToWorkerContext(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
 {
     if (m_askedToTerminate)
         return;
 
     if (m_workerThread) {
         ++m_unconfirmedMessageCount;
-        m_workerThread->runLoop().postTask(MessageWorkerContextTask::create(message));
+        m_workerThread->runLoop().postTask(MessageWorkerContextTask::create(message, channels.release()));
     } else
-        m_queuedEarlyTasks.append(MessageWorkerContextTask::create(message));
+        m_queuedEarlyTasks.append(MessageWorkerContextTask::create(message, channels.release()));
 }
 
 void WorkerMessagingProxy::postTaskForModeToWorkerContext(PassRefPtr<ScriptExecutionContext::Task> task, const String& mode)
@@ -243,19 +277,19 @@ void WorkerMessagingProxy::postExceptionToWorkerObject(const String& errorMessag
     m_scriptExecutionContext->postTask(WorkerExceptionTask::create(errorMessage, lineNumber, sourceURL, this));
 }
     
-static void postConsoleMessageTask(ScriptExecutionContext* context, WorkerMessagingProxy* messagingProxy, MessageDestination destination, MessageSource source, MessageLevel level, const String& message, unsigned lineNumber, const String& sourceURL)
+static void postConsoleMessageTask(ScriptExecutionContext* context, WorkerMessagingProxy* messagingProxy, MessageDestination destination, MessageSource source, MessageType type, MessageLevel level, const String& message, unsigned lineNumber, const String& sourceURL)
 {
     if (messagingProxy->askedToTerminate())
         return;
-    context->addMessage(destination, source, level, message, lineNumber, sourceURL);
+    context->addMessage(destination, source, type, level, message, lineNumber, sourceURL);
 }
 
-void WorkerMessagingProxy::postConsoleMessageToWorkerObject(MessageDestination destination, MessageSource source, MessageLevel level, const String& message, int lineNumber, const String& sourceURL)
+void WorkerMessagingProxy::postConsoleMessageToWorkerObject(MessageDestination destination, MessageSource source, MessageType type, MessageLevel level, const String& message, int lineNumber, const String& sourceURL)
 {
-    m_scriptExecutionContext->postTask(createCallbackTask(&postConsoleMessageTask, this, destination, source, level, message, lineNumber, sourceURL));
+    m_scriptExecutionContext->postTask(createCallbackTask(&postConsoleMessageTask, this, destination, source, type, level, message, lineNumber, sourceURL));
 }
 
-void WorkerMessagingProxy::workerThreadCreated(PassRefPtr<WorkerThread> workerThread)
+void WorkerMessagingProxy::workerThreadCreated(PassRefPtr<DedicatedWorkerThread> workerThread)
 {
     m_workerThread = workerThread;
 
@@ -287,6 +321,12 @@ void WorkerMessagingProxy::workerContextDestroyed()
 {
     m_scriptExecutionContext->postTask(WorkerContextDestroyedTask::create(this));
     // Will execute workerContextDestroyedInternal() on context's thread.
+}
+
+void WorkerMessagingProxy::workerContextClosed()
+{
+    // Executes terminateWorkerContext() on parent context's thread.
+    m_scriptExecutionContext->postTask(WorkerTerminateTask::create(this));
 }
 
 void WorkerMessagingProxy::workerContextDestroyedInternal()

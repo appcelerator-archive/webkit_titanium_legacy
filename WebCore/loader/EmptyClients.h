@@ -95,7 +95,7 @@ public:
 
     virtual void setResizable(bool) { }
 
-    virtual void addMessageToConsole(MessageSource, MessageLevel, const String&, unsigned, const String&) { }
+    virtual void addMessageToConsole(MessageSource, MessageType, MessageLevel, const String&, unsigned, const String&) { }
 
     virtual bool canRunBeforeUnloadConfirmPanel() { return false; }
     virtual bool runBeforeUnloadConfirmPanel(const String&, Frame*) { return true; }
@@ -123,9 +123,10 @@ public:
     virtual PlatformWidget platformWindow() const { return 0; }
     virtual void contentsSizeChanged(Frame*, const IntSize&) const { }
 
+    virtual void scrollbarsModeDidChange() const { }
     virtual void mouseDidMoveOverElement(const HitTestResult&, unsigned) { }
 
-    virtual void setToolTip(const String&) { }
+    virtual void setToolTip(const String&, TextDirection) { }
 
     virtual void print(Frame*) { }
 
@@ -133,9 +134,20 @@ public:
     virtual void exceededDatabaseQuota(Frame*, const String&) { }
 #endif
 
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    virtual void reachedMaxAppCacheSize(int64_t) { }
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+    virtual NotificationPresenter* notificationPresenter() const { return 0; }
+#endif
+
     virtual void runOpenPanel(Frame*, PassRefPtr<FileChooser>) { }
 
     virtual void formStateDidChange(const Node*) { }
+
+    virtual void formDidFocus(const Node*) { }
+    virtual void formDidBlur(const Node*) { }
 
     virtual PassOwnPtr<HTMLParserQuirks> createHTMLParserQuirks() { return 0; }
 
@@ -148,7 +160,7 @@ public:
 #if USE(ACCELERATED_COMPOSITING)
     virtual void attachRootGraphicsLayer(Frame*, GraphicsLayer*) {};
     virtual void setNeedsOneShotDrawingSynchronization() {};
-    virtual void scheduleViewUpdate() {};
+    virtual void scheduleCompositingLayerSync() {};
 #endif
 };
 
@@ -268,10 +280,11 @@ public:
     virtual bool shouldGoToHistoryItem(HistoryItem*) const { return false; }
     virtual void saveViewStateToItem(HistoryItem*) { }
     virtual bool canCachePage() const { return false; }
-
+    virtual void didDisplayInsecureContent() { }
+    virtual void didRunInsecureContent(SecurityOrigin*) { }
     virtual PassRefPtr<Frame> createFrame(const KURL&, const String&, HTMLFrameOwnerElement*, const String&, bool, int, int) { return 0; }
-    virtual Widget* createPlugin(const IntSize&, HTMLPlugInElement*, const KURL&, const Vector<String>&, const Vector<String>&, const String&, bool) { return 0; }
-    virtual Widget* createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const KURL&, const Vector<String>&, const Vector<String>&) { return 0; }
+    virtual PassRefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement*, const KURL&, const Vector<String>&, const Vector<String>&, const String&, bool) { return 0; }
+    virtual PassRefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const KURL&, const Vector<String>&, const Vector<String>&) { return 0; }
 
     virtual ObjectContentType objectContentType(const KURL&, const String&) { return ObjectContentType(); }
     virtual String overrideMediaType() const { return String(); }
@@ -282,6 +295,12 @@ public:
     virtual void didPerformFirstNavigation() const { }
 
     virtual void registerForIconNotification(bool) { }
+
+#if USE(V8)
+    virtual void didCreateScriptContextForFrame() { }
+    virtual void didDestroyScriptContextForFrame() { }
+    virtual void didCreateIsolatedScriptContext() { }
+#endif
 
 #if PLATFORM(MAC)
     virtual NSCachedURLResponse* willCacheResponse(DocumentLoader*, unsigned long, NSCachedURLResponse* response) const { return response; }
@@ -408,6 +427,7 @@ public:
     virtual void copyImageToClipboard(const HitTestResult&) { }
     virtual void searchWithGoogle(const Frame*) { }
     virtual void lookUpInDictionary(Frame*) { }
+    virtual bool isSpeaking() { return false; }
     virtual void speak(const String&) { }
     virtual void stopSpeaking() { }
 
@@ -455,6 +475,8 @@ public:
     virtual void populateSetting(const String&, InspectorController::Setting&) { }
     virtual void storeSetting(const String&, const InspectorController::Setting&) { }
     virtual void removeSetting(const String&) { }
+
+    virtual void inspectorWindowObjectCleared() { }
 };
 
 }

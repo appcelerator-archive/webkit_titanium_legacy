@@ -41,7 +41,7 @@ namespace WebCore {
 
 unsigned EventHandler::s_accessKeyModifiers = PlatformKeyboardEvent::AltKey;
 
-bool EventHandler::tabsToAllControls(KeyboardEvent* ) const
+bool EventHandler::tabsToAllControls(KeyboardEvent*) const
 {
     return true;
 }
@@ -58,8 +58,7 @@ bool EventHandler::passWidgetMouseDownEventToWidget(const MouseEventWithHitTestR
     RenderObject* target = event.targetNode() ? event.targetNode()->renderer() : 0;
     if (!target || !target->isWidget())
         return false;
-    
-    return passMouseDownEventToWidget(static_cast<RenderWidget*>(target)->widget());
+    return passMouseDownEventToWidget(toRenderWidget(target)->widget());
 }
 
 bool EventHandler::passWidgetMouseDownEventToWidget(RenderWidget* renderWidget)
@@ -75,7 +74,7 @@ bool EventHandler::passMouseDownEventToWidget(Widget* )
     return false;
 }
 
-bool EventHandler::eventActivatedView(const PlatformMouseEvent& ) const
+bool EventHandler::eventActivatedView(const PlatformMouseEvent&) const
 {
     notImplemented();
     return false;

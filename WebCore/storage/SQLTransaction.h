@@ -60,7 +60,7 @@ public:
     virtual ~SQLTransactionWrapper() { }
     virtual bool performPreflight(SQLTransaction*) = 0;
     virtual bool performPostflight(SQLTransaction*) = 0;
-    
+
     virtual SQLError* sqlError() const = 0;
 };
 
@@ -69,13 +69,14 @@ public:
     static PassRefPtr<SQLTransaction> create(Database*, PassRefPtr<SQLTransactionCallback>, PassRefPtr<SQLTransactionErrorCallback>, PassRefPtr<VoidCallback>, PassRefPtr<SQLTransactionWrapper>);
 
     ~SQLTransaction();
-    
-    void executeSQL(const String& sqlStatement, const Vector<SQLValue>& arguments, 
+
+    void executeSQL(const String& sqlStatement, const Vector<SQLValue>& arguments,
                     PassRefPtr<SQLStatementCallback> callback, PassRefPtr<SQLStatementErrorCallback> callbackError, ExceptionCode& e);
-                                        
+
+    void lockAcquired();
     bool performNextStep();
     void performPendingCallback();
-    
+
     Database* database() { return m_database.get(); }
 
 private:
@@ -83,11 +84,12 @@ private:
 
     typedef void (SQLTransaction::*TransactionStepMethod)();
     TransactionStepMethod m_nextStep;
-    
+
     void enqueueStatement(PassRefPtr<SQLStatement>);
-    
+
     void checkAndHandleClosedDatabase();
-    
+
+    void acquireLock();
     void openTransactionAndPreflight();
     void deliverTransactionCallback();
     void scheduleToRunStatements();
@@ -109,9 +111,9 @@ private:
 #endif
 
     RefPtr<SQLStatement> m_currentStatement;
-    
+
     bool m_executeSqlAllowed;
-    
+
     RefPtr<Database> m_database;
     RefPtr<SQLTransactionWrapper> m_wrapper;
     RefPtr<SQLTransactionCallback> m_callback;
@@ -120,13 +122,14 @@ private:
     RefPtr<SQLError> m_transactionError;
     bool m_shouldRetryCurrentStatement;
     bool m_modifiedDatabase;
-    
+    bool m_lockAcquired;
+
     Mutex m_statementMutex;
     Deque<RefPtr<SQLStatement> > m_statementQueue;
 
     OwnPtr<SQLiteTransaction> m_sqliteTransaction;
 };
-    
+
 } // namespace WebCore
 
 #endif

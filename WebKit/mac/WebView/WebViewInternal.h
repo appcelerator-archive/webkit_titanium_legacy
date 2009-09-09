@@ -70,8 +70,10 @@ namespace WebCore {
 
 - (BOOL)_becomingFirstResponderFromOutside;
 
+#if ENABLE(ICONDATABASE)
 - (void)_registerForIconNotification:(BOOL)listen;
 - (void)_dispatchDidReceiveIconFromWebFrame:(WebFrame *)webFrame;
+#endif
 
 - (void)_setMouseDownEvent:(NSEvent *)event;
 - (void)_cancelUpdateMouseoverTimer;
@@ -85,7 +87,7 @@ namespace WebCore {
 - (void)_setNeedsOneShotDrawingSynchronization:(BOOL)needsSynchronization;
 - (void)_startedAcceleratedCompositingForFrame:(WebFrame*)webFrame;
 - (void)_stoppedAcceleratedCompositingForFrame:(WebFrame*)webFrame;
-- (void)_scheduleViewUpdate;
+- (void)_scheduleCompositingLayerSync;
 #endif
 
 @end
@@ -108,10 +110,6 @@ namespace WebCore {
 - (id)_policyDelegateForwarder;
 - (void)_pushPerformingProgrammaticFocus;
 - (void)_popPerformingProgrammaticFocus;
-- (void)_incrementProgressForIdentifier:(id)identifier response:(NSURLResponse *)response;
-- (void)_incrementProgressForIdentifier:(id)identifier length:(int)length;
-- (void)_completeProgressForIdentifier:(id)identifer;
-- (void)_progressStarted:(WebFrame *)frame;
 - (void)_didStartProvisionalLoadForFrame:(WebFrame *)frame;
 + (BOOL)_viewClass:(Class *)vClass andRepresentationClass:(Class *)rClass forMIMEType:(NSString *)MIMEType;
 - (BOOL)_viewClass:(Class *)vClass andRepresentationClass:(Class *)rClass forMIMEType:(NSString *)MIMEType;
@@ -136,7 +134,6 @@ namespace WebCore {
 - (void)_didChangeValueForKey:(NSString *)key;
 - (WebBasePluginPackage *)_pluginForMIMEType:(NSString *)MIMEType;
 - (WebBasePluginPackage *)_pluginForExtension:(NSString *)extension;
-- (BOOL)_isMIMETypeRegisteredAsPlugin:(NSString *)MIMEType;
 
 - (void)setCurrentNodeHighlight:(WebNodeHighlight *)nodeHighlight;
 - (WebNodeHighlight *)currentNodeHighlight;

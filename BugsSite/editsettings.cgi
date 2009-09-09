@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -14,93 +14,60 @@
 # The Original Code is the Bugzilla Bug Tracking System.
 #
 # Contributor(s): Shane H. W. Travis <travis@sedsystems.ca>
-#
+#                 Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
-use lib qw(.);
+use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
-use Bugzilla::User;
+use Bugzilla::Util;
+use Bugzilla::Error;
 use Bugzilla::User::Setting;
+use Bugzilla::Token;
 
-require "CGI.pl";
+my $template = Bugzilla->template;
+my $user = Bugzilla->login(LOGIN_REQUIRED);
+my $cgi = Bugzilla->cgi;
+my $vars = {};
 
-# Use global template variables.
-use vars qw($template $vars);
+print $cgi->header;
 
-###############################
-###  Subroutine Definitions ###
-###############################
+$user->in_group('tweakparams')
+  || ThrowUserError("auth_failure", {group  => "tweakparams",
+                                     action => "modify",
+                                     object => "settings"});
 
-sub LoadSettings {
+my $action = trim($cgi->param('action') || '');
+my $token = $cgi->param('token');
 
-    $vars->{'settings'} = Bugzilla::User::Setting::get_defaults();
+if ($action eq 'update') {
+    check_token_data($token, 'edit_settings');
+    my $settings = Bugzilla::User::Setting::get_defaults();
+    my $changed = 0;
 
-    my @setting_list = keys %{$vars->{'settings'}};
-    $vars->{'setting_names'} = \@setting_list;
-}
-
-sub SaveSettings{
-
-    my $cgi = Bugzilla->cgi;
-
-    $vars->{'settings'} = Bugzilla::User::Setting::get_defaults();
-    my @setting_list = keys %{$vars->{'settings'}};
-
-    foreach my $name (@setting_list) {
-        my $changed = 0;
-        my $old_enabled = $vars->{'settings'}->{$name}->{'is_enabled'};
-        my $old_value   = $vars->{'settings'}->{$name}->{'default_value'};
+    foreach my $name (keys %$settings) {
+        my $old_enabled = $settings->{$name}->{'is_enabled'};
+        my $old_value = $settings->{$name}->{'default_value'};
         my $enabled = defined $cgi->param("${name}-enabled") || 0;
         my $value = $cgi->param("${name}");
         my $setting = new Bugzilla::User::Setting($name);
 
         $setting->validate_value($value);
 
-        if ( ($old_enabled != $enabled) ||
-             ($old_value ne $value) ) {
+        if ($old_enabled != $enabled || $old_value ne $value) {
             Bugzilla::User::Setting::set_default($name, $value, $enabled);
+            $changed = 1;
         }
     }
+    $vars->{'message'} = 'default_settings_updated';
+    $vars->{'changes_saved'} = $changed;
+    delete_token($token);
 }
 
-###################
-###  Live code  ###
-###################
+# Don't use $settings as defaults may have changed.
+$vars->{'settings'} = Bugzilla::User::Setting::get_defaults();
+$vars->{'token'} = issue_session_token('edit_settings');
 
-Bugzilla->login(LOGIN_REQUIRED);
-
-my $cgi = Bugzilla->cgi;
-print $cgi->header;
-
-UserInGroup("tweakparams")
-  || ThrowUserError("auth_failure", {group  => "tweakparams",
-                                     action => "modify",
-                                     object => "settings"});
-
-my $action  = trim($cgi->param('action')  || 'load');
-
-if ($action eq 'update') {
-    SaveSettings();
-    $vars->{'changes_saved'} = 1;
-
-    $template->process("admin/settings/updated.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
-
-    exit;
-}
-
-if ($action eq 'load') {
-    LoadSettings();
-
-    $template->process("admin/settings/edit.html.tmpl", $vars)
-      || ThrowTemplateError($template->error());
-
-    exit;
-}
-
-#
-# No valid action found
-#
-ThrowUserError('no_valid_action', {'field' => "settings"});
+$template->process("admin/settings/edit.html.tmpl", $vars)
+  || ThrowTemplateError($template->error());

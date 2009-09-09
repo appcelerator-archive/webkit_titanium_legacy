@@ -41,7 +41,9 @@ using namespace Bindings;
 const ClassInfo RuntimeObjectImp::s_info = { "RuntimeObject", 0, 0, 0 };
 
 RuntimeObjectImp::RuntimeObjectImp(ExecState* exec, PassRefPtr<Instance> i)
-    : JSObject(getDOMStructure<RuntimeObjectImp>(exec))
+    // FIXME: deprecatedGetDOMStructure uses the prototype off of the wrong global object
+    // We need to pass in the right global object for "i".
+    : JSObject(deprecatedGetDOMStructure<RuntimeObjectImp>(exec))
     , instance(i)
 {
     instance->rootObject()->addRuntimeObject(this);
@@ -163,6 +165,54 @@ bool RuntimeObjectImp::getOwnPropertySlot(ExecState *exec, const Identifier& pro
     instance->end();
     
     return instance->getOwnPropertySlot(this, exec, propertyName, slot);
+}
+
+bool RuntimeObjectImp::getOwnPropertyDescriptor(ExecState *exec, const Identifier& propertyName, PropertyDescriptor& descriptor)
+{
+    if (!instance) {
+        throwInvalidAccessError(exec);
+        return false;
+    }
+    
+    instance->begin();
+    
+    Class *aClass = instance->getClass();
+    
+    if (aClass) {
+        // See if the instance has a field with the specified name.
+        Field *aField = aClass->fieldNamed(propertyName, instance.get());
+        if (aField) {
+            PropertySlot slot;
+            slot.setCustom(this, fieldGetter);
+            instance->end();
+            descriptor.setDescriptor(slot.getValue(exec, propertyName), DontDelete);
+            return true;
+        } else {
+            // Now check if a method with specified name exists, if so return a function object for
+            // that method.
+            MethodList methodList = aClass->methodsNamed(propertyName, instance.get());
+            if (methodList.size() > 0) {
+                PropertySlot slot;
+                slot.setCustom(this, methodGetter);
+                instance->end();
+                descriptor.setDescriptor(slot.getValue(exec, propertyName), DontDelete | ReadOnly);
+                return true;
+            }
+        }
+        
+        // Try a fallback object.
+        if (!aClass->fallbackObject(exec, instance.get(), propertyName).isUndefined()) {
+            PropertySlot slot;
+            slot.setCustom(this, fallbackObjectGetter);
+            instance->end();
+            descriptor.setDescriptor(slot.getValue(exec, propertyName), DontDelete | ReadOnly | DontEnum);
+            return true;
+        }
+    }
+    
+    instance->end();
+    
+    return instance->getOwnPropertyDescriptor(this, exec, propertyName, descriptor);
 }
 
 void RuntimeObjectImp::put(ExecState* exec, const Identifier& propertyName, JSValue value, PutPropertySlot& slot)

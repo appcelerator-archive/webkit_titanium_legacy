@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -33,9 +33,11 @@
 #include "FileSystem.h"
 #include "Frame.h"
 #include "FrameTree.h"
+#include "LocalStorageTask.h"
+#include "LocalStorageThread.h"
 #include "Page.h"
 #include "PageGroup.h"
-#include "StorageArea.h"
+#include "StorageAreaSync.h"
 #include <wtf/StdLibExtras.h>
 
 namespace WebCore {
@@ -51,6 +53,10 @@ StorageSyncManager::StorageSyncManager(const String& path)
     ASSERT(!m_path.isEmpty());
     m_thread = LocalStorageThread::create();
     m_thread->start();
+}
+
+StorageSyncManager::~StorageSyncManager()
+{
 }
 
 String StorageSyncManager::fullDatabaseFilename(SecurityOrigin* origin)
@@ -74,7 +80,7 @@ void StorageSyncManager::close()
     }
 }
 
-bool StorageSyncManager::scheduleImport(PassRefPtr<LocalStorageArea> area)
+bool StorageSyncManager::scheduleImport(PassRefPtr<StorageAreaSync> area)
 {
     ASSERT(isMainThread());
 
@@ -84,7 +90,7 @@ bool StorageSyncManager::scheduleImport(PassRefPtr<LocalStorageArea> area)
     return m_thread;
 }
 
-void StorageSyncManager::scheduleSync(PassRefPtr<LocalStorageArea> area)
+void StorageSyncManager::scheduleSync(PassRefPtr<StorageAreaSync> area)
 {
     ASSERT(isMainThread());
 
@@ -95,4 +101,3 @@ void StorageSyncManager::scheduleSync(PassRefPtr<LocalStorageArea> area)
 } // namespace WebCore
 
 #endif // ENABLE(DOM_STORAGE)
-

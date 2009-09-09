@@ -34,12 +34,14 @@
 #include "Editor.h"
 #include "Element.h"
 #include "EventHandler.h"
+#include "FileList.h"
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
 #include "HTMLNames.h"
 #include "Image.h"
 #include "MIMETypeRegistry.h"
+#include "NotImplemented.h"
 #include "Page.h"
 #include "Pasteboard.h"
 #include "PlatformMouseEvent.h"
@@ -115,56 +117,49 @@ static inline void pathRemoveBadFSCharacters(PWSTR psz, size_t length)
 
 static String filesystemPathFromUrlOrTitle(const String& url, const String& title, TCHAR* extension, bool isLink)
 {
+    static const size_t fsPathMaxLengthExcludingNullTerminator = MAX_PATH - 1;
     bool usedURL = false;
-    WCHAR fsPathBuffer[MAX_PATH + 1];
+    WCHAR fsPathBuffer[MAX_PATH];
     fsPathBuffer[0] = 0;
     int extensionLen = extension ? lstrlen(extension) : 0;
+    int fsPathMaxLengthExcludingExtension = fsPathMaxLengthExcludingNullTerminator - extensionLen;
 
     if (!title.isEmpty()) {
-        size_t len = min<size_t>(title.length(), MAX_PATH - extensionLen);
+        size_t len = min<size_t>(title.length(), fsPathMaxLengthExcludingExtension);
         CopyMemory(fsPathBuffer, title.characters(), len * sizeof(UChar));
         fsPathBuffer[len] = 0;
         pathRemoveBadFSCharacters(fsPathBuffer, len);
     }
 
     if (!lstrlen(fsPathBuffer)) {
-        DWORD len = MAX_PATH;
-        String nullTermURL = url;
+        KURL kurl(ParsedURLString, url);
         usedURL = true;
-        if (UrlIsFileUrl((LPCWSTR)nullTermURL.charactersWithNullTermination()) 
-            && SUCCEEDED(PathCreateFromUrl((LPCWSTR)nullTermURL.charactersWithNullTermination(), fsPathBuffer, &len, 0))) {
-            // When linking to a file URL we can trivially find the file name
-            PWSTR fn = PathFindFileName(fsPathBuffer);
-            if (fn && fn != fsPathBuffer)
-                lstrcpyn(fsPathBuffer, fn, lstrlen(fn) + 1);
+        // The filename for any content based drag or file url should be the last element of 
+        // the path.  If we can't find it, or we're coming up with the name for a link
+        // we just use the entire url.
+        DWORD len = fsPathMaxLengthExcludingExtension;
+        String lastComponent = kurl.lastPathComponent();
+        if (kurl.isLocalFile() || (!isLink && !lastComponent.isEmpty())) {
+            len = min<DWORD>(fsPathMaxLengthExcludingExtension, lastComponent.length());
+            CopyMemory(fsPathBuffer, lastComponent.characters(), len * sizeof(UChar));
         } else {
-            // The filename for any content based drag should be the last element of 
-            // the path.  If we can't find it, or we're coming up with the name for a link
-            // we just use the entire url.
-            KURL kurl(url);
-            String lastComponent;
-            if (!isLink && !(lastComponent = kurl.lastPathComponent()).isEmpty()) {
-                len = min<DWORD>(MAX_PATH, lastComponent.length());
-                CopyMemory(fsPathBuffer, lastComponent.characters(), len * sizeof(UChar));
-            } else {
-                len = min<DWORD>(MAX_PATH, nullTermURL.length());
-                CopyMemory(fsPathBuffer, nullTermURL.characters(), len * sizeof(UChar));
-            }
-            fsPathBuffer[len] = 0;
-            pathRemoveBadFSCharacters(fsPathBuffer, len);
+            len = min<DWORD>(fsPathMaxLengthExcludingExtension, url.length());
+            CopyMemory(fsPathBuffer, url.characters(), len * sizeof(UChar));
         }
+        fsPathBuffer[len] = 0;
+        pathRemoveBadFSCharacters(fsPathBuffer, len);
     }
 
     if (!extension)
-        return String((UChar*)fsPathBuffer);
+        return String(static_cast<UChar*>(fsPathBuffer));
 
     if (!isLink && usedURL) {
         PathRenameExtension(fsPathBuffer, extension);
-        return String((UChar*)fsPathBuffer);
+        return String(static_cast<UChar*>(fsPathBuffer));
     }
 
-    String result((UChar*)fsPathBuffer);
-    result += String((UChar*)extension);
+    String result(static_cast<UChar*>(fsPathBuffer));
+    result += String(static_cast<UChar*>(extension));
     return result;
 }
 
@@ -520,7 +515,7 @@ bool ClipboardWin::setData(const String& type, const String& data)
     ClipboardDataType winType = clipboardTypeFromMIMEType(type);
 
     if (winType == ClipboardDataTypeURL)
-        return WebCore::writeURL(m_writableDataObject.get(), KURL(data), String(), false, true);
+        return WebCore::writeURL(m_writableDataObject.get(), KURL(ParsedURLString, data), String(), false, true);
 
     if (winType == ClipboardDataTypeText) {
         STGMEDIUM medium = {0};
@@ -580,6 +575,12 @@ HashSet<String> ClipboardWin::types() const
     return results;
 }
 
+PassRefPtr<FileList> ClipboardWin::files() const
+{
+    notImplemented();
+    return 0;
+}
+
 void ClipboardWin::setDragImage(CachedImage* image, Node *node, const IntPoint &loc)
 {
     if (policy() != ClipboardImageWritable && policy() != ClipboardWritable) 
@@ -635,7 +636,7 @@ static CachedImage* getCachedImage(Element* element)
     if (!renderer || !renderer->isImage()) 
         return 0;
     
-    RenderImage* image = static_cast<RenderImage*>(renderer);
+    RenderImage* image = toRenderImage(renderer);
     if (image->cachedImage() && !image->cachedImage()->errorOccurred())
         return image->cachedImage();
 
@@ -686,7 +687,7 @@ void ClipboardWin::declareAndWriteDragImage(Element* element, const KURL& url, c
     if (imageURL.isEmpty()) 
         return;
 
-    String fullURL = frame->document()->completeURL(parseURL(imageURL)).string();
+    String fullURL = frame->document()->completeURL(deprecatedParseURL(imageURL)).string();
     if (fullURL.isEmpty()) 
         return;
     STGMEDIUM medium = {0};

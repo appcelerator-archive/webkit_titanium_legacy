@@ -42,9 +42,9 @@ var testFunctions = ["returnFalse", "returnTrue", "returnElem", "returnIndex", "
 
 var simpleArray = [0,1,2,3,4,5];
 var emptyArray = [];
-var largeEmptyArray = new Array(1000);
+var largeEmptyArray = new Array(300);
 var largeSparseArray = [0,1,2,3,4,5];
-largeSparseArray[1999] = 1999;
+largeSparseArray[299] = 299;
 
 var arrays = ["simpleArray", "emptyArray", "largeEmptyArray", "largeSparseArray"];
 function copyArray(a) {
@@ -120,4 +120,5 @@ for (var f = 0; f < functions.length; f++) {
         }
     }
 }
+
 successfullyParsed = true;

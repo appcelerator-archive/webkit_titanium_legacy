@@ -9,66 +9,84 @@ function createWMLElement(name) {
     return testDocument.createElementNS(wmlNS, "wml:" + name);
 }
 
-function createWMLTestCase(desc, substituteVariables, testName) {
-    if (substituteVariables == null)
-        substituteVariables = true;
+function onloadHandler(resetupDocument) {
+    if (testDocument) {
+        testDocument = iframeElement.contentDocument;
+        if (resetupDocument)
+            setupTestDocument();
 
-    var defaultTest = true;
-    if (testName == null) {
-        defaultTest = false;
-        testName = relativePathToLayoutTests + "/wml/resources/test-document.wml";
+        assureLayout();
+        executeTest();
+        return;
     }
 
-    description(desc);
+    testDocument = iframeElement.contentDocument;
+    setupTestDocument();
+    prepareTest();
+
+    // In a regular WML document, this would happen after the parsing finished.
+    // Though as we dynamically create testcases, we have to take care of initializing WML variable state manually.
+    testDocument.initializeWMLPageState();
+}
+
+function createStaticWMLTestCase(testDescription, testName, resetPageState) {
+    if (testName == null)
+        return;
+
+    if (resetPageState == null)
+        resetPageState = true;
+
+    createWMLTestCase(testDescription, false, testName, resetPageState);
+}
+
+function createDynamicWMLTestCase(testDescription, resetupDocument) {
+    // Setup default test options
+    if (resetupDocument == null)
+        resetupDocument = true;
+
+    // Setup default test name
+    var testName = relativePathToLayoutTests + "/wml/resources/test-document.wml";
+    createWMLTestCase(testDescription, resetupDocument, testName, true);
+}
+
+function createWMLTestCase(testDescription, resetupDocument, testName, resetPageState) {
+    // Initialize JS test
+    description(testDescription);
     bodyElement = document.getElementsByTagName("body")[0];
 
     // Clear variable state & history
-    document.resetWMLPageState();
+    if (resetPageState)
+        document.resetWMLPageState();
 
+    // Setup DRT specific settings
     if (window.layoutTestController) {
         layoutTestController.dumpChildFramesAsText();
         layoutTestController.waitUntilDone();
     }
 
+    // Create container element to load the WML document
     iframeElement = document.createElementNS(xhtmlNS, "iframe");
     iframeElement.src = testName;
 
-    var loaded = false;
-    var executed = false;
-
-    iframeElement.onload = function() {
-        if (executed && !defaultTest)
-            return;
-
-        // External deck jumps
-        if (testDocument != null && !substituteVariables) {
-            executeTest();
-            return;
-        }
-
-        testDocument = iframeElement.contentDocument;
-        setupTestDocument();
-
-        // Variable refresh
-        if (loaded && substituteVariables) {
-            executeTest();
-            return;
-        }
-
-        loaded = true;
-        prepareTest();
-
-        // Internal deck jumps
-        if (!substituteVariables) {
-            executed = true;
-            executeTest();
-        }
-    }
-
+    // Process load events, taking care of setting up the native WML testcase
+    iframeElement.onload = function() { window.setTimeout('onloadHandler(' + resetupDocument + ')', 0); }
     bodyElement.insertBefore(iframeElement, document.getElementById("description"));
 }
 
-function triggerUpdate(x, y) {
+function assureLayout() {
+    // Assure initial layout finished (variable substitions happen on attach time)
+    var cards = testDocument.getElementsByTagName("card");
+    for (var i = 0; i < cards.length; ++i) {
+        cards[i].offsetTop;
+    }
+}
+
+function startTest(x, y) {
+    assureLayout();
+    triggerMouseEvent(x, y);
+}
+
+function triggerMouseEvent(x, y) {
     // Translation due to HTML content above the WML document in the iframe
     x = x + iframeElement.offsetLeft;
     y = y + iframeElement.offsetTop;
@@ -78,16 +96,6 @@ function triggerUpdate(x, y) {
         eventSender.mouseDown();
         eventSender.mouseUp();
     }
-}
-
-function startTest(x, y) {
-    // Initialize variable state
-    // In a regular WML document, this would happen after the parsing finished.
-    // Though as we dynamically create testcases, we have to take care of initializing WML variable state manually.
-    testDocument.initializeWMLPageState();
-
-    // Assure first layout finished
-    window.setTimeout("triggerUpdate(" + x + ", " + y + ")", 0);
 }
 
 function completeTest() {

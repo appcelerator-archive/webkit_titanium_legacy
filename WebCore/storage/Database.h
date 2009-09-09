@@ -41,7 +41,6 @@
 
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
-#include <wtf/OwnPtr.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/RefPtr.h>
 #include <wtf/Deque.h>
@@ -57,9 +56,11 @@ class DatabaseThread;
 class Document;
 class SQLResultSet;
 class SQLTransactionCallback;
+class SQLTransactionClient;
+class SQLTransactionCoordinator;
 class SQLTransactionErrorCallback;
 class SQLValue;
-    
+
 typedef int ExceptionCode;
 
 class Database : public ThreadSafeShared<Database> {
@@ -72,12 +73,12 @@ public:
 // Direct support for the DOM API
     static PassRefPtr<Database> openDatabase(Document* document, const String& name, const String& expectedVersion, const String& displayName, unsigned long estimatedSize, ExceptionCode&);
     String version() const;
-    void changeVersion(const String& oldVersion, const String& newVersion, 
+    void changeVersion(const String& oldVersion, const String& newVersion,
                        PassRefPtr<SQLTransactionCallback> callback, PassRefPtr<SQLTransactionErrorCallback> errorCallback,
                        PassRefPtr<VoidCallback> successCallback);
     void transaction(PassRefPtr<SQLTransactionCallback> callback, PassRefPtr<SQLTransactionErrorCallback> errorCallback,
                      PassRefPtr<VoidCallback> successCallback);
-    
+
 // Internal engine support
     static const String& databaseInfoTableName();
 
@@ -90,7 +91,7 @@ public:
     Document* document() const { return m_document.get(); }
     PassRefPtr<SecurityOrigin> securityOriginCopy() const;
     String stringIdentifier() const;
-    
+
     bool getVersionFromDatabase(String&);
     bool setVersionInDatabase(const String&);
     void setExpectedVersion(const String&);
@@ -100,7 +101,8 @@ public:
     bool deleted() const { return m_deleted; }
 
     void close();
-    
+    bool opened() const { return m_opened; }
+
     void stop();
     bool stopped() const { return m_stopped; }
 
@@ -115,6 +117,9 @@ public:
 
     Vector<String> performGetTableNames();
 
+    SQLTransactionClient* transactionClient() const;
+    SQLTransactionCoordinator* transactionCoordinator() const;
+
 private:
     Database(Document* document, const String& name, const String& expectedVersion);
 
@@ -122,8 +127,8 @@ private:
 
     void scheduleTransaction();
     void scheduleTransactionCallback(SQLTransaction*);
-    void scheduleTransactionStep(SQLTransaction* transaction);
-    
+    void scheduleTransactionStep(SQLTransaction* transaction, bool immediately = false);
+
     MessageQueue<RefPtr<SQLTransaction> > m_transactionQueue;
     Mutex m_transactionInProgressMutex;
     bool m_transactionInProgress;
@@ -138,8 +143,10 @@ private:
     String m_filename;
 
     bool m_deleted;
-    
+
     bool m_stopped;
+
+    bool m_opened;
 
     SQLiteDatabase m_sqliteDatabase;
     RefPtr<DatabaseAuthorizer> m_databaseAuthorizer;

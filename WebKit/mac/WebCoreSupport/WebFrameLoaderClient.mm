@@ -68,6 +68,7 @@
 #import "WebPolicyDelegatePrivate.h"
 #import "WebPreferences.h"
 #import "WebResourceLoadDelegate.h"
+#import "WebSecurityOriginInternal.h"
 #import "WebUIDelegate.h"
 #import "WebUIDelegatePrivate.h"
 #import "WebViewInternal.h"
@@ -220,6 +221,11 @@ void WebFrameLoaderClient::makeRepresentation(DocumentLoader* loader)
 
 bool WebFrameLoaderClient::hasHTMLView() const
 {
+    if (![getWebView(m_webFrame.get()) _usesDocumentViews]) {
+        // FIXME (Viewless): For now we just assume that all frames have an HTML view
+        return true;
+    }
+    
     NSView <WebDocumentView> *view = [m_webFrame->_private->webFrameView documentView];
     return [view isKindOfClass:[WebHTMLView class]];
 }
@@ -539,9 +545,11 @@ void WebFrameLoaderClient::dispatchWillClose()
 
 void WebFrameLoaderClient::dispatchDidReceiveIcon()
 {
+#if ENABLE(ICONDATABASE)
     WebView *webView = getWebView(m_webFrame.get());   
     ASSERT(m_webFrame == [webView mainFrame]);
     [webView _dispatchDidReceiveIconFromWebFrame:m_webFrame.get()];
+#endif
 }
 
 void WebFrameLoaderClient::dispatchDidStartProvisionalLoad()
@@ -806,7 +814,8 @@ void WebFrameLoaderClient::updateGlobalHistory()
     [[WebHistory optionalSharedHistory] _visitedURL:loader->urlForHistory() 
                                           withTitle:loader->title()
                                              method:loader->originalRequestCopy().httpMethod()
-                                         wasFailure:loader->urlForHistoryReflectsFailure()];
+                                         wasFailure:loader->urlForHistoryReflectsFailure()
+                                 increaseVisitCount:!loader->clientRedirectSourceForHistory()]; // Do not increase visit count due to navigations that were not initiated by the user directly, avoiding growth from programmatic reloads.
 }
 
 void WebFrameLoaderClient::updateGlobalHistoryRedirectLinks()
@@ -831,6 +840,24 @@ bool WebFrameLoaderClient::shouldGoToHistoryItem(HistoryItem* item) const
     WebHistoryItem *webItem = kit(item);
     
     return [[view _policyDelegateForwarder] webView:view shouldGoToHistoryItem:webItem];
+}
+
+void WebFrameLoaderClient::didDisplayInsecureContent()
+{
+    WebView *webView = getWebView(m_webFrame.get());   
+    WebFrameLoadDelegateImplementationCache* implementations = WebViewGetFrameLoadDelegateImplementations(webView);
+    if (implementations->didDisplayInsecureContentFunc)
+        CallFrameLoadDelegate(implementations->didDisplayInsecureContentFunc, webView, @selector(webViewDidDisplayInsecureContent:));
+}
+
+void WebFrameLoaderClient::didRunInsecureContent(SecurityOrigin* origin)
+{
+    RetainPtr<WebSecurityOrigin> webSecurityOrigin(AdoptNS, [[WebSecurityOrigin alloc] _initWithWebCoreSecurityOrigin:origin]);
+
+    WebView *webView = getWebView(m_webFrame.get());   
+    WebFrameLoadDelegateImplementationCache* implementations = WebViewGetFrameLoadDelegateImplementations(webView);
+    if (implementations->didRunInsecureContentFunc)
+        CallFrameLoadDelegate(implementations->didRunInsecureContentFunc, webView, @selector(webView:didRunInsecureContent:), webSecurityOrigin.get());
 }
 
 ResourceError WebFrameLoaderClient::cancelledError(const ResourceRequest& request)
@@ -1095,14 +1122,22 @@ void WebFrameLoaderClient::transitionToCommittedForNewPage()
         // Call setDataSource on the document view after it has been placed in the view hierarchy.
         // This what we for the top-level view, so should do this for views in subframes as well.
         [documentView setDataSource:dataSource];
+
+        // The following is a no-op for WebHTMLRepresentation, but for custom document types
+        // like the ones that Safari uses for bookmarks it is the only way the DocumentLoader
+        // will get the proper title.
+        if (DocumentLoader* documentLoader = [dataSource _documentLoader])
+            documentLoader->setTitle([dataSource pageTitle]);
     }
-    
+
     if (HTMLFrameOwnerElement* owner = coreFrame->ownerElement())
         coreFrame->view()->setCanHaveScrollbars(owner->scrollingMode() != ScrollbarAlwaysOff);
         
-    // If the WebHTMLView implicitly became first responder, make sure to set the focused frame properly.
-    if (usesDocumentViews && [[documentView window] firstResponder] == documentView)
+    // If the document view implicitly became first responder, make sure to set the focused frame properly.
+    if (usesDocumentViews && [[documentView window] firstResponder] == documentView) {
         page->focusController()->setFocusedFrame(coreFrame);
+        page->focusController()->setFocused(true);
+    }
 }
 
 RetainPtr<WebFramePolicyListener> WebFrameLoaderClient::setUpPolicyListener(FramePolicyFunction function)
@@ -1401,7 +1436,7 @@ public:
 #define NETSCAPE_PLUGIN_VIEW WebNetscapePluginView
 #endif
 
-Widget* WebFrameLoaderClient::createPlugin(const IntSize& size, HTMLPlugInElement* element, const KURL& url,
+PassRefPtr<Widget> WebFrameLoaderClient::createPlugin(const IntSize& size, HTMLPlugInElement* element, const KURL& url,
     const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
@@ -1430,7 +1465,7 @@ Widget* WebFrameLoaderClient::createPlugin(const IntSize& size, HTMLPlugInElemen
         [arguments release];
 
         if (view)
-            return new PluginWidget(view);
+            return adoptRef(new PluginWidget(view));
     }
 
     NSString *MIMEType;
@@ -1480,7 +1515,7 @@ Widget* WebFrameLoaderClient::createPlugin(const IntSize& size, HTMLPlugInElemen
                 loadManually:loadManually
                 element:element] autorelease];
             
-            return new NetscapePluginWidget(pluginView);
+            return adoptRef(new NetscapePluginWidget(pluginView));
         } 
 #endif
     } else
@@ -1490,7 +1525,7 @@ Widget* WebFrameLoaderClient::createPlugin(const IntSize& size, HTMLPlugInElemen
         errorCode = WebKitErrorCannotLoadPlugIn;
 
     if (errorCode) {
-        KURL pluginPageURL = document->completeURL(parseURL(parameterValue(paramNames, paramValues, "pluginspage")));
+        KURL pluginPageURL = document->completeURL(deprecatedParseURL(parameterValue(paramNames, paramValues, "pluginspage")));
         if (!pluginPageURL.protocolInHTTPFamily())
             pluginPageURL = KURL();
         NSError *error = [[NSError alloc] _initWithPluginErrorCode:errorCode
@@ -1502,7 +1537,7 @@ Widget* WebFrameLoaderClient::createPlugin(const IntSize& size, HTMLPlugInElemen
     }
     
     ASSERT(view);
-    return new PluginWidget(view);
+    return adoptRef(new PluginWidget(view));
 
     END_BLOCK_OBJC_EXCEPTIONS;
 
@@ -1532,9 +1567,10 @@ void WebFrameLoaderClient::redirectDataToPlugin(Widget* pluginWidget)
     END_BLOCK_OBJC_EXCEPTIONS;
 }
     
-Widget* WebFrameLoaderClient::createJavaAppletWidget(const IntSize& size, HTMLAppletElement* element, const KURL& baseURL, 
+PassRefPtr<Widget> WebFrameLoaderClient::createJavaAppletWidget(const IntSize& size, HTMLAppletElement* element, const KURL& baseURL, 
     const Vector<String>& paramNames, const Vector<String>& paramValues)
 {
+#if ENABLE(MAC_JAVA_BRIDGE)
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
 
     NSView *view = nil;
@@ -1589,11 +1625,14 @@ Widget* WebFrameLoaderClient::createJavaAppletWidget(const IntSize& size, HTMLAp
     }
 
     ASSERT(view);
-    return new PluginWidget(view);
+    return adoptRef(new PluginWidget(view));
 
     END_BLOCK_OBJC_EXCEPTIONS;
     
-    return new PluginWidget;
+    return adoptRef(new PluginWidget);
+#else
+    return 0;
+#endif // ENABLE(MAC_JAVA_BRIDGE)
 }
 
 String WebFrameLoaderClient::overrideMediaType() const
@@ -1629,7 +1668,9 @@ void WebFrameLoaderClient::windowObjectCleared()
 
 void WebFrameLoaderClient::registerForIconNotification(bool listen)
 {
+#if ENABLE(ICONDATABASE)
     [[m_webFrame.get() webView] _registerForIconNotification:listen];
+#endif
 }
 
 void WebFrameLoaderClient::didPerformFirstNavigation() const
@@ -1653,6 +1694,16 @@ jobject WebFrameLoaderClient::javaApplet(NSView* view)
     return 0;
 }
 #endif
+
+bool WebFrameLoaderClient::shouldLoadMediaElementURL(const KURL& url) const {
+    WebView *webView = getWebView(m_webFrame.get());
+    
+    if (id policyDelegate = [webView policyDelegate]) {
+        if ([policyDelegate respondsToSelector:@selector(webView:shouldLoadMediaURL:inFrame:)])
+            return [policyDelegate webView:webView shouldLoadMediaURL:url inFrame:m_webFrame.get()];
+    }
+    return true;
+}
 
 @implementation WebFramePolicyListener
 

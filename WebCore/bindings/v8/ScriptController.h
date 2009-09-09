@@ -46,7 +46,6 @@ namespace WebCore {
     class Frame;
     class HTMLPlugInElement;
     class ScriptSourceCode;
-    class ScriptState;
     class String;
     class Widget;
     class XSSAuditor;
@@ -65,11 +64,20 @@ namespace WebCore {
         // as a string.
         ScriptValue evaluate(const ScriptSourceCode&);
 
+        void evaluateInIsolatedWorld(unsigned worldID, const Vector<ScriptSourceCode>&);
+        
+        // Executes JavaScript in a new world associated with the web frame. The
+        // script gets its own global scope, its own prototypes for intrinsic
+        // JavaScript objects (String, Array, and so-on), and its own wrappers for
+        // all DOM nodes and DOM constructors.
+        // FIXME: Move to using evaluateInIsolatedWorld instead.
+        void evaluateInNewWorld(const Vector<ScriptSourceCode>&, int extensionGroup);
+
         // Executes JavaScript in a new context associated with the web frame. The
         // script gets its own global scope and its own prototypes for intrinsic
         // JavaScript objects (String, Array, and so-on). It shares the wrappers for
         // all DOM nodes and DOM constructors.
-        void evaluateInNewContext(const Vector<ScriptSourceCode>&);
+        void evaluateInNewContext(const Vector<ScriptSourceCode>&, int extensionGroup);
 
         // JSC has a WindowShell object, but for V8, the ScriptController
         // is the WindowShell.
@@ -80,11 +88,12 @@ namespace WebCore {
         // with what JSC does as well.
         ScriptController* windowShell() { return this; }
 
-        ScriptState* state() const { return m_scriptState.get(); }
-
         XSSAuditor* xssAuditor() { return m_XSSAuditor.get(); }
 
         void collectGarbage();
+
+        // Notify V8 that the system is running low on memory.
+        void lowMemoryNotification();
 
         // Creates a property of the global object of a frame.
         void bindToWindowObject(Frame*, const String& key, NPObject*);
@@ -137,7 +146,7 @@ namespace WebCore {
         void updateSecurityOrigin();
         void clearScriptObjects();
         void updatePlatformScriptObjects();
-        void cleanupScriptObjectsForPlugin(void*);
+        void cleanupScriptObjectsForPlugin(Widget*);
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
         NPObject* createScriptObjectForPluginElement(HTMLPlugInElement*);
@@ -151,9 +160,8 @@ namespace WebCore {
         bool m_processingTimerCallback;
         bool m_paused;
 
-        OwnPtr<ScriptState> m_scriptState;
         OwnPtr<V8Proxy> m_proxy;
-        typedef HashMap<void*, NPObject*> PluginObjectMap;
+        typedef HashMap<Widget*, NPObject*> PluginObjectMap;
 
         // A mapping between Widgets and their corresponding script object.
         // This list is used so that when the plugin dies, we can immediately

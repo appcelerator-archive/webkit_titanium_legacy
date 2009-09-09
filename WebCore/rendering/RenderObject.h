@@ -278,12 +278,16 @@ public:
     virtual bool isTextField() const { return false; }
     virtual bool isVideo() const { return false; }
     virtual bool isWidget() const { return false; }
+    virtual bool isCanvas() const { return false; }
 
     bool isRoot() const { return document()->documentElement() == m_node; }
     bool isBody() const;
     bool isHR() const;
 
     bool isHTMLMarquee() const;
+
+    inline bool isAfterContent() const;
+    static inline bool isAfterContent(const RenderObject* obj) { return obj && obj->isAfterContent(); }
 
     bool childrenInline() const { return m_childrenInline; }
     void setChildrenInline(bool b = true) { m_childrenInline = b; }
@@ -382,7 +386,7 @@ public:
     // The pseudo element style can be cached or uncached.  Use the cached method if the pseudo element doesn't respect
     // any pseudo classes (and therefore has no concept of changing state).
     RenderStyle* getCachedPseudoStyle(PseudoId, RenderStyle* parentStyle = 0) const;
-    PassRefPtr<RenderStyle> getUncachedPseudoStyle(PseudoId, RenderStyle* parentStyle = 0) const;
+    PassRefPtr<RenderStyle> getUncachedPseudoStyle(PseudoId, RenderStyle* parentStyle = 0, RenderStyle* ownStyle = 0) const;
     
     virtual void updateDragState(bool dragOn);
 
@@ -553,7 +557,11 @@ public:
     RenderStyle* style() const { return m_style.get(); }
     RenderStyle* firstLineStyle() const { return document()->usesFirstLineRules() ? firstLineStyleSlowCase() : style(); }
     RenderStyle* style(bool firstLine) const { return firstLine ? firstLineStyle() : style(); }
-    
+
+    // Used only by Element::pseudoStyleCacheIsInvalid to get a first line style based off of a
+    // given new style, without accessing the cache.
+    PassRefPtr<RenderStyle> uncachedFirstLineStyle(RenderStyle*) const;
+
     // Anonymous blocks that are part of of a continuation chain will return their inline continuation's outline style instead.
     // This is typically only relevant when repainting.
     virtual RenderStyle* outlineStyleForRepaint() const { return style(); }
@@ -730,9 +738,6 @@ public:
         return outlineBoundsForRepaint(0);
     }
 
-    bool replacedHasOverflow() const { return m_replacedHasOverflow; }
-    void setReplacedHasOverflow(bool b = true) { m_replacedHasOverflow = b; }
-    
 protected:
     // Overrides should call the superclass at the end
     virtual void styleWillChange(StyleDifference, const RenderStyle* newStyle);
@@ -841,9 +846,6 @@ private:
     // from RenderTableCell
     bool m_cellWidthChanged : 1;
 
-    // from RenderReplaced
-    bool m_replacedHasOverflow : 1;
-
 private:
     // Store state between styleWillChange and styleDidChange
     static bool s_affectsParentBlock;
@@ -852,6 +854,16 @@ private:
 inline bool RenderObject::documentBeingDestroyed() const
 {
     return !document()->renderer();
+}
+
+inline bool RenderObject::isAfterContent() const
+{
+    if (style()->styleType() != AFTER)
+        return false;
+    // Text nodes don't have their own styles, so ignore the style on a text node.
+    if (isText() && !isBR())
+        return false;
+    return true;
 }
 
 inline void RenderObject::setNeedsLayout(bool b, bool markParents)
@@ -959,12 +971,14 @@ inline void RenderObject::markContainingBlocksForLayout(bool scheduleRelayout, R
         last->scheduleRelayout();
 }
 
-inline void makeMatrixRenderable(TransformationMatrix& matrix)
+inline void makeMatrixRenderable(TransformationMatrix& matrix, bool has3DRendering)
 {
 #if !ENABLE(3D_RENDERING)
+    UNUSED_PARAM(has3DRendering);
     matrix.makeAffine();
 #else
-    UNUSED_PARAM(matrix);
+    if (!has3DRendering)
+        matrix.makeAffine();
 #endif
 }
 

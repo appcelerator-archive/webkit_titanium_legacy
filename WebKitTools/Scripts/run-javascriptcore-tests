@@ -55,6 +55,7 @@ my @testsToSkip = (
 
 my $jsDriverArgs = "-L " . join(" ", @testsToSkip);
 my $root; # intentionally left undefined
+my $skipBuild = 0;
 my $showHelp = 0;
 
 my $programName = basename($0);
@@ -68,6 +69,7 @@ EOF
 GetOptions(
     'j|jsDriver-args=s' => \$jsDriverArgs,
     'root=s' => \$root,
+    'skip-build' => \$skipBuild,
     'help' => \$showHelp
 );
 
@@ -84,7 +86,7 @@ if ($showHelp) {
 
 setConfigurationProductDir(Cwd::abs_path($root)) if (defined($root));
 
-if (!defined($root)){
+if (!defined($root) && !$skipBuild) {
     chdirWebKit();
 
     push(@buildArgs, argumentsForConfiguration());
@@ -122,7 +124,7 @@ sub testapiPath($)
 }
 
 #run api tests
-if (isAppleMacWebKit()) {
+if (isAppleMacWebKit() || isAppleWinWebKit()) {
     chdirWebKit();
     chdir($productDir) or die;
     my $testapiResult = system testapiPath($productDir);

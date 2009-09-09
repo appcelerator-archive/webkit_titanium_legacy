@@ -25,6 +25,7 @@
 #include "Frame.h"
 #include "NotImplemented.h"
 #include "PlatformString.h"
+#include "TextResourceDecoder.h"
 #include "Image.h"
 #include "RenderImage.h"
 #include "KURL.h"
@@ -33,13 +34,6 @@
 #include <gtk/gtk.h>
 
 namespace WebCore {
-
-/* FIXME: we must get rid of this and use the enum in webkitwebview.h someway */
-typedef enum
-{
-    WEBKIT_WEB_VIEW_TARGET_INFO_HTML = - 1,
-    WEBKIT_WEB_VIEW_TARGET_INFO_TEXT = - 2
-} WebKitWebViewTargetInfo;
 
 class PasteboardSelectionData {
 public:
@@ -64,11 +58,11 @@ static void clipboard_get_contents_cb(GtkClipboard *clipboard, GtkSelectionData 
                                       guint info, gpointer data) {
     PasteboardSelectionData* clipboardData = reinterpret_cast<PasteboardSelectionData*>(data);
     ASSERT(clipboardData);
-    if ((gint)info == WEBKIT_WEB_VIEW_TARGET_INFO_HTML) {
+    if ((gint)info == Pasteboard::generalPasteboard()->m_helper->getWebViewTargetInfoHtml())
         gtk_selection_data_set(selection_data, selection_data->target, 8,
                                reinterpret_cast<const guchar*>(clipboardData->markup()),
                                g_utf8_strlen(clipboardData->markup(), -1));
-    } else
+    else
         gtk_selection_data_set_text(selection_data, clipboardData->text(), -1);
 }
 
@@ -130,8 +124,8 @@ void Pasteboard::writeImage(Node* node, const KURL&, const String&)
     GtkClipboard* clipboard = gtk_clipboard_get_for_display(gdk_display_get_default(), GDK_SELECTION_CLIPBOARD);
 
     ASSERT(node && node->renderer() && node->renderer()->isImage());
-    RenderImage* renderer = static_cast<RenderImage*>(node->renderer());
-    CachedImage* cachedImage = static_cast<CachedImage*>(renderer->cachedImage());
+    RenderImage* renderer = toRenderImage(node->renderer());
+    CachedImage* cachedImage = renderer->cachedImage();
     ASSERT(cachedImage);
     Image* image = cachedImage->image();
     ASSERT(image);
@@ -163,7 +157,9 @@ PassRefPtr<DocumentFragment> Pasteboard::documentFragment(Frame* frame, PassRefP
 
     if (GtkSelectionData* data = gtk_clipboard_wait_for_contents(clipboard, textHtml)) {
         ASSERT(data->data);
-        String html = String::fromUTF8(reinterpret_cast<gchar*>(data->data), data->length * data->format / 8);
+        RefPtr<TextResourceDecoder> decoder = TextResourceDecoder::create("text/plain", "UTF-8", true);
+        String html = decoder->decode(reinterpret_cast<char*>(data->data), data->length);
+        html += decoder->flush();
         gtk_selection_data_free(data);
 
         if (!html.isEmpty()) {

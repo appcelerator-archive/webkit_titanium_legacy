@@ -44,6 +44,11 @@ EventTarget::~EventTarget()
 {
 }
 
+EventSource* EventTarget::toEventSource()
+{
+    return 0;
+}
+
 Node* EventTarget::toNode()
 {
     return 0;
@@ -89,7 +94,25 @@ Worker* EventTarget::toWorker()
     return 0;
 }
 
-WorkerContext* EventTarget::toWorkerContext()
+DedicatedWorkerContext* EventTarget::toDedicatedWorkerContext()
+{
+    return 0;
+}
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+SharedWorker* EventTarget::toSharedWorker()
+{
+    return 0;
+}
+SharedWorkerContext* EventTarget::toSharedWorkerContext()
+{
+    return 0;
+}
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+Notification* EventTarget::toNotification()
 {
     return 0;
 }

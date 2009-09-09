@@ -100,7 +100,7 @@ void Loader::load(DocLoader* docLoader, CachedResource* resource, bool increment
     Request* request = new Request(docLoader, resource, incremental, skipCanLoadCheck, sendResourceLoadCallbacks);
 
     RefPtr<Host> host;
-    KURL url(resource->url());
+    KURL url(ParsedURLString, resource->url());
     if (url.protocolInHTTPFamily()) {
         AtomicString hostName = url.host();
         host = m_hosts.get(hostName.impl());
@@ -176,6 +176,35 @@ void Loader::resumePendingRequests()
         scheduleServePendingRequests();
 }
 
+void Loader::nonCacheRequestInFlight(const KURL& url)
+{
+    if (!url.protocolInHTTPFamily())
+        return;
+    
+    AtomicString hostName = url.host();
+    RefPtr<Host> host = m_hosts.get(hostName.impl());
+    if (!host) {
+        host = Host::create(hostName, maxRequestsInFlightPerHost);
+        m_hosts.add(hostName.impl(), host);
+    }
+
+    host->nonCacheRequestInFlight();
+}
+
+void Loader::nonCacheRequestComplete(const KURL& url)
+{
+    if (!url.protocolInHTTPFamily())
+        return;
+    
+    AtomicString hostName = url.host();
+    RefPtr<Host> host = m_hosts.get(hostName.impl());
+    ASSERT(host);
+    if (!host)
+        return;
+
+    host->nonCacheRequestComplete();
+}
+
 void Loader::cancelRequests(DocLoader* docLoader)
 {
     docLoader->clearPendingPreloads();
@@ -204,6 +233,7 @@ Loader::Host::Host(const AtomicString& name, unsigned maxRequestsInFlight)
     : m_name(name)
     , m_maxRequestsInFlight(maxRequestsInFlight)
     , m_numResourcesProcessing(0)
+    , m_nonCachedRequestsInFlight(0)
 {
 }
 
@@ -219,6 +249,17 @@ void Loader::Host::addRequest(Request* request, Priority priority)
     m_requestsPending[priority].append(request);
 }
     
+void Loader::Host::nonCacheRequestInFlight()
+{
+    ++m_nonCachedRequestsInFlight;
+}
+
+void Loader::Host::nonCacheRequestComplete()
+{
+    --m_nonCachedRequestsInFlight;
+    ASSERT(m_nonCachedRequestsInFlight >= 0);
+}
+
 bool Loader::Host::hasRequests() const
 {
     if (!m_requestsLoading.isEmpty())
@@ -246,11 +287,12 @@ void Loader::Host::servePendingRequests(RequestQueue& requestsPending, bool& ser
         Request* request = requestsPending.first();
         DocLoader* docLoader = request->docLoader();
         bool resourceIsCacheValidator = request->cachedResource()->isCacheValidator();
-        // If the document is fully parsed and there are no pending stylesheets there won't be any more 
-        // resources that we would want to push to the front of the queue. Just hand off the remaining resources
-        // to the networking layer.
-        bool parsedAndStylesheetsKnown = !docLoader->doc()->parsing() && docLoader->doc()->haveStylesheetsLoaded();
-        if (!parsedAndStylesheetsKnown && !resourceIsCacheValidator && m_requestsLoading.size() >= m_maxRequestsInFlight) {
+
+        // For named hosts - which are only http(s) hosts - we should always enforce the connection limit.
+        // For non-named hosts - everything but http(s) - we should only enforce the limit if the document isn't done parsing 
+        // and we don't know all stylesheets yet.
+        bool shouldLimitRequests = !m_name.isNull() || docLoader->doc()->parsing() || !docLoader->doc()->haveStylesheetsLoaded();
+        if (shouldLimitRequests && m_requestsLoading.size() + m_nonCachedRequestsInFlight >= m_maxRequestsInFlight) {
             serveLowerPriority = false;
             return;
         }
@@ -311,7 +353,7 @@ void Loader::Host::didFinishLoading(SubresourceLoader* loader)
     DocLoader* docLoader = request->docLoader();
     // Prevent the document from being destroyed before we are done with
     // the docLoader that it will delete when the document gets deleted.
-    DocPtr<Document> protector(docLoader->doc());
+    RefPtr<Document> protector(docLoader->doc());
     if (!request->isMultipart())
         docLoader->decrementRequestCount();
 
@@ -359,7 +401,7 @@ void Loader::Host::didFail(SubresourceLoader* loader, bool cancelled)
     DocLoader* docLoader = request->docLoader();
     // Prevent the document from being destroyed before we are done with
     // the docLoader that it will delete when the document gets deleted.
-    DocPtr<Document> protector(docLoader->doc());
+    RefPtr<Document> protector(docLoader->doc());
     if (!request->isMultipart())
         docLoader->decrementRequestCount();
 

@@ -56,24 +56,29 @@ namespace WebCore {
     class Frame;
     class InspectorClient;
     class InspectorController;
+    class InspectorTimelineAgent;
     class Node;
     class PageGroup;
     class PluginData;
+    class PluginView;
     class ProgressTracker;
     class RenderTheme;
     class VisibleSelection;
     class SelectionController;
-#if ENABLE(DOM_STORAGE)
-    class SessionStorage;
-#endif
     class Settings;
+#if ENABLE(DOM_STORAGE)
+    class StorageNamespace;
+#endif
 #if ENABLE(WML)
     class WMLPageState;
+#endif
+#if ENABLE(NOTIFICATIONS)
+    class NotificationPresenter;
 #endif
 
     enum FindDirection { FindDirectionForward, FindDirectionBackward };
 
-    class Page : Noncopyable {
+    class Page : public Noncopyable {
     public:
         static void setNeedsReapplyStyles();
 
@@ -84,6 +89,11 @@ namespace WebCore {
 
         static void refreshPlugins(bool reload);
         PluginData* pluginData() const;
+
+        void setCanStartPlugins(bool);
+        bool canStartPlugins() const { return m_canStartPlugins; }
+        void addUnstartedPlugin(PluginView*);
+        void removeUnstartedPlugin(PluginView*);
 
         EditorClient* editorClient() const { return m_editorClient; }
 
@@ -179,8 +189,8 @@ namespace WebCore {
         static void visitedStateChanged(PageGroup*, LinkHash visitedHash);
 
 #if ENABLE(DOM_STORAGE)
-        SessionStorage* sessionStorage(bool optionalCreate = true);
-        void setSessionStorage(PassRefPtr<SessionStorage>);
+        StorageNamespace* sessionStorage(bool optionalCreate = true);
+        void setSessionStorage(PassRefPtr<StorageNamespace>);
 #endif
 
 #if ENABLE(WML)
@@ -201,6 +211,7 @@ namespace WebCore {
         void setJavaScriptURLsAreAllowed(bool);
         bool javaScriptURLsAreAllowed() const;
 
+        InspectorTimelineAgent* inspectorTimelineAgent() const;
     private:
         void initGroup();
 
@@ -209,7 +220,7 @@ namespace WebCore {
         OwnPtr<DragController> m_dragController;
         OwnPtr<FocusController> m_focusController;
         OwnPtr<ContextMenuController> m_contextMenuController;
-        RefPtr<InspectorController> m_inspectorController;
+        OwnPtr<InspectorController> m_inspectorController;
         OwnPtr<Settings> m_settings;
         OwnPtr<ProgressTracker> m_progress;
         
@@ -252,8 +263,11 @@ namespace WebCore {
         double m_customHTMLTokenizerTimeDelay;
         int m_customHTMLTokenizerChunkSize;
 
+        bool m_canStartPlugins;
+        HashSet<PluginView*> m_unstartedPlugins;
+
 #if ENABLE(DOM_STORAGE)
-        RefPtr<SessionStorage> m_sessionStorage;
+        RefPtr<StorageNamespace> m_sessionStorage;
 #endif
 
 #if PLATFORM(WIN) || (PLATFORM(WX) && defined(__WXMSW__)) || (PLATFORM(QT) && defined(Q_WS_WIN))
@@ -262,6 +276,10 @@ namespace WebCore {
 
 #if ENABLE(WML)
         OwnPtr<WMLPageState> m_wmlPageState;
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+        NotificationPresenter* m_notificationPresenter;
 #endif
     };
 

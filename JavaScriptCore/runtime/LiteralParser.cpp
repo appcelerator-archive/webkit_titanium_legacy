@@ -124,19 +124,20 @@ LiteralParser::TokenType LiteralParser::Lexer::lex(LiteralParserToken& token)
     return TokError;
 }
 
-static inline bool isSafeStringCharacter(UChar c)
+template <LiteralParser::ParserMode mode> static inline bool isSafeStringCharacter(UChar c)
 {
-    return (c >= ' ' && c <= 0xff && c != '\\' && c != '"') || c == '\t';
+    return (c >= ' ' && (mode == LiteralParser::StrictJSON || c <= 0xff) && c != '\\' && c != '"') || c == '\t';
 }
 
-template <LiteralParser::ParserMode mode> LiteralParser::TokenType LiteralParser::Lexer::lexString(LiteralParserToken& token)
+// "inline" is required here to help WINSCW compiler resolve specialized argument in templated functions.
+template <LiteralParser::ParserMode mode> inline LiteralParser::TokenType LiteralParser::Lexer::lexString(LiteralParserToken& token)
 {
     ++m_ptr;
     const UChar* runStart;
     token.stringToken = UString();
     do {
         runStart = m_ptr;
-        while (m_ptr < m_end && isSafeStringCharacter(*m_ptr))
+        while (m_ptr < m_end && isSafeStringCharacter<mode>(*m_ptr))
             ++m_ptr;
         if (runStart < m_ptr)
             token.stringToken.append(runStart, m_ptr - runStart);
@@ -294,7 +295,10 @@ JSValue LiteralParser::parse(ParserState initialState)
             }
             doParseArrayStartExpression:
             case DoParseArrayStartExpression: {
+                TokenType lastToken = m_lexer.currentToken().type;
                 if (m_lexer.next() == TokRBracket) {
+                    if (lastToken == TokComma)
+                        return JSValue();
                     m_lexer.next();
                     lastValue = objectStack.last();
                     objectStack.removeLast();

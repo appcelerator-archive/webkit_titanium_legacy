@@ -31,6 +31,7 @@
 #include "config.h"
 #include "HTMLCanvasElement.h"
 
+#include "CanvasRenderingContext.h"
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
 #include "V8Node.h"
@@ -40,12 +41,17 @@ namespace WebCore {
 
 CALLBACK_FUNC_DECL(HTMLCanvasElementGetContext)
 {
-    INC_STATS("DOM.HTMLCanvasElement.getContext");
-    v8::Handle<v8::Value> holder = args.Holder();
-    HTMLCanvasElement* imp = V8Proxy::DOMWrapperToNode<HTMLCanvasElement>(holder);
-    String contextId = ToWebCoreString(args[0]);
-    CanvasRenderingContext2D* result = imp->getContext(contextId);
-    return V8Proxy::ToV8Object(V8ClassIndex::CANVASRENDERINGCONTEXT2D, result);
+    INC_STATS("DOM.HTMLCanvasElement.context");
+    v8::Handle<v8::Object> holder = args.Holder();
+    HTMLCanvasElement* imp = V8DOMWrapper::convertDOMWrapperToNode<HTMLCanvasElement>(holder);
+    String contextId = toWebCoreString(args[0]);
+    CanvasRenderingContext* result = imp->getContext(contextId);
+    if (result && result->is2d())
+        return V8DOMWrapper::convertToV8Object(V8ClassIndex::CANVASRENDERINGCONTEXT2D, result);
+    else {
+        // FIXME: Add the conversion to CanvasRenderingContext3D when it is hooked up.
+        return v8::Handle<v8::Value>();
+    }
 }
 
 } // namespace WebCore

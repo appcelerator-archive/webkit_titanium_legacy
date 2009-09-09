@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef LocalStorageThread_h
@@ -35,17 +35,18 @@
 
 namespace WebCore {
 
-    class LocalStorageArea;
+    class StorageAreaSync;
     class LocalStorageTask;
 
+    // FIXME: Rename this class to StorageThread
     class LocalStorageThread : public ThreadSafeShared<LocalStorageThread> {
     public:
         static PassRefPtr<LocalStorageThread> create();
 
         bool start();
 
-        void scheduleImport(PassRefPtr<LocalStorageArea>);
-        void scheduleSync(PassRefPtr<LocalStorageArea>);
+        void scheduleImport(PassRefPtr<StorageAreaSync>);
+        void scheduleSync(PassRefPtr<StorageAreaSync>);
 
         // Called from the main thread to synchronously shut down this thread
         void terminate();
@@ -63,7 +64,7 @@ namespace WebCore {
         RefPtr<LocalStorageThread> m_selfRef;
 
         MessageQueue<RefPtr<LocalStorageTask> > m_queue;
-        
+
         Mutex m_terminateLock;
         ThreadCondition m_terminateCondition;
     };

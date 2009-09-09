@@ -33,8 +33,15 @@
 
 #include <v8.h>
 
+#include "Document.h"
+#include "Frame.h"
+#include "ScriptExecutionContext.h"
+#include "ScriptState.h"
 #include "V8CustomBinding.h"
+#include "V8Binding.h"
 #include "V8Proxy.h"
+#include "WorkerContext.h"
+#include "WorkerContextExecutionProxy.h"
 
 #include <wtf/Assertions.h>
 #include "Frame.h"
@@ -43,7 +50,7 @@ namespace WebCore {
 
 // Use an array to hold dependents. It works like a ref-counted scheme.
 // A value can be added more than once to the DOM object.
-void createHiddenDependency(v8::Local<v8::Object> object, v8::Local<v8::Value> value, int cacheIndex)
+void createHiddenDependency(v8::Handle<v8::Object> object, v8::Local<v8::Value> value, int cacheIndex)
 {
     v8::Local<v8::Value> cache = object->GetInternalField(cacheIndex);
     if (cache->IsNull() || cache->IsUndefined()) {
@@ -55,10 +62,11 @@ void createHiddenDependency(v8::Local<v8::Object> object, v8::Local<v8::Value> v
     cacheArray->Set(v8::Integer::New(cacheArray->Length()), value);
 }
 
-void removeHiddenDependency(v8::Local<v8::Object> object, v8::Local<v8::Value> value, int cacheIndex)
+void removeHiddenDependency(v8::Handle<v8::Object> object, v8::Local<v8::Value> value, int cacheIndex)
 {
     v8::Local<v8::Value> cache = object->GetInternalField(cacheIndex);
-    ASSERT(cache->IsArray());
+    if (!cache->IsArray())
+        return;
     v8::Local<v8::Array> cacheArray = v8::Local<v8::Array>::Cast(cache);
     for (int i = cacheArray->Length() - 1; i >= 0; --i) {
         v8::Local<v8::Value> cached = cacheArray->Get(v8::Integer::New(i));
@@ -67,9 +75,6 @@ void removeHiddenDependency(v8::Local<v8::Object> object, v8::Local<v8::Value> v
             return;
         }
     }
-
-    // We should only get here if we try to remove an event listener that was never added.
-    ASSERT_NOT_REACHED();
 }
 
 bool processingUserGesture()
@@ -101,6 +106,32 @@ void navigateIfAllowed(Frame* frame, const KURL& url, bool lockHistory, bool loc
 
     if (!protocolIsJavaScript(url) || ScriptController::isSafeScript(frame))
         frame->loader()->scheduleLocationChange(url.string(), callingFrame->loader()->outgoingReferrer(), lockHistory, lockBackForwardList, processingUserGesture());
+}
+
+ScriptExecutionContext* getScriptExecutionContext(ScriptState* scriptState)
+{
+#if ENABLE(WORKERS)
+    WorkerContextExecutionProxy* proxy = WorkerContextExecutionProxy::retrieve();
+    if (proxy)
+        return proxy->workerContext()->scriptExecutionContext();
+#endif
+
+    if (scriptState)
+        return scriptState->frame()->document()->scriptExecutionContext();
+    else {
+        Frame* frame = V8Proxy::retrieveFrameForCurrentContext();
+        if (frame)
+            return frame->document()->scriptExecutionContext();
+    }
+
+    return 0;
+}
+
+void reportException(ScriptState* scriptState, v8::TryCatch& exceptionCatcher)
+{
+    v8::Local<v8::Message> message = exceptionCatcher.Message();
+    getScriptExecutionContext(scriptState)->reportException(toWebCoreString(message->Get()), message->GetLineNumber(), toWebCoreString(message->GetScriptResourceName()));
+    exceptionCatcher.Reset();
 }
 
 } // namespace WebCore

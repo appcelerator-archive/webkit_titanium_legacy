@@ -121,12 +121,10 @@ void RenderView::layout()
     if (needsLayout())
         RenderBlock::layout();
 
-    // Reset overflowWidth and overflowHeight, since they act as a lower bound for docWidth() and docHeight().
-    setOverflowWidth(width());
-    setOverflowHeight(height());
-    
-    setOverflowWidth(docWidth());
-    setOverflowHeight(docHeight());
+    // Reset overflow and then replace it with docWidth and docHeight.
+    m_overflow.clear();
+    addLayoutOverflow(IntRect(0, 0, docWidth(), docHeight()));
+
 
     ASSERT(layoutDelta() == IntSize());
     ASSERT(m_layoutStateDisableCount == 0);
@@ -343,8 +341,8 @@ void RenderView::setMaximalOutlineSize(int o)
     if (o != m_maximalOutlineSize) {
         m_maximalOutlineSize = o;
 
-        if (m_frameView)
-            m_frameView->updateCompositingLayers(FrameView::ForcedCompositingUpdate);
+        // maximalOutlineSize affects compositing layer dimensions.
+        compositor()->setCompositingLayersNeedRebuild();    // FIXME: this really just needs to be a geometry update.
     }
 }
 #endif
@@ -460,6 +458,8 @@ void RenderView::setSelection(RenderObject* start, int startPos, RenderObject* e
         return;
     }
 
+    m_frameView->beginDeferredRepaints();
+
     // Have any of the old selected objects changed compared to the new selection?
     for (SelectedObjectMap::iterator i = oldSelectedObjects.begin(); i != oldObjectsEnd; ++i) {
         RenderObject* obj = i->first;
@@ -511,6 +511,8 @@ void RenderView::setSelection(RenderObject* start, int startPos, RenderObject* e
         newInfo->repaint();
         delete newInfo;
     }
+
+    m_frameView->endDeferredRepaints();
 }
 
 void RenderView::clearSelection()

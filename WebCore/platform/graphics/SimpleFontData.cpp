@@ -48,7 +48,9 @@ using namespace std;
 namespace WebCore {
 
 SimpleFontData::SimpleFontData(const FontPlatformData& f, bool customFont, bool loading, SVGFontData* svgFontData)
-    : m_unitsPerEm(defaultUnitsPerEm)
+    : m_maxCharWidth(-1)
+    , m_avgCharWidth(-1)
+    , m_unitsPerEm(defaultUnitsPerEm)
     , m_platformData(f)
     , m_treatAsFixedPitch(false)
 #if ENABLE(SVG_FONTS)
@@ -189,5 +191,17 @@ bool SimpleFontData::isSegmented() const
 {
     return false;
 }
+
+#ifndef NDEBUG
+String SimpleFontData::description() const
+{
+    if (isSVGFont())
+        return "[SVG font]";
+    if (isCustomFont())
+        return "[custom font]";
+
+    return platformData().description();
+}
+#endif
 
 } // namespace WebCore

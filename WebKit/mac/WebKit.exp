@@ -1,3 +1,4 @@
+.objc_class_name_WebApplicationCache
 .objc_class_name_WebArchive
 .objc_class_name_WebBackForwardList
 .objc_class_name_WebCache
@@ -11,6 +12,7 @@
 .objc_class_name_WebFormDelegate
 .objc_class_name_WebFrame
 .objc_class_name_WebFrameView
+.objc_class_name_WebGeolocationMock
 .objc_class_name_WebHTMLRepresentation
 .objc_class_name_WebHTMLView
 .objc_class_name_WebHistory
@@ -32,6 +34,7 @@
 .objc_class_name_WebTextIterator
 .objc_class_name_WebURLsWithTitles
 .objc_class_name_WebView
+.objc_class_name_WebWorkersPrivate
 _HIWebViewCreate
 _HIWebViewGetWebView
 _WebActionButtonKey
@@ -62,6 +65,13 @@ _WebElementLinkLabelKey
 _WebElementLinkTargetFrameKey
 _WebElementLinkTitleKey
 _WebElementLinkURLKey
+_WebFrameCanSuspendActiveDOMObjects
+_WebFrameHasPlugins
+_WebFrameHasUnloadListener
+_WebFrameMainDocumentError
+_WebFrameUsesApplicationCache
+_WebFrameUsesDatabases
+_WebFrameUsesGeolocation
 _WebHistoryAllItemsRemovedNotification
 _WebHistoryItemChangedNotification
 _WebHistoryItemsAddedNotification

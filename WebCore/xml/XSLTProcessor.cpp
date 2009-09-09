@@ -99,7 +99,7 @@ void XSLTProcessor::parseErrorFunc(void* userData, xmlError* error)
             break;
     }
 
-    console->addMessage(XMLMessageSource, level, error->message, error->line, error->file);
+    console->addMessage(XMLMessageSource, LogMessageType, level, error->message, error->line, error->file);
 }
 
 // FIXME: There seems to be no way to control the ctxt pointer for loading here, thus we have globals.
@@ -118,7 +118,7 @@ static xmlDocPtr docLoaderFunc(const xmlChar* uri,
         case XSLT_LOAD_DOCUMENT: {
             xsltTransformContextPtr context = (xsltTransformContextPtr)ctxt;
             xmlChar* base = xmlNodeGetBase(context->document->doc, context->node);
-            KURL url(KURL(reinterpret_cast<const char*>(base)), reinterpret_cast<const char*>(uri));
+            KURL url(KURL(ParsedURLString, reinterpret_cast<const char*>(base)), reinterpret_cast<const char*>(uri));
             xmlFree(base);
             ResourceError error;
             ResourceResponse response;
@@ -285,12 +285,12 @@ PassRefPtr<Document> XSLTProcessor::createDocumentFromSource(const String& sourc
 
 static inline RefPtr<DocumentFragment> createFragmentFromSource(const String& sourceString, const String& sourceMIMEType, Document* outputDoc)
 {
-    RefPtr<DocumentFragment> fragment = new DocumentFragment(outputDoc);
+    RefPtr<DocumentFragment> fragment = DocumentFragment::create(outputDoc);
     
     if (sourceMIMEType == "text/html")
         parseHTMLDocumentFragment(sourceString, fragment.get());
     else if (sourceMIMEType == "text/plain")
-        fragment->addChild(new Text(outputDoc, sourceString));
+        fragment->addChild(Text::create(outputDoc, sourceString));
     else {
         bool successfulParse = parseXMLDocumentFragment(sourceString, fragment.get(), outputDoc->documentElement());
         if (!successfulParse)

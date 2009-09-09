@@ -27,10 +27,12 @@
 #include "WebChromeClient.h"
 
 #include "COMPropertyBag.h"
+#include "COMVariantSetter.h"
 #include "WebElementPropertyBag.h"
 #include "WebFrame.h"
 #include "WebHistory.h"
 #include "WebMutableURLRequest.h"
+#include "WebDesktopNotificationsDelegate.h"
 #include "WebSecurityOrigin.h"
 #include "WebView.h"
 #pragma warning(push, 0)
@@ -59,6 +61,9 @@ static const size_t maxFilePathsListSize = USHRT_MAX;
 
 WebChromeClient::WebChromeClient(WebView* webView)
     : m_webView(webView)
+#if ENABLE(NOTIFICATIONS)
+    , m_notificationsDelegate(new WebDesktopNotificationsDelegate(webView))
+#endif
 {
 }
 
@@ -151,53 +156,77 @@ void WebChromeClient::takeFocus(FocusDirection direction)
     }
 }
 
+static COMPtr<IPropertyBag> createWindowFeaturesPropertyBag(const WindowFeatures& features)
+{
+    HashMap<String, COMVariant> map;
+    if (features.xSet)
+        map.set(WebWindowFeaturesXKey, features.x);
+    if (features.ySet)
+        map.set(WebWindowFeaturesYKey, features.y);
+    if (features.widthSet)
+        map.set(WebWindowFeaturesWidthKey, features.width);
+    if (features.heightSet)
+        map.set(WebWindowFeaturesHeightKey, features.height);
+    map.set(WebWindowFeaturesMenuBarVisibleKey, features.menuBarVisible);
+    map.set(WebWindowFeaturesStatusBarVisibleKey, features.statusBarVisible);
+    map.set(WebWindowFeaturesToolBarVisibleKey, features.toolBarVisible);
+    map.set(WebWindowFeaturesScrollbarsVisibleKey, features.scrollbarsVisible);
+    map.set(WebWindowFeaturesResizableKey, features.resizable);
+    map.set(WebWindowFeaturesFullscreenKey, features.fullscreen);
+    map.set(WebWindowFeaturesDialogKey, features.dialog);
+
+    return COMPtr<IPropertyBag>(AdoptCOM, COMPropertyBag<COMVariant>::adopt(map));
+}
+
 Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadRequest, const WindowFeatures& features)
 {
-    if (features.dialog) {
-        COMPtr<IWebUIDelegate> delegate = uiDelegate();
-        if (!delegate)
+    COMPtr<IWebUIDelegate> delegate = uiDelegate();
+    if (!delegate)
+        return 0;
+
+    COMPtr<IWebMutableURLRequest> request(AdoptCOM, WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest()));
+
+    COMPtr<IWebUIDelegatePrivate2> delegatePrivate(Query, delegate);
+    if (delegatePrivate) {
+        COMPtr<IWebView> newWebView;
+        HRESULT hr = delegatePrivate->createWebViewWithRequest(m_webView, request.get(), createWindowFeaturesPropertyBag(features).get(), &newWebView);
+
+        if (SUCCEEDED(hr) && newWebView)
+            return core(newWebView.get());
+
+        // If the delegate doesn't implement the IWebUIDelegatePrivate2 version of the call, fall back
+        // to the old versions (even if they support the IWebUIDelegatePrivate2 interface).
+        if (hr != E_NOTIMPL)
             return 0;
-        COMPtr<IWebMutableURLRequest> request(AdoptCOM, WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest()));
-        COMPtr<IWebView> dialog;
-        if (FAILED(delegate->createModalDialog(m_webView, request.get(), &dialog)))
-            return 0;
-        return core(dialog.get());
     }
-    Page* page = 0;
-    IWebUIDelegate* uiDelegate = 0;
-    IWebMutableURLRequest* request = WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest());
 
-    if (SUCCEEDED(m_webView->uiDelegate(&uiDelegate))) {
-        HashMap<String, int> map;
-		map.set("fullscreen", features.fullscreen);
-		map.set("resizable", features.resizable);
-		if (features.xSet) {
-		    map.set("x", features.x);
-		}
-		if (features.ySet) {
-		    map.set("y", features.y);
-		}
-		if (features.widthSet) {
-		    map.set("width", features.width);
-		}
-		if (features.heightSet) {
-		    map.set("height", features.height);
-		}
-		
-		COMPtr<COMPropertyBag<int> > windowFeatures;
-		windowFeatures.adoptRef(COMPropertyBag<int>::createInstance(map));
-
-        IWebView* webView = 0;
-        if (SUCCEEDED(uiDelegate->createWebViewWithRequest(m_webView, request, windowFeatures.get(), &webView))) {
-            page = core(webView);
-            webView->Release();
-        }
+    HashMap<String, int> map;
+    map.set("fullscreen", features.fullscreen);
+    map.set("resizable", features.resizable);
+    if (features.xSet) {
+        map.set("x", features.x);
+    }
+    if (features.ySet) {
+        map.set("y", features.y);
+    }
+    if (features.widthSet) {
+        map.set("width", features.width);
+    }
+    if (features.heightSet) {
+        map.set("height", features.height);
+    }
     
-        uiDelegate->Release();
-    }
+    COMPtr<COMPropertyBag<int> > windowFeatures;
+    windowFeatures.adoptRef(COMPropertyBag<int>::createInstance(map));
 
-    request->Release();
-    return page;
+    COMPtr<IWebView> newWebView;
+    if (features.dialog) {
+        if (FAILED(delegate->createModalDialog(m_webView, request.get(), &newWebView)))
+            return 0;
+    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request, windowFeatures.get(), &webView)))
+        return 0;
+
+    return newWebView ? core(newWebView.get()) : 0;
 }
 
 void WebChromeClient::show()
@@ -307,7 +336,7 @@ void WebChromeClient::setResizable(bool resizable)
     }
 }
 
-void WebChromeClient::addMessageToConsole(MessageSource source, MessageLevel level, const String& message, unsigned line, const String& url)
+void WebChromeClient::addMessageToConsole(MessageSource source, MessageType type, MessageLevel level, const String& message, unsigned line, const String& url)
 {
     COMPtr<IWebUIDelegate> uiDelegate;
     if (SUCCEEDED(m_webView->uiDelegate(&uiDelegate))) {
@@ -430,20 +459,7 @@ bool WebChromeClient::tabsToLinks() const
 
 IntRect WebChromeClient::windowResizerRect() const
 {
-    IntRect intRect;
-
-    IWebUIDelegate* ui;
-    if (SUCCEEDED(m_webView->uiDelegate(&ui)) && ui) {
-        IWebUIDelegatePrivate* uiPrivate;
-        if (SUCCEEDED(ui->QueryInterface(IID_IWebUIDelegatePrivate, (void**)&uiPrivate))) {
-            RECT r;
-            if (SUCCEEDED(uiPrivate->webViewResizerRect(m_webView, &r)))
-                intRect = IntRect(r.left, r.top, r.right-r.left, r.bottom-r.top);
-            uiPrivate->Release();
-        }
-        ui->Release();
-    }
-    return intRect;
+    return IntRect();
 }
 
 void WebChromeClient::repaint(const IntRect& windowRect, bool contentChanged, bool immediate, bool repaintContentOnly)
@@ -513,7 +529,7 @@ void WebChromeClient::mouseDidMoveOverElement(const HitTestResult& result, unsig
     uiDelegate->mouseDidMoveOverElement(m_webView, element.get(), modifierFlags);
 }
 
-void WebChromeClient::setToolTip(const String& toolTip)
+void WebChromeClient::setToolTip(const String& toolTip, TextDirection)
 {
     m_webView->setToolTip(toolTip);
 }
@@ -564,6 +580,15 @@ void WebChromeClient::exceededDatabaseQuota(Frame* frame, const String& database
             }
         }
     }
+}
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+#include "ApplicationCacheStorage.h"
+void WebChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
+{
+    // FIXME: Free some space.
+    notImplemented();
 }
 #endif
 

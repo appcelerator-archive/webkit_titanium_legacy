@@ -32,8 +32,7 @@
 #include "Settings.h"
 
 #if ENABLE(DOM_STORAGE)
-#include "LocalStorage.h"
-#include "StorageArea.h"
+#include "StorageNamespace.h"
 #endif
 
 #if PLATFORM(CHROMIUM)
@@ -65,6 +64,11 @@ PageGroup::PageGroup(Page* page)
 {
     ASSERT(page);
     addPage(page);
+}
+
+PageGroup::~PageGroup()
+{
+    removeAllUserContent();
 }
 
 typedef HashMap<String, PageGroup*> PageGroupMap;
@@ -181,17 +185,51 @@ void PageGroup::setShouldTrackVisitedLinks(bool shouldTrack)
 }
 
 #if ENABLE(DOM_STORAGE)
-LocalStorage* PageGroup::localStorage()
+StorageNamespace* PageGroup::localStorage()
 {
     if (!m_localStorage) {
         // Need a page in this page group to query the settings for the local storage database path.
         Page* page = *m_pages.begin();
         ASSERT(page);
-        m_localStorage = LocalStorage::localStorage(page->settings()->localStorageDatabasePath());
+        m_localStorage = StorageNamespace::localStorageNamespace(page->settings()->localStorageDatabasePath());
     }
 
     return m_localStorage.get();
 }
 #endif
+
+void PageGroup::addUserScript(const String& source, const KURL& url, const Vector<String>& patterns, 
+                              unsigned worldID, UserScriptInjectionTime injectionTime)
+{
+    if (worldID == UINT_MAX)
+        return;
+    OwnPtr<UserScript> userScript(new UserScript(source, url, patterns, worldID, injectionTime));
+    if (!m_userScripts)
+        m_userScripts.set(new UserScriptMap);
+    UserScriptVector*& scriptsInWorld = m_userScripts->add(worldID, 0).first->second;
+    if (!scriptsInWorld)
+        scriptsInWorld = new UserScriptVector;
+    scriptsInWorld->append(userScript.release());
+}
+
+void PageGroup::removeUserContentForWorld(unsigned worldID)
+{
+    if (!m_userScripts)
+        return;
+
+    UserScriptMap::iterator it = m_userScripts->find(worldID);
+    if (it != m_userScripts->end()) {
+        m_userScripts->remove(it);
+        delete it->second;
+    }
+}
+
+void PageGroup::removeAllUserContent()
+{
+    if (m_userScripts) {
+        deleteAllValues(*m_userScripts);
+        m_userScripts.clear();
+    }
+}
 
 } // namespace WebCore

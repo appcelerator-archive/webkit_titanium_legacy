@@ -144,6 +144,9 @@ private:
 
     virtual bool shouldGoToHistoryItem(WebCore::HistoryItem*) const;
 
+    virtual void didDisplayInsecureContent();
+    virtual void didRunInsecureContent(WebCore::SecurityOrigin*);
+
     virtual WebCore::ResourceError cancelledError(const WebCore::ResourceRequest&);
     virtual WebCore::ResourceError blockedError(const WebCore::ResourceRequest&);
     virtual WebCore::ResourceError cannotShowURLError(const WebCore::ResourceRequest&);
@@ -178,11 +181,11 @@ private:
 
     virtual PassRefPtr<WebCore::Frame> createFrame(const WebCore::KURL& url, const WebCore::String& name, WebCore::HTMLFrameOwnerElement*,
                                         const WebCore::String& referrer, bool allowsScrolling, int marginWidth, int marginHeight);
-    virtual WebCore::Widget* createPlugin(const WebCore::IntSize&, WebCore::HTMLPlugInElement*, const WebCore::KURL&, const Vector<WebCore::String>&,
+    virtual PassRefPtr<WebCore::Widget> createPlugin(const WebCore::IntSize&, WebCore::HTMLPlugInElement*, const WebCore::KURL&, const Vector<WebCore::String>&,
                                           const Vector<WebCore::String>&, const WebCore::String&, bool);
     virtual void redirectDataToPlugin(WebCore::Widget* pluginWidget);
     
-    virtual WebCore::Widget* createJavaAppletWidget(const WebCore::IntSize&, WebCore::HTMLAppletElement*, const WebCore::KURL& baseURL,
+    virtual PassRefPtr<WebCore::Widget> createJavaAppletWidget(const WebCore::IntSize&, WebCore::HTMLAppletElement*, const WebCore::KURL& baseURL,
                                                     const Vector<WebCore::String>& paramNames, const Vector<WebCore::String>& paramValues);
     
     virtual WebCore::ObjectContentType objectContentType(const WebCore::KURL& url, const WebCore::String& mimeType);
@@ -205,7 +208,8 @@ private:
     NSDictionary *actionDictionary(const WebCore::NavigationAction&, PassRefPtr<WebCore::FormState>) const;
     
     virtual bool canCachePage() const;
-
+    virtual bool shouldLoadMediaElementURL(const WebCore::KURL&) const;
+    
     RetainPtr<WebFrame> m_webFrame;
 
     RetainPtr<WebFramePolicyListener> m_policyListener;

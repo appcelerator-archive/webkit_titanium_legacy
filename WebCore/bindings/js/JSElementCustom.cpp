@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2007, 2008, 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,15 +51,27 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
+void JSElement::markChildren(MarkStack& markStack)
+{
+    Base::markChildren(markStack);
+
+    Element* element = impl();
+    JSGlobalData& globalData = *Heap::heap(this)->globalData();
+
+    markDOMObjectWrapper(markStack, globalData, element->attributeMap());
+    if (element->isStyledElement())
+        markDOMObjectWrapper(markStack, globalData, static_cast<StyledElement*>(element)->inlineStyleDecl());
+}
+
 static inline bool allowSettingSrcToJavascriptURL(ExecState* exec, Element* element, const String& name, const String& value)
 {
-    if ((element->hasTagName(iframeTag) || element->hasTagName(frameTag)) && equalIgnoringCase(name, "src") && protocolIsJavaScript(parseURL(value))) {
-        HTMLFrameElementBase* frame = static_cast<HTMLFrameElementBase*>(element);
-        if (!checkNodeSecurity(exec, frame->contentDocument()))
+    if ((element->hasTagName(iframeTag) || element->hasTagName(frameTag)) && equalIgnoringCase(name, "src") && protocolIsJavaScript(deprecatedParseURL(value))) {
+        Document* contentDocument = static_cast<HTMLFrameElementBase*>(element)->contentDocument();
+        if (contentDocument && !checkNodeSecurity(exec, contentDocument))
             return false;
     }
     return true;
-} 
+}
 
 JSValue JSElement::setAttribute(ExecState* exec, const ArgList& args)
 {
@@ -89,7 +101,7 @@ JSValue JSElement::setAttributeNode(ExecState* exec, const ArgList& args)
     if (!allowSettingSrcToJavascriptURL(exec, imp, newAttr->name(), newAttr->value()))
         return jsUndefined();
 
-    JSValue result = toJS(exec, WTF::getPtr(imp->setAttributeNode(newAttr, ec)));
+    JSValue result = toJS(exec, globalObject(), WTF::getPtr(imp->setAttributeNode(newAttr, ec)));
     setDOMException(exec, ec);
     return result;
 }
@@ -123,12 +135,12 @@ JSValue JSElement::setAttributeNodeNS(ExecState* exec, const ArgList& args)
     if (!allowSettingSrcToJavascriptURL(exec, imp, newAttr->name(), newAttr->value()))
         return jsUndefined();
 
-    JSValue result = toJS(exec, WTF::getPtr(imp->setAttributeNodeNS(newAttr, ec)));
+    JSValue result = toJS(exec, globalObject(), WTF::getPtr(imp->setAttributeNodeNS(newAttr, ec)));
     setDOMException(exec, ec);
     return result;
 }
 
-JSValue toJSNewlyCreated(ExecState* exec, Element* element)
+JSValue toJSNewlyCreated(ExecState* exec, JSDOMGlobalObject* globalObject, Element* element)
 {
     if (!element)
         return jsNull();
@@ -137,15 +149,15 @@ JSValue toJSNewlyCreated(ExecState* exec, Element* element)
 
     JSNode* wrapper;        
     if (element->isHTMLElement())
-        wrapper = createJSHTMLWrapper(exec, static_cast<HTMLElement*>(element));
+        wrapper = createJSHTMLWrapper(exec, globalObject, static_cast<HTMLElement*>(element));
 #if ENABLE(SVG)
     else if (element->isSVGElement())
-        wrapper = createJSSVGWrapper(exec, static_cast<SVGElement*>(element));
+        wrapper = createJSSVGWrapper(exec, globalObject, static_cast<SVGElement*>(element));
 #endif
     else
-        wrapper = CREATE_DOM_NODE_WRAPPER(exec, Element, element);
+        wrapper = CREATE_DOM_NODE_WRAPPER(exec, globalObject, Element, element);
 
     return wrapper;    
 }
-    
+
 } // namespace WebCore

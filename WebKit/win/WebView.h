@@ -76,11 +76,11 @@ public:
     virtual HRESULT STDMETHODCALLTYPE canShowMIMEType( 
         /* [in] */ BSTR mimeType,
         /* [retval][out] */ BOOL *canShow);
-    
+
     virtual HRESULT STDMETHODCALLTYPE canShowMIMETypeAsHTML( 
         /* [in] */ BSTR mimeType,
         /* [retval][out] */ BOOL *canShow);
-    
+
     virtual HRESULT STDMETHODCALLTYPE MIMETypesShownAsHTML( 
         /* [retval][out] */ IEnumVARIANT **enumVariant);
     
@@ -568,6 +568,11 @@ public:
         /* [in] */ IWebNotification *notification);
 
     // IWebViewPrivate
+
+    virtual HRESULT STDMETHODCALLTYPE MIMETypeForExtension(
+        /* [in] */ BSTR extension,
+        /* [retval][out] */ BSTR *mimeType);
+
     virtual HRESULT STDMETHODCALLTYPE setCustomDropTarget(
         /* [in] */ IDropTarget* dt);
 
@@ -729,6 +734,9 @@ public:
     virtual HRESULT STDMETHODCALLTYPE setJavaScriptURLsAreAllowed(
         /* [in] */ BOOL areAllowed);
 
+    virtual HRESULT STDMETHODCALLTYPE setCanStartPlugins(
+        /* [in] */ BOOL canStartPlugins);
+
     // WebView
     bool shouldUseEmbeddedView(const WebCore::String& mimeType) const;
 
@@ -748,7 +756,6 @@ public:
     bool keyDown(WPARAM, LPARAM, bool systemKeyDown = false);
     bool keyUp(WPARAM, LPARAM, bool systemKeyDown = false);
     bool keyPress(WPARAM, LPARAM, bool systemKeyDown = false);
-    bool inResizer(LPARAM lParam);
     void paint(HDC, LPARAM);
     void paintIntoWindow(HDC bitmapDC, HDC windowDC, const WebCore::IntRect& dirtyRect);
     bool ensureBackingStore();
@@ -916,6 +923,7 @@ protected:
     OwnPtr<HashSet<WebCore::String> > m_embeddedViewMIMETypes;
 
     //Variables needed to store gesture information
+    RefPtr<WebCore::Node> m_gestureTargetNode;
     long m_lastPanX;
     long m_lastPanY;
     long m_xOverpan;

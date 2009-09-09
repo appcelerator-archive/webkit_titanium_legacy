@@ -38,9 +38,14 @@ namespace WebCore {
 
 using namespace WMLNames;
 
-WMLElement::WMLElement(const QualifiedName& tagName, Document* doc)
-    : StyledElement(tagName, doc)
+WMLElement::WMLElement(const QualifiedName& tagName, Document* document)
+    : StyledElement(tagName, document, CreateElementZeroRefCount)
 {
+}
+
+PassRefPtr<WMLElement> WMLElement::create(const QualifiedName& tagName, Document* document)
+{
+    return new WMLElement(tagName, document);
 }
 
 bool WMLElement::mapToEntry(const QualifiedName& attrName, MappedAttributeEntry& result) const
@@ -75,6 +80,11 @@ void WMLElement::parseMappedAttribute(MappedAttribute* attr)
                 setTabIndexExplicitly(max(static_cast<int>(std::numeric_limits<short>::min()), min(tabindex, static_cast<int>(std::numeric_limits<short>::max()))));
         }
     }
+}
+
+String WMLElement::title() const
+{
+    return parseValueSubstitutingVariableReferences(getAttribute(HTMLNames::titleAttr));
 }
 
 bool WMLElement::rendererIsNeeded(RenderStyle* style)

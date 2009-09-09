@@ -22,11 +22,16 @@
 
 #include "BackForwardList.h"
 #include "HistoryItem.h"
+#include <QtCore/qglobal.h>
+#include <QtCore/qshareddata.h>
 
-class QWebHistoryItemPrivate : public QSharedData
-{
+class Q_AUTOTEST_EXPORT QWebHistoryItemPrivate : public QSharedData {
 public:
-    QWebHistoryItemPrivate(WebCore::HistoryItem *i)
+    static QExplicitlySharedDataPointer<QWebHistoryItemPrivate> get(QWebHistoryItem* q)
+    {
+        return q->d;
+    }
+    QWebHistoryItemPrivate(WebCore::HistoryItem* i)
     {
         if (i)
             i->ref();
@@ -37,13 +42,13 @@ public:
         if (item)
             item->deref();
     }
-    WebCore::HistoryItem *item;
+
+    WebCore::HistoryItem* item;
 };
 
-class QWebHistoryPrivate : public QSharedData
-{
+class QWebHistoryPrivate : public QSharedData {
 public:
-    QWebHistoryPrivate(WebCore::BackForwardList *l)
+    QWebHistoryPrivate(WebCore::BackForwardList* l)
     {
         l->ref();
         lst = l;
@@ -52,7 +57,7 @@ public:
     {
         lst->deref();
     }
-    WebCore::BackForwardList *lst;
+    WebCore::BackForwardList* lst;
 };
 
 

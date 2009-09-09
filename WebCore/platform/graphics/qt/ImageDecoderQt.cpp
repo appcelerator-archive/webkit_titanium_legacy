@@ -41,6 +41,25 @@ namespace {
 }
 
 namespace WebCore {
+
+ImageDecoder* ImageDecoder::create(const SharedBuffer& data)
+{
+    // We need at least 4 bytes to figure out what kind of image we're dealing with.
+    if (data.size() < 4)
+        return 0;
+
+    QByteArray bytes = QByteArray::fromRawData(data.data(), data.size());
+    QBuffer buffer(&bytes);
+    if (!buffer.open(QBuffer::ReadOnly))
+        return 0;
+
+    QString imageFormat = QString::fromLatin1(QImageReader::imageFormat(&buffer).toLower());
+    if (imageFormat.isEmpty())
+        return 0; // Image format not supported
+
+    return new ImageDecoderQt(imageFormat);
+}
+
 ImageDecoderQt::ImageData::ImageData(const QImage& image, ImageState imageState, int duration) :
     m_image(image), m_imageState(imageState), m_duration(duration)
 {
@@ -59,7 +78,7 @@ public:
             // Load images only if  all data have been received
             LoadComplete };
 
-    ReadContext(const IncomingData & data, LoadMode loadMode, ImageList &target);
+    ReadContext(SharedBuffer* data, LoadMode loadMode, ImageList &target);
 
     enum ReadResult { ReadEOF, ReadFailed, ReadPartial, ReadComplete };
 
@@ -89,9 +108,9 @@ private:
 
 };
 
-ImageDecoderQt::ReadContext::ReadContext(const IncomingData & data, LoadMode loadMode, ImageList &target)
+ImageDecoderQt::ReadContext::ReadContext(SharedBuffer* data, LoadMode loadMode, ImageList &target)
     : m_loadMode(loadMode)
-    , m_data(data.data(), data.size())
+    , m_data(data->data(), data->size())
     , m_buffer(&m_data)
     , m_reader(&m_buffer)
     , m_target(target)
@@ -118,7 +137,7 @@ ImageDecoderQt::ReadContext::ReadResult
             // Attempt to construct an empty image of the matching size and format
             // for efficient reading
             QImage newImage = m_dataFormat != QImage::Format_Invalid  ?
-                          QImage(m_size,m_dataFormat) : QImage();
+                          QImage(m_size, m_dataFormat) : QImage();
             m_target.push_back(ImageData(newImage));
         }
 
@@ -137,8 +156,8 @@ ImageDecoderQt::ReadContext::ReadResult
             const bool supportsAnimation = m_reader.supportsAnimation();
 
             if (debugImageDecoderQt)
-                qDebug() << "readImage(): #" << m_target.size() << " complete, " << m_size << " format " << m_dataFormat
-                <<  " supportsAnimation=" <<  supportsAnimation ;
+                qDebug() << "readImage(): #" << m_target.size() << " complete, " << m_size
+                    << " format " << m_dataFormat <<  " supportsAnimation=" <<  supportsAnimation;
             // No point in readinfg further
             if (!supportsAnimation)
                 return ReadComplete;
@@ -158,7 +177,7 @@ ImageDecoderQt::ReadContext::IncrementalReadResult
     // set state to reflect complete header, etc.
     // For now, we read the whole image.
 
-    const qint64 startPos = m_buffer.pos ();
+    const qint64 startPos = m_buffer.pos();
     // Oops, failed. Rewind.
     if (!m_reader.read(&imageData.m_image)) {
         m_buffer.seek(startPos);
@@ -178,25 +197,7 @@ ImageDecoderQt::ReadContext::IncrementalReadResult
     return IncrementalReadComplete;
 }
 
-ImageDecoderQt* ImageDecoderQt::create(const SharedBuffer& data)
-{
-    // We need at least 4 bytes to figure out what kind of image we're dealing with.
-    if (data.size() < 4)
-        return 0;
-
-    QByteArray bytes = QByteArray::fromRawData(data.data(), data.size());
-    QBuffer buffer(&bytes);
-    if (!buffer.open(QBuffer::ReadOnly))
-        return 0;
-
-    QString imageFormat = QString::fromLatin1(QImageReader::imageFormat(&buffer).toLower());
-    if (imageFormat.isEmpty())
-        return 0; // Image format not supported
-
-    return new ImageDecoderQt(imageFormat);
-}
-
-ImageDecoderQt::ImageDecoderQt(const QString &imageFormat)
+ImageDecoderQt::ImageDecoderQt(const QString& imageFormat)
     : m_hasAlphaChannel(false)
     , m_imageFormat(imageFormat)
 {
@@ -220,13 +221,13 @@ void ImageDecoderQt::reset()
     m_loopCount = cAnimationNone;
 }
 
-void ImageDecoderQt::setData(const IncomingData &data, bool allDataReceived)
+void ImageDecoderQt::setData(SharedBuffer* data, bool allDataReceived)
 {
     reset();
     ReadContext readContext(data, ReadContext::LoadComplete, m_imageList);
 
     if (debugImageDecoderQt)
-        qDebug() << " setData " << data.size() << " image bytes, complete=" << allDataReceived;
+        qDebug() << " setData " << data->size() << " image bytes, complete=" << allDataReceived;
 
     const  ReadContext::ReadResult readResult =  readContext.read(allDataReceived);
 
@@ -236,7 +237,7 @@ void ImageDecoderQt::setData(const IncomingData &data, bool allDataReceived)
     if (debugImageDecoderQt)
         qDebug()  << " read returns " << readResult;
 
-    switch ( readResult)    {
+    switch (readResult) {
     case ReadContext::ReadFailed:
         m_failed = true;
         break;
@@ -267,7 +268,7 @@ bool ImageDecoderQt::isSizeAvailable()
     return ImageDecoder::isSizeAvailable();
 }
 
-int ImageDecoderQt::frameCount() const
+size_t ImageDecoderQt::frameCount() const
 {
     if (debugImageDecoderQt)
         qDebug() << " ImageDecoderQt::frameCount() returns" << m_imageList.size();

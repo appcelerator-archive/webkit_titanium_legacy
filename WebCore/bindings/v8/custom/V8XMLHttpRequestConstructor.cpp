@@ -35,6 +35,7 @@
 #include "V8CustomBinding.h"
 #include "V8ObjectEventListener.h"
 #include "V8Proxy.h"
+#include "V8Utilities.h"
 #include "XMLHttpRequest.h"
 #include "WorkerContext.h"
 #include "WorkerContextExecutionProxy.h"
@@ -46,24 +47,19 @@ CALLBACK_FUNC_DECL(XMLHttpRequestConstructor)
     INC_STATS("DOM.XMLHttpRequest.Constructor");
 
     if (!args.IsConstructCall())
-        return throwError("DOM object constructor cannot be called as a function.", V8Proxy::TYPE_ERROR);
+        return throwError("DOM object constructor cannot be called as a function.", V8Proxy::TypeError);
 
     // Expect no parameters.
     // Allocate a XMLHttpRequest object as its internal field.
-    ScriptExecutionContext* context = 0;
-#if ENABLE(WORKERS)
-    WorkerContextExecutionProxy* proxy = WorkerContextExecutionProxy::retrieve();
-    if (proxy)
-        context = proxy->workerContext();
-    else
-#endif
-        context = V8Proxy::retrieveFrame()->document();
+    ScriptExecutionContext* context = getScriptExecutionContext();
+    if (!context)
+        return throwError("XMLHttpRequest constructor's associated context is not available", V8Proxy::ReferenceError);
     RefPtr<XMLHttpRequest> xmlHttpRequest = XMLHttpRequest::create(context);
-    V8Proxy::SetDOMWrapper(args.Holder(), V8ClassIndex::ToInt(V8ClassIndex::XMLHTTPREQUEST), xmlHttpRequest.get());
+    V8DOMWrapper::setDOMWrapper(args.Holder(), V8ClassIndex::ToInt(V8ClassIndex::XMLHTTPREQUEST), xmlHttpRequest.get());
 
     // Add object to the wrapper map.
     xmlHttpRequest->ref();
-    V8Proxy::SetJSWrapperForActiveDOMObject(xmlHttpRequest.get(), v8::Persistent<v8::Object>::New(args.Holder()));
+    V8DOMWrapper::setJSWrapperForActiveDOMObject(xmlHttpRequest.get(), v8::Persistent<v8::Object>::New(args.Holder()));
     return args.Holder();
 }
 

@@ -37,26 +37,33 @@ use lib $FindBin::Bin;
 use webkitdirs;
 use POSIX;
 
+sub formatBuildTime($);
+
 my $originalWorkingDirectory = getcwd();
 chdirWebKit();
 
 my $showHelp = 0;
 my $clean = 0;
+my $minimal = 0;
 my $makeArgs;
+my $startTime = time();
 
-my ($threeDRenderingSupport, $channelMessagingSupport, $databaseSupport, $domStorageSupport,
-    $filtersSupport, $geolocationSupport, $gnomeKeyringSupport, $iconDatabaseSupport,
-    $javaScriptDebuggerSupport, $offlineWebApplicationSupport, $svgSupport, $svgAnimationSupport,
-    $svgAsImageSupport, $svgDOMObjCBindingsSupport, $svgFontsSupport, $svgForeignObjectSupport,
-    $svgUseSupport, $videoSupport, $wmlSupport, $workersSupport, $xpathSupport, $xsltSupport,
-    $coverageSupport);
+my ($threeDCanvasSupport, $threeDRenderingSupport, $channelMessagingSupport, $databaseSupport, $datagridSupport, $domStorageSupport,
+    $eventsourceSupport, $filtersSupport, $geolocationSupport, $iconDatabaseSupport,
+    $javaScriptDebuggerSupport, $offlineWebApplicationSupport, $rubySupport, $sharedWorkersSupport, 
+    $svgSupport, $svgAnimationSupport, $svgAsImageSupport, $svgDOMObjCBindingsSupport, $svgFontsSupport,
+    $svgForeignObjectSupport, $svgUseSupport, $videoSupport, $webSocketsSupport, $wmlSupport, $wcssSupport, $xhtmlmpSupport, $workersSupport,
+    $xpathSupport, $xsltSupport, $coverageSupport, $notificationsSupport);
 
 my @features = (
+    { option => "3d-canvas", desc => "Toggle 3D canvas support",
+      define => "ENABLE_3D_CANVAS", default => 0, value => \$threeDCanvasSupport },
+
     { option => "3d-rendering", desc => "Toggle 3D rendering support",
-      define => "ENABLE_3D_RENDERING", default => (isAppleMacWebKit() && isSnowLeopard()), value => \$threeDRenderingSupport },
+      define => "ENABLE_3D_RENDERING", default => (isAppleMacWebKit() && !isTiger()), value => \$threeDRenderingSupport },
 
     { option => "channel-messaging", desc => "Toggle MessageChannel and MessagePort support",
-      define => "ENABLE_CHANNEL_MESSAGING", default => 0, value => \$channelMessagingSupport },
+      define => "ENABLE_CHANNEL_MESSAGING", default => 1, value => \$channelMessagingSupport },
 
     { option => "coverage", desc => "Toggle code coverage support",
       define => "", default => 0, value => \$coverageSupport },
@@ -64,17 +71,20 @@ my @features = (
     { option => "database", desc => "Toggle Database Support",
       define => "ENABLE_DATABASE", default => 1, value => \$databaseSupport },
 
+    { option => "datagrid", desc => "Toggle Datagrid Support",
+      define => "ENABLE_DATAGRID", default => 1, value => \$datagridSupport },
+          
     { option => "dom-storage", desc => "Toggle DOM Storage Support",
       define => "ENABLE_DOM_STORAGE", default => 1, value => \$domStorageSupport },
+
+    { option => "eventsource", desc => "Toggle server-sent events support",
+      define => "ENABLE_EVENTSOURCE", default => 1, value => \$eventsourceSupport },
 
     { option => "filters", desc => "Toggle Filters support",
       define => "ENABLE_FILTERS", default => 0, value => \$filtersSupport },
 
     { option => "geolocation", desc => "Toggle Geolocation support",
-      define => "ENABLE_GEOLOCATION", default => 0, value => \$geolocationSupport },
-
-    { option => "gnomekeyring", desc => "Toggle GNOME Keyring Support (GTK+ port only)",
-      define => "WTF_USE_GNOMEKEYRING", default => 0, value => \$gnomeKeyringSupport },
+      define => "ENABLE_GEOLOCATION", default => isGtk(), value => \$geolocationSupport },
 
     { option => "icon-database", desc => "Toggle Icon database support",
       define => "ENABLE_ICONDATABASE", default => 1, value => \$iconDatabaseSupport },
@@ -82,8 +92,17 @@ my @features = (
     { option => "javascript-debugger", desc => "Toggle JavaScript Debugger/Profiler support",
       define => "ENABLE_JAVASCRIPT_DEBUGGER", default => 1, value => \$javaScriptDebuggerSupport },
 
+    { option => "notifications", desc => "Toggle Desktop Notifications Support",
+      define => "ENABLE_NOTIFICATIONS", default => 0, value => \$notificationsSupport },
+
     { option => "offline-web-applications", desc => "Toggle Offline Web Application Support",
       define => "ENABLE_OFFLINE_WEB_APPLICATIONS", default => 1, value => \$offlineWebApplicationSupport },
+
+    { option => "ruby", desc => "Toggle HTML5 Ruby support",
+      define => "ENABLE_RUBY", default => 1, value => \$rubySupport },
+
+    { option => "shared-workers", desc => "Toggle SharedWorkers support",
+      define => "ENABLE_SHARED_WORKERS", default => (isAppleWebKit() || isGtk()), value => \$sharedWorkersSupport },
 
     { option => "svg", desc => "Toggle SVG support",
       define => "ENABLE_SVG", default => 1, value => \$svgSupport },
@@ -109,8 +128,17 @@ my @features = (
     { option => "video", desc => "Toggle Video support",
       define => "ENABLE_VIDEO", default => (isAppleWebKit() || isGtk()), value => \$videoSupport },
 
+    { option => "web-sockets", desc => "Toggle Web Sockets support",
+      define => "ENABLE_WEB_SOCKETS", default => 1, value=> \$webSocketsSupport },
+
     { option => "wml", desc => "Toggle WML support",
       define => "ENABLE_WML", default => 0, value => \$wmlSupport },
+
+    { option => "xhtmlmp", desc => "Toggle XHTML-MP support",
+      define => "ENABLE_XHTMLMP", default => 0, value => \$xhtmlmpSupport },
+
+    { option => "wcss", desc => "Toggle WCSS support",
+      define => "ENABLE_WCSS", default => 0, value => \$wcssSupport },
 
     { option => "workers", desc => "Toggle Web Workers support",
       define => "ENABLE_WORKERS", default => (isAppleWebKit() || isGtk()), value => \$workersSupport },
@@ -131,8 +159,16 @@ if (isQt()) {
 }
 
 # Initialize values from defaults
+foreach (@ARGV) {
+    if ($_ eq '--minimal') {
+        $minimal = 1;
+        last;
+    }
+}
+
+# Initialize values from defaults
 foreach (@features) {
-    ${$_->{value}} = $_->{default} || 0;
+    ${$_->{value}} = ($_->{default} && !$minimal) || 0;
 }
 
 $svgSupport = $svgSupport || $svgAnimationSupport || $svgAsImageSupport
@@ -145,6 +181,7 @@ my $usage = <<EOF;
 Usage: $programName [options] [options to pass to build system]
   --help                            Show this help message
   --clean                           Cleanup the build directory
+  --debug                           Compile in debug mode
   --cairo-win32                     Build using Cairo (rather than CoreGraphics) on Windows
   --chromium                        Build the Chromium port on Mac/Win/Linux
   --gtk                             Build the GTK+ port
@@ -152,19 +189,22 @@ Usage: $programName [options] [options to pass to build system]
 
   --makeargs=<arguments>            Optional Makefile flags
 
+  --minimal                         No optional features, unless explicitly enabled.
+
 EOF
 
 my %options = (
     'help' => \$showHelp,
     'clean' => \$clean,
     'makeargs=s' => \$makeArgs,
+    'minimal' => \$minimal,
 );
 
 # Build usage text and options list from features
 foreach (@features) {
     my $opt = sprintf("%-35s", "  --[no-]$_->{option}");
-    $usage .= "$opt $_->{desc} (default: ${$_->{value}})\n";
-    $options{"$_->{option}!"} =  $_->{value};
+    $usage .= "$opt $_->{desc} (default: $_->{default})\n";
+    $options{"$_->{option}!"} = $_->{value};
 }
 
 GetOptions(%options);
@@ -176,18 +216,6 @@ if ($showHelp) {
 
 checkRequiredSystemConfig();
 setConfiguration();
-
-if (isWx()) {
-    $ENV{"WEBKITOUTPUTDIR"} = productDir();
-
-    my @opts = getWxArgs();
-
-    if ($clean) {
-        push(@opts, "clean");
-    }
-    system "WebKitTools/wx/build-wxwebkit @opts";
-    exit exitStatus($?);
-}
 
 my $productDir = productDir();
 
@@ -230,44 +258,30 @@ if (isGtk()) {
     }
 
     # Copy library and header from WebKitLibraries to a findable place in the product directory.
-    my $srcLib = "WebKitLibraries/libWebKitSystemInterfaceTiger.a";
-    my $lib = "$productDir/libWebKitSystemInterfaceTiger.a";
-    if (!-e $lib || -M $lib > -M $srcLib) {
-        print "Updating $lib\n";
-        system "ditto", $srcLib, $lib;
-        system "ranlib", $lib;
+
+    my @librariesToCopy = (
+        "libWebKitSystemInterfaceTiger.a",
+        "libWebKitSystemInterfaceLeopard.a",
+        "libWebKitSystemInterfaceSnowLeopard.a",
+        "libWebCoreSQLite3.a",
+    );
+    foreach my $libName (@librariesToCopy) {
+        my $srcLib = "WebKitLibraries/" . $libName;
+        my $lib = "$productDir/" . $libName;
+        if (!-e $lib || -M $lib > -M $srcLib) {
+            print "Updating $lib\n";
+            system "ditto", $srcLib, $lib;
+            system "ranlib", $lib;
+        }
     }
 
-    $srcLib = "WebKitLibraries/libWebKitSystemInterfaceLeopard.a";
-    $lib = "$productDir/libWebKitSystemInterfaceLeopard.a";
-    if (!-e $lib || -M $lib > -M $srcLib) {
-        print "Updating $lib\n";
-        system "ditto", $srcLib, $lib;
-        system "ranlib", $lib;
-    }
-
-    $srcLib = "WebKitLibraries/libWebKitSystemInterfaceSnowLeopard.a";
-    $lib = "$productDir/libWebKitSystemInterfaceSnowLeopard.a";
-    if (!-e $lib || -M $lib > -M $srcLib) {
-        print "Updating $lib\n";
-        system "ditto", $srcLib, $lib;
-        system "ranlib", $lib;
-    }
-
+    # FIXME: This code should be abstracted to not be copy/paste.
     my $srcHeader = "WebKitLibraries/WebKitSystemInterface.h";
     my $header = "$productDir/usr/local/include/WebKitSystemInterface.h";
     if (!-e $header || -M $header > -M $srcHeader) {
         print "Updating $header\n";
         system "mkdir", "-p", "$productDir/usr/local/include";
         system "ditto", $srcHeader, $header;
-    }
-
-    $srcLib = "WebKitLibraries/libWebCoreSQLite3.a";
-    $lib = "$productDir/libWebCoreSQLite3.a";
-    if (!-e $lib || -M $lib > -M $srcLib) {
-        print "Updating $lib\n";
-        system "ditto", $srcLib, $lib;
-        system "ranlib", $lib;
     }
 
     my $srcHeaderDir = "WebKitLibraries/WebCoreSQLite3";
@@ -292,6 +306,12 @@ if (isGtk()) {
 # Force re-link of existing libraries if different than expected
 removeLibraryDependingOnSVG("WebCore", $svgSupport);
 
+if (isWx()) {
+    downloadWafIfNeeded();
+    push @projects, 'WebKitTools/wx/browser';
+    push @projects, 'WebKit/wx/bindings/python';
+}
+
 # Build, and abort if the build fails.
 for my $dir (@projects) {
     chdir $dir or die;
@@ -313,8 +333,16 @@ for my $dir (@projects) {
         if ($dir eq "WebKit") {
             $result = buildVisualStudioProject("win/WebKit.vcproj/WebKit.sln", $clean);
         }
-    } elsif (isChromium()) {
-        $result = buildSconsProject($dir, $clean);
+    } elsif (isWx()) {
+        @options = ();
+        if (defined($makeArgs)) {
+            @options = split(/ /, $makeArgs);
+        }
+        if ($dir eq "WebKit" && isWx()) {
+            chdir 'wx' or die;
+        }
+            
+        $result = buildWafProject($dir, $clean, @options);
     }
 
     if (exitStatus($result)) {
@@ -327,7 +355,7 @@ for my $dir (@projects) {
         }
         exit exitStatus($result);
     }
-    chdir ".." or die;
+    chdirWebKit();
 }
 
 # Don't report the "WebKit is now built" message after a clean operation.
@@ -337,24 +365,28 @@ exit if $clean;
 
 my $launcherPath = launcherPath();
 my $launcherName = launcherName();
+my $endTime = time();
+my $buildTime = formatBuildTime($endTime - $startTime);
 
 print "\n";
 print "===========================================================\n";
-print " WebKit is now built. To run $launcherName with this newly-built\n";
-print " code, use the \"$launcherPath\" script.\n";
-if ($svgSupport) {
-    print "\n NOTE: WebKit has been built with SVG support enabled.\n";
-    print " $launcherName will have SVG viewing capabilities.\n";
-}
-if ($svgAnimationSupport or $svgAsImageSupport or $svgDOMObjCBindingsSupport or $svgFontsSupport or $svgForeignObjectSupport or $svgUseSupport) {
-    print " Your build supports the following (optional) SVG features: \n";
-    print "  * Basic SVG animation.\n" if $svgAnimationSupport;
-    print "  * SVG as image.\n" if $svgAsImageSupport;
-    print "  * SVG DOM Objective-C bindings.\n" if $svgDOMObjCBindingsSupport;
-    print "  * SVG fonts.\n" if $svgFontsSupport;
-    print "  * SVG foreign object.\n" if $svgForeignObjectSupport;
-    print "  * SVG <use> support.\n" if $svgUseSupport;
-}
+print " WebKit is now built ($buildTime). \n";
+print " To run $launcherName with this newly-built code, use the\n";
+print " \"$launcherPath\" script.\n";
 print "===========================================================\n";
 
 exit 0;
+
+sub formatBuildTime($)
+{
+    my ($buildTime) = @_;
+
+    my $buildHours = int($buildTime / 3600);
+    my $buildMins = int(($buildTime - $buildHours * 3600) / 60);
+    my $buildSecs = $buildTime - $buildHours * 3600 - $buildMins * 60;
+
+    if ($buildHours) {
+        return sprintf("%dh:%02dm:%02ds", $buildHours, $buildMins, $buildSecs);
+    }
+    return sprintf("%02dm:%02ds", $buildMins, $buildSecs);
+}

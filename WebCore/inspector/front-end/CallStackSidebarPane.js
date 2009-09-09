@@ -26,17 +26,27 @@
 WebInspector.CallStackSidebarPane = function()
 {
     WebInspector.SidebarPane.call(this, WebInspector.UIString("Call Stack"));
+    
+    this._shortcuts = {};
+
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Period,
+                                                         WebInspector.KeyboardShortcut.Modifiers.Ctrl);
+    this._shortcuts[shortcut] = this._selectNextCallFrameOnStack.bind(this);
+
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Comma,
+                                                         WebInspector.KeyboardShortcut.Modifiers.Ctrl);
+    this._shortcuts[shortcut] = this._selectPreviousCallFrameOnStack.bind(this);
 }
 
 WebInspector.CallStackSidebarPane.prototype = {
-    update: function(callFrame, sourceIDMap)
+    update: function(callFrames, sourceIDMap)
     {
         this.bodyElement.removeChildren();
 
         this.placards = [];
         delete this._selectedCallFrame;
 
-        if (!callFrame) {
+        if (!callFrames) {
             var infoElement = document.createElement("div");
             infoElement.className = "info";
             infoElement.textContent = WebInspector.UIString("Not Paused");
@@ -48,7 +58,8 @@ WebInspector.CallStackSidebarPane.prototype = {
         var subtitle;
         var scriptOrResource;
 
-        do {
+        for (var i = 0; i < callFrames.length; ++i) {
+            var callFrame = callFrames[i];
             switch (callFrame.type) {
             case "function":
                 title = callFrame.functionName || WebInspector.UIString("(anonymous function)");
@@ -75,9 +86,7 @@ WebInspector.CallStackSidebarPane.prototype = {
 
             this.placards.push(placard);
             this.bodyElement.appendChild(placard.element);
-
-            callFrame = callFrame.caller;
-        } while (callFrame);
+        }
     },
 
     get selectedCallFrame()
@@ -98,6 +107,53 @@ WebInspector.CallStackSidebarPane.prototype = {
         }
 
         this.dispatchEventToListeners("call frame selected");
+    },
+
+    handleKeyEvent: function(event)
+    {
+        var shortcut = WebInspector.KeyboardShortcut.makeKeyFromEvent(event);
+        var handler = this._shortcuts[shortcut];
+        if (handler) {
+            handler(event);
+            event.preventDefault();
+            event.handled = true;
+        }
+    },
+
+    _selectNextCallFrameOnStack: function()
+    {
+        var index = this._selectedCallFrameIndex();
+        if (index == -1)
+            return;
+        this._selectedPlacardByIndex(index + 1);
+    },
+
+    _selectPreviousCallFrameOnStack: function()
+    {
+        var index = this._selectedCallFrameIndex();
+        if (index == -1)
+            return;
+        this._selectedPlacardByIndex(index - 1);
+    },
+
+    _selectedPlacardByIndex: function(index)
+    {
+        if (index < 0 || index >= this.placards.length)
+            return;
+        var placard = this.placards[index];
+        this.selectedCallFrame = placard.callFrame
+    },
+
+    _selectedCallFrameIndex: function()
+    {
+        if (!this._selectedCallFrame)
+            return -1;
+        for (var i = 0; i < this.placards.length; ++i) {
+            var placard = this.placards[i];
+            if (placard.callFrame === this._selectedCallFrame)
+                return i;
+        }
+        return -1;
     },
 
     _placardSelected: function(event)

@@ -30,6 +30,7 @@
 
 #include "config.h"
 #include "HTMLIFrameElement.h"
+#include "HTMLNames.h" 
 
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
@@ -37,15 +38,17 @@
 
 namespace WebCore {
 
+using namespace HTMLNames; 
+
 ACCESSOR_SETTER(HTMLIFrameElementSrc)
 {
-    HTMLIFrameElement* iframe = V8Proxy::DOMWrapperToNode<HTMLIFrameElement>(info.Holder());
-    String v = valueToStringWithNullCheck(value);
+    HTMLIFrameElement* iframe = V8DOMWrapper::convertDOMWrapperToNode<HTMLIFrameElement>(info.Holder());
+    String v = toWebCoreStringWithNullCheck(value);
 
     if (!allowSettingFrameSrcToJavascriptUrl(iframe, v))
         return;
 
-    iframe->setSrc(v);
+    iframe->setAttribute(srcAttr, v); 
 }
 
 } // namespace WebCore

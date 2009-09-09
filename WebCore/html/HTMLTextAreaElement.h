@@ -52,6 +52,8 @@ public:
 
     virtual bool isTextFormControl() const { return true; }
 
+    virtual bool valueMissing() const { return isRequiredFormControl() && !disabled() && !readOnly() && value().isEmpty(); }
+
     int selectionStart();
     int selectionEnd();
 
@@ -75,6 +77,7 @@ public:
     void setValue(const String&);
     String defaultValue() const;
     void setDefaultValue(const String&);
+    int textLength() const { return value().length(); }
     
     void rendererWillBeDestroyed();
     
@@ -91,10 +94,18 @@ public:
 
     virtual bool shouldUseInputMethod() const;
 
+    bool placeholderShouldBeVisible() const;
+
 private:
     enum WrapMethod { NoWrap, SoftWrap, HardWrap };
 
     void updateValue() const;
+    void updatePlaceholderVisibility(bool placeholderValueChanged);
+    virtual void dispatchFocusEvent();
+    virtual void dispatchBlurEvent();
+
+    virtual bool isOptionalFormControl() const { return !isRequiredFormControl(); }
+    virtual bool isRequiredFormControl() const { return required(); }
 
     int m_rows;
     int m_cols;

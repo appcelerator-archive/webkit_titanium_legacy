@@ -59,8 +59,7 @@ namespace WebCore {
     struct FrameLoadRequest;
 }
 
-class QWEBKIT_EXPORT QWebPage : public QObject
-{
+class QWEBKIT_EXPORT QWebPage : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(bool modified READ isModified)
@@ -149,6 +148,7 @@ public:
         InsertLineSeparator,
 
         SelectAll,
+        ReloadAndBypassCache,
 
         PasteAndMatchStyle,
         RemoveFormat,
@@ -172,7 +172,8 @@ public:
     enum FindFlag {
         FindBackward = 1,
         FindCaseSensitively = 2,
-        FindWrapsAroundDocument = 4
+        FindWrapsAroundDocument = 4,
+        HighlightAllOccurrences = 8
     };
     Q_DECLARE_FLAGS(FindFlags, FindFlag)
 
@@ -192,6 +193,7 @@ public:
 
     QWebFrame *mainFrame() const;
     QWebFrame *currentFrame() const;
+    QWebFrame* frameAt(const QPoint& pos) const;
 
     QWebHistory *history() const;
     QWebSettings *settings() const;
@@ -285,6 +287,9 @@ public:
     virtual bool supportsExtension(Extension extension) const;
 
     inline QWebPagePrivate* handle() const { return d; }
+
+public Q_SLOTS:
+    bool shouldInterruptJavaScript();
 
 Q_SIGNALS:
     void loadStarted();

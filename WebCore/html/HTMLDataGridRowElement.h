@@ -26,12 +26,13 @@
 #ifndef HTMLDataGridRowElement_h
 #define HTMLDataGridRowElement_h
 
+#if ENABLE(DATAGRID)
+
 #include "HTMLElement.h"
 
 namespace WebCore {
 
-class HTMLDataGridRowElement : public HTMLElement
-{
+class HTMLDataGridRowElement : public HTMLElement {
 public:
     HTMLDataGridRowElement(const QualifiedName&, Document*);
 
@@ -50,5 +51,6 @@ public:
 
 } // namespace WebCore
 
-#endif // HTMLDataGridRowElement_h
+#endif
 
+#endif // HTMLDataGridRowElement_h

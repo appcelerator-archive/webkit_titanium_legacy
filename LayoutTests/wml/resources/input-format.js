@@ -1,6 +1,6 @@
 // [Name] input-format.js 
 
-createWMLTestCase("Tests input format validation");
+createDynamicWMLTestCase("Tests input format validation");
 
 var pElement1;
 var pElement2;
@@ -19,7 +19,7 @@ function setupTestDocument() {
     var cardElement = testDocument.documentElement.firstChild;
 
     var anchorElement = createWMLElement("anchor");
-    anchorElement.appendChild(testDocument.createTextNode("Start test"));
+    anchorElement.textContent = "Start test";
     cardElement.appendChild(anchorElement);
 
     var refreshElement = createWMLElement("refresh");

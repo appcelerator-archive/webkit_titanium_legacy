@@ -32,6 +32,7 @@
 #import "FormDataStreamMac.h"
 
 #import "CString.h"
+#import "FileSystem.h"
 #import "FormData.h"
 #import "ResourceHandle.h"
 #import "ResourceHandleClient.h"
@@ -160,11 +161,9 @@ static void advanceCurrentStream(FormStreamFields *form)
         form->currentData = data;
     } else {
         const String& path = nextInput.m_shouldGenerateFile ? nextInput.m_generatedFilename : nextInput.m_filename;
-        CFStringRef filename = path.createCFString();
-        CFURLRef fileURL = CFURLCreateWithFileSystemPath(0, filename, kCFURLPOSIXPathStyle, FALSE);
-        CFRelease(filename);
-        form->currentStream = CFReadStreamCreateWithFile(0, fileURL);
-        CFRelease(fileURL);
+        RetainPtr<CFStringRef> filename(AdoptCF, path.createCFString());
+        RetainPtr<CFURLRef> fileURL(AdoptCF, CFURLCreateWithFileSystemPath(0, filename.get(), kCFURLPOSIXPathStyle, FALSE));
+        form->currentStream = CFReadStreamCreateWithFile(0, fileURL.get());
     }
     form->remainingElements.removeLast();
 
@@ -360,11 +359,9 @@ void setHTTPBody(NSMutableURLRequest *request, PassRefPtr<FormData> formData)
         if (element.m_type == FormDataElement::data)
             length += element.m_data.size();
         else {
-            const String& filename = element.m_shouldGenerateFile ? element.m_generatedFilename : element.m_filename;
-            struct stat sb;
-            int statResult = stat(filename.utf8().data(), &sb);
-            if (statResult == 0 && (sb.st_mode & S_IFMT) == S_IFREG)
-                length += sb.st_size;
+            long long fileSize;
+            if (getFileSize(element.m_shouldGenerateFile ? element.m_generatedFilename : element.m_filename, fileSize))
+                length += fileSize;
         }
     }
 
@@ -376,11 +373,10 @@ void setHTTPBody(NSMutableURLRequest *request, PassRefPtr<FormData> formData)
     // Pass the length along with the formData so it does not have to be recomputed.
     FormContext formContext = { formData.releaseRef(), length };
 
-    CFReadStreamRef stream = wkCreateCustomCFReadStream(formCreate, formFinalize,
+    RetainPtr<CFReadStreamRef> stream(AdoptCF, wkCreateCustomCFReadStream(formCreate, formFinalize,
         formOpen, formRead, formCanRead, formClose, formSchedule, formUnschedule,
-        &formContext);
-    [request setHTTPBodyStream:(NSInputStream *)stream];
-    CFRelease(stream);
+        &formContext));
+    [request setHTTPBodyStream:(NSInputStream *)stream.get()];
 }
 
 FormData* httpBodyFromStream(NSInputStream* stream)

@@ -22,6 +22,7 @@
 
 #include "qwebpage.h"
 #include "qwebpage_p.h"
+#include "qwebplugindatabase.h"
 
 #include "Cache.h"
 #include "CrossOriginPreflightResultCache.h"
@@ -36,16 +37,19 @@
 #include "IntSize.h"
 #include "ApplicationCacheStorage.h"
 #include "DatabaseTracker.h"
+#include "FileSystem.h"
 
+#include <QApplication>
+#include <QDesktopServices>
+#include <QDir>
 #include <QHash>
 #include <QSharedData>
 #include <QUrl>
 #include <QFileInfo>
 
-class QWebSettingsPrivate
-{
+class QWebSettingsPrivate {
 public:
-    QWebSettingsPrivate(WebCore::Settings *wcSettings = 0)
+    QWebSettingsPrivate(WebCore::Settings* wcSettings = 0)
         : settings(wcSettings)
     {
     }
@@ -55,12 +59,12 @@ public:
     QHash<int, bool> attributes;
     QUrl userStyleSheetLocation;
     QString defaultTextEncoding;
-    QString localStorageDatabasePath;
+    QString localStoragePath;
     QString offlineWebApplicationCachePath;
     qint64 offlineStorageDefaultQuota;
 
     void apply();
-    WebCore::Settings *settings;
+    WebCore::Settings* settings;
 };
 
 typedef QHash<int, QPixmap> WebGraphicHash;
@@ -80,14 +84,14 @@ static WebGraphicHash* graphics()
     return hash;
 }
 
-Q_GLOBAL_STATIC(QList<QWebSettingsPrivate *>, allSettings);
+Q_GLOBAL_STATIC(QList<QWebSettingsPrivate*>, allSettings);
 
 void QWebSettingsPrivate::apply()
 {
     if (settings) {
         settings->setTextAreasAreResizable(true);
 
-        QWebSettingsPrivate *global = QWebSettings::globalSettings()->d;
+        QWebSettingsPrivate* global = QWebSettings::globalSettings()->d;
 
         QString family = fontFamilies.value(QWebSettings::StandardFont,
                                             global->fontFamilies.value(QWebSettings::StandardFont));
@@ -167,8 +171,8 @@ void QWebSettingsPrivate::apply()
         QString encoding = !defaultTextEncoding.isEmpty() ? defaultTextEncoding: global->defaultTextEncoding;
         settings->setDefaultTextEncodingName(encoding);
 
-        QString localStoragePath = !localStorageDatabasePath.isEmpty() ? localStorageDatabasePath : global->localStorageDatabasePath;
-        settings->setLocalStorageDatabasePath(localStoragePath);
+        QString storagePath = !localStoragePath.isEmpty() ? localStoragePath : global->localStoragePath;
+        settings->setLocalStorageDatabasePath(storagePath);
 
         value = attributes.value(QWebSettings::ZoomTextOnly,
                                  global->attributes.value(QWebSettings::ZoomTextOnly));
@@ -186,15 +190,20 @@ void QWebSettingsPrivate::apply()
                                       global->attributes.value(QWebSettings::OfflineWebApplicationCacheEnabled));
         settings->setOfflineWebApplicationCacheEnabled(value);
 
-        value = attributes.value(QWebSettings::LocalStorageDatabaseEnabled,
-                                      global->attributes.value(QWebSettings::LocalStorageDatabaseEnabled));
+        value = attributes.value(QWebSettings::LocalStorageEnabled,
+                                      global->attributes.value(QWebSettings::LocalStorageEnabled));
+                                                                                                                                  
         settings->setLocalStorageEnabled(value);
 
         value = attributes.value(QWebSettings::LocalContentCanAccessRemoteUrls,
                                       global->attributes.value(QWebSettings::LocalContentCanAccessRemoteUrls));
         settings->setAllowUniversalAccessFromFileURLs(value);
+
+        value = attributes.value(QWebSettings::SessionStorageEnabled,
+                                    global->attributes.value(QWebSettings::SessionStorageEnabled));
+        settings->setSessionStorageEnabled(value);
     } else {
-        QList<QWebSettingsPrivate *> settings = *::allSettings();
+        QList<QWebSettingsPrivate*> settings = *::allSettings();
         for (int i = 0; i < settings.count(); ++i)
             settings[i]->apply();
     }
@@ -206,9 +215,9 @@ void QWebSettingsPrivate::apply()
     Any setting changed on the default object is automatically applied to all
     QWebPage instances where the particular setting is not overriden already.
 */
-QWebSettings *QWebSettings::globalSettings()
+QWebSettings* QWebSettings::globalSettings()
 {
-    static QWebSettings *global = 0;
+    static QWebSettings* global = 0;
     if (!global)
         global = new QWebSettings;
     return global;
@@ -302,6 +311,8 @@ QWebSettings *QWebSettings::globalSettings()
 
     \value AutoLoadImages Specifies whether images are automatically loaded in
         web pages.
+    \value DnsPrefetchEnabled Specifies whether QtWebkit will try to pre-fetch DNS entries to
+        speed up browsing. This only works as a global attribute. Only for Qt 4.6 and later.
     \value JavascriptEnabled Enables or disables the running of JavaScript
         programs.
     \value JavaEnabled Enables or disables Java applets.
@@ -323,12 +334,14 @@ QWebSettings *QWebSettings::globalSettings()
     \value PrintElementBackgrounds Specifies whether the background color and images
         are also drawn when the page is printed.
     \value OfflineStorageDatabaseEnabled Specifies whether support for the HTML 5
-        offline storage feature is enabled or not.
+        offline storage feature is enabled or not. Disabled by default.
     \value OfflineWebApplicationCacheEnabled Specifies whether support for the HTML 5
-        web application cache feature is enabled or not.
-    \value LocalStorageDatabaseEnabled Specifies whether support for the HTML 5
-        local storage feature is enabled or not.
+        web application cache feature is enabled or not. Disabled by default.
+    \value LocalStorageEnabled Specifies whether support for the HTML 5
+        local storage feature is enabled or not. Disabled by default.
     \value LocalContentCanAccessRemoteUrls Specifies whether locally loaded documents are allowed to access remote urls.
+    \value SessionStorageEnabled Specifies whether support for the HTML 5
+        session storage feature is enabled or not. Enabled by default.                
 */
 
 /*!
@@ -350,22 +363,23 @@ QWebSettings::QWebSettings()
     d->fontFamilies.insert(QWebSettings::FantasyFont, QLatin1String("Arial"));
 
     d->attributes.insert(QWebSettings::AutoLoadImages, true);
+    d->attributes.insert(QWebSettings::DnsPrefetchEnabled, false);
     d->attributes.insert(QWebSettings::JavascriptEnabled, true);
     d->attributes.insert(QWebSettings::LinksIncludedInFocusChain, true);
     d->attributes.insert(QWebSettings::ZoomTextOnly, false);
     d->attributes.insert(QWebSettings::PrintElementBackgrounds, true);
-    d->attributes.insert(QWebSettings::OfflineStorageDatabaseEnabled, true);
-    d->attributes.insert(QWebSettings::OfflineWebApplicationCacheEnabled, true);
-    d->attributes.insert(QWebSettings::LocalStorageDatabaseEnabled, true);
-    d->attributes.insert(QWebSettings::LocalContentCanAccessRemoteUrls, true);
+    d->attributes.insert(QWebSettings::OfflineStorageDatabaseEnabled, false);
+    d->attributes.insert(QWebSettings::OfflineWebApplicationCacheEnabled, false);
+    d->attributes.insert(QWebSettings::LocalStorageEnabled, false);
+    d->attributes.insert(QWebSettings::LocalContentCanAccessRemoteUrls, false);
+    d->attributes.insert(QWebSettings::SessionStorageEnabled, true);
     d->offlineStorageDefaultQuota = 5 * 1024 * 1024;
-
 }
 
 /*!
     \internal
 */
-QWebSettings::QWebSettings(WebCore::Settings *settings)
+QWebSettings::QWebSettings(WebCore::Settings* settings)
     : d(new QWebSettingsPrivate(settings))
 {
     d->settings = settings;
@@ -400,7 +414,7 @@ int QWebSettings::fontSize(FontSize type) const
 {
     int defaultValue = 0;
     if (d->settings) {
-        QWebSettingsPrivate *global = QWebSettings::globalSettings()->d;
+        QWebSettingsPrivate* global = QWebSettings::globalSettings()->d;
         defaultValue = global->fontSizes.value(type);
     }
     return d->fontSizes.value(type, defaultValue);
@@ -427,7 +441,7 @@ void QWebSettings::resetFontSize(FontSize type)
 
     \sa userStyleSheetUrl()
 */
-void QWebSettings::setUserStyleSheetUrl(const QUrl &location)
+void QWebSettings::setUserStyleSheetUrl(const QUrl& location)
 {
     d->userStyleSheetLocation = location;
     d->apply();
@@ -453,7 +467,7 @@ QUrl QWebSettings::userStyleSheetUrl() const
 
     \sa defaultTextEncoding()
 */
-void QWebSettings::setDefaultTextEncoding(const QString &encoding)
+void QWebSettings::setDefaultTextEncoding(const QString& encoding)
 {
     d->defaultTextEncoding = encoding;
     d->apply();
@@ -478,7 +492,7 @@ QString QWebSettings::defaultTextEncoding() const
 
     Setting an empty path disables the icon database.
 */
-void QWebSettings::setIconDatabasePath(const QString &path)
+void QWebSettings::setIconDatabasePath(const QString& path)
 {
     WebCore::iconDatabase()->delayDatabaseCleanup();
 
@@ -501,11 +515,10 @@ void QWebSettings::setIconDatabasePath(const QString &path)
 */
 QString QWebSettings::iconDatabasePath()
 {
-    if (WebCore::iconDatabase()->isEnabled() && WebCore::iconDatabase()->isOpen()) {
+    if (WebCore::iconDatabase()->isEnabled() && WebCore::iconDatabase()->isOpen())
         return WebCore::iconDatabase()->databasePath();
-    } else {
+    else
         return QString();
-    }
 }
 
 /*!
@@ -527,18 +540,29 @@ void QWebSettings::clearIconDatabase()
 
     \sa setIconDatabasePath()
 */
-QIcon QWebSettings::iconForUrl(const QUrl &url)
+QIcon QWebSettings::iconForUrl(const QUrl& url)
 {
     WebCore::Image* image = WebCore::iconDatabase()->iconForPageURL(WebCore::KURL(url).string(),
                                 WebCore::IntSize(16, 16));
-    if (!image) {
+    if (!image)
         return QPixmap();
-    }
-    QPixmap *icon = image->nativeImageForCurrentFrame();
-    if (!icon) {
+
+    QPixmap* icon = image->nativeImageForCurrentFrame();
+    if (!icon)
         return QPixmap();
-    }
-    return *icon;
+
+    return* icon;
+}
+
+/*!
+    Returns the plugin database object.
+*/
+QWebPluginDatabase *QWebSettings::pluginDatabase()
+{
+    static QWebPluginDatabase* database = 0;
+    if (!database)
+        database = new QWebPluginDatabase();
+    return database;
 }
 
 /*!
@@ -550,9 +574,9 @@ QIcon QWebSettings::iconForUrl(const QUrl &url)
 
     \sa webGraphic()
 */
-void QWebSettings::setWebGraphic(WebGraphic type, const QPixmap &graphic)
+void QWebSettings::setWebGraphic(WebGraphic type, const QPixmap& graphic)
 {
-    WebGraphicHash *h = graphics();
+    WebGraphicHash* h = graphics();
     if (graphic.isNull())
         h->remove(type);
     else
@@ -629,7 +653,7 @@ int QWebSettings::maximumPagesInCache()
 
    The \a cacheMinDeadCapacity specifies the \e minimum number of bytes that
    dead objects should consume when the cache is under pressure.
-   
+
    \a cacheMaxDead is the \e maximum number of bytes that dead objects should
    consume when the cache is \bold not under pressure.
 
@@ -641,7 +665,7 @@ int QWebSettings::maximumPagesInCache()
 */
 void QWebSettings::setObjectCacheCapacities(int cacheMinDeadCapacity, int cacheMaxDead, int totalCapacity)
 {
-    bool disableCache = cacheMinDeadCapacity == 0 && cacheMaxDead == 0 && totalCapacity == 0;
+    bool disableCache = !cacheMinDeadCapacity && !cacheMaxDead && !totalCapacity;
     WebCore::cache()->setDisabled(disableCache);
 
     WebCore::cache()->setCapacities(qMax(0, cacheMinDeadCapacity),
@@ -653,7 +677,7 @@ void QWebSettings::setObjectCacheCapacities(int cacheMinDeadCapacity, int cacheM
     Sets the actual font family to \a family for the specified generic family,
     \a which.
 */
-void QWebSettings::setFontFamily(FontFamily which, const QString &family)
+void QWebSettings::setFontFamily(FontFamily which, const QString& family)
 {
     d->fontFamilies.insert(which, family);
     d->apply();
@@ -667,7 +691,7 @@ QString QWebSettings::fontFamily(FontFamily which) const
 {
     QString defaultValue;
     if (d->settings) {
-        QWebSettingsPrivate *global = QWebSettings::globalSettings()->d;
+        QWebSettingsPrivate* global = QWebSettings::globalSettings()->d;
         defaultValue = global->fontFamilies.value(which);
     }
     return d->fontFamilies.value(which, defaultValue);
@@ -689,7 +713,7 @@ void QWebSettings::resetFontFamily(FontFamily which)
 
 /*!
     \fn void QWebSettings::setAttribute(WebAttribute attribute, bool on)
-    
+
     Enables or disables the specified \a attribute feature depending on the
     value of \a on.
 */
@@ -708,7 +732,7 @@ bool QWebSettings::testAttribute(WebAttribute attr) const
 {
     bool defaultValue = false;
     if (d->settings) {
-        QWebSettingsPrivate *global = QWebSettings::globalSettings()->d;
+        QWebSettingsPrivate* global = QWebSettings::globalSettings()->d;
         defaultValue = global->attributes.value(attr);
     }
     return d->attributes.value(attr, defaultValue);
@@ -786,11 +810,19 @@ qint64 QWebSettings::offlineStorageDefaultQuota()
     return QWebSettings::globalSettings()->d->offlineStorageDefaultQuota;
 }
 
-/*
-    \internal
+/*!
+    \since 4.6
     \relates QWebSettings
-    
+
     Sets the path for HTML5 offline web application cache storage to \a path.
+
+    An application cache acts like an HTTP cache in some sense. For documents
+    that use the application cache via JavaScript, the loader mechinery will
+    first ask the application cache for the contents, before hitting the
+    network.
+
+    The feature is described in details at:
+    http://dev.w3.org/html5/spec/Overview.html#appcache
 
     \a path must point to an existing directory where the cache is stored.
 
@@ -798,23 +830,23 @@ qint64 QWebSettings::offlineStorageDefaultQuota()
 
     \sa offlineWebApplicationCachePath()
 */
-void QWEBKIT_EXPORT qt_websettings_setOfflineWebApplicationCachePath(const QString& path)
+void QWebSettings::setOfflineWebApplicationCachePath(const QString& path)
 {
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
     WebCore::cacheStorage().setCacheDirectory(path);
 #endif
 }
 
-/*
-    \internal
+/*!
+    \since 4.6
     \relates QWebSettings
-    
+
     Returns the path of the HTML5 offline web application cache storage
     or an empty string if the feature is disabled.
 
     \sa setOfflineWebApplicationCachePath()
 */
-QString QWEBKIT_EXPORT qt_websettings_offlineWebApplicationCachePath()
+QString QWebSettings::offlineWebApplicationCachePath()
 {
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
     return WebCore::cacheStorage().cacheDirectory();
@@ -823,37 +855,98 @@ QString QWEBKIT_EXPORT qt_websettings_offlineWebApplicationCachePath()
 #endif
 }
 
-/*
-    \since 4.5
+/*!
+    \since 4.6
+
+    Sets the value of the quota for the offline web application cache
+    to \a maximumSize.
+*/
+void QWebSettings::setOfflineWebApplicationCacheQuota(qint64 maximumSize)
+{
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    WebCore::cacheStorage().setMaximumSize(maximumSize);
+#endif
+}
+
+/*!
+    \since 4.6
+
+    Returns the value of the quota for the offline web application cache.
+*/
+qint64 QWebSettings::offlineWebApplicationCacheQuota()
+{
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    return WebCore::cacheStorage().maximumSize();
+#else
+    return 0;
+#endif
+}
+
+/*!
+    \since 4.6
     \relates QWebSettings
 
-    Sets the path for HTML5 local storage databases to \a path.
+    Sets the path for HTML5 local storage to \a path.
+    
+    For more information on HTML5 local storage see the
+    \l{http://www.w3.org/TR/webstorage/#the-localstorage-attribute}{Web Storage standard}.
+    
+    Support for local storage can enabled by setting the
+    \l{QWebSettings::LocalStorageEnabled}{LocalStorageEnabled} attribute.     
 
-    \a path must point to an existing directory where the cache is stored.
-
-    Setting an empty path disables the feature.
-
-    \sa localStorageDatabasePath()
+    \sa localStoragePath()
 */
-void QWEBKIT_EXPORT qt_websettings_setLocalStorageDatabasePath(QWebSettings* settings, const QString& path)
+void QWebSettings::setLocalStoragePath(const QString& path)
 {
-    QWebSettingsPrivate *d = settings->handle();
-    d->localStorageDatabasePath = path;
+    d->localStoragePath = path;
     d->apply();
 }
 
-/*
-    \since 4.5
+/*!
+    \since 4.6
     \relates QWebSettings
 
-    Returns the path for HTML5 local storage databases
-    or an empty string if the feature is disabled.
-
-    \sa setLocalStorageDatabasePath()
+    Returns the path for HTML5 local storage.
+    
+    \sa setLocalStoragePath()
 */
-QString QWEBKIT_EXPORT qt_websettings_localStorageDatabasePath(QWebSettings* settings)
+QString QWebSettings::localStoragePath() const
 {
-    return settings->handle()->localStorageDatabasePath;
+    return d->localStoragePath;
+}
+
+/*!
+    \since 4.6
+    \relates QWebSettings
+
+    Enables WebKit persistent data and sets the path to \a path.
+    If the \a path is empty the path for persistent data is set to the 
+    user-specific data location specified by 
+    \l{QDesktopServices::DataLocation}{DataLocation}.
+    
+    \sa localStoragePath()
+*/
+void QWebSettings::enablePersistentStorage(const QString& path)
+{
+    QString storagePath;
+
+    if (path.isEmpty()) {
+        storagePath = QDesktopServices::storageLocation(QDesktopServices::DataLocation);
+
+        if (storagePath.isEmpty())
+            storagePath = WebCore::pathByAppendingComponent(QDir::homePath(), QCoreApplication::applicationName());
+    } else
+        storagePath = path;
+
+    WebCore::makeAllDirectories(storagePath);
+
+    QWebSettings::setIconDatabasePath(storagePath);
+    QWebSettings::setOfflineWebApplicationCachePath(storagePath);
+    QWebSettings::setOfflineStoragePath(WebCore::pathByAppendingComponent(storagePath, "Databases"));
+    QWebSettings::globalSettings()->setLocalStoragePath(WebCore::pathByAppendingComponent(storagePath, "LocalStorage"));
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::OfflineStorageDatabaseEnabled, true);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::OfflineWebApplicationCacheEnabled, true);
 }
 
 /*!

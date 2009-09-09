@@ -46,7 +46,7 @@ def main():
     return archiveTestResults(options.configuration, options.platform)
 
 def archiveTestResults(configuration, platform):
-    assert platform in ('mac', 'win', 'gtk')
+    assert platform in ('mac', 'win', 'gtk', 'qt')
 
     try:
         os.unlink(archiveFile)
@@ -54,10 +54,19 @@ def archiveTestResults(configuration, platform):
         if e.errno != 2:
             raise
 
+    try:
+        # Ensure that layoutTestResultsDir exists since we cannot archive a directory that does not exist
+        os.makedirs(layoutTestResultsDir)
+    except OSError, e:
+        if e.errno != 17:
+            raise
+
+    open(os.path.join(layoutTestResultsDir, '.placeholder'), 'w').close()
+
     if platform == 'mac':
         if subprocess.call(["ditto", "-c", "-k", "--sequesterRsrc", layoutTestResultsDir, archiveFile]):
             return 1
-    elif platform in ('win', 'gtk'):
+    elif platform in ('win', 'gtk', 'qt'):
         if subprocess.call(["zip", "-r", archiveFile, "."], cwd=layoutTestResultsDir):
             return 1
 

@@ -1,6 +1,7 @@
 /*
  *  Copyright (C) 1999-2001 Harri Porten (porten@kde.org)
  *  Copyright (C) 2004, 2005, 2006, 2007, 2008 Apple Inc. All rights reserved.
+ *  Copyright (C) 2009 Torch Mobile, Inc.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +23,8 @@
 #include "StringPrototype.h"
 
 #include "CachedCall.h"
+#include "Error.h"
+#include "Executable.h"
 #include "JSArray.h"
 #include "JSFunction.h"
 #include "ObjectPrototype.h"
@@ -130,6 +133,11 @@ bool StringPrototype::getOwnPropertySlot(ExecState* exec, const Identifier& prop
     return getStaticFunctionSlot<StringObject>(exec, ExecState::stringTable(exec), this, propertyName, slot);
 }
 
+bool StringPrototype::getOwnPropertyDescriptor(ExecState* exec, const Identifier& propertyName, PropertyDescriptor& descriptor)
+{
+    return getStaticFunctionDescriptor<StringObject>(exec, ExecState::stringTable(exec), this, propertyName, descriptor);
+}
+
 // ------------------------------ Functions --------------------------
 
 static inline UString substituteBackreferences(const UString& replacement, const UString& source, const int* ovector, RegExp* reg)
@@ -219,7 +227,7 @@ JSValue JSC_HOST_CALL stringProtoFuncReplace(ExecState* exec, JSObject*, JSValue
     if (callType == CallTypeNone)
         replacementString = replacement.toString(exec);
 
-    if (pattern.isObject(&RegExpObject::info)) {
+    if (pattern.inherits(&RegExpObject::info)) {
         RegExp* reg = asRegExpObject(pattern)->regExp();
         bool global = reg->global();
 
@@ -364,7 +372,7 @@ JSValue JSC_HOST_CALL stringProtoFuncToString(ExecState* exec, JSObject*, JSValu
     if (thisValue.isString())
         return thisValue;
 
-    if (thisValue.isObject(&StringObject::info))
+    if (thisValue.inherits(&StringObject::info))
         return asStringObject(thisValue)->internalValue();
 
     return throwError(exec, TypeError);
@@ -375,8 +383,8 @@ JSValue JSC_HOST_CALL stringProtoFuncCharAt(ExecState* exec, JSObject*, JSValue 
     UString s = thisValue.toThisString(exec);
     unsigned len = s.size();
     JSValue a0 = args.at(0);
-    if (a0.isUInt32Fast()) {
-        uint32_t i = a0.getUInt32Fast();
+    if (a0.isUInt32()) {
+        uint32_t i = a0.asUInt32();
         if (i < len)
             return jsSingleCharacterSubstring(exec, s, i);
         return jsEmptyString(exec);
@@ -392,8 +400,8 @@ JSValue JSC_HOST_CALL stringProtoFuncCharCodeAt(ExecState* exec, JSObject*, JSVa
     UString s = thisValue.toThisString(exec);
     unsigned len = s.size();
     JSValue a0 = args.at(0);
-    if (a0.isUInt32Fast()) {
-        uint32_t i = a0.getUInt32Fast();
+    if (a0.isUInt32()) {
+        uint32_t i = a0.asUInt32();
         if (i < len)
             return jsNumber(exec, s.data()[i]);
         return jsNaN(exec);
@@ -425,8 +433,8 @@ JSValue JSC_HOST_CALL stringProtoFuncIndexOf(ExecState* exec, JSObject*, JSValue
     int pos;
     if (a1.isUndefined())
         pos = 0;
-    else if (a1.isUInt32Fast())
-        pos = min<uint32_t>(a1.getUInt32Fast(), len);
+    else if (a1.isUInt32())
+        pos = min<uint32_t>(a1.asUInt32(), len);
     else {
         double dpos = a1.toInteger(exec);
         if (dpos < 0)
@@ -465,7 +473,7 @@ JSValue JSC_HOST_CALL stringProtoFuncMatch(ExecState* exec, JSObject*, JSValue t
     UString u = s;
     RefPtr<RegExp> reg;
     RegExpObject* imp = 0;
-    if (a0.isObject(&RegExpObject::info))
+    if (a0.inherits(&RegExpObject::info))
         reg = asRegExpObject(a0)->regExp();
     else {
         /*
@@ -515,7 +523,7 @@ JSValue JSC_HOST_CALL stringProtoFuncSearch(ExecState* exec, JSObject*, JSValue 
 
     UString u = s;
     RefPtr<RegExp> reg;
-    if (a0.isObject(&RegExpObject::info))
+    if (a0.inherits(&RegExpObject::info))
         reg = asRegExpObject(a0)->regExp();
     else { 
         /*
@@ -567,7 +575,7 @@ JSValue JSC_HOST_CALL stringProtoFuncSplit(ExecState* exec, JSObject*, JSValue t
     unsigned i = 0;
     int p0 = 0;
     unsigned limit = a1.isUndefined() ? 0xFFFFFFFFU : a1.toUInt32(exec);
-    if (a0.isObject(&RegExpObject::info)) {
+    if (a0.inherits(&RegExpObject::info)) {
         RegExp* reg = asRegExpObject(a0)->regExp();
         if (s.isEmpty() && reg->match(s, 0) >= 0) {
             // empty string matched by regexp -> empty array
@@ -575,7 +583,7 @@ JSValue JSC_HOST_CALL stringProtoFuncSplit(ExecState* exec, JSObject*, JSValue t
         }
         int pos = 0;
         while (i != limit && pos < s.size()) {
-            OwnArrayPtr<int> ovector;
+            Vector<int, 32> ovector;
             int mpos = reg->match(s, pos, &ovector);
             if (mpos < 0)
                 break;
@@ -820,8 +828,8 @@ JSValue JSC_HOST_CALL stringProtoFuncFontsize(ExecState* exec, JSObject*, JSValu
     if (a0.getUInt32(smallInteger) && smallInteger <= 9) {
         unsigned stringSize = s.size();
         unsigned bufferSize = 22 + stringSize;
-        UChar* buffer = static_cast<UChar*>(tryFastMalloc(bufferSize * sizeof(UChar)));
-        if (!buffer)
+        UChar* buffer;
+        if (!tryFastMalloc(bufferSize * sizeof(UChar)).getValue(buffer))
             return jsUndefined();
         buffer[0] = '<';
         buffer[1] = 'f';
@@ -868,8 +876,8 @@ JSValue JSC_HOST_CALL stringProtoFuncLink(ExecState* exec, JSObject*, JSValue th
     unsigned linkTextSize = linkText.size();
     unsigned stringSize = s.size();
     unsigned bufferSize = 15 + linkTextSize + stringSize;
-    UChar* buffer = static_cast<UChar*>(tryFastMalloc(bufferSize * sizeof(UChar)));
-    if (!buffer)
+    UChar* buffer;
+    if (!tryFastMalloc(bufferSize * sizeof(UChar)).getValue(buffer))
         return jsUndefined();
     buffer[0] = '<';
     buffer[1] = 'a';

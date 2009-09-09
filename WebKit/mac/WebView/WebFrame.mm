@@ -60,6 +60,7 @@
 #import <WebCore/DocLoader.h>
 #import <WebCore/DocumentFragment.h>
 #import <WebCore/EventHandler.h>
+#import <WebCore/EventNames.h>
 #import <WebCore/Frame.h>
 #import <WebCore/FrameLoader.h>
 #import <WebCore/FrameTree.h>
@@ -94,6 +95,7 @@ using namespace HTMLNames;
 using JSC::JSGlobalObject;
 using JSC::JSLock;
 using JSC::JSValue;
+using JSC::SilenceAssertionsOnly;
 
 /*
 Here is the current behavior matrix for four types of navigations:
@@ -130,6 +132,14 @@ Repeat load of the same URL (by any other means of navigation other than the rel
 NSString *WebPageCacheEntryDateKey = @"WebPageCacheEntryDateKey";
 NSString *WebPageCacheDataSourceKey = @"WebPageCacheDataSourceKey";
 NSString *WebPageCacheDocumentViewKey = @"WebPageCacheDocumentViewKey";
+
+NSString *WebFrameMainDocumentError = @"WebFrameMainDocumentErrorKey";
+NSString *WebFrameHasPlugins = @"WebFrameHasPluginsKey";
+NSString *WebFrameHasUnloadListener = @"WebFrameHasUnloadListenerKey";
+NSString *WebFrameUsesDatabases = @"WebFrameUsesDatabasesKey";
+NSString *WebFrameUsesGeolocation = @"WebFrameUsesGeolocationKey";
+NSString *WebFrameUsesApplicationCache = @"WebFrameUsesApplicationCacheKey";
+NSString *WebFrameCanSuspendActiveDOMObjects = @"WebFrameCanSuspendActiveDOMObjectsKey";
 
 // FIXME: Remove when this key becomes publicly defined
 NSString *NSAccessibilityEnhancedUserInterfaceAttribute = @"AXEnhancedUserInterface";
@@ -533,7 +543,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     }
 
     if (!_private->coreFrame || !_private->coreFrame->document() || !_private->coreFrame->view()) return pages;
-    RenderView* root = static_cast<RenderView *>(_private->coreFrame->document()->renderer());
+    RenderView* root = toRenderView(_private->coreFrame->document()->renderer());
     if (!root) return pages;
     
     FrameView* view = _private->coreFrame->view();
@@ -596,7 +606,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     if (!result || !result.isBoolean() && !result.isString() && !result.isNumber())
         return @"";
 
-    JSLock lock(false);
+    JSLock lock(SilenceAssertionsOnly);
     return String(result.toString(_private->coreFrame->script()->globalObject()->globalExec()));
 }
 
@@ -639,7 +649,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 
     if (!_private->coreFrame || !_private->coreFrame->document())
         return nil;
-    RenderView* root = static_cast<RenderView *>(_private->coreFrame->document()->renderer());
+    RenderView* root = toRenderView(_private->coreFrame->document()->renderer());
     if (!root)
         return nil;
     return _private->coreFrame->document()->axObjectCache()->getOrCreate(root)->wrapper();
@@ -1151,6 +1161,40 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     [self _replaceSelectionWithFragment:fragment selectReplacement:selectReplacement smartReplace:smartReplace matchStyle:NO];
 }
 
+- (NSMutableDictionary *)_cacheabilityDictionary
+{
+    NSMutableDictionary *result = [NSMutableDictionary dictionary];
+    
+    FrameLoader* frameLoader = _private->coreFrame->loader();
+    DocumentLoader* documentLoader = frameLoader->documentLoader();
+    if (documentLoader && !documentLoader->mainDocumentError().isNull())
+        [result setObject:(NSError *)documentLoader->mainDocumentError() forKey:WebFrameMainDocumentError];
+        
+    if (frameLoader->containsPlugins())
+        [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameHasPlugins];
+    
+    if (DOMWindow* domWindow = _private->coreFrame->domWindow()) {
+        if (domWindow->hasEventListener(eventNames().unloadEvent))
+            [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameHasUnloadListener];
+            
+        if (domWindow->optionalApplicationCache())
+            [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameUsesApplicationCache];
+    }
+    
+    if (Document* document = _private->coreFrame->document()) {
+        if (document->hasOpenDatabases())
+            [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameUsesDatabases];
+            
+        if (document->usingGeolocation())
+            [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameUsesGeolocation];
+            
+        if (!document->canSuspendActiveDOMObjects())
+            [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameCanSuspendActiveDOMObjects];
+    }
+    
+    return result;
+}
+
 @end
 
 @implementation WebFrame
@@ -1198,8 +1242,17 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     return getWebView(self);
 }
 
+static bool needsMicrosoftMessengerDOMDocumentWorkaround()
+{
+    static bool needsWorkaround = applicationIsMicrosoftMessenger() && [[[NSBundle mainBundle] objectForInfoDictionaryKey:(NSString *)kCFBundleVersionKey] compare:@"7.1" options:NSNumericSearch] == NSOrderedAscending;
+    return needsWorkaround;
+}
+
 - (DOMDocument *)DOMDocument
 {
+    if (needsMicrosoftMessengerDOMDocumentWorkaround() && !pthread_main_np())
+        return nil;
+
     Frame* coreFrame = _private->coreFrame;
     if (!coreFrame)
         return nil;

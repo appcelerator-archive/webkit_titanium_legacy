@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Nuanti Ltd.
  * Copyright (C) 2009 Igalia S.L.
+ * Copyright (C) 2009 Jan Alonzo
  *
  * Portions from Mozilla a11y, copyright as follows:
  *
@@ -43,8 +44,11 @@
 #include "FrameView.h"
 #include "HostWindow.h"
 #include "HTMLNames.h"
+#include "InlineTextBox.h"
 #include "IntRect.h"
 #include "NotImplemented.h"
+#include "RenderText.h"
+#include "TextEncoding.h"
 
 #include <atk/atk.h>
 #include <glib.h>
@@ -56,7 +60,7 @@ using namespace WebCore;
 
 static AccessibilityObject* fallbackObject()
 {
-    static AXObjectCache* fallbackCache = new AXObjectCache();
+    static AXObjectCache* fallbackCache = new AXObjectCache;
     static AccessibilityObject* object = 0;
     if (!object) {
         // FIXME: using fallbackCache->getOrCreate(ListBoxOptionRole) is a hack
@@ -275,9 +279,11 @@ static AtkRole webkit_accessible_get_role(AtkObject* object)
     }
 
     // WebCore does not know about paragraph role
-    Node* node = static_cast<AccessibilityRenderObject*>(AXObject)->renderer()->node();
-    if (node && node->hasTagName(HTMLNames::pTag))
-        return ATK_ROLE_PARAGRAPH;
+    if (AXObject->isAccessibilityRenderObject()) {
+        Node* node = static_cast<AccessibilityRenderObject*>(AXObject)->renderer()->node();
+        if (node && node->hasTagName(HTMLNames::pTag))
+            return ATK_ROLE_PARAGRAPH;
+    }
 
     // Note: Why doesn't WebCore have a password field for this
     if (AXObject->isPasswordField())
@@ -293,11 +299,17 @@ static void setAtkStateSetFromCoreObject(AccessibilityObject* coreObject, AtkSta
     if (coreObject->isChecked())
         atk_state_set_add_state(stateSet, ATK_STATE_CHECKED);
 
-    if (!coreObject->isReadOnly())
+    // FIXME: isReadOnly does not seem to do the right thing for
+    // controls, so check explicitly for them
+    if (!coreObject->isReadOnly() ||
+        (coreObject->isControl() && coreObject->canSetValueAttribute()))
         atk_state_set_add_state(stateSet, ATK_STATE_EDITABLE);
 
-    if (coreObject->isEnabled())
+    // FIXME: Put both ENABLED and SENSITIVE together here for now
+    if (coreObject->isEnabled()) {
         atk_state_set_add_state(stateSet, ATK_STATE_ENABLED);
+        atk_state_set_add_state(stateSet, ATK_STATE_SENSITIVE);
+    }
 
     if (coreObject->canSetFocusAttribute())
         atk_state_set_add_state(stateSet, ATK_STATE_FOCUSABLE);
@@ -320,13 +332,17 @@ static void setAtkStateSetFromCoreObject(AccessibilityObject* coreObject, AtkSta
 
     // TODO: ATK_STATE_SELECTABLE_TEXT
 
-    // TODO: ATK_STATE_SENSITIVE
-
     if (coreObject->isSelected())
         atk_state_set_add_state(stateSet, ATK_STATE_SELECTED);
 
-    if (!coreObject->isOffScreen())
+    // FIXME: Group both SHOWING and VISIBLE here for now
+    // Not sure how to handle this in WebKit, see bug
+    // http://bugzilla.gnome.org/show_bug.cgi?id=509650 for other
+    // issues with SHOWING vs VISIBLE within GTK+
+    if (!coreObject->isOffScreen()) {
         atk_state_set_add_state(stateSet, ATK_STATE_SHOWING);
+        atk_state_set_add_state(stateSet, ATK_STATE_VISIBLE);
+    }
 
     // Mutually exclusive, so we group these two
     if (coreObject->roleValue() == TextFieldRole)
@@ -491,24 +507,50 @@ static GailTextUtil* getGailTextUtilForAtk(AtkText* textObject)
     return gailTextUtil;
 }
 
-// We can use the same callback for both 'style-set' and
-// 'direction-changed', since we don't care about neither of their
-// second parameters.
-static void updateLayout(GtkWidget* widget, gpointer dummy, gpointer userData)
+static gchar* utf8Substr(const gchar* string, gint start, gint end)
 {
-   gpointer data = g_object_get_data(G_OBJECT(userData), "webkit-accessible-pango-layout");
-   if (!data)
-       return;
+    ASSERT(string);
+    glong strLen = g_utf8_strlen(string, -1);
+    if (start > strLen || end > strLen)
+        return 0;
+    gchar* startPtr = g_utf8_offset_to_pointer(string, start);
+    gsize lenInBytes = g_utf8_offset_to_pointer(string, end) -  startPtr + 1;
+    gchar* output = static_cast<gchar*>(g_malloc0(lenInBytes + 1));
+    return g_utf8_strncpy(output, startPtr, end - start + 1);
+}
 
-   pango_layout_context_changed(static_cast<PangoLayout*>(data));
+// This function is not completely general, is it's tied to the
+// internals of WebCore's text presentation.
+static gchar* convertUniCharToUTF8(const UChar* characters, gint length, int from, int to)
+{
+    CString stringUTF8 = UTF8Encoding().encode(characters, length, QuestionMarksForUnencodables);
+    gchar* utf8String = utf8Substr(stringUTF8.data(), from, to);
+    if (!g_utf8_validate(utf8String, -1, NULL)) {
+        g_free(utf8String);
+        return 0;
+    }
+    gsize len = strlen(utf8String);
+    GString* ret = g_string_new_len(NULL, len);
+
+    // WebCore introduces line breaks in the text that do not reflect
+    // the layout you see on the screen, replace them with spaces
+    while (len > 0) {
+        gint index, start;
+        pango_find_paragraph_boundary(utf8String, len, &index, &start);
+        g_string_append_len(ret, utf8String, index);
+        if (index == start)
+            break;
+        g_string_append_c(ret, ' ');
+        utf8String += start;
+        len -= start;
+    }
+
+    g_free(utf8String);
+    return g_string_free(ret, FALSE);
 }
 
 static PangoLayout* getPangoLayoutForAtk(AtkText* textObject)
 {
-    gpointer data = g_object_get_data(G_OBJECT(textObject), "webkit-accessible-pango-layout");
-    if (data)
-        return static_cast<PangoLayout*>(data);
-
     AccessibilityObject* coreObject = core(textObject);
 
     HostWindow* hostWindow = coreObject->document()->view()->hostWindow();
@@ -518,9 +560,25 @@ static PangoLayout* getPangoLayoutForAtk(AtkText* textObject)
     if (!webView)
         return 0;
 
-    g_signal_connect(webView, "style-set", G_CALLBACK(updateLayout), textObject);
-    g_signal_connect(webView, "direction-changed", G_CALLBACK(updateLayout), textObject);
-    PangoLayout* layout = gtk_widget_create_pango_layout(static_cast<GtkWidget*>(webView), webkit_accessible_text_get_text(textObject, 0, -1));
+    GString* str = g_string_new(NULL);
+
+    AccessibilityRenderObject* accObject = static_cast<AccessibilityRenderObject*>(coreObject);
+    if (!accObject)
+        return 0;
+    RenderText* renderText = toRenderText(accObject->renderer());
+    if (!renderText)
+        return 0;
+
+    // Create a string with the layout as it appears on the screen
+    InlineTextBox* box = renderText->firstTextBox();
+    while (box) {
+        gchar *text = convertUniCharToUTF8(renderText->characters(), renderText->textLength(), box->start(), box->end());
+        g_string_append(str, text);
+        g_string_append(str, "\n");
+        box = box->nextTextBox();
+    }
+
+    PangoLayout* layout = gtk_widget_create_pango_layout(static_cast<GtkWidget*>(webView), g_string_free(str, FALSE));
     g_object_set_data_full(G_OBJECT(textObject), "webkit-accessible-pango-layout", layout, g_object_unref);
     return layout;
 }
@@ -549,7 +607,7 @@ static gunichar webkit_accessible_text_get_character_at_offset(AtkText* text, gi
 static gint webkit_accessible_text_get_caret_offset(AtkText* text)
 {
     // TODO: Verify this for RTL text.
-    return core(text)->selection().start().offsetInContainerNode();
+    return core(text)->selection().end().offsetInContainerNode();
 }
 
 static AtkAttributeSet* webkit_accessible_text_get_run_attributes(AtkText* text, gint offset, gint* start_offset, gint* end_offset)
@@ -1019,6 +1077,18 @@ void webkit_accessible_detach(WebKitAccessible* accessible)
     // provides default implementations to avoid repetitive null-checking after
     // detachment.
     accessible->m_object = fallbackObject();
+}
+
+AtkObject* webkit_accessible_get_focused_element(WebKitAccessible* accessible)
+{
+    if (!accessible->m_object)
+        return 0;
+
+    RefPtr<AccessibilityObject> focusedObj = accessible->m_object->focusedUIElement();
+    if (!focusedObj)
+        return 0;
+
+    return focusedObj->wrapper();
 }
 
 #endif // HAVE(ACCESSIBILITY)

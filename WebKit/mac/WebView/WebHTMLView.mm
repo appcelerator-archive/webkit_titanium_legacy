@@ -125,6 +125,7 @@
 using namespace WebCore;
 using namespace HTMLNames;
 using namespace WTF;
+using namespace std;
 
 @interface NSWindow (BorderViewAccess)
 - (NSView*)_web_borderView;
@@ -979,8 +980,7 @@ static NSURL* uniqueURLWithRelativePart(NSString *relativePart)
 {
     // FIXME: this can fail if the dataSource is nil, which happens when the WebView is tearing down from the window closing.
     WebHTMLView *view = (WebHTMLView *)[[[[_private->dataSource _webView] mainFrame] frameView] documentView];
-    ASSERT(view);
-    ASSERT([view isKindOfClass:[WebHTMLView class]]);
+    ASSERT(!view || [view isKindOfClass:[WebHTMLView class]]);
     return view;
 }
 
@@ -1166,6 +1166,10 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
                                                               _updateMouseoverTimerCallback, &context);
         CFRunLoopAddTimer(CFRunLoopGetCurrent(), _private->updateMouseoverTimer, kCFRunLoopDefaultMode);
     }
+    
+#if USE(ACCELERATED_COMPOSITING) && defined(BUILDING_ON_LEOPARD)
+    [self _updateLayerHostingViewPosition];
+#endif
 }
 
 - (void)_setAsideSubviews
@@ -1268,12 +1272,20 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
     } else if (wasInPrintingMode)
         [self _web_clearPrintingModeRecursive];
 
-#ifdef BUILDING_ON_TIGER
-
+#ifndef BUILDING_ON_TIGER
+    // There are known cases where -viewWillDraw is not called on all views being drawn.
+    // See <rdar://problem/6964278> for example. Performing layout at this point prevents us from
+    // trying to paint without layout (which WebCore now refuses to do, instead bailing out without
+    // drawing at all), but we may still fail to update and regions dirtied by the layout which are
+    // not already dirty. 
+    if ([self _needsLayout]) {
+        LOG_ERROR("View needs layout. Either -viewWillDraw wasn't called or layout was invalidated during the display operation. Performing layout now.");
+        [self _web_layoutIfNeededRecursive];
+    }
+#else
     // Because Tiger does not have viewWillDraw we need to do layout here.
     [self _web_layoutIfNeededRecursive];
     [_subviews makeObjectsPerformSelector:@selector(_propagateDirtyRectsToOpaqueAncestors)];
-
 #endif
 
     [self _setAsideSubviews];
@@ -1637,10 +1649,10 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
         urlStringSize.height = [urlFont ascender] - [urlFont descender];
         imageSize.height += urlStringSize.height;
         if (urlStringSize.width > MAX_DRAG_LABEL_WIDTH) {
-            imageSize.width = MAX(MAX_DRAG_LABEL_WIDTH + DRAG_LABEL_BORDER_X * 2.0f, MIN_DRAG_LABEL_WIDTH_BEFORE_CLIP);
+            imageSize.width = max(MAX_DRAG_LABEL_WIDTH + DRAG_LABEL_BORDER_X * 2, MIN_DRAG_LABEL_WIDTH_BEFORE_CLIP);
             clipURLString = YES;
         } else {
-            imageSize.width = MAX(labelSize.width + DRAG_LABEL_BORDER_X * 2.0f, urlStringSize.width + DRAG_LABEL_BORDER_X * 2.0f);
+            imageSize.width = max(labelSize.width + DRAG_LABEL_BORDER_X * 2, urlStringSize.width + DRAG_LABEL_BORDER_X * 2);
         }
     }
     NSImage *dragImage = [[[NSImage alloc] initWithSize: imageSize] autorelease];
@@ -2185,22 +2197,13 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
 
 @end
 
-@interface NSString (WebHTMLViewFileInternal)
-- (BOOL)matchesExtensionEquivalent:(NSString *)extension;
-@end
-
-@implementation NSString (WebHTMLViewFileInternal)
-
-- (BOOL)matchesExtensionEquivalent:(NSString *)extension
+static bool matchesExtensionOrEquivalent(NSString *filename, NSString *extension)
 {
-    if ([self hasSuffix:extension])
-        return YES;
-    else if ([extension isEqualToString:@"jpeg"] && [self hasSuffix:@"jpg"])
-        return YES;
-    return NO;
+    NSString *extensionAsSuffix = [@"." stringByAppendingString:extension];
+    return [filename _webkit_hasCaseInsensitiveSuffix:extensionAsSuffix]
+        || ([extension _webkit_isCaseInsensitiveEqualToString:@"jpeg"]
+            && [filename _webkit_hasCaseInsensitiveSuffix:@".jpg"]);
 }
-
-@end
 
 #ifdef BUILDING_ON_TIGER
 
@@ -2296,24 +2299,36 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
     return [[webView _editingDelegateForwarder] webView:webView doCommandBySelector:selector];
 }
 
+typedef HashMap<SEL, String> SelectorNameMap;
+
+// Map selectors into Editor command names.
+// This is not needed for any selectors that have the same name as the Editor command.
+static const SelectorNameMap* createSelectorExceptionMap()
+{
+    SelectorNameMap* map = new HashMap<SEL, String>;
+
+    map->add(@selector(insertNewlineIgnoringFieldEditor:), "InsertNewline");
+    map->add(@selector(insertParagraphSeparator:), "InsertNewline");
+    map->add(@selector(insertTabIgnoringFieldEditor:), "InsertTab");
+    map->add(@selector(pageDown:), "MovePageDown");
+    map->add(@selector(pageDownAndModifySelection:), "MovePageDownAndModifySelection");
+    map->add(@selector(pageUp:), "MovePageUp");
+    map->add(@selector(pageUpAndModifySelection:), "MovePageUpAndModifySelection");
+
+    return map;
+}
+
 static String commandNameForSelector(SEL selector)
 {
-    // Change a few command names into ones supported by WebCore::Editor.
-    // If this list gets too long we might decide we need to use a hash table.
-    if (selector == @selector(insertParagraphSeparator:) || selector == @selector(insertNewlineIgnoringFieldEditor:))
-        return "InsertNewline";
-    if (selector == @selector(insertTabIgnoringFieldEditor:))
-        return "InsertTab";
-    if (selector == @selector(pageDown:))
-        return "MovePageDown";
-    if (selector == @selector(pageDownAndModifySelection:))
-        return "MovePageDownAndModifySelection";
-    if (selector == @selector(pageUp:))
-        return "MovePageUp";
-    if (selector == @selector(pageUpAndModifySelection:))
-        return "MovePageUpAndModifySelection";
+    // Check the exception map first.
+    static const SelectorNameMap* exceptionMap = createSelectorExceptionMap();
+    SelectorNameMap::const_iterator it = exceptionMap->find(selector);
+    if (it != exceptionMap->end())
+        return it->second;
 
     // Remove the trailing colon.
+    // No need to capitalize the command name since Editor command names are
+    // not case sensitive.
     const char* selectorName = sel_getName(selector);
     size_t selectorNameLength = strlen(selectorName);
     if (selectorNameLength < 2 || selectorName[selectorNameLength - 1] != ':')
@@ -3173,9 +3188,13 @@ WEBCORE_COMMAND(yankAndSelect)
         
 #if USE(ACCELERATED_COMPOSITING)
     if ([[self _webView] _needsOneShotDrawingSynchronization]) {
-        // Disable screen updates so that drawing into the NSView and
-        // CALayer updates appear on the screen at the same time.
+        // Disable screen updates so that any layer changes committed here
+        // don't show up on the screen before the window flush at the end
+        // of the current window display.
         [[self window] disableScreenUpdatesUntilFlush];
+        
+        // Make sure any layer changes that happened as a result of layout
+        // via -viewWillDraw are committed.
         [CATransaction flush];
         [[self _webView] _setNeedsOneShotDrawingSynchronization:NO];
     }
@@ -3469,7 +3488,7 @@ done:
         wrapper = [[[NSFileWrapper alloc] initRegularFileWithContents:data] autorelease];
         NSString* filename = [response suggestedFilename];
         NSString* trueExtension(tiffResource->image()->filenameExtension());
-        if (![filename matchesExtensionEquivalent:trueExtension])
+        if (!matchesExtensionOrEquivalent(filename, trueExtension))
             filename = [[filename stringByAppendingString:@"."] stringByAppendingString:trueExtension];
         [wrapper setPreferredFilename:filename];
     }
@@ -3586,6 +3605,8 @@ static BOOL isInPasswordField(Frame* coreFrame)
     if (![[self _webView] _isPerformingProgrammaticFocus])
         page->focusController()->setFocusedFrame(frame);
 
+    page->focusController()->setFocused(true);
+
     if (direction == NSDirectSelection)
         return YES;
 
@@ -3601,19 +3622,23 @@ static BOOL isInPasswordField(Frame* coreFrame)
     BOOL resign = [super resignFirstResponder];
     if (resign) {
         [_private->completionController endRevertingChange:NO moveLeft:NO];
+        Frame* coreFrame = core([self _frame]);
+        if (!coreFrame)
+            return resign;
+        Page* page = coreFrame->page();
+        if (!page)
+            return resign;
         if (![self maintainsInactiveSelection]) { 
             [self deselectAll];
-            if (![[self _webView] _isPerformingProgrammaticFocus]) {
+            if (![[self _webView] _isPerformingProgrammaticFocus])
                 [self clearFocus];
-                Frame* coreFrame = core([self _frame]);
-                if (!coreFrame)
-                    return resign;
-                Page* page = coreFrame->page();
-                if (!page)
-                    return resign;
-                page->focusController()->setFocusedFrame(0);
-            }
         }
+        
+        id nextResponder = [[self window] _newFirstResponderAfterResigning];
+        bool nextResponderIsInWebView = [nextResponder isKindOfClass:[NSView class]]
+            && [nextResponder isDescendantOf:[[[self _webView] mainFrame] frameView]];
+        if (!nextResponderIsInWebView)
+            page->focusController()->setFocused(false);
     }
     return resign;
 }
@@ -3702,7 +3727,7 @@ static BOOL isInPasswordField(Frame* coreFrame)
 #ifdef __LP64__
     // If the new bottom is equal to the old bottom (when both are treated as floats), we just copy
     // oldBottom over to newBottom. This prevents rounding errors that can occur when converting newBottomFloat to a double.
-    if (fabs((float)oldBottom - newBottomFloat) <= std::numeric_limits<float>::epsilon()) 
+    if (fabs((float)oldBottom - newBottomFloat) <= numeric_limits<float>::epsilon()) 
         *newBottom = oldBottom;
     else
 #endif
@@ -3737,7 +3762,7 @@ static BOOL isInPasswordField(Frame* coreFrame)
     float maxShrinkToFitScaleFactor = 1.0f / PrintingMaximumShrinkFactor;
     float shrinkToFitScaleFactor = [self _availablePaperWidthForPrintOperation:printOperation]/viewWidth;
     float shrinkToAvoidOrphan = _private->avoidingPrintOrphan ? (1.0f / PrintingOrphanShrinkAdjustment) : 1.0f;
-    return userScaleFactor * MAX(maxShrinkToFitScaleFactor, shrinkToFitScaleFactor) * shrinkToAvoidOrphan;
+    return userScaleFactor * max(maxShrinkToFitScaleFactor, shrinkToFitScaleFactor) * shrinkToAvoidOrphan;
 }
 
 // FIXME 3491344: This is a secret AppKit-internal method that we need to override in order
@@ -4278,6 +4303,8 @@ static BOOL isInPasswordField(Frame* coreFrame)
     BOOL aIsItalic = ([fm traitsOfFont:a] & NSItalicFontMask) != 0;
     BOOL bIsItalic = ([fm traitsOfFont:b] & NSItalicFontMask) != 0;
 
+    BOOL aIsBold = aWeight > MIN_BOLD_WEIGHT;
+
     if ([aFamilyName isEqualToString:bFamilyName]) {
         NSString *familyNameForCSS = aFamilyName;
 
@@ -4287,7 +4314,8 @@ static BOOL isInPasswordField(Frame* coreFrame)
         
         // Find the font the same way the rendering code would later if it encountered this CSS.
         NSFontTraitMask traits = aIsItalic ? NSFontItalicTrait : 0;
-        NSFont *foundFont = [WebFontCache fontWithFamily:aFamilyName traits:traits weight:aWeight size:aPointSize];
+        int weight = aIsBold ? STANDARD_BOLD_WEIGHT : STANDARD_WEIGHT;
+        NSFont *foundFont = [WebFontCache fontWithFamily:aFamilyName traits:traits weight:weight size:aPointSize];
 
         // If we don't find a font with the same Postscript name, then we'll have to use the
         // Postscript name to make the CSS specific enough.
@@ -4307,8 +4335,9 @@ static BOOL isInPasswordField(Frame* coreFrame)
     else if (aPointSize > soa)
         [style _setFontSizeDelta:@"1px"];
 
+    // FIXME: Map to the entire range of CSS weight values.
     if (aWeight == bWeight)
-        [style setFontWeight:aWeight > MIN_BOLD_WEIGHT ? @"bold" : @"normal"];
+        [style setFontWeight:aIsBold ? @"bold" : @"normal"];
 
     if (aIsItalic == bIsItalic)
         [style setFontStyle:aIsItalic ? @"italic" :  @"normal"];
@@ -5374,7 +5403,9 @@ static CGPoint coreGraphicsScreenPointForAppKitScreenPoint(NSPoint point)
 {
     if (!_private->layerHostingView) {
         NSView* hostingView = [[NSView alloc] initWithFrame:[self bounds]];
+#if !defined(BUILDING_ON_LEOPARD)
         [hostingView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+#endif
         [self addSubview:hostingView];
         [hostingView release];
         // hostingView is owned by being a subview of self
@@ -5382,13 +5413,35 @@ static CGPoint coreGraphicsScreenPointForAppKitScreenPoint(NSPoint point)
         [[self _webView] _startedAcceleratedCompositingForFrame:[self _frame]];
     }
 
-    // Make a container layer, which will get sized/positioned by AppKit and CA
+    // Make a container layer, which will get sized/positioned by AppKit and CA.
     CALayer* viewLayer = [CALayer layer];
+
+#if defined(BUILDING_ON_LEOPARD)
+    // Turn off default animations.
+    NSNull *nullValue = [NSNull null];
+    NSDictionary *actions = [NSDictionary dictionaryWithObjectsAndKeys:
+                             nullValue, @"anchorPoint",
+                             nullValue, @"bounds",
+                             nullValue, @"contents",
+                             nullValue, @"contentsRect",
+                             nullValue, @"opacity",
+                             nullValue, @"position",
+                             nullValue, @"sublayerTransform",
+                             nullValue, @"sublayers",
+                             nullValue, @"transform",
+                             nil];
+    [viewLayer setStyle:[NSDictionary dictionaryWithObject:actions forKey:@"actions"]];
+#endif
+
     [_private->layerHostingView setLayer:viewLayer];
     [_private->layerHostingView setWantsLayer:YES];
     
     // Parent our root layer in the container layer
     [viewLayer addSublayer:layer];
+    
+#if defined(BUILDING_ON_LEOPARD)
+    [self _updateLayerHostingViewPosition];
+#endif
 }
 
 - (void)detachRootLayer
@@ -5401,7 +5454,37 @@ static CGPoint coreGraphicsScreenPointForAppKitScreenPoint(NSPoint point)
         [[self _webView] _stoppedAcceleratedCompositingForFrame:[self _frame]];
     }
 }
-#endif
+
+#if defined(BUILDING_ON_LEOPARD)
+// This method is necessary on Leopard to work around <rdar://problem/7067892>.
+- (void)_updateLayerHostingViewPosition
+{
+    if (!_private->layerHostingView)
+        return;
+    
+    const CGFloat maxHeight = 4096;
+    NSRect layerViewFrame = [self bounds];
+
+    if (layerViewFrame.size.height > maxHeight) {
+        CGFloat documentHeight = layerViewFrame.size.height;
+            
+        // Clamp the size of the view to <= 4096px to avoid the bug.
+        layerViewFrame.size.height = maxHeight;
+        NSRect visibleRect = [[self enclosingScrollView] documentVisibleRect];
+        
+        // Place the top of the layer-hosting view at the top of the visibleRect.
+        CGFloat topOffset = NSMinY(visibleRect);
+        layerViewFrame.origin.y = topOffset;
+
+        // Compensate for the moved view by adjusting the sublayer transform on the view's layer (using flipped coords).
+        CGFloat bottomOffset = documentHeight - layerViewFrame.size.height - topOffset;
+        [[_private->layerHostingView layer] setSublayerTransform:CATransform3DMakeTranslation(0, -bottomOffset, 0)];
+    }
+        
+    [_private->layerHostingView setFrame:layerViewFrame];
+}
+#endif // defined(BUILDING_ON_LEOPARD)
+#endif // USE(ACCELERATED_COMPOSITING)
 
 @end
 

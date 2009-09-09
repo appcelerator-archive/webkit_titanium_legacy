@@ -130,6 +130,8 @@ static void webkit_web_history_item_class_init(WebKitWebHistoryItemClass* klass)
     gobject_class->set_property = webkit_web_history_item_set_property;
     gobject_class->get_property = webkit_web_history_item_get_property;
 
+    webkit_init();
+
     /**
     * WebKitWebHistoryItem:title:
     *
@@ -295,7 +297,7 @@ WebKitWebHistoryItem* webkit_web_history_item_new()
  */
 WebKitWebHistoryItem* webkit_web_history_item_new_with_data(const gchar* uri, const gchar* title)
 {
-    WebCore::KURL historyUri(uri);
+    WebCore::KURL historyUri(WebCore::KURL(), uri);
     WebCore::String historyTitle = WebCore::String::fromUTF8(title);
 
     WebKitWebHistoryItem* webHistoryItem = WEBKIT_WEB_HISTORY_ITEM(g_object_new(WEBKIT_TYPE_WEB_HISTORY_ITEM, NULL));

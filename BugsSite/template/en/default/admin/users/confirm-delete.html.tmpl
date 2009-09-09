@@ -1,4 +1,3 @@
-[%# 1.0@bugzilla.org %]
 [%# The contents of this file are subject to the Mozilla Public
   # License Version 1.1 (the "License"); you may not use this file
   # except in compliance with the License. You may obtain a copy of
@@ -19,12 +18,11 @@
   # listselectionvalues:      selection values to recreate the current user
   #                           list.
   # editusers:                is viewing user member of editusers?
-  # editcomponents:           is viewing user member of editcomponents?
   # otheruser:                Bugzilla::User object of the viewed user.
   # reporter:                 number of bugs reported by the user
   # assignee_or_qa:           number of bugs the user is either the assignee
   #                           or the QA contact
-  # bug_activity:             number of bugs the viewed user has activity
+  # bugs_activity:            number of bugs the viewed user has activity
   #                           entries on
   # cc                        number of bugs the viewed user is cc list member
   #                           of
@@ -32,7 +30,8 @@
   # flags.setter:             number of flags the viewed user has set
   # longdescs:                number of bug comments the viewed user has written
   # namedqueries:             number of named queries the user has created
-  # profiles_activity:        number of named queries the user has created
+  # namedquery_group_map:     number of named queries the user has shared
+  # profiles_activity:        number of changes made to other users' profiles
   # series:                   number of series the viewed user has created
   # votes:                    number of bugs the viewed user has voted on
   # watch.watched:            number of users the viewed user is being watched
@@ -43,20 +42,17 @@
   #                           created
   #%]
 
+[% title = BLOCK %]Confirm deletion of user [% otheruser.login FILTER html %][% END %]
+
 [% PROCESS global/header.html.tmpl
-  title = "Confirm deletion of user $otheruser.login"
+  title = title
   style_urls = ['skins/standard/admin.css',
                 'skins/standard/editusers.css']
+  doc_section = "useradmin.html#user-account-deletion"
 %]
 
 [% PROCESS admin/users/listselectvars.html.tmpl
   listselectionvalues = listselectionvalues
-%]
-
-[% responsibilityterms = {
-  'initialowner'     => 'Default Assignee',
-  'initialqacontact' => 'Default QA Contact'
-  }
 %]
 
 <table class="main">
@@ -71,7 +67,7 @@
   <tr>
     <th>Group set:</th>
     <td>
-      [% IF groups.size %]
+      [% IF otheruser.groups.size %]
         <ul>
           [% FOREACH group = otheruser.groups.keys %]
             <li>[% group FILTER html %]</li>
@@ -86,30 +82,7 @@
     <tr>
       <th>Product responsibilities:</th>
       <td>
-        <ul>
-          [% FOREACH component = otheruser.product_responsibilities %]
-            <li>
-              [% andstring = '' %]
-              [% FOREACH responsibility = ['initialowner', 'initialqacontact'] %]
-                [% IF component.$responsibility == otheruser.id %]
-                  [% andstring %] [% responsibilityterms.$responsibility %]
-                  [% andstring = ' and ' %]
-                [% END %]
-              [% END %]
-              for
-              [% IF editcomponents %]
-                <a href="editcomponents.cgi?action=edit&amp;product=
-                         [% component.productname FILTER url_quote %]&amp;component=
-                         [% component.componentname FILTER url_quote %]">
-              [% END %]
-                [%+ component.productname FILTER html %]:
-                [% component.componentname FILTER html %]
-              [% IF editcomponents %]
-                </a>
-              [% END %]
-            </li>
-          [% END %]
-        </ul>
+        [% PROCESS admin/users/responsibilities.html.tmpl otheruser = otheruser %]
       </td>
     </tr>
   [% END %]
@@ -122,23 +95,40 @@
     one product.
   </p>
   <p>
-    [% IF editcomponents %]
+    [% IF user.in_group("editcomponents", component.product_id) %]
       Change this by clicking the product editing links above,
     [% ELSE %]
       For now, you can
     [% END %]
 [% ELSE %]
+  [% accept_deletion = 1 %]
 
-  <h2>Confirmation</h2>
-
-  [% display_warning = 0 %]
-
-  [% IF reporter || bug_activity || flags.setter || longdescs || profiles_activity %]
+  [% IF attachments || reporter || bugs_activity || flags.setter || longdescs || profiles_activity %]
     <div class="criticalmessages">
-      <p>The following deletions are <b>highly not recommended</b> and
-      will generate referential integrity inconsistencies!</p>
+      <p>The following deletions are <b>unsafe</b> and would generate referential
+      integrity inconsistencies!</p>
 
       <ul>
+        [% IF attachments %]
+          <li>
+            [% otheruser.login FILTER html %]
+            <a href="buglist.cgi?field0-0-0=attachments.submitter&type0-0-0=equals&value0-0-0=
+               [%- otheruser.login FILTER url_quote %]">has submitted
+            [% IF attachments == 1 %]
+              one attachment
+            [% ELSE %]
+              [%+ attachments %] attachments
+            [% END %]</a>.
+            If you delete the user account, the database records will be
+            inconsistent, resulting in
+            [% IF attachments == 1 %]
+              this attachment
+            [% ELSE %]
+              these attachments
+            [% END %]
+            not appearing in [% terms.bugs %] any more.
+          </li>
+        [% END %]
         [% IF reporter %]
           <li>
             [% otheruser.login FILTER html %]
@@ -149,8 +139,8 @@
             [% ELSE %]
               [%+ reporter %] [%+ terms.bugs %]
             [% END %]</a>.
-            If you delete the user account, the [% terms.bugs %] table in the
-            database will be inconsistent, resulting in
+            If you delete the user account, the database records will be
+            inconsistent, resulting in
             [% IF reporter == 1 %]
               this [% terms.bug %]
             [% ELSE %]
@@ -232,11 +222,11 @@
         [% END %]
       </ul>
     </div>
-    [% display_warning = 1 %]
+    [% accept_deletion = 0 %]
   [% END %]
 
-  [% IF assignee_or_qa || cc || email_setting || flags.requestee ||
-        namedqueries || profile_setting || series || votes || watch.watched ||
+  [% IF assignee_or_qa || cc || component_cc || email_setting || flags.requestee ||
+        namedqueries || profile_setting || quips || series || votes || watch.watched ||
         watch.watcher || whine_events || whine_schedules %]
     <div class="warningmessages">
       <p>The following deletions are <b>safe</b> and will not generate
@@ -272,6 +262,17 @@
             If you delete the user account, it will be removed from these CC lists.
           </li>
         [% END %]
+        [% IF component_cc %]
+          <li>
+            [% otheruser.login FILTER html %] is on the default CC list of
+            [% IF component_cc == 1 %]
+              one component
+            [% ELSE %]
+              [%+ component_cc %] components
+            [% END %].
+            If you delete the user account, it will be removed from these CC lists.
+          </li>
+        [% END %]
         [% IF email_setting %]
           <li>
             The user's e-mail settings will be deleted along with the user
@@ -302,16 +303,34 @@
           <li>
             [% otheruser.login FILTER html %] has
             [% IF namedqueries == 1 %]
-              a named query
+              a [% 'shared' IF namedquery_group_map %] named search
             [% ELSE %]
-              [%+ namedqueries %] named queries
+              [%+ namedqueries FILTER html %] named searches
             [% END %].
             [% IF namedqueries == 1 %]
-              This named query
+              This named search
             [% ELSE %]
-              These named queries
+              These named searches
             [% END %]
             will be deleted along with the user account.
+            [% IF namedquery_group_map %]
+              [% IF namedqueries > 1 %]
+                Of these,
+                [% IF namedquery_group_map > 1 %]
+                  [%+ namedquery_group_map FILTER html %] are
+                [% ELSE %]
+                  one is
+                [% END %]
+                shared.
+              [% END %]
+              Other users will not be able to use
+              [% IF namedquery_group_map > 1 %]
+                these shared named searches
+              [% ELSE %]
+                this shared named search
+              [% END %]
+              any more.
+            [% END %]
           </li>
         [% END %]
         [% IF profile_setting %]
@@ -334,6 +353,23 @@
               These series
             [% END %]
             will be deleted along with the user account.
+          </li>
+        [% END %]
+        [% IF quips %]
+          <li>
+            [% otheruser.login FILTER html %] has submitted
+            [% IF quips == 1 %]
+              a quip
+            [% ELSE %]
+              [%+ quips %] quips
+            [% END %].
+            If you delete the user account,
+            [% IF quips == 1 %]
+              this quip
+            [% ELSE %]
+              these quips
+            [% END %]
+            will have no author anymore, but will remain available.
           </li>
         [% END %]
         [% IF votes %]
@@ -381,27 +417,15 @@
             will cease along with the deletion of the user account.
           </li>
         [% END %]
-        [% IF whine_events || whine_schedules %]
+        [% IF whine_events %]
           <li>
-            [% otheruser.login FILTER html %]
-            [% IF whine_events %]
-              has scheduled
-              [% IF whine_events == 1 %]
-                a whine
-              [% ELSE %]
-                [%+ whine_events %] whines
-              [% END %]
-            [% END %]
-            [% IF whine_schedules %]
-              [%+ 'and' IF whine_events %]
-              is on the receiving end of
-              [% IF whine_schedules == 1 %]
-                a whine
-              [% ELSE %]
-                [%+ whine_schedules %] whines
-              [% END %]
+            [% otheruser.login FILTER html %] has scheduled
+            [% IF whine_events == 1 %]
+              a whine
+            [% ELSE %]
+              [%+ whine_events %] whines
             [% END %].
-            [% IF whine_events + whine_schedules == 1 %]
+            [% IF whine_events == 1 %]
               This whine
             [% ELSE %]
               These whines
@@ -409,29 +433,42 @@
             will be deleted along with the user account.
           </li>
         [% END %]
+        [% IF whine_schedules %]
+          <li>
+            [% otheruser.login FILTER html %] is on the receiving end of
+            [% IF whine_schedules == 1 %]
+              a whine
+            [% ELSE %]
+              [%+ whine_schedules %] whines
+            [% END %].
+            The corresponding schedules will be deleted along with the user account,
+            but the whines themselves will be left unaltered.
+          </li>
+        [% END %]
       </ul>
     </div>
-    [% display_warning = 1 %]
+
+    [% IF accept_deletion %]
+      <p class="areyoureallyreallysure">
+        Please be aware of the consequences of this before continuing.
+      </p>
+      <p>Do you really want to delete this user account?</p>
+
+      <form method="post" action="editusers.cgi">
+        <p>
+          <input type="submit" id="delete" value="Yes, delete"/>
+          <input type="hidden" name="action" value="delete" />
+          <input type="hidden" name="userid" value="[% otheruser.id %]" />
+          <input type="hidden" name="token" value="[% token FILTER html %]">
+          [% INCLUDE listselectionhiddenfields %]
+        </p>
+      </form>
+      <p>If you do not want to delete the user account at this time,
+    [% ELSE %]
+      <p><b>You cannot delete this user account</b> due to unsafe actions reported above. You can
+    [% END %]
+
   [% END %]
-
-  [% IF display_warning %]
-    <p class="areyoureallyreallysure">
-      Please be aware of the consequences of this before continuing.
-    </p>
-  [% END %]
-
-  <p>Do you really want to delete this user account?</p>
-
-  <form method="post" action="editusers.cgi">
-    <p>
-      <input type="submit" value="Yes, delete" />
-      <input type="hidden" name="action" value="delete" />
-      <input type="hidden" name="userid" value="[% otheruser.id %]" />
-      [% INCLUDE listselectionhiddenfields %]
-    </p>
-  </form>
-
-  <p>If you do not want to delete the user account at this time,
 [% END %]
 
   <a href="editusers.cgi?action=edit&amp;userid=[% otheruser.id %]

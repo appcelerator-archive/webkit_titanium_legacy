@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -20,28 +20,26 @@
 #
 # Contributor(s): Terry Weissman <terry@mozilla.org>
 #                 Gervase Markham <gerv@gerv.net>
+#                 Max Kanat-Alexander <mkanat@bugzilla.org>
 
 use strict;
 
-use lib qw(.);
-
-use vars qw(
-  @legal_keywords
-  $buffer
-  $template
-  $vars
-);
+use lib qw(. lib);
 
 use Bugzilla;
 use Bugzilla::Constants;
+use Bugzilla::Util;
+use Bugzilla::CGI;
+use Bugzilla::Search::Saved;
+use Bugzilla::Error;
 use Bugzilla::User;
-require "CGI.pl";
+use Bugzilla::Keyword;
 
 Bugzilla->login();
 
-GetVersionTable();
-
 my $cgi = Bugzilla->cgi;
+my $template = Bugzilla->template;
+my $vars = {};
 
 # The master list not only says what fields are possible, but what order
 # they get displayed in.
@@ -50,38 +48,44 @@ my @masterlist = ("opendate", "changeddate", "bug_severity", "priority",
                   "reporter", "reporter_realname", "bug_status",
                   "resolution");
 
-if (Param("useclassification")) {
+if (Bugzilla->params->{"useclassification"}) {
     push(@masterlist, "classification");
 }
 
 push(@masterlist, ("product", "component", "version", "op_sys"));
 
-if (Param("usevotes")) {
+if (Bugzilla->params->{"usevotes"}) {
     push (@masterlist, "votes");
 }
-if (Param("usebugaliases")) {
+if (Bugzilla->params->{"usebugaliases"}) {
     unshift(@masterlist, "alias");
 }
-if (Param("usetargetmilestone")) {
+if (Bugzilla->params->{"usetargetmilestone"}) {
     push(@masterlist, "target_milestone");
 }
-if (Param("useqacontact")) {
+if (Bugzilla->params->{"useqacontact"}) {
     push(@masterlist, "qa_contact");
     push(@masterlist, "qa_contact_realname");
 }
-if (Param("usestatuswhiteboard")) {
+if (Bugzilla->params->{"usestatuswhiteboard"}) {
     push(@masterlist, "status_whiteboard");
 }
-if (@::legal_keywords) {
+if (Bugzilla::Keyword::keyword_count()) {
     push(@masterlist, "keywords");
 }
 
-if (UserInGroup(Param("timetrackinggroup"))) {
+if (Bugzilla->user->in_group(Bugzilla->params->{"timetrackinggroup"})) {
     push(@masterlist, ("estimated_time", "remaining_time", "actual_time",
                        "percentage_complete", "deadline")); 
 }
 
 push(@masterlist, ("short_desc", "short_short_desc"));
+
+my @custom_fields = grep { $_->type != FIELD_TYPE_MULTI_SELECT }
+                         Bugzilla->active_custom_fields;
+push(@masterlist, map { $_->name } @custom_fields);
+
+Bugzilla::Hook::process("colchange-columns", {'columns' => \@masterlist} );
 
 $vars->{'masterlist'} = \@masterlist;
 
@@ -101,12 +105,16 @@ if (defined $cgi->param('rememberedquery')) {
         }
     }
     my $list = join(" ", @collist);
-    my $urlbase = Param("urlbase");
+    my $urlbase = Bugzilla->params->{"urlbase"};
 
     if ($list) {
-        $cgi->send_cookie(-name => 'COLUMNLIST',
-                          -value => $list,
-                          -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
+        # Only set the cookie if this is not a saved search.
+        # Saved searches have their own column list
+        if (!$cgi->param('save_columns_for_search')) {
+            $cgi->send_cookie(-name => 'COLUMNLIST',
+                              -value => $list,
+                              -expires => 'Fri, 01-Jan-2038 00:00:00 GMT');
+        }
     }
     else {
         $cgi->remove_cookie('COLUMNLIST');
@@ -121,7 +129,27 @@ if (defined $cgi->param('rememberedquery')) {
     }
 
     $vars->{'message'} = "change_columns";
-    $vars->{'redirect_url'} = "buglist.cgi?".$cgi->param('rememberedquery');
+
+    my $search;
+    if (defined $cgi->param('saved_search')) {
+        $search = new Bugzilla::Search::Saved($cgi->param('saved_search'));
+    }
+
+    if ($cgi->param('save_columns_for_search')
+        && defined $search && $search->user->id == Bugzilla->user->id) 
+    {
+        my $params = new Bugzilla::CGI($search->url);
+        $params->param('columnlist', join(",", @collist));
+        $search->set_url($params->query_string());
+        $search->update();
+        $vars->{'redirect_url'} = "buglist.cgi?".$cgi->param('rememberedquery');
+    }
+    else {
+        my $params = new Bugzilla::CGI($cgi->param('rememberedquery'));
+        $params->param('columnlist', join(",", @collist));
+        $vars->{'redirect_url'} = "buglist.cgi?".$params->query_string();
+    }
+
 
     # If we're running on Microsoft IIS, using cgi->redirect discards
     # the Set-Cookie lines -- workaround is to use the old-fashioned 
@@ -150,7 +178,25 @@ if (defined $cgi->cookie('COLUMNLIST')) {
 $vars->{'collist'} = \@collist;
 $vars->{'splitheader'} = $cgi->cookie('SPLITHEADER') ? 1 : 0;
 
-$vars->{'buffer'} = $::buffer;
+$vars->{'buffer'} = $cgi->query_string();
+
+my $search;
+if (defined $cgi->param('query_based_on')) {
+    my $searches = Bugzilla->user->queries;
+    my ($search) = grep($_->name eq $cgi->param('query_based_on'), @$searches);
+
+    # Only allow users to edit their own queries.
+    if ($search && $search->user->id == Bugzilla->user->id) {
+        $vars->{'saved_search'} = $search;
+        $vars->{'buffer'} = "cmdtype=runnamed&namedcmd=". url_quote($search->name);
+
+        my $params = new Bugzilla::CGI($search->url);
+        if ($params->param('columnlist')) {
+            my @collist = split(',', $params->param('columnlist'));
+            $vars->{'collist'} = \@collist if scalar (@collist);
+        }
+    }
+}
 
 # Generate and return the UI (HTML page) from the appropriate template.
 print $cgi->header();

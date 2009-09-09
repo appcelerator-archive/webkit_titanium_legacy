@@ -32,14 +32,13 @@
 
 #if ENABLE(DATABASE)
 
-#include "v8_binding.h"
-#include "v8_proxy.h"
-
 #include "Database.h"
 #include "SQLValue.h"
+#include "V8Binding.h"
 #include "V8CustomBinding.h"
 #include "V8CustomSQLStatementCallback.h"
 #include "V8CustomSQLStatementErrorCallback.h"
+#include "V8Proxy.h"
 #include <wtf/Vector.h>
 
 using namespace WTF;
@@ -50,57 +49,68 @@ CALLBACK_FUNC_DECL(SQLTransactionExecuteSql)
 {
     INC_STATS("DOM.SQLTransaction.executeSql()");
 
-    if (args.Length() == 0) {
-        V8Proxy::ThrowError(V8Proxy::SYNTAX_ERROR, "SQL statement is required.");
-        return v8::Undefined();
-    }
+    if (args.Length() == 0)
+        return throwError("SQL statement is required.", V8Proxy::SyntaxError);
 
-    String statement = ToWebCoreString(args[0]);
+    String statement = toWebCoreString(args[0]);
 
     Vector<SQLValue> sqlValues;
 
-    if (args.Length() > 1) {
-        // FIXME: Make this work for v8::Arrayish objects, as well
-        if (!args[1]->IsArray()) {
-            V8Proxy::ThrowError(V8Proxy::TYPE_ERROR, "Statement arguments must be an v8::Array.");
-            return v8::Undefined();
-        }
+    if (args.Length() > 1 && !isUndefinedOrNull(args[1])) {
+        if (args[1]->IsObject()) {
+            uint32_t sqlArgsLength = 0;
+            v8::Local<v8::Object> sqlArgsObject = args[1]->ToObject();
+            v8::Local<v8::Value> lengthGetter;
+            {
+                v8::TryCatch block;
+                lengthGetter = sqlArgsObject->Get(v8::String::New("length"));
+                if (block.HasCaught())
+                    return throwError(block.Exception());
+            }
 
-        v8::Local<v8::Array> arguments = v8::Local<v8::Array>::Cast(args[1]);
-        uint32_t length = arguments->Length();
-
-        for (unsigned int i = 0; i < length; ++i) {
-            v8::Local<v8::Value> value = arguments->Get(v8::Integer::New(i));
-            if (value.IsEmpty() || value->IsNull())
-                sqlValues.append(SQLValue());
-            else if (value->IsNumber())
-                sqlValues.append(SQLValue(value->NumberValue()));
+            if (isUndefinedOrNull(lengthGetter))
+                sqlArgsLength = sqlArgsObject->GetPropertyNames()->Length();
             else
-                sqlValues.append(SQLValue(ToWebCoreString(value)));
-        }
+                sqlArgsLength = lengthGetter->Uint32Value();
+
+            for (unsigned int i = 0; i < sqlArgsLength; ++i) {
+                v8::Local<v8::Integer> key = v8::Integer::New(i);
+                v8::Local<v8::Value> value;
+                {
+                    v8::TryCatch block;
+                    value = sqlArgsObject->Get(key);
+                    if (block.HasCaught())
+                        return throwError(block.Exception());
+                }
+
+                if (value.IsEmpty() || value->IsNull())
+                    sqlValues.append(SQLValue());
+                else if (value->IsNumber())
+                    sqlValues.append(SQLValue(value->NumberValue()));
+                else
+                    sqlValues.append(SQLValue(toWebCoreString(value)));
+            }
+        } else
+            return throwError("sqlArgs should be array or object!", V8Proxy::TypeError);
     }
 
-    SQLTransaction* transaction = V8Proxy::ToNativeObject<SQLTransaction>(V8ClassIndex::SQLTRANSACTION, args.Holder());
+    SQLTransaction* transaction = V8DOMWrapper::convertToNativeObject<SQLTransaction>(V8ClassIndex::SQLTRANSACTION, args.Holder());
 
-    Frame* frame = V8Proxy::retrieveFrame();
+    Frame* frame = V8Proxy::retrieveFrameForCurrentContext();
 
     RefPtr<SQLStatementCallback> callback;
-    if (args.Length() > 2) {
-        if (!args[2]->IsObject()) {
-            V8Proxy::ThrowError(V8Proxy::TYPE_ERROR, "Statement callback must be of valid type.");
-            return v8::Undefined();
-        }
+    if (args.Length() > 2 && !isUndefinedOrNull(args[2])) {
+        if (!args[2]->IsObject())
+            return throwError("Statement callback must be of valid type.", V8Proxy::TypeError);
 
         if (frame)
             callback = V8CustomSQLStatementCallback::create(args[2], frame);
     }
 
     RefPtr<SQLStatementErrorCallback> errorCallback;
-    if (args.Length() > 3) {
-        if (!args[2]->IsObject()) {
-            V8Proxy::ThrowError(V8Proxy::TYPE_ERROR, "Statement error callback must be of valid type.");
-            return v8::Undefined();
-        }
+    if (args.Length() > 3 && !isUndefinedOrNull(args[3])) {
+        if (!args[3]->IsObject())
+            return throwError("Statement error callback must be of valid type.", V8Proxy::TypeError);
 
         if (frame)
             errorCallback = V8CustomSQLStatementErrorCallback::create(args[3], frame);
@@ -108,7 +118,7 @@ CALLBACK_FUNC_DECL(SQLTransactionExecuteSql)
 
     ExceptionCode ec = 0;
     transaction->executeSQL(statement, sqlValues, callback, errorCallback, ec);
-    V8Proxy::SetDOMException(ec);
+    V8Proxy::setDOMException(ec);
 
     return v8::Undefined();
 }

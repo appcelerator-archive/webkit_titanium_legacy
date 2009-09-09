@@ -36,6 +36,7 @@
 #include "Console.h"
 #include "DOMSelection.h"
 #include "DOMTimer.h"
+#include "PageTransitionEvent.h"
 #include "Document.h"
 #include "Element.h"
 #include "EventException.h"
@@ -51,6 +52,7 @@
 #include "History.h"
 #include "InspectorController.h"
 #include "Location.h"
+#include "Media.h"
 #include "MessageEvent.h"
 #include "Navigator.h"
 #include "Page.h"
@@ -70,14 +72,17 @@
 #endif
 
 #if ENABLE(DOM_STORAGE)
-#include "LocalStorage.h"
-#include "SessionStorage.h"
 #include "Storage.h"
 #include "StorageArea.h"
+#include "StorageNamespace.h"
 #endif
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
 #include "DOMApplicationCache.h"
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+#include "NotificationCenter.h"
 #endif
 
 using std::min;
@@ -87,24 +92,20 @@ namespace WebCore {
 
 class PostMessageTimer : public TimerBase {
 public:
-    PostMessageTimer(DOMWindow* window, const String& message, const String& sourceOrigin, PassRefPtr<DOMWindow> source, PassOwnPtr<MessagePortChannel> channel, SecurityOrigin* targetOrigin)
+    PostMessageTimer(DOMWindow* window, const String& message, const String& sourceOrigin, PassRefPtr<DOMWindow> source, PassOwnPtr<MessagePortChannelArray> channels, SecurityOrigin* targetOrigin)
         : m_window(window)
         , m_message(message)
         , m_origin(sourceOrigin)
         , m_source(source)
-        , m_channel(channel)
+        , m_channels(channels)
         , m_targetOrigin(targetOrigin)
     {
     }
 
     PassRefPtr<MessageEvent> event(ScriptExecutionContext* context)
     {
-        RefPtr<MessagePort> messagePort;
-        if (m_channel) {
-            messagePort = MessagePort::create(*context);
-            messagePort->entangle(m_channel.release());
-        }
-        return MessageEvent::create(m_message, m_origin, "", m_source, messagePort.release());
+        OwnPtr<MessagePortArray> messagePorts = MessagePort::entanglePorts(*context, m_channels.release());
+        return MessageEvent::create(m_message, m_origin, "", m_source, messagePorts.release());
     }
     SecurityOrigin* targetOrigin() const { return m_targetOrigin.get(); }
 
@@ -118,7 +119,7 @@ private:
     String m_message;
     String m_origin;
     RefPtr<DOMWindow> m_source;
-    OwnPtr<MessagePortChannel> m_channel;
+    OwnPtr<MessagePortChannelArray> m_channels;
     RefPtr<SecurityOrigin> m_targetOrigin;
 };
 
@@ -260,6 +261,7 @@ void DOMWindow::dispatchAllPendingUnloadEvents()
         if (!listeners)
             continue;
         RegisteredEventListenerVector listenersCopy = *listeners;
+        window->dispatchPageTransitionEvent(EventNames().pagehideEvent, false);
         window->dispatchUnloadEvent(&listenersCopy);
     }
 
@@ -454,6 +456,10 @@ void DOMWindow::clear()
         m_applicationCache->disconnectFrame();
     m_applicationCache = 0;
 #endif
+
+#if ENABLE(NOTIFICATIONS)
+    m_notifications = 0;
+#endif
 }
 
 Screen* DOMWindow::screen() const
@@ -547,12 +553,17 @@ Storage* DOMWindow::sessionStorage() const
 {
     if (m_sessionStorage)
         return m_sessionStorage.get();
-        
-    Page* page = m_frame->page();
+
+    Document* document = this->document();
+    if (!document)
+        return 0;
+
+    Page* page = document->page();
     if (!page)
         return 0;
 
-    Document* document = m_frame->document();
+    if (!page->settings()->sessionStorageEnabled())
+        return 0;
 
     RefPtr<StorageArea> storageArea = page->sessionStorage()->storageArea(document->securityOrigin());
     page->inspectorController()->didUseDOMStorage(storageArea.get(), false, m_frame);
@@ -574,11 +585,10 @@ Storage* DOMWindow::localStorage() const
     if (!page)
         return 0;
 
-    Settings* settings = document->settings();
-    if (!settings || !settings->localStorageEnabled())
+    if (!page->settings()->localStorageEnabled())
         return 0;
 
-    LocalStorage* localStorage = page->group().localStorage();
+    StorageNamespace* localStorage = page->group().localStorage();
     RefPtr<StorageArea> storageArea = localStorage ? localStorage->storageArea(document->securityOrigin()) : 0; 
     if (storageArea) {
         page->inspectorController()->didUseDOMStorage(storageArea.get(), true, m_frame);
@@ -589,7 +599,37 @@ Storage* DOMWindow::localStorage() const
 }
 #endif
 
-void DOMWindow::postMessage(const String& message, MessagePort* messagePort, const String& targetOrigin, DOMWindow* source, ExceptionCode& ec)
+#if ENABLE(NOTIFICATIONS)
+NotificationCenter* DOMWindow::webkitNotifications() const
+{
+    if (m_notifications)
+        return m_notifications.get();
+
+    Document* document = this->document();
+    if (!document)
+        return 0;
+    
+    Page* page = document->page();
+    if (!page)
+        return 0;
+
+    NotificationPresenter* provider = page->chrome()->notificationPresenter();
+    if (provider) 
+        m_notifications = NotificationCenter::create(document, provider);    
+      
+    return m_notifications.get();
+}
+#endif
+
+void DOMWindow::postMessage(const String& message, MessagePort* port, const String& targetOrigin, DOMWindow* source, ExceptionCode& ec)
+{
+    MessagePortArray ports;
+    if (port)
+        ports.append(port);
+    postMessage(message, &ports, targetOrigin, source, ec);
+}
+
+void DOMWindow::postMessage(const String& message, const MessagePortArray* ports, const String& targetOrigin, DOMWindow* source, ExceptionCode& ec)
 {
     if (!m_frame)
         return;
@@ -605,9 +645,7 @@ void DOMWindow::postMessage(const String& message, MessagePort* messagePort, con
         }
     }
 
-    OwnPtr<MessagePortChannel> channel;
-    if (messagePort)
-        channel = messagePort->disentangle(ec);
+    OwnPtr<MessagePortChannelArray> channels = MessagePort::disentanglePorts(ports, ec);
     if (ec)
         return;
 
@@ -619,7 +657,7 @@ void DOMWindow::postMessage(const String& message, MessagePort* messagePort, con
     String sourceOrigin = sourceDocument->securityOrigin()->toString();
 
     // Schedule the message.
-    PostMessageTimer* timer = new PostMessageTimer(this, message, sourceOrigin, source, channel.release(), target.get());
+    PostMessageTimer* timer = new PostMessageTimer(this, message, sourceOrigin, source, channels.release(), target.get());
     timer->startOneShot(0);
 }
 
@@ -635,7 +673,7 @@ void DOMWindow::postMessageTimerFired(PostMessageTimer* t)
         if (!timer->targetOrigin()->isSameSchemeHostPort(document()->securityOrigin())) {
             String message = String::format("Unable to post message to %s. Recipient has origin %s.\n", 
                 timer->targetOrigin()->toString().utf8().data(), document()->securityOrigin()->toString().utf8().data());
-            console()->addMessage(JSMessageSource, ErrorMessageLevel, message, 0, String());
+            console()->addMessage(JSMessageSource, LogMessageType, ErrorMessageLevel, message, 0, String());
             return;
         }
     }
@@ -999,6 +1037,11 @@ Document* DOMWindow::document() const
     return m_frame->document();
 }
 
+PassRefPtr<Media> DOMWindow::media() const
+{
+    return Media::create(const_cast<DOMWindow*>(this));
+}
+
 PassRefPtr<CSSStyleDeclaration> DOMWindow::getComputedStyle(Element* elt, const String&) const
 {
     if (!elt)
@@ -1320,6 +1363,11 @@ PassRefPtr<BeforeUnloadEvent> DOMWindow::dispatchBeforeUnloadEvent(RegisteredEve
     return beforeUnloadEvent.release();
 }
 
+void DOMWindow::dispatchPageTransitionEvent(const AtomicString& eventType, bool persisted)
+{
+    dispatchEventWithDocumentAsTarget(PageTransitionEvent::create(eventType, persisted));
+}
+
 void DOMWindow::removeAllEventListeners()
 {
     size_t size = m_eventListeners.size();
@@ -1516,6 +1564,16 @@ void DOMWindow::setOnfocus(PassRefPtr<EventListener> eventListener)
     setAttributeEventListener(eventNames().focusEvent, eventListener);
 }
 
+EventListener* DOMWindow::onhashchange() const
+{
+    return getAttributeEventListener(eventNames().hashchangeEvent);
+}
+
+void DOMWindow::setOnhashchange(PassRefPtr<EventListener> eventListener)
+{
+    setAttributeEventListener(eventNames().hashchangeEvent, eventListener);
+}
+
 EventListener* DOMWindow::onkeydown() const
 {
     return getAttributeEventListener(eventNames().keydownEvent);
@@ -1634,6 +1692,26 @@ EventListener* DOMWindow::ononline() const
 void DOMWindow::setOnonline(PassRefPtr<EventListener> eventListener)
 {
     setAttributeEventListener(eventNames().onlineEvent, eventListener);
+}
+
+EventListener* DOMWindow::onpagehide() const
+{
+    return getAttributeEventListener(eventNames().pagehideEvent);
+}
+
+void DOMWindow::setOnpagehide(PassRefPtr<EventListener> eventListener)
+{
+    setAttributeEventListener(eventNames().pagehideEvent, eventListener);
+}
+
+EventListener* DOMWindow::onpageshow() const
+{
+    return getAttributeEventListener(eventNames().pageshowEvent);
+}
+
+void DOMWindow::setOnpageshow(PassRefPtr<EventListener> eventListener)
+{
+    setAttributeEventListener(eventNames().pageshowEvent, eventListener);
 }
 
 EventListener* DOMWindow::onreset() const
@@ -1994,6 +2072,16 @@ EventListener* DOMWindow::oncontextmenu() const
 void DOMWindow::setOncontextmenu(PassRefPtr<EventListener> eventListener)
 {
     setAttributeEventListener(eventNames().contextmenuEvent, eventListener);
+}
+
+EventListener* DOMWindow::oninvalid() const
+{
+    return getAttributeEventListener(eventNames().invalidEvent);
+}
+
+void DOMWindow::setOninvalid(PassRefPtr<EventListener> eventListener)
+{
+    setAttributeEventListener(eventNames().invalidEvent, eventListener);
 }
 
 void DOMWindow::captureEvents()

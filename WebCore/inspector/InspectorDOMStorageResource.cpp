@@ -36,7 +36,7 @@
 #include "Document.h"
 #include "Frame.h"
 #include "InspectorFrontend.h"
-#include "InspectorJSONObject.h"
+#include "ScriptObject.h"
 #include "ScriptObjectQuarantine.h"
 #include "Storage.h"
 
@@ -62,9 +62,9 @@ void InspectorDOMStorageResource::bind(InspectorFrontend* frontend)
     if (m_scriptObjectCreated)
         return;
 
-    InspectorJSONObject jsonObject = frontend->newInspectorJSONObject();
+    ScriptObject jsonObject = frontend->newScriptObject();
     ScriptObject domStorage;
-    if (!getQuarantinedScriptObject(m_frame.get(), m_domStorage.get(), domStorage))
+    if (!getQuarantinedScriptObject(m_domStorage.get(), domStorage))
         return;
     jsonObject.set("domStorage", domStorage);
     jsonObject.set("host", m_frame->document()->securityOrigin()->host());

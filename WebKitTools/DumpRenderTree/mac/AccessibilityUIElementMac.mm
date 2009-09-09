@@ -23,6 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#import "config.h"
 #import "DumpRenderTree.h"
 #import "AccessibilityUIElement.h"
 
@@ -34,6 +35,10 @@
 #import <WebKit/WebTypesInternal.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/Vector.h>
+
+#ifdef BUILDING_ON_TIGER
+#define NSAccessibilityValueDescriptionAttribute @"AXValueDescription"
+#endif
 
 @interface NSObject (WebKitAccessibilityArrayCategory)
 - (NSArray *)accessibilityArrayAttributeValues:(NSString *)attribute index:(NSUInteger)index maxCount:(NSUInteger)maxCount;
@@ -306,6 +311,12 @@ JSStringRef AccessibilityUIElement::role()
     return concatenateAttributeAndValue(@"AXRole", role);
 }
 
+JSStringRef AccessibilityUIElement::subrole()
+{
+    NSString* role = descriptionOfValue([m_element accessibilityAttributeValue:NSAccessibilitySubroleAttribute], m_element);
+    return concatenateAttributeAndValue(@"AXSubrole", role);
+}
+
 JSStringRef AccessibilityUIElement::title()
 {
     NSString* title = descriptionOfValue([m_element accessibilityAttributeValue:NSAccessibilityTitleAttribute], m_element);
@@ -316,6 +327,12 @@ JSStringRef AccessibilityUIElement::description()
 {
     id description = descriptionOfValue([m_element accessibilityAttributeValue:NSAccessibilityDescriptionAttribute], m_element);
     return concatenateAttributeAndValue(@"AXDescription", description);
+}
+
+JSStringRef AccessibilityUIElement::language()
+{
+    id description = descriptionOfValue([m_element accessibilityAttributeValue:@"AXLanguage"], m_element);
+    return concatenateAttributeAndValue(@"AXLanguage", description);
 }
 
 double AccessibilityUIElement::x()
@@ -342,6 +359,18 @@ double AccessibilityUIElement::height()
     return static_cast<double>([sizeValue sizeValue].height);
 }
 
+double AccessibilityUIElement::clickPointX()
+{
+    NSValue* positionValue = [m_element accessibilityAttributeValue:@"AXClickPoint"];
+    return static_cast<double>([positionValue pointValue].x);        
+}
+
+double AccessibilityUIElement::clickPointY()
+{
+    NSValue* positionValue = [m_element accessibilityAttributeValue:@"AXClickPoint"];
+    return static_cast<double>([positionValue pointValue].y);
+}
+
 double AccessibilityUIElement::intValue()
 {
     id value = [m_element accessibilityAttributeValue:NSAccessibilityValueAttribute];
@@ -366,6 +395,14 @@ double AccessibilityUIElement::maxValue()
     return 0.0;
 }
 
+JSStringRef AccessibilityUIElement::valueDescription()
+{
+    NSString* valueDescription = [m_element accessibilityAttributeValue:NSAccessibilityValueDescriptionAttribute];
+    if ([valueDescription isKindOfClass:[NSString class]])
+         return [valueDescription createJSStringRef];
+    return 0;
+}
+
 int AccessibilityUIElement::insertionPointLineNumber()
 {
     id value = [m_element accessibilityAttributeValue:NSAccessibilityInsertionPointLineNumberAttribute];
@@ -374,10 +411,26 @@ int AccessibilityUIElement::insertionPointLineNumber()
     return -1;
 }
 
-bool AccessibilityUIElement::supportsPressAction()
+bool AccessibilityUIElement::isActionSupported(JSStringRef action)
 {
     NSArray* actions = [m_element accessibilityActionNames];
-    return [actions containsObject:NSAccessibilityPressAction];
+    return [actions containsObject:[NSString stringWithJSStringRef:action]];
+}
+
+bool AccessibilityUIElement::isEnabled()
+{
+    id value = [m_element accessibilityAttributeValue:NSAccessibilityEnabledAttribute];
+    if ([value isKindOfClass:[NSNumber class]])
+        return [value boolValue];
+    return false;
+}
+
+bool AccessibilityUIElement::isRequired() const
+{
+    id value = [m_element accessibilityAttributeValue:@"AXRequired"];
+    if ([value isKindOfClass:[NSNumber class]])
+        return [value boolValue];
+    return false;
 }
 
 // parameterized attributes
@@ -400,6 +453,16 @@ JSStringRef AccessibilityUIElement::boundsForRange(unsigned location, unsigned l
     // don't return position information because it is platform dependent
     NSMutableString* boundsDescription = [NSMutableString stringWithFormat:@"{{%f, %f}, {%f, %f}}",-1.0f,-1.0f,rect.size.width,rect.size.height];
     return [boundsDescription createJSStringRef];
+}
+
+JSStringRef AccessibilityUIElement::stringForRange(unsigned location, unsigned length)
+{
+    NSRange range = NSMakeRange(location, length);
+    id string = [m_element accessibilityAttributeValue:NSAccessibilityStringForRangeParameterizedAttribute forParameter:[NSValue valueWithRange:range]];
+    if (![string isKindOfClass:[NSString class]])
+        return 0;
+    
+    return [string createJSStringRef];
 }
 
 JSStringRef AccessibilityUIElement::attributesOfColumnHeaders()
@@ -497,4 +560,14 @@ void AccessibilityUIElement::setSelectedTextRange(unsigned location, unsigned le
     NSRange textRange = NSMakeRange(location, length);
     NSValue *textRangeValue = [NSValue valueWithRange:textRange];
     [m_element accessibilitySetValue:textRangeValue forAttribute:NSAccessibilitySelectedTextRangeAttribute];
+}
+
+void AccessibilityUIElement::increment()
+{
+    [m_element accessibilityPerformAction:NSAccessibilityIncrementAction];
+}
+
+void AccessibilityUIElement::decrement()
+{
+    [m_element accessibilityPerformAction:NSAccessibilityDecrementAction];
 }

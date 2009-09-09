@@ -45,6 +45,16 @@ static char *webKitAppPath;
 static bool extensionBundlesWereLoaded = NO;
 static NSSet *extensionPaths = nil;
 
+static int32_t systemVersion()
+{
+    static SInt32 version = 0;
+    if (!version)
+        Gestalt(gestaltSystemVersion, &version);
+
+    return version;
+}
+
+
 static void myBundleDidLoad(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
 {
     NSBundle *bundle = (NSBundle *)object;
@@ -98,28 +108,6 @@ static void myApplicationWillTerminate(CFNotificationCenterRef center, void *obs
     [userDefaults synchronize];
 }
 
-extern char **_CFGetProcessPath() __attribute__((weak));
-
-static void poseAsWebKitApp()
-{
-    webKitAppPath = strdup(getenv("WebKitAppPath"));
-    if (!webKitAppPath || !_CFGetProcessPath)
-        return;
-
-    // Set up the main bundle early so it points at Safari.app
-    CFBundleGetMainBundle();
-
-    // Fiddle with CoreFoundation to have it pick up the executable path as being within WebKit.app
-    char **processPath = _CFGetProcessPath();
-    *processPath = NULL;
-    setenv("CFProcessPath", webKitAppPath, 1);
-    _CFGetProcessPath();
-
-    // Clean up
-    unsetenv("CFProcessPath");
-    unsetenv("WebKitAppPath");
-}
-
 NSBundle *webKitLauncherBundle()
 {
     NSString *executablePath = [NSString stringWithUTF8String:webKitAppPath];
@@ -128,14 +116,49 @@ NSBundle *webKitLauncherBundle()
     return [NSBundle bundleWithPath:appPath];
 }
 
+extern char **_CFGetProcessPath() __attribute__((weak));
+extern OSStatus _RegisterApplication(CFDictionaryRef additionalAppInfoRef, ProcessSerialNumber* myPSN) __attribute__((weak));
+
+static void poseAsWebKitApp()
+{
+    webKitAppPath = strdup(getenv("WebKitAppPath"));
+    if (!webKitAppPath)
+        return;
+
+    unsetenv("WebKitAppPath");
+
+    // Set up the main bundle early so it points at Safari.app
+    CFBundleGetMainBundle();
+
+    if (systemVersion() < 0x1060) {
+        if (!_CFGetProcessPath)
+            return;
+
+        // Fiddle with CoreFoundation to have it pick up the executable path as being within WebKit.app
+        char **processPath = _CFGetProcessPath();
+        *processPath = NULL;
+        setenv("CFProcessPath", webKitAppPath, 1);
+        _CFGetProcessPath();
+        unsetenv("CFProcessPath");
+    } else {
+        if (!_RegisterApplication)
+            return;
+
+        // Register the application with LaunchServices, passing a customized registration dictionary that
+        // uses the WebKit launcher as the application bundle.
+        NSBundle *bundle = webKitLauncherBundle();
+        NSMutableDictionary *checkInDictionary = [[bundle infoDictionary] mutableCopy];
+        [checkInDictionary setObject:[bundle bundlePath] forKey:@"LSBundlePath"];
+        [checkInDictionary setObject:[checkInDictionary objectForKey:(NSString *)kCFBundleNameKey] forKey:@"LSDisplayName"];
+        _RegisterApplication((CFDictionaryRef)checkInDictionary, 0);
+        [checkInDictionary release];
+    }
+}
+
 static BOOL insideSafari4OnTigerTrampoline()
 {
-    SInt32 systemVersion;
-    if (Gestalt(gestaltSystemVersion, &systemVersion) != noErr)
-        return NO;
-
     // If we're not on Tiger then we can't be in the trampoline state.
-    if ((systemVersion & 0xFFF0) != 0x1040)
+    if ((systemVersion() & 0xFFF0) != 0x1040)
         return NO;
 
     // If we're running Safari < 4.0 then we can't be in the trampoline state.
@@ -161,10 +184,11 @@ static void enableWebKitNightlyBehaviour()
     if (insideSafari4OnTigerTrampoline())
         return;
 
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
     unsetenv("DYLD_INSERT_LIBRARIES");
     poseAsWebKitApp();
 
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     extensionPaths = [[NSSet alloc] initWithObjects:@"~/Library/InputManagers/", @"/Library/InputManagers/",
                                                     @"~/Library/Application Support/SIMBL/Plugins/", @"/Library/Application Support/SIMBL/Plugins/",
                                                     @"~/Library/Application Enhancers/", @"/Library/Application Enhancers/",

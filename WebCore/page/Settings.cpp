@@ -28,6 +28,7 @@
 
 #include "Frame.h"
 #include "FrameTree.h"
+#include "FrameView.h"
 #include "HistoryItem.h"
 #include "Page.h"
 #include "PageCache.h"
@@ -63,6 +64,7 @@ Settings::Settings(Page* page)
     , m_arePluginsEnabled(false)
     , m_databasesEnabled(true)
     , m_localStorageEnabled(false)
+    , m_sessionStorageEnabled(true)
     , m_isJavaScriptEnabled(false)
     , m_isWebSecurityEnabled(true)
     , m_allowUniversalAccessFromFileURLs(true)
@@ -74,6 +76,7 @@ Settings::Settings(Page* page)
 #endif
     , m_needsAdobeFrameReloadingQuirk(false)
     , m_needsKeyboardEventDisambiguationQuirks(false)
+    , m_treatsAnyTextCSSLinkAsStylesheet(false)
     , m_needsLeopardMailQuirks(false)
     , m_needsTigerMailQuirks(false)
     , m_isDOMPasteAllowed(false)
@@ -86,6 +89,7 @@ Settings::Settings(Page* page)
     , m_needsSiteSpecificQuirks(false)
     , m_fontRenderingMode(0)
     , m_webArchiveDebugModeEnabled(false)
+    , m_localFileContentSniffingEnabled(false)
     , m_inApplicationChromeMode(false)
     , m_offlineWebApplicationCacheEnabled(false)
     , m_shouldPaintCustomScrollbars(false)
@@ -94,7 +98,8 @@ Settings::Settings(Page* page)
     , m_usesEncodingDetector(false)
     , m_allowScriptsToCloseWindows(false)
     , m_editingBehavior(
-#if PLATFORM(MAC)
+#if PLATFORM(MAC) || (PLATFORM(CHROMIUM) && PLATFORM(DARWIN))
+        // (PLATFORM(MAC) is always false in Chromium, hence the extra condition.)
         EditingMacBehavior
 #else
         EditingWindowsBehavior
@@ -104,6 +109,7 @@ Settings::Settings(Page* page)
     // they can't use by. Leaving enabled for now to not change existing behavior.
     , m_downloadableBinaryFontsEnabled(true)
     , m_xssAuditorEnabled(false)
+    , m_acceleratedCompositingEnabled(true)
 {
     // A Frame may not have been created yet, so we initialize the AtomicString 
     // hash before trying to use it.
@@ -240,6 +246,11 @@ void Settings::setLocalStorageEnabled(bool localStorageEnabled)
     m_localStorageEnabled = localStorageEnabled;
 }
 
+void Settings::setSessionStorageEnabled(bool sessionStorageEnabled)
+{
+    m_sessionStorageEnabled = sessionStorageEnabled;
+}
+
 void Settings::setPrivateBrowsingEnabled(bool privateBrowsingEnabled)
 {
     m_privateBrowsingEnabled = privateBrowsingEnabled;
@@ -263,7 +274,6 @@ void Settings::setUserStyleSheetLocation(const KURL& userStyleSheetLocation)
     m_userStyleSheetLocation = userStyleSheetLocation;
 
     m_page->userStyleSheetLocationChanged();
-    setNeedsReapplyStylesInAllFrames(m_page);
 }
 
 void Settings::setShouldPrintBackgrounds(bool shouldPrintBackgrounds)
@@ -310,6 +320,11 @@ void Settings::setNeedsAdobeFrameReloadingQuirk(bool shouldNotReloadIFramesForUn
 void Settings::setNeedsKeyboardEventDisambiguationQuirks(bool needsQuirks)
 {
     m_needsKeyboardEventDisambiguationQuirks = needsQuirks;
+}
+
+void Settings::setTreatsAnyTextCSSLinkAsStylesheet(bool treatsAnyTextCSSLinkAsStylesheet)
+{
+    m_treatsAnyTextCSSLinkAsStylesheet = treatsAnyTextCSSLinkAsStylesheet;
 }
 
 void Settings::setNeedsLeopardMailQuirks(bool needsQuirks)
@@ -398,6 +413,11 @@ void Settings::setWebArchiveDebugModeEnabled(bool enabled)
     m_webArchiveDebugModeEnabled = enabled;
 }
 
+void Settings::setLocalFileContentSniffingEnabled(bool enabled)
+{
+    m_localFileContentSniffingEnabled = enabled;
+}
+
 void Settings::setLocalStorageDatabasePath(const String& path)
 {
     m_localStorageDatabasePath = path;
@@ -462,6 +482,15 @@ void Settings::setDownloadableBinaryFontsEnabled(bool downloadableBinaryFontsEna
 void Settings::setXSSAuditorEnabled(bool xssAuditorEnabled)
 {
     m_xssAuditorEnabled = xssAuditorEnabled;
+}
+
+void Settings::setAcceleratedCompositingEnabled(bool enabled)
+{
+    if (m_acceleratedCompositingEnabled == enabled)
+        return;
+        
+    m_acceleratedCompositingEnabled = enabled;
+    setNeedsReapplyStylesInAllFrames(m_page);
 }
 
 } // namespace WebCore

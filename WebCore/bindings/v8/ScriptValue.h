@@ -53,7 +53,7 @@ public:
 
         m_value = v8::Persistent<v8::Value>::New(value);
 #ifndef NDEBUG
-        V8Proxy::RegisterGlobalHandle(SCRIPTVALUE, this, m_value);
+        V8GCController::registerGlobalHandle(SCRIPTVALUE, this, m_value);
 #endif
     }
 
@@ -64,7 +64,7 @@ public:
 
         m_value = v8::Persistent<v8::Value>::New(value.m_value);
 #ifndef NDEBUG
-        V8Proxy::RegisterGlobalHandle(SCRIPTVALUE, this, m_value);
+        V8GCController::registerGlobalHandle(SCRIPTVALUE, this, m_value);
 #endif
     }
 
@@ -80,7 +80,7 @@ public:
 
         m_value = v8::Persistent<v8::Value>::New(value.m_value);
 #ifndef NDEBUG
-        V8Proxy::RegisterGlobalHandle(SCRIPTVALUE, this, m_value);
+        V8GCController::registerGlobalHandle(SCRIPTVALUE, this, m_value);
 #endif
 
         return *this;
@@ -110,7 +110,12 @@ public:
     {
         return m_value->IsUndefined();
     }
-    
+
+    bool isObject() const
+    {
+        return m_value->IsObject();
+    }
+
     bool hasNoValue() const
     {
         return m_value.IsEmpty();
@@ -122,13 +127,13 @@ public:
             return;
 
 #ifndef NDEBUG
-        V8Proxy::UnregisterGlobalHandle(this, m_value);
+        V8GCController::unregisterGlobalHandle(this, m_value);
 #endif
         m_value.Dispose();
         m_value.Clear();
     }
 
-    ~ScriptValue() 
+    virtual ~ScriptValue() 
     {
         clear();
     }

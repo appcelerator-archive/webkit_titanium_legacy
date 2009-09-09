@@ -23,6 +23,7 @@
 #include "Frame.h"
 #include "JSNode.h"
 #include <runtime/FunctionConstructor.h>
+#include <runtime/JSFunction.h>
 #include <runtime/JSLock.h>
 #include <wtf/RefCountedLeakCounter.h>
 
@@ -77,7 +78,11 @@ void JSLazyEventListener::parseCode() const
     if (m_parsed)
         return;
 
-    if (m_globalObject->scriptExecutionContext()->isDocument()) {
+    ScriptExecutionContext* executionContext = m_globalObject->scriptExecutionContext();
+    ASSERT(executionContext);
+    if (!executionContext)
+        return;
+    if (executionContext->isDocument()) {
         JSDOMWindow* window = static_cast<JSDOMWindow*>(m_globalObject);
         Frame* frame = window->impl()->frame();
         if (!frame)
@@ -93,7 +98,7 @@ void JSLazyEventListener::parseCode() const
     ExecState* exec = m_globalObject->globalExec();
 
     MarkedArgumentBuffer args;
-    UString sourceURL(m_globalObject->scriptExecutionContext()->url().string());
+    UString sourceURL(executionContext->url().string());
     args.append(jsNontrivialString(exec, m_eventParameterName));
     args.append(jsString(exec, m_code));
 
@@ -113,7 +118,7 @@ void JSLazyEventListener::parseCode() const
         // (and the document, and the form - see JSHTMLElement::eventHandlerScope)
         ScopeChain scope = listenerAsFunction->scope();
 
-        JSValue thisObj = toJS(exec, m_originalNode);
+        JSValue thisObj = toJS(exec, m_globalObject, m_originalNode);
         if (thisObj.isObject()) {
             static_cast<JSNode*>(asObject(thisObj))->pushEventHandlerScope(exec, scope);
             listenerAsFunction->setScope(scope);

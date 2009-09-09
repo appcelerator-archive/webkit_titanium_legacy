@@ -89,8 +89,11 @@ private:
 
     bool hasListeners() const { return !m_oneShots.isEmpty() || !m_watchers.isEmpty(); }
 
+    void sendError(Vector<RefPtr<GeoNotifier> >&, PositionError*);
     void sendErrorToOneShots(PositionError*);
     void sendErrorToWatchers(PositionError*);
+    
+    void sendPosition(Vector<RefPtr<GeoNotifier> >&, Geoposition*);
     void sendPositionToOneShots(Geoposition*);
     void sendPositionToWatchers(Geoposition*);
     
@@ -99,6 +102,7 @@ private:
     void startTimersForWatchers();
     void startTimers();
     
+    void makeSuccessCallbacks();
     void handleError(PositionError*);
 
     void requestPermission();

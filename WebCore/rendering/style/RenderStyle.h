@@ -307,6 +307,9 @@ public:
     RenderStyle* getCachedPseudoStyle(PseudoId) const;
     RenderStyle* addCachedPseudoStyle(PassRefPtr<RenderStyle>);
 
+    typedef Vector<RenderStyle*, 10> PseudoStyleCache;
+    void getPseudoStyleCache(PseudoStyleCache&) const;
+
     bool affectedByHoverRules() const { return noninherited_flags._affectedByHover; }
     bool affectedByActiveRules() const { return noninherited_flags._affectedByActive; }
     bool affectedByDragRules() const { return noninherited_flags._affectedByDrag; }
@@ -518,26 +521,29 @@ public:
 
     const Color& backgroundColor() const { return background->m_color; }
     StyleImage* backgroundImage() const { return background->m_background.m_image.get(); }
-    EFillRepeat backgroundRepeat() const { return static_cast<EFillRepeat>(background->m_background.m_repeat); }
+    EFillRepeat backgroundRepeatX() const { return static_cast<EFillRepeat>(background->m_background.m_repeatX); }
+    EFillRepeat backgroundRepeatY() const { return static_cast<EFillRepeat>(background->m_background.m_repeatY); }
     CompositeOperator backgroundComposite() const { return static_cast<CompositeOperator>(background->m_background.m_composite); }
-    bool backgroundAttachment() const { return background->m_background.m_attachment; }
+    EFillAttachment backgroundAttachment() const { return static_cast<EFillAttachment>(background->m_background.m_attachment); }
     EFillBox backgroundClip() const { return static_cast<EFillBox>(background->m_background.m_clip); }
     EFillBox backgroundOrigin() const { return static_cast<EFillBox>(background->m_background.m_origin); }
     Length backgroundXPosition() const { return background->m_background.m_xPosition; }
     Length backgroundYPosition() const { return background->m_background.m_yPosition; }
-    LengthSize backgroundSize() const { return background->m_background.m_size; }
+    EFillSizeType backgroundSizeType() const { return static_cast<EFillSizeType>(background->m_background.m_sizeType); }
+    LengthSize backgroundSizeLength() const { return background->m_background.m_sizeLength; }
     FillLayer* accessBackgroundLayers() { return &(background.access()->m_background); }
     const FillLayer* backgroundLayers() const { return &(background->m_background); }
 
     StyleImage* maskImage() const { return rareNonInheritedData->m_mask.m_image.get(); }
-    EFillRepeat maskRepeat() const { return static_cast<EFillRepeat>(rareNonInheritedData->m_mask.m_repeat); }
+    EFillRepeat maskRepeatX() const { return static_cast<EFillRepeat>(rareNonInheritedData->m_mask.m_repeatX); }
+    EFillRepeat maskRepeatY() const { return static_cast<EFillRepeat>(rareNonInheritedData->m_mask.m_repeatY); }
     CompositeOperator maskComposite() const { return static_cast<CompositeOperator>(rareNonInheritedData->m_mask.m_composite); }
-    bool maskAttachment() const { return rareNonInheritedData->m_mask.m_attachment; }
+    EFillAttachment maskAttachment() const { return static_cast<EFillAttachment>(rareNonInheritedData->m_mask.m_attachment); }
     EFillBox maskClip() const { return static_cast<EFillBox>(rareNonInheritedData->m_mask.m_clip); }
     EFillBox maskOrigin() const { return static_cast<EFillBox>(rareNonInheritedData->m_mask.m_origin); }
     Length maskXPosition() const { return rareNonInheritedData->m_mask.m_xPosition; }
     Length maskYPosition() const { return rareNonInheritedData->m_mask.m_yPosition; }
-    LengthSize maskSize() const { return rareNonInheritedData->m_mask.m_size; }
+    LengthSize maskSize() const { return rareNonInheritedData->m_mask.m_sizeLength; }
     FillLayer* accessMaskLayers() { return &(rareNonInheritedData.access()->m_mask); }
     const FillLayer* maskLayers() const { return &(rareNonInheritedData->m_mask); }
     const NinePieceImage& maskBoxImage() const { return rareNonInheritedData->m_maskBoxImage; }
@@ -603,7 +609,12 @@ public:
     unsigned int boxOrdinalGroup() const { return rareNonInheritedData->flexibleBox->ordinal_group; }
     EBoxOrient boxOrient() const { return static_cast<EBoxOrient>(rareNonInheritedData->flexibleBox->orient); }
     EBoxAlignment boxPack() const { return static_cast<EBoxAlignment>(rareNonInheritedData->flexibleBox->pack); }
+
     ShadowData* boxShadow() const { return rareNonInheritedData->m_boxShadow.get(); }
+    void getBoxShadowExtent(int &top, int &right, int &bottom, int &left) const;
+    void getBoxShadowHorizontalExtent(int &left, int &right) const;
+    void getBoxShadowVerticalExtent(int &top, int &bottom) const;
+
     StyleReflection* boxReflect() const { return rareNonInheritedData->m_boxReflect.get(); }
     EBoxSizing boxSizing() const { return static_cast<EBoxSizing>(box->boxSizing); }
     Length marqueeIncrement() const { return rareNonInheritedData->marquee->increment; }
@@ -743,7 +754,8 @@ public:
 
     void setBackgroundXPosition(Length l) { SET_VAR(background, m_background.m_xPosition, l) }
     void setBackgroundYPosition(Length l) { SET_VAR(background, m_background.m_yPosition, l) }
-    void setBackgroundSize(LengthSize l) { SET_VAR(background, m_background.m_size, l) }
+    void setBackgroundSize(EFillSizeType b) { SET_VAR(background, m_background.m_sizeType, b) }
+    void setBackgroundSizeLength(LengthSize l) { SET_VAR(background, m_background.m_sizeLength, l) }
     
     void setBorderImage(const NinePieceImage& b) { SET_VAR(surround, border.image, b) }
 
@@ -788,7 +800,7 @@ public:
     void setOverflowY(EOverflow v) { noninherited_flags._overflowY = v; }
     void setVisibility(EVisibility v) { inherited_flags._visibility = v; }
     void setVerticalAlign(EVerticalAlign v) { noninherited_flags._vertical_align = v; }
-    void setVerticalAlignLength(Length l) { SET_VAR(box, vertical_align, l ) }
+    void setVerticalAlignLength(Length l) { SET_VAR(box, vertical_align, l) }
 
     void setHasClip(bool b = true) { SET_VAR(visual, hasClip, b) }
     void setClipLeft(Length v) { SET_VAR(visual, clip.m_left, v) }
@@ -797,7 +809,7 @@ public:
     void setClipBottom(Length v) { SET_VAR(visual, clip.m_bottom, v) }
     void setClip(Length top, Length right, Length bottom, Length left);
 
-    void setUnicodeBidi( EUnicodeBidi b ) { noninherited_flags._unicodeBidi = b; }
+    void setUnicodeBidi(EUnicodeBidi b) { noninherited_flags._unicodeBidi = b; }
 
     void setClear(EClear v) { noninherited_flags._clear = v; }
     void setTableLayout(ETableLayout v) { noninherited_flags._table_layout = v; }
@@ -856,7 +868,7 @@ public:
     void setMaskBoxImage(const NinePieceImage& b) { SET_VAR(rareNonInheritedData, m_maskBoxImage, b) }
     void setMaskXPosition(Length l) { SET_VAR(rareNonInheritedData, m_mask.m_xPosition, l) }
     void setMaskYPosition(Length l) { SET_VAR(rareNonInheritedData, m_mask.m_yPosition, l) }
-    void setMaskSize(LengthSize l) { SET_VAR(rareNonInheritedData, m_mask.m_size, l) }
+    void setMaskSize(LengthSize l) { SET_VAR(rareNonInheritedData, m_mask.m_sizeLength, l) }
 
     void setBorderCollapse(bool collapse) { inherited_flags._border_collapse = collapse; }
     void setHorizontalBorderSpacing(short v) { SET_VAR(inherited, horizontal_border_spacing, v) }
@@ -884,7 +896,7 @@ public:
     void setPaddingLeft(Length v) { SET_VAR(surround, padding.m_left, v) }
     void setPaddingRight(Length v) { SET_VAR(surround, padding.m_right, v) }
 
-    void setCursor( ECursor c ) { inherited_flags._cursor_style = c; }
+    void setCursor(ECursor c) { inherited_flags._cursor_style = c; }
     void addCursor(CachedImage*, const IntPoint& = IntPoint());
     void setCursorList(PassRefPtr<CursorList>);
     void clearCursorList();

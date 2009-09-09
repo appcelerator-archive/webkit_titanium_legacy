@@ -32,8 +32,10 @@ VPATH = \
     $(WebCore)/css \
     $(WebCore)/dom \
     $(WebCore)/html \
+    $(WebCore)/html/canvas \
     $(WebCore)/inspector \
     $(WebCore)/loader/appcache \
+    $(WebCore)/notifications \
     $(WebCore)/page \
     $(WebCore)/plugins \
     $(WebCore)/storage \
@@ -41,10 +43,12 @@ VPATH = \
     $(WebCore)/wml \
     $(WebCore)/workers \
     $(WebCore)/svg \
+    $(WebCore)/websockets \
 #
 
 DOM_CLASSES = \
     AbstractView \
+    AbstractWorker \
     Attr \
     BarInfo \
     CDATASection \
@@ -64,9 +68,26 @@ DOM_CLASSES = \
     CSSValueList \
     CSSVariablesRule \
     CSSVariablesDeclaration \
+    CanvasArray \
+    CanvasArrayBuffer \
+    CanvasBuffer \
+    CanvasByteArray \
+    CanvasFloatArray \
+    CanvasFramebuffer \
     CanvasGradient \
+    CanvasIntArray \
     CanvasPattern \
+    CanvasProgram \
+    CanvasRenderbuffer \
+    CanvasRenderingContext \
     CanvasRenderingContext2D \
+    CanvasRenderingContext3D \
+    CanvasShader \
+    CanvasShortArray \
+    CanvasTexture \
+    CanvasUnsignedByteArray \
+    CanvasUnsignedIntArray \
+    CanvasUnsignedShortArray \
     CharacterData \
     ClientRect \
     ClientRectList \
@@ -77,6 +98,7 @@ DOM_CLASSES = \
     Counter \
     DataGridColumn \
     DataGridColumnList \
+    DedicatedWorkerContext \
     DOMApplicationCache \
     DOMCoreException \
     DOMImplementation \
@@ -91,9 +113,11 @@ DOM_CLASSES = \
     ElementTimeControl \
     Entity \
     EntityReference \
+    ErrorEvent \
     Event \
     EventException \
     EventListener \
+    EventSource \
     EventTarget \
     File \
     FileList \
@@ -115,6 +139,7 @@ DOM_CLASSES = \
     HTMLDataGridCellElement \
     HTMLDataGridColElement \
     HTMLDataGridRowElement \
+    HTMLDataListElement \
     HTMLDListElement \
     HTMLDirectoryElement \
     HTMLDivElement \
@@ -169,9 +194,10 @@ DOM_CLASSES = \
     HTMLVideoElement \
     History \
     ImageData \
-    InspectorController \
+    InspectorBackend \
     KeyboardEvent \
     Location \
+    Media \
     MediaError \
     MediaList \
     MessageChannel \
@@ -188,18 +214,21 @@ DOM_CLASSES = \
     NodeIterator \
     NodeList \
     Notation \
+    Notification \
+    NotificationCenter \
     OverflowEvent \
+    PageTransitionEvent \
     Plugin \
     PluginArray \
-    PositionCallback \
     PositionError \
-    PositionErrorCallback \
     ProcessingInstruction \
     ProgressEvent \
     RGBColor \
     Range \
     RangeException \
     Rect \
+    SharedWorker \
+    SharedWorkerContext \
     SQLError \
     SQLResultSet \
     SQLResultSetRowList \
@@ -232,7 +261,6 @@ DOM_CLASSES = \
     SVGColor \
     SVGComponentTransferFunctionElement \
     SVGCursorElement \
-    SVGDefinitionSrcElement \
     SVGDefsElement \
     SVGDescElement \
     SVGDocument \
@@ -360,6 +388,7 @@ DOM_CLASSES = \
     TimeRanges \
     TreeWalker \
     UIEvent \
+    ValidityState \
     VoidCallback \
     WebKitAnimationEvent \
     WebKitCSSKeyframeRule \
@@ -368,6 +397,7 @@ DOM_CLASSES = \
     WebKitCSSTransformValue \
     WebKitPoint \
     WebKitTransitionEvent \
+    WebSocket \
     WheelEvent \
     Worker \
     WorkerContext \
@@ -389,9 +419,7 @@ DOM_CLASSES = \
 .PHONY : all
 
 all : \
-    $(filter-out JSEventListener.h JSEventTarget.h JSRGBColor.h,$(DOM_CLASSES:%=JS%.h)) \
-    \
-    JSRGBColor.lut.h \
+    $(filter-out JSEventListener.h JSEventTarget.h,$(DOM_CLASSES:%=JS%.h)) \
     \
     JSJavaScriptCallFrame.h \
     \
@@ -447,15 +475,19 @@ ifeq ($(ENABLE_DASHBOARD_SUPPORT), 1)
     WEBCORE_CSS_PROPERTY_NAMES := $(WEBCORE_CSS_PROPERTY_NAMES) $(WebCore)/css/DashboardSupportCSSPropertyNames.in
 endif
 
+# The grep commands below reject output containing anything other than:
+# 1. Lines beginning with '#'
+# 2. Lines containing only whitespace
+# These two types of lines will be ignored by make{prop,values}.pl.
 CSSPropertyNames.h : $(WEBCORE_CSS_PROPERTY_NAMES) css/makeprop.pl
-	if sort $(WEBCORE_CSS_PROPERTY_NAMES) | uniq -d | grep -E '^[^#]'; then echo 'Duplicate value!'; exit 1; fi
+	if sort $(WEBCORE_CSS_PROPERTY_NAMES) | uniq -d | grep -E -v '(^#)|(^[[:space:]]*$$)'; then echo 'Duplicate value!'; exit 1; fi
 	cat $(WEBCORE_CSS_PROPERTY_NAMES) > CSSPropertyNames.in
 	perl "$(WebCore)/css/makeprop.pl"
 
 CSSValueKeywords.h : $(WEBCORE_CSS_VALUE_KEYWORDS) css/makevalues.pl
 	# Lower case all the values, as CSS values are case-insensitive
 	perl -ne 'print lc' $(WEBCORE_CSS_VALUE_KEYWORDS) > CSSValueKeywords.in
-	if sort CSSValueKeywords.in | uniq -d | grep -E '^[^#]'; then echo 'Duplicate value!'; exit 1; fi
+	if sort CSSValueKeywords.in | uniq -d | grep -E -v '(^#)|(^[[:space:]]*$$)'; then echo 'Duplicate value!'; exit 1; fi
 	perl "$(WebCore)/css/makevalues.pl"
 
 # --------
@@ -520,7 +552,7 @@ XPathGrammar.cpp : xml/XPathGrammar.y $(PROJECT_FILE)
 
 # user agent style sheets
 
-USER_AGENT_STYLE_SHEETS = $(WebCore)/css/html4.css $(WebCore)/css/quirks.css $(WebCore)/css/view-source.css $(WebCore)/css/themeWin.css $(WebCore)/css/themeWinQuirks.css 
+USER_AGENT_STYLE_SHEETS = $(WebCore)/css/html.css $(WebCore)/css/quirks.css $(WebCore)/css/view-source.css $(WebCore)/css/themeWin.css $(WebCore)/css/themeWinQuirks.css 
 
 ifeq ($(findstring ENABLE_SVG,$(FEATURE_DEFINES)), ENABLE_SVG)
     USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/svg.css 
@@ -542,19 +574,18 @@ UserAgentStyleSheets.h : css/make-css-file-arrays.pl $(USER_AGENT_STYLE_SHEETS)
 
 # --------
 
-# lookup tables for old-style JavaScript bindings
-
-%.lut.h: %.cpp $(CREATE_HASH_TABLE)
-	$(CREATE_HASH_TABLE) $< -n WebCore > $@
-%Table.cpp: %.cpp $(CREATE_HASH_TABLE)
-	$(CREATE_HASH_TABLE) $< -n WebCore > $@
-
-# --------
-
 # HTML tag and attribute names
+
+ifeq ($(findstring ENABLE_DATALIST,$(FEATURE_DEFINES)), ENABLE_DATALIST)
+    HTML_FLAGS := $(HTML_FLAGS) ENABLE_DATALIST=1
+endif
 
 ifeq ($(findstring ENABLE_VIDEO,$(FEATURE_DEFINES)), ENABLE_VIDEO)
     HTML_FLAGS := $(HTML_FLAGS) ENABLE_VIDEO=1
+endif
+
+ifeq ($(findstring ENABLE_RUBY,$(FEATURE_DEFINES)), ENABLE_RUBY)
+    HTML_FLAGS := $(HTML_FLAGS) ENABLE_RUBY=1
 endif
 
 ifdef HTML_FLAGS
@@ -678,7 +709,7 @@ endif
 # JavaScript bindings
 
 GENERATE_BINDINGS = perl -I $(WebCore)/bindings/scripts $(WebCore)/bindings/scripts/generate-bindings.pl \
-    --include dom --include html --include css --include page --include xml --include svg --outputDir .
+    --include dom --include html --include css --include page --include notifications --include xml --include svg --outputDir .
 
 GENERATE_BINDINGS_SCRIPTS = \
     bindings/scripts/CodeGenerator.pm \

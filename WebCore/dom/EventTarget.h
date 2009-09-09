@@ -36,17 +36,22 @@
 
 namespace WebCore {
 
+    class AbstractWorker;
     class AtomicString;
+    class DedicatedWorkerContext;
     class DOMApplicationCache;
     class DOMWindow;
     class Event;
     class EventListener;
+    class EventSource;
     class MessagePort;
     class Node;
+    class Notification;
     class SVGElementInstance;
     class ScriptExecutionContext;
+    class SharedWorker;
+    class SharedWorkerContext;
     class Worker;
-    class WorkerContext;
     class XMLHttpRequest;
     class XMLHttpRequestUpload;
 
@@ -54,6 +59,7 @@ namespace WebCore {
 
     class EventTarget {
     public:
+        virtual EventSource* toEventSource();
         virtual MessagePort* toMessagePort();
         virtual Node* toNode();
         virtual DOMWindow* toDOMWindow();
@@ -67,7 +73,16 @@ namespace WebCore {
 #endif
 #if ENABLE(WORKERS)
         virtual Worker* toWorker();
-        virtual WorkerContext* toWorkerContext();
+        virtual DedicatedWorkerContext* toDedicatedWorkerContext();
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+        virtual SharedWorker* toSharedWorker();
+        virtual SharedWorkerContext* toSharedWorkerContext();
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+        virtual Notification* toNotification();
 #endif
 
         virtual ScriptExecutionContext* scriptExecutionContext() const = 0;

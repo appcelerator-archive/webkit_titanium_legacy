@@ -35,6 +35,7 @@ typedef struct _GdkEventScroll GdkEventScroll;
 #if PLATFORM(QT)
 QT_BEGIN_NAMESPACE
 class QWheelEvent;
+class QGraphicsSceneWheelEvent;
 QT_END_NAMESPACE
 #endif
 
@@ -49,7 +50,14 @@ class wxMouseEvent;
 class wxPoint;
 #endif
 
+#if PLATFORM(HAIKU)
+class BMessage;
+#endif
+
 namespace WebCore {
+
+    class FloatPoint;
+    class FloatSize;
 
     // Wheel events come in two flavors:
     // The ScrollByPixelWheelEvent is a fine-grained event that specifies the precise number of pixels to scroll.  It is sent directly by MacBook touchpads on OS X,
@@ -95,15 +103,21 @@ namespace WebCore {
 
 #if PLATFORM(QT)
         PlatformWheelEvent(QWheelEvent*);
+        PlatformWheelEvent(QGraphicsSceneWheelEvent*);
+        void applyDelta(int delta, Qt::Orientation);
 #endif
 
 #if PLATFORM(WIN)
         PlatformWheelEvent(HWND, WPARAM, LPARAM, bool isMouseHWheel);
-        PlatformWheelEvent(HWND, float deltaX, float deltaY, float xLoc, float yLoc);
+        PlatformWheelEvent(HWND, const FloatSize& delta, const FloatPoint& location);
 #endif
 
 #if PLATFORM(WX)
         PlatformWheelEvent(const wxMouseEvent&, const wxPoint&);
+#endif
+
+#if PLATFORM(HAIKU)
+        PlatformWheelEvent(BMessage*);
 #endif
 
     protected:

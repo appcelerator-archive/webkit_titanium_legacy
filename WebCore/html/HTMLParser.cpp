@@ -692,13 +692,13 @@ typedef HashMap<AtomicStringImpl*, CreateErrorCheckFunc> FunctionMap;
 
 bool HTMLParser::textCreateErrorCheck(Token* t, RefPtr<Node>& result)
 {
-    result = new Text(m_document, t->text.get());
+    result = Text::create(m_document, t->text.get());
     return false;
 }
 
 bool HTMLParser::commentCreateErrorCheck(Token* t, RefPtr<Node>& result)
 {
-    result = new Comment(m_document, t->text.get());
+    result = Comment::create(m_document, t->text.get());
     return false;
 }
 
@@ -790,6 +790,20 @@ bool HTMLParser::dtCreateErrorCheck(Token* t, RefPtr<Node>& result)
     pCloserCreateErrorCheck(t, result);
     popBlock(ddTag);
     popBlock(dtTag);
+    return true;
+}
+
+bool HTMLParser::rpCreateErrorCheck(Token*, RefPtr<Node>&)
+{
+    popBlock(rpTag);
+    popBlock(rtTag);
+    return true;
+}
+
+bool HTMLParser::rtCreateErrorCheck(Token*, RefPtr<Node>&)
+{
+    popBlock(rpTag);
+    popBlock(rtTag);
     return true;
 }
 
@@ -907,6 +921,7 @@ PassRefPtr<Node> HTMLParser::getNode(Token* t)
         gFunctionMap.set(listingTag.localName().impl(), &HTMLParser::pCloserCreateErrorCheck);
         gFunctionMap.set(mapTag.localName().impl(), &HTMLParser::mapCreateErrorCheck);
         gFunctionMap.set(menuTag.localName().impl(), &HTMLParser::pCloserCreateErrorCheck);
+        gFunctionMap.set(navTag.localName().impl(), &HTMLParser::pCloserCreateErrorCheck);
         gFunctionMap.set(nobrTag.localName().impl(), &HTMLParser::nestedCreateErrorCheck);
         gFunctionMap.set(noembedTag.localName().impl(), &HTMLParser::noembedCreateErrorCheck);
         gFunctionMap.set(noframesTag.localName().impl(), &HTMLParser::noframesCreateErrorCheck);
@@ -917,6 +932,8 @@ PassRefPtr<Node> HTMLParser::getNode(Token* t)
         gFunctionMap.set(pTag.localName().impl(), &HTMLParser::pCloserCreateErrorCheck);
         gFunctionMap.set(plaintextTag.localName().impl(), &HTMLParser::pCloserCreateErrorCheck);
         gFunctionMap.set(preTag.localName().impl(), &HTMLParser::pCloserCreateErrorCheck);
+        gFunctionMap.set(rpTag.localName().impl(), &HTMLParser::rpCreateErrorCheck);
+        gFunctionMap.set(rtTag.localName().impl(), &HTMLParser::rtCreateErrorCheck);
         gFunctionMap.set(sTag.localName().impl(), &HTMLParser::nestedStyleCreateErrorCheck);
         gFunctionMap.set(selectTag.localName().impl(), &HTMLParser::selectCreateErrorCheck);
         gFunctionMap.set(smallTag.localName().impl(), &HTMLParser::nestedStyleCreateErrorCheck);
@@ -1077,6 +1094,7 @@ bool HTMLParser::isAffectedByResidualStyle(const AtomicString& tagName)
         unaffectedTags.add(selectTag.localName().impl());
         unaffectedTags.add(objectTag.localName().impl());
         unaffectedTags.add(datagridTag.localName().impl());
+        unaffectedTags.add(datalistTag.localName().impl());
     }
     
     return !unaffectedTags.contains(tagName.impl());
@@ -1582,7 +1600,7 @@ PassRefPtr<Node> HTMLParser::handleIsindex(Token* t)
     }
 
     n->addChild(new HTMLHRElement(hrTag, m_document));
-    n->addChild(new Text(m_document, text));
+    n->addChild(Text::create(m_document, text));
     n->addChild(isIndex.release());
     n->addChild(new HTMLHRElement(hrTag, m_document));
 
@@ -1656,7 +1674,7 @@ void HTMLParser::reportErrorToConsole(HTMLParserErrorCode errorCode, const Atomi
     message.replace("%tag1", tag1);
     message.replace("%tag2", tag2);
 
-    frame->domWindow()->console()->addMessage(HTMLMessageSource,
+    frame->domWindow()->console()->addMessage(HTMLMessageSource, LogMessageType, 
         isWarning(errorCode) ? WarningMessageLevel : ErrorMessageLevel,
         message, lineNumber, m_document->url().string());
 }

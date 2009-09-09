@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2008, 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
 #include "PropertyMapHashTable.h"
 #include "StructureChain.h"
 #include "StructureTransitionTable.h"
-#include "TypeInfo.h"
+#include "JSTypeInfo.h"
 #include "UString.h"
 #include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
@@ -45,6 +45,7 @@
 
 namespace JSC {
 
+    class MarkStack;
     class PropertyNameArray;
     class PropertyNameArrayData;
 
@@ -72,11 +73,7 @@ namespace JSC {
 
         ~Structure();
 
-        void mark()
-        {
-            if (!m_prototype.marked())
-                m_prototype.mark();
-        }
+        void markAggregate(MarkStack&);
 
         // These should be used with caution.  
         size_t addPropertyWithoutTransition(const Identifier& propertyName, unsigned attributes, JSCell* specificValue);
@@ -103,7 +100,16 @@ namespace JSC {
         size_t get(const Identifier& propertyName, unsigned& attributes, JSCell*& specificValue)
         {
             ASSERT(!propertyName.isNull());
-            return get(propertyName._ustring.rep(), attributes, specificValue);
+            return get(propertyName.ustring().rep(), attributes, specificValue);
+        }
+        bool transitionedFor(const JSCell* specificValue)
+        {
+            return m_specificValueInPrevious == specificValue;
+        }
+        bool hasTransition(UString::Rep*, unsigned attributes);
+        bool hasTransition(const Identifier& propertyName, unsigned attributes)
+        {
+            return hasTransition(propertyName._ustring.rep(), attributes);
         }
 
         void getEnumerablePropertyNames(ExecState*, PropertyNameArray&, JSObject*);
@@ -166,12 +172,12 @@ namespace JSC {
 
         RefPtr<Structure> m_previous;
         RefPtr<UString::Rep> m_nameInPrevious;
+        JSCell* m_specificValueInPrevious;
 
         union {
             Structure* singleTransition;
             StructureTransitionTable* table;
         } m_transitions;
-        JSCell* m_specificValueInPrevious;
 
         RefPtr<PropertyNameArrayData> m_cachedPropertyNameArrayData;
 
@@ -231,7 +237,23 @@ namespace JSC {
                 return m_propertyTable->entries()[entryIndex - 1].offset;
         }
     }
+    
+    bool StructureTransitionTable::contains(const StructureTransitionTableHash::Key& key, JSCell* specificValue)
+    {
+        TransitionTable::iterator find = m_table.find(key);
+        if (find == m_table.end())
+            return false;
 
+        return find->second.first || find->second.second->transitionedFor(specificValue);
+    }
+
+    Structure* StructureTransitionTable::get(const StructureTransitionTableHash::Key& key, JSCell* specificValue) const
+    {
+        Transition transition = m_table.get(key);
+        if (transition.second && transition.second->transitionedFor(specificValue))
+            return transition.second;
+        return transition.first;
+    }
 } // namespace JSC
 
 #endif // Structure_h

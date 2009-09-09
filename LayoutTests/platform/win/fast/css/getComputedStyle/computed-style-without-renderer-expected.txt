@@ -1,10 +1,15 @@
 Computed style of an element whose parent's 'display' value is 'none':
     background-attachment: scroll
+    background-clip: border-box
     background-color: rgb(0, 128, 0)
     background-image: none
+    background-origin: padding-box
     background-position: 0% 0%
     background-repeat: repeat
+    background-size: auto auto
     border-bottom-color: rgb(0, 0, 0)
+    border-bottom-left-radius: 0px
+    border-bottom-right-radius: 0px
     border-bottom-style: none
     border-bottom-width: 0px
     border-collapse: separate
@@ -15,9 +20,12 @@ Computed style of an element whose parent's 'display' value is 'none':
     border-right-style: none
     border-right-width: 0px
     border-top-color: rgb(0, 0, 0)
+    border-top-left-radius: 0px
+    border-top-right-radius: 0px
     border-top-style: solid
     border-top-width: 16px
     bottom: auto
+    box-shadow: none
     caption-side: top
     clear: none
     clip: auto
@@ -70,6 +78,7 @@ Computed style of an element whose parent's 'display' value is 'none':
     text-decoration: none
     text-indent: 0px
     text-shadow: none
+    text-overflow: clip
     text-transform: none
     top: auto
     unicode-bidi: normal
@@ -88,20 +97,16 @@ Computed style of an element whose parent's 'display' value is 'none':
     -webkit-animation-duration: 0s
     -webkit-animation-iteration-count: 1
     -webkit-animation-name: none
+    -webkit-animation-play-state: running
     -webkit-animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1)
     -webkit-appearance: none
     -webkit-backface-visibility: visible
     -webkit-background-clip: border-box
     -webkit-background-composite: source-over
     -webkit-background-origin: padding-box
-    -webkit-background-size: auto auto
-    -webkit-border-bottom-left-radius: 0px
-    -webkit-border-bottom-right-radius: 0px
     -webkit-border-fit: border
     -webkit-border-horizontal-spacing: 0px
     -webkit-border-image: none
-    -webkit-border-top-left-radius: 0px
-    -webkit-border-top-right-radius: 0px
     -webkit-border-vertical-spacing: 0px
     -webkit-box-align: stretch
     -webkit-box-direction: normal
@@ -112,7 +117,6 @@ Computed style of an element whose parent's 'display' value is 'none':
     -webkit-box-orient: horizontal
     -webkit-box-pack: start
     -webkit-box-reflect: none
-    -webkit-box-shadow: none
     -webkit-box-sizing: content-box
     -webkit-column-break-after: auto
     -webkit-column-break-before: auto

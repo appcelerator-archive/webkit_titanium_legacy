@@ -100,8 +100,11 @@ namespace WebCore {
 
         static const int kNPObjectInternalFieldCount = kDefaultWrapperInternalFieldCount + 0;
 
-        static const int kDocumentImplementationIndex = kDefaultWrapperInternalFieldCount + 0;
-        static const int kDocumentMinimumInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+        static const int kNodeEventListenerCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kNodeMinimumInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+
+        static const int kDocumentImplementationIndex = kNodeMinimumInternalFieldCount + 0;
+        static const int kDocumentMinimumInternalFieldCount = kNodeMinimumInternalFieldCount + 1;
 
         static const int kHTMLDocumentMarkerIndex = kDocumentMinimumInternalFieldCount + 0;
         static const int kHTMLDocumentShadowIndex = kDocumentMinimumInternalFieldCount + 1;
@@ -123,7 +126,18 @@ namespace WebCore {
         static const int kWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
 
         static const int kWorkerContextRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
-        static const int kWorkerContextInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+        static const int kWorkerContextMinimumInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+
+        static const int kDedicatedWorkerContextRequestCacheIndex = kWorkerContextMinimumInternalFieldCount + 0;
+        static const int kDedicatedWorkerContextInternalFieldCount = kWorkerContextMinimumInternalFieldCount + 1;
+
+        static const int kAbstractWorkerRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kAbstractWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+        static const int kNotificationRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kNotificationInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
 #endif
 
         static const int kDOMWindowConsoleIndex = kDefaultWrapperInternalFieldCount + 0;
@@ -143,6 +157,16 @@ namespace WebCore {
 
         static const int kStyleSheetOwnerNodeIndex = kDefaultWrapperInternalFieldCount + 0;
         static const int kStyleSheetInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+        static const int kDOMApplicationCacheCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kDOMApplicationCacheFieldCount = kDefaultWrapperInternalFieldCount + 1;
+#endif
+
+#if ENABLE(WEB_SOCKETS)
+        static const int kWebSocketCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kWebSocketInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+#endif
 
 #define DECLARE_PROPERTY_ACCESSOR_GETTER(NAME) \
     static v8::Handle<v8::Value> v8##NAME##AccessorGetter( \
@@ -204,7 +228,7 @@ namespace WebCore {
 
         DECLARE_PROPERTY_ACCESSOR(CanvasRenderingContext2DStrokeStyle);
         DECLARE_PROPERTY_ACCESSOR(CanvasRenderingContext2DFillStyle);
-        DECLARE_PROPERTY_ACCESSOR_GETTER(DOMWindowEvent);
+        DECLARE_PROPERTY_ACCESSOR(DOMWindowEvent);
         DECLARE_PROPERTY_ACCESSOR_GETTER(DOMWindowCrypto);
         DECLARE_PROPERTY_ACCESSOR_SETTER(DOMWindowLocation);
         DECLARE_PROPERTY_ACCESSOR_SETTER(DOMWindowOpener);
@@ -217,7 +241,6 @@ namespace WebCore {
         DECLARE_PROPERTY_ACCESSOR_GETTER(EventClipboardData);
 
         DECLARE_PROPERTY_ACCESSOR(DOMWindowEventHandler);
-        DECLARE_PROPERTY_ACCESSOR(ElementEventHandler);
 
         DECLARE_CALLBACK(HTMLCanvasElementGetContext);
 
@@ -380,30 +403,35 @@ namespace WebCore {
         DECLARE_CALLBACK(TreeWalkerNextSibling);
         DECLARE_CALLBACK(TreeWalkerPreviousSibling);
 
-        DECLARE_CALLBACK(InspectorControllerProfiles);
-        DECLARE_CALLBACK(InspectorControllerHighlightDOMNode);
-        DECLARE_CALLBACK(InspectorControllerAddResourceSourceToFrame);
-        DECLARE_CALLBACK(InspectorControllerGetResourceDocumentNode);
-        DECLARE_CALLBACK(InspectorControllerAddSourceToFrame);
-        DECLARE_CALLBACK(InspectorControllerSearch);
-        DECLARE_CALLBACK(InspectorControllerSetting);
-        DECLARE_CALLBACK(InspectorControllerInspectedWindow);
-        DECLARE_CALLBACK(InspectorControllerSetSetting);
-        DECLARE_CALLBACK(InspectorControllerCurrentCallFrame);
-        DECLARE_CALLBACK(InspectorControllerDebuggerEnabled);
-        DECLARE_CALLBACK(InspectorControllerPauseOnExceptions);
-        DECLARE_CALLBACK(InspectorControllerProfilerEnabled);
+        DECLARE_CALLBACK(InspectorBackendProfiles);
+        DECLARE_CALLBACK(InspectorBackendHighlightDOMNode);
+        DECLARE_CALLBACK(InspectorBackendAddResourceSourceToFrame);
+        DECLARE_CALLBACK(InspectorBackendAddSourceToFrame);
+        DECLARE_CALLBACK(InspectorBackendSearch);
+        DECLARE_CALLBACK(InspectorBackendSetting);
+        DECLARE_CALLBACK(InspectorBackendInspectedWindow);
+        DECLARE_CALLBACK(InspectorBackendSetSetting);
+        DECLARE_CALLBACK(InspectorBackendCurrentCallFrame);
+        DECLARE_CALLBACK(InspectorBackendDebuggerEnabled);
+        DECLARE_CALLBACK(InspectorBackendPauseOnExceptions);
+        DECLARE_CALLBACK(InspectorBackendProfilerEnabled);
+        DECLARE_CALLBACK(InspectorBackendNodeForId);
+        DECLARE_CALLBACK(InspectorBackendWrapObject);
+        DECLARE_CALLBACK(InspectorBackendUnwrapObject);
+        DECLARE_CALLBACK(InspectorBackendPushNodePathToFrontend);
 #if ENABLE(DATABASE)
-        DECLARE_CALLBACK(InspectorControllerDatabaseTableNames);
+        DECLARE_CALLBACK(InspectorBackendDatabaseTableNames);
+        DECLARE_CALLBACK(InspectorBackendSelectDatabase);
 #endif
-        DECLARE_CALLBACK(InspectorControllerWrapCallback);
+#if ENABLE(DOM_STORAGE)
+        DECLARE_CALLBACK(InspectorBackendSelectDOMStorage);
+#endif
+        DECLARE_CALLBACK(InspectorBackendWrapCallback);
 
         DECLARE_CALLBACK(NodeIteratorNextNode);
         DECLARE_CALLBACK(NodeIteratorPreviousNode);
 
         DECLARE_CALLBACK(NodeFilterAcceptNode);
-
-        DECLARE_PROPERTY_ACCESSOR(HTMLDataGridElementDataSource);
 
         DECLARE_CALLBACK(HTMLFormElementSubmit);
 
@@ -437,11 +465,15 @@ namespace WebCore {
         DECLARE_INDEXED_PROPERTY_GETTER(CanvasPixelArray);
         DECLARE_INDEXED_PROPERTY_SETTER(CanvasPixelArray);
 
+        DECLARE_PROPERTY_ACCESSOR_GETTER(MessageEventPorts);
+        DECLARE_CALLBACK(MessageEventInitMessageEvent);
+
         DECLARE_PROPERTY_ACCESSOR(MessagePortOnmessage);
         DECLARE_PROPERTY_ACCESSOR(MessagePortOnclose);
-        DECLARE_CALLBACK(MessagePortStartConversation);
         DECLARE_CALLBACK(MessagePortAddEventListener);
+        DECLARE_CALLBACK(MessagePortPostMessage);
         DECLARE_CALLBACK(MessagePortRemoveEventListener);
+        DECLARE_CALLBACK(MessagePortStartConversation);
 
         DECLARE_CALLBACK(DatabaseChangeVersion);
         DECLARE_CALLBACK(DatabaseTransaction);
@@ -449,6 +481,13 @@ namespace WebCore {
         DECLARE_CALLBACK(SQLResultSetRowListItem);
 
         DECLARE_INDEXED_PROPERTY_GETTER(ClientRectList);
+        DECLARE_INDEXED_PROPERTY_GETTER(FileList);
+  
+#if ENABLE(DATAGRID)
+        DECLARE_PROPERTY_ACCESSOR(HTMLDataGridElementDataSource);
+        DECLARE_INDEXED_PROPERTY_GETTER(DataGridColumnList);
+        DECLARE_NAMED_PROPERTY_GETTER(DataGridColumnList);
+#endif      
 
 #if ENABLE(DOM_STORAGE)
         DECLARE_INDEXED_PROPERTY_GETTER(Storage);
@@ -470,14 +509,19 @@ namespace WebCore {
 #endif
 
 #if ENABLE(WORKERS)
+        DECLARE_PROPERTY_ACCESSOR(AbstractWorkerOnerror);
+        DECLARE_CALLBACK(AbstractWorkerAddEventListener);
+        DECLARE_CALLBACK(AbstractWorkerRemoveEventListener);
+
+        DECLARE_PROPERTY_ACCESSOR(DedicatedWorkerContextOnmessage);
+        DECLARE_CALLBACK(DedicatedWorkerContextPostMessage);
+
         DECLARE_PROPERTY_ACCESSOR(WorkerOnmessage);
-        DECLARE_PROPERTY_ACCESSOR(WorkerOnerror);
+        DECLARE_CALLBACK(WorkerPostMessage);
         DECLARE_CALLBACK(WorkerConstructor);
-        DECLARE_CALLBACK(WorkerAddEventListener);
-        DECLARE_CALLBACK(WorkerRemoveEventListener);
 
         DECLARE_PROPERTY_ACCESSOR_GETTER(WorkerContextSelf);
-        DECLARE_PROPERTY_ACCESSOR(WorkerContextOnmessage);
+        DECLARE_PROPERTY_ACCESSOR(WorkerContextOnerror);
         DECLARE_CALLBACK(WorkerContextImportScripts);
         DECLARE_CALLBACK(WorkerContextSetTimeout);
         DECLARE_CALLBACK(WorkerContextClearTimeout);
@@ -485,6 +529,35 @@ namespace WebCore {
         DECLARE_CALLBACK(WorkerContextClearInterval);
         DECLARE_CALLBACK(WorkerContextAddEventListener);
         DECLARE_CALLBACK(WorkerContextRemoveEventListener);
+#endif // ENABLE(WORKERS)
+
+#if ENABLE(NOTIFICATIONS)
+        DECLARE_CALLBACK(NotificationCenterRequestPermission);
+        DECLARE_CALLBACK(NotificationCenterCreateNotification);
+        DECLARE_CALLBACK(NotificationCenterCreateHTMLNotification);
+
+        DECLARE_CALLBACK(NotificationAddEventListener);
+        DECLARE_CALLBACK(NotificationRemoveEventListener);
+        DECLARE_PROPERTY_ACCESSOR(NotificationEventHandler);
+#endif // ENABLE(NOTIFICATIONS)
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+        DECLARE_PROPERTY_ACCESSOR(DOMApplicationCacheEventHandler);
+        DECLARE_CALLBACK(DOMApplicationCacheAddEventListener);
+        DECLARE_CALLBACK(DOMApplicationCacheRemoveEventListener);
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+        DECLARE_CALLBACK(SharedWorkerConstructor);
+#endif
+
+#if ENABLE(WEB_SOCKETS)
+        DECLARE_PROPERTY_ACCESSOR(WebSocketOnopen);
+        DECLARE_PROPERTY_ACCESSOR(WebSocketOnmessage);
+        DECLARE_PROPERTY_ACCESSOR(WebSocketOnclose);
+        DECLARE_CALLBACK(WebSocketConstructor);
+        DECLARE_CALLBACK(WebSocketSend);
+        DECLARE_CALLBACK(WebSocketClose);
 #endif
 
 #undef DECLARE_INDEXED_ACCESS_CHECK

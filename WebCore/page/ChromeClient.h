@@ -62,6 +62,10 @@ namespace WebCore {
     class GraphicsLayer;
 #endif
 
+#if ENABLE(NOTIFICATIONS)
+    class NotificationPresenter;
+#endif
+
     class ChromeClient {
     public:
         virtual void chromeDestroyed() = 0;
@@ -103,7 +107,7 @@ namespace WebCore {
 
         virtual void setResizable(bool) = 0;
         
-        virtual void addMessageToConsole(MessageSource, MessageLevel, const String& message, unsigned int lineNumber, const String& sourceID) = 0;
+        virtual void addMessageToConsole(MessageSource, MessageType, MessageLevel, const String& message, unsigned int lineNumber, const String& sourceID) = 0;
 
         virtual bool canRunBeforeUnloadConfirmPanel() = 0;
         virtual bool runBeforeUnloadConfirmPanel(const String& message, Frame* frame) = 0;
@@ -129,9 +133,10 @@ namespace WebCore {
         virtual void scrollRectIntoView(const IntRect&, const ScrollView*) const = 0; // Currently only Mac has a non empty implementation.
         // End methods used by HostWindow.
 
+        virtual void scrollbarsModeDidChange() const = 0;
         virtual void mouseDidMoveOverElement(const HitTestResult&, unsigned modifierFlags) = 0;
 
-        virtual void setToolTip(const String&) = 0;
+        virtual void setToolTip(const String&, TextDirection) = 0;
 
         virtual void print(Frame*) = 0;
 
@@ -139,8 +144,21 @@ namespace WebCore {
         virtual void exceededDatabaseQuota(Frame*, const String& databaseName) = 0;
 #endif
 
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+        // Callback invoked when the application cache fails to save a cache object
+        // because storing it would grow the database file past its defined maximum
+        // size or past the amount of free space on the device. 
+        // The chrome client would need to take some action such as evicting some
+        // old caches.
+        virtual void reachedMaxAppCacheSize(int64_t spaceNeeded) = 0;
+#endif
+
 #if ENABLE(DASHBOARD_SUPPORT)
         virtual void dashboardRegionsChanged();
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+        virtual NotificationPresenter* notificationPresenter() const = 0;
 #endif
 
         virtual void populateVisitedLinks();
@@ -157,7 +175,7 @@ namespace WebCore {
                                           float value, float proportion, ScrollbarControlPartMask);
         virtual bool paintCustomScrollCorner(GraphicsContext*, const FloatRect&);
 
-        // This is an asynchronous call. The ChromeClient can display UI asking the user for permission
+        // This can be either a synchronous or asynchronous call. The ChromeClient can display UI asking the user for permission
         // to use Geolococation. The ChromeClient must call Geolocation::setShouldClearCache() appropriately.
         virtual void requestGeolocationPermissionForFrame(Frame*, Geolocation*) = 0;
             
@@ -168,6 +186,9 @@ namespace WebCore {
         // Notification that the given form element has changed. This function
         // will be called frequently, so handling should be very fast.
         virtual void formStateDidChange(const Node*) = 0;
+        
+        virtual void formDidFocus(const Node*) { };
+        virtual void formDidBlur(const Node*) { };
 
         virtual PassOwnPtr<HTMLParserQuirks> createHTMLParserQuirks() = 0;
 
@@ -179,7 +200,7 @@ namespace WebCore {
         virtual void setNeedsOneShotDrawingSynchronization() = 0;
         // Sets a flag to specify that the view needs to be updated, so we need
         // to do an eager layout before the drawing.
-        virtual void scheduleViewUpdate() = 0;
+        virtual void scheduleCompositingLayerSync() = 0;
 #endif
 
 #if PLATFORM(MAC)

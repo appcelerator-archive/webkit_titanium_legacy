@@ -46,9 +46,13 @@ public:
     virtual void play() = 0;
     virtual void pause() = 0;    
 
+    virtual bool supportsFullscreen() const { return false; }
+    virtual bool supportsSave() const { return false; }
+
     virtual IntSize naturalSize() const = 0;
 
     virtual bool hasVideo() const = 0;
+    virtual bool hasAudio() const = 0;
 
     virtual void setVisible(bool) = 0;
 
@@ -83,7 +87,9 @@ public:
 
     virtual void setSize(const IntSize&) = 0;
 
-    virtual void paint(GraphicsContext*, const IntRect&) = 0 ;
+    virtual void paint(GraphicsContext*, const IntRect&) = 0;
+
+    virtual void paintCurrentFrameInContext(GraphicsContext* c, const IntRect& r) { paint(c, r); }
 
     virtual void setAutobuffer(bool) { };
 
@@ -101,6 +107,9 @@ public:
 #endif
 
     virtual bool hasSingleSecurityOrigin() const { return false; }
+
+    virtual MediaPlayer::MovieLoadType movieLoadType() const { return MediaPlayer::Unknown; }
+
 };
 
 }

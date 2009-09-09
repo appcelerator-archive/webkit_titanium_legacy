@@ -60,6 +60,7 @@ void InitWebCoreSystemInterface(void)
     INIT(GetWheelEventDeltas);
     INIT(HitTestMediaUIPart);
     INIT(InitializeMaximumHTTPConnectionCountPerHost);
+    INIT(IsLatchingWheelEvent);
     INIT(MeasureMediaUIPart);
     INIT(PopupMenu);
     INIT(SetCGFontRenderingMode);
@@ -77,6 +78,7 @@ void InitWebCoreSystemInterface(void)
     INIT(QTMovieMaxTimeLoaded);
     INIT(QTMovieMaxTimeLoadedChangeNotification);
     INIT(QTMovieMaxTimeSeekable);
+    INIT(QTMovieGetType);
     INIT(QTMovieViewSetDrawSynchronously);
 
 #ifndef BUILDING_ON_TIGER

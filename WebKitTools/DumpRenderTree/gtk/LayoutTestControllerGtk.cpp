@@ -2,6 +2,7 @@
  * Copyright (C) 2007 Apple Inc. All rights reserved.
  * Copyright (C) 2007 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2008 Nuanti Ltd.
+ * Copyright (C) 2009 Jan Michael Alonzo <jmalonzo@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +38,8 @@
 #include <JavaScriptCore/JSRetainPtr.h>
 #include <JavaScriptCore/JSStringRef.h>
 
+#include <iostream>
+#include <sstream>
 #include <stdio.h>
 #include <glib.h>
 #include <libsoup/soup.h>
@@ -46,6 +49,24 @@ extern "C" {
 bool webkit_web_frame_pause_animation(WebKitWebFrame* frame, const gchar* name, double time, const gchar* element);
 bool webkit_web_frame_pause_transition(WebKitWebFrame* frame, const gchar* name, double time, const gchar* element);
 unsigned int webkit_web_frame_number_of_active_animations(WebKitWebFrame* frame);
+void webkit_application_cache_set_maximum_size(unsigned long long size);
+unsigned int webkit_worker_thread_count(void);
+void webkit_white_list_access_from_origin(const gchar* sourceOrigin, const gchar* destinationProtocol, const gchar* destinationHost, bool allowDestinationSubdomains);
+}
+
+static gchar* copyWebSettingKey(gchar* preferenceKey)
+{
+    static GHashTable* keyTable;
+
+    if (!keyTable) {
+        // If you add a pref here, make sure you reset the value in
+        // DumpRenderTree::resetWebViewToConsistentStateBeforeTesting.
+        keyTable = g_hash_table_new(g_str_hash, g_str_equal);
+        g_hash_table_insert(keyTable, g_strdup("WebKitJavaScriptEnabled"), g_strdup("enable-scripts"));
+        g_hash_table_insert(keyTable, g_strdup("WebKitDefaultFontSize"), g_strdup("default-font-size"));
+    }
+
+    return g_strdup(static_cast<gchar*>(g_hash_table_lookup(keyTable, preferenceKey)));
 }
 
 LayoutTestController::~LayoutTestController()
@@ -108,6 +129,11 @@ size_t LayoutTestController::webHistoryItemCount()
     return 0;
 }
 
+unsigned LayoutTestController::workerThreadCount() const
+{
+    return webkit_worker_thread_count();
+}
+
 void LayoutTestController::notifyDone()
 {
     if (m_waitToDump && !topLoadingFrame && !WorkQueue::shared()->count())
@@ -150,6 +176,11 @@ void LayoutTestController::setAcceptsEditing(bool acceptsEditing)
     webkit_web_view_set_editable(webView, acceptsEditing);
 }
 
+void LayoutTestController::setAlwaysAcceptCookies(bool alwaysAcceptCookies)
+{
+    // FIXME: Implement this (and restore the default value before running each test in DumpRenderTree.cpp).
+}
+
 void LayoutTestController::setCustomPolicyDelegate(bool setDelegate, bool permissive)
 {
     // FIXME: implement
@@ -159,6 +190,17 @@ void LayoutTestController::waitForPolicyDelegate()
 {
     waitForPolicy = true;
     setWaitToDump(true);
+}
+
+void LayoutTestController::whiteListAccessFromOrigin(JSStringRef sourceOrigin, JSStringRef protocol, JSStringRef host, bool includeSubdomains)
+{
+    gchar* sourceOriginGChar = JSStringCopyUTF8CString(sourceOrigin);
+    gchar* protocolGChar = JSStringCopyUTF8CString(protocol);
+    gchar* hostGChar = JSStringCopyUTF8CString(host);
+    webkit_white_list_access_from_origin(sourceOriginGChar, protocolGChar, hostGChar, includeSubdomains);
+    g_free(sourceOriginGChar);
+    g_free(protocolGChar);
+    g_free(hostGChar);
 }
 
 void LayoutTestController::setMainFrameIsFirstResponder(bool flag)
@@ -211,17 +253,14 @@ void LayoutTestController::setSmartInsertDeleteEnabled(bool flag)
 
 static gboolean waitToDumpWatchdogFired(void*)
 {
-    const char* message = "FAIL: Timed out waiting for notifyDone to be called\n";
-    fprintf(stderr, "%s", message);
-    fprintf(stdout, "%s", message);
     waitToDumpWatchdog = 0;
-    dump();
+    gLayoutTestController->waitToDumpWatchdogTimerFired();
     return FALSE;
 }
 
 void LayoutTestController::setWaitToDump(bool waitUntilDone)
 {
-    static const int timeoutSeconds = 10;
+    static const int timeoutSeconds = 15;
 
     m_waitToDump = waitUntilDone;
     if (m_waitToDump && !waitToDumpWatchdog)
@@ -230,8 +269,8 @@ void LayoutTestController::setWaitToDump(bool waitUntilDone)
 
 int LayoutTestController::windowCount()
 {
-    // FIXME: implement
-    return 1;
+    // +1 -> including the main view
+    return g_slist_length(webViewList) + 1;
 }
 
 void LayoutTestController::setPrivateBrowsingEnabled(bool flag)
@@ -257,6 +296,24 @@ void LayoutTestController::setAuthorAndUserStylesEnabled(bool flag)
     // FIXME: implement
 }
 
+void LayoutTestController::disableImageLoading()
+{
+    // FIXME: Implement for testing fix for https://bugs.webkit.org/show_bug.cgi?id=27896
+    // Also need to make sure image loading is re-enabled for each new test.
+}
+
+void LayoutTestController::setMockGeolocationPosition(double latitude, double longitude, double accuracy)
+{
+    // FIXME: Implement for Geolocation layout tests.
+    // See https://bugs.webkit.org/show_bug.cgi?id=28264.
+}
+
+void LayoutTestController::setMockGeolocationError(int code, JSStringRef message)
+{
+    // FIXME: Implement for Geolocation layout tests.
+    // See https://bugs.webkit.org/show_bug.cgi?id=28264.
+}
+
 void LayoutTestController::setIconDatabaseEnabled(bool flag)
 {
     // FIXME: implement
@@ -279,9 +336,14 @@ void LayoutTestController::setSelectTrailingWhitespaceEnabled(bool flag)
     // FIXME: implement
 }
 
-void LayoutTestController::setPopupBlockingEnabled(bool popupBlockingEnabled)
+void LayoutTestController::setPopupBlockingEnabled(bool flag)
 {
-    // FIXME: implement
+    WebKitWebView* view = webkit_web_frame_get_web_view(mainFrame);
+    ASSERT(view);
+
+    WebKitWebSettings* settings = webkit_web_view_get_settings(view);
+    g_object_set(G_OBJECT(settings), "javascript-can-open-windows-automatically", !flag, NULL);
+
 }
 
 bool LayoutTestController::elementDoesAutoCompleteForElementWithId(JSStringRef id) 
@@ -318,29 +380,89 @@ void LayoutTestController::clearPersistentUserStyleSheet()
 
 void LayoutTestController::clearAllDatabases()
 {
-    // FIXME: implement
+    webkit_remove_all_web_databases();
 }
  
 void LayoutTestController::setDatabaseQuota(unsigned long long quota)
-{    
-    // FIXME: implement
+{
+    WebKitSecurityOrigin* origin = webkit_web_frame_get_security_origin(mainFrame);
+    webkit_security_origin_set_web_database_quota(origin, quota);
+}
+
+void LayoutTestController::setAppCacheMaximumSize(unsigned long long size)
+{
+    webkit_application_cache_set_maximum_size(size);
 }
 
 bool LayoutTestController::pauseAnimationAtTimeOnElementWithId(JSStringRef animationName, double time, JSStringRef elementId)
 {    
     gchar* name = JSStringCopyUTF8CString(animationName);
     gchar* element = JSStringCopyUTF8CString(elementId);
-    return webkit_web_frame_pause_animation(mainFrame, name, time, element);
+    bool returnValue = webkit_web_frame_pause_animation(mainFrame, name, time, element);
+    g_free(name);
+    g_free(element);
+    return returnValue;
 }
 
 bool LayoutTestController::pauseTransitionAtTimeOnElementWithId(JSStringRef propertyName, double time, JSStringRef elementId)
 {    
     gchar* name = JSStringCopyUTF8CString(propertyName);
     gchar* element = JSStringCopyUTF8CString(elementId);
-    return webkit_web_frame_pause_transition(mainFrame, name, time, element);
+    bool returnValue = webkit_web_frame_pause_transition(mainFrame, name, time, element);
+    g_free(name);
+    g_free(element);
+    return returnValue;
 }
 
 unsigned LayoutTestController::numberOfActiveAnimations() const
 {
     return webkit_web_frame_number_of_active_animations(mainFrame);
+}
+
+void LayoutTestController::overridePreference(JSStringRef key, JSStringRef value)
+{
+    gchar* name = JSStringCopyUTF8CString(key);
+    gchar* strValue = JSStringCopyUTF8CString(value);
+
+    WebKitWebView* view = webkit_web_frame_get_web_view(mainFrame);
+    ASSERT(view);
+
+    WebKitWebSettings* settings = webkit_web_view_get_settings(view);
+    gchar* webSettingKey = copyWebSettingKey(name);
+
+    if (webSettingKey) {
+        GValue stringValue = { 0, { { 0 } } };
+        g_value_init(&stringValue, G_TYPE_STRING);
+        g_value_set_string(&stringValue, const_cast<gchar*>(strValue));
+
+        WebKitWebSettingsClass* klass = WEBKIT_WEB_SETTINGS_GET_CLASS(settings);
+        GParamSpec* pspec = g_object_class_find_property(G_OBJECT_CLASS(klass), webSettingKey);
+        GValue propValue = { 0, { { 0 } } };
+        g_value_init(&propValue, pspec->value_type);
+
+        if (g_value_type_transformable(G_TYPE_STRING, pspec->value_type)) {
+            g_value_transform(const_cast<GValue*>(&stringValue), &propValue);
+            g_object_set_property(G_OBJECT(settings), webSettingKey, const_cast<GValue*>(&propValue));
+        } else if (G_VALUE_HOLDS_BOOLEAN(&propValue)) {
+            g_object_set(G_OBJECT(settings), webSettingKey,
+                         g_str_equal(g_utf8_strdown(strValue, -1), "true"),
+                         NULL);
+        } else if (G_VALUE_HOLDS_INT(&propValue)) {
+            std::string str(strValue);
+            std::stringstream ss(str);
+            int val = 0;
+            if (!(ss >> val).fail())
+                g_object_set(G_OBJECT(settings), webSettingKey, val, NULL);
+        } else
+            printf("LayoutTestController::overridePreference failed to override preference '%s'.\n", name);
+    }
+
+    g_free(webSettingKey);
+    g_free(name);
+    g_free(strValue);
+}
+
+void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
+{
+    printf("LayoutTestController::addUserScript not implemented.\n");
 }

@@ -49,10 +49,15 @@ typedef const struct __CFString * CFStringRef;
 QT_BEGIN_NAMESPACE
 class QString;
 QT_END_NAMESPACE
+#include <QDataStream>
 #endif
 
 #if PLATFORM(WX)
 class wxString;
+#endif
+
+#if PLATFORM(HAIKU)
+class BString;
 #endif
 
 namespace WebCore {
@@ -228,6 +233,11 @@ public:
     operator wxString() const;
 #endif
 
+#if PLATFORM(HAIKU)
+    String(const BString&);
+    operator BString() const;
+#endif
+
 #ifndef NDEBUG
     Vector<char> ascii() const;
 #endif
@@ -248,6 +258,11 @@ private:
     RefPtr<StringImpl> m_impl;
 };
 
+#if PLATFORM(QT)
+QDataStream& operator<<(QDataStream& stream, const String& str);
+QDataStream& operator>>(QDataStream& stream, String& str);
+#endif
+
 String operator+(const String&, const String&);
 String operator+(const String&, const char*);
 String operator+(const char*, const String&);
@@ -265,6 +280,8 @@ inline bool operator!=(const char* a, const String& b) { return !equal(a, b.impl
 inline bool equalIgnoringCase(const String& a, const String& b) { return equalIgnoringCase(a.impl(), b.impl()); }
 inline bool equalIgnoringCase(const String& a, const char* b) { return equalIgnoringCase(a.impl(), b); }
 inline bool equalIgnoringCase(const char* a, const String& b) { return equalIgnoringCase(a, b.impl()); }
+
+inline bool equalIgnoringNullity(const String& a, const String& b) { return equalIgnoringNullity(a.impl(), b.impl()); }
 
 inline bool operator!(const String& str) { return str.isNull(); }
 

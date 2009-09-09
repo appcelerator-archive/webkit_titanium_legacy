@@ -27,6 +27,7 @@
 #define AccessibilityUIElement_h
 
 #include <JavaScriptCore/JSObjectRef.h>
+#include <wtf/Platform.h>
 #include <wtf/Vector.h>
 
 #if PLATFORM(MAC)
@@ -43,6 +44,9 @@ typedef struct objc_object* PlatformUIElement;
 #include <WebCore/COMPtr.h>
 
 typedef COMPtr<IAccessible> PlatformUIElement;
+#elif PLATFORM(GTK)
+#include <atk/atk.h>
+typedef AtkObject* PlatformUIElement;
 #else
 typedef void* PlatformUIElement;
 #endif
@@ -74,13 +78,18 @@ public:
     JSStringRef attributesOfDocumentLinks();
     JSStringRef attributesOfChildren();
     JSStringRef parameterizedAttributeNames();
-    
+    void increment();
+    void decrement();
+
     // Attributes - platform-independent implementations
     JSStringRef attributeValue(JSStringRef attribute);
     bool isAttributeSettable(JSStringRef attribute);
+    bool isActionSupported(JSStringRef action);
     JSStringRef role();
+    JSStringRef subrole();
     JSStringRef title();
     JSStringRef description();
+    JSStringRef language();
     double x();
     double y();
     double width();
@@ -88,9 +97,13 @@ public:
     double intValue();
     double minValue();
     double maxValue();
+    JSStringRef valueDescription();
     int insertionPointLineNumber();
     JSStringRef selectedTextRange();
-    bool supportsPressAction();
+    bool isEnabled();
+    bool isRequired() const;
+    double clickPointX();
+    double clickPointY();
 
     // Table-specific attributes
     JSStringRef attributesOfColumnHeaders();
@@ -107,10 +120,11 @@ public:
     int lineForIndex(int);
     JSStringRef boundsForRange(unsigned location, unsigned length);
     void setSelectedTextRange(unsigned location, unsigned length);
+    JSStringRef stringForRange(unsigned location, unsigned length);
     
     // Table-specific
     AccessibilityUIElement cellForColumnAndRow(unsigned column, unsigned row);
-    
+
 private:
     static JSClassRef getJSClass();
 

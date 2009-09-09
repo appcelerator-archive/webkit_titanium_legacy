@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2008, 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,11 +43,27 @@ namespace WebCore {
 class Event;
 class Frame;
 
+// Must match WebKitSystemInterface.h
 enum MediaControlElementType {
-    MediaFullscreenButton, MediaMuteButton, MediaPlayButton,
-    MediaSeekBackButton, MediaSeekForwardButton, MediaSlider, MediaSliderThumb,
-    MediaUnMuteButton, MediaPauseButton, MediaTimelineContainer, MediaCurrentTimeDisplay, 
-    MediaTimeRemainingDisplay, MediaControlsPanel
+    MediaFullscreenButton = 0,
+    MediaMuteButton,
+    MediaPlayButton,
+    MediaSeekBackButton,
+    MediaSeekForwardButton,
+    MediaSlider,
+    MediaSliderThumb,
+    MediaRewindButton,
+    MediaReturnToRealtimeButton,
+    MediaUnMuteButton,
+    MediaPauseButton,
+    MediaTimelineContainer,
+    MediaCurrentTimeDisplay,
+    MediaTimeRemainingDisplay,
+    MediaStatusDisplay,
+    MediaControlsPanel,
+    MediaVolumeSliderContainer,
+    MediaVolumeSlider,
+    MediaVolumeSliderThumb
 };
 
 class MediaControlShadowRootElement : public HTMLDivElement {
@@ -63,37 +79,87 @@ private:
     HTMLMediaElement* m_mediaElement;    
 };
 
- // ----------------------------
- 
-class MediaTextDisplayElement : public HTMLDivElement
-{
+// ----------------------------
+
+class MediaControlElement : public HTMLDivElement {
 public:
-    MediaTextDisplayElement(Document*, PseudoId, HTMLMediaElement*);
+    MediaControlElement(Document*, PseudoId, HTMLMediaElement*);
+    virtual void attach();
+    virtual bool rendererIsNeeded(RenderStyle*);
+
+    virtual PassRefPtr<RenderStyle> styleForElement();
     void attachToParent(Element*);
     void update();
-    void updateStyle();
+    virtual void updateStyle();
+
+    MediaControlElementType displayType() const { return m_displayType; }
+
+    HTMLMediaElement* mediaElement() const { return m_mediaElement; }
+    virtual bool isMediaControlElement() const { return true; }
+
 protected:
     HTMLMediaElement* m_mediaElement;   
     PseudoId m_pseudoStyleId;
+    MediaControlElementType m_displayType;  // some elements can show multiple types (e.g. play/pause)
 };
 
 // ----------------------------
 
-class MediaTimeDisplayElement : public MediaTextDisplayElement {
+class MediaControlTimelineContainerElement : public MediaControlElement {
 public:
-    MediaTimeDisplayElement(Document*, HTMLMediaElement*, bool currentTime);
+    MediaControlTimelineContainerElement(Document*, HTMLMediaElement*);
+    virtual bool rendererIsNeeded(RenderStyle*);
+};
+
+// ----------------------------
+
+class MediaControlVolumeSliderContainerElement : public MediaControlElement {
+public:
+    MediaControlVolumeSliderContainerElement(Document*, HTMLMediaElement*);
+    virtual PassRefPtr<RenderStyle> styleForElement();
+    void setVisible(bool);
+    bool isVisible() { return m_isVisible; }
+    void setPosition(int x, int y);
+    bool hitTest(const IntPoint& absPoint);
+
+private:
+    bool m_isVisible;
+    int m_x, m_y;
+};
+
+// ----------------------------
+
+class MediaControlStatusDisplayElement : public MediaControlElement {
+public:
+    MediaControlStatusDisplayElement(Document*, HTMLMediaElement*);
+    virtual void update();
+    virtual bool rendererIsNeeded(RenderStyle*);
+private:
+    enum StateBeingDisplayed { Nothing, Loading, LiveBroadcast };
+    StateBeingDisplayed m_stateBeingDisplayed;
 };
 
 // ----------------------------
 
 class MediaControlInputElement : public HTMLInputElement {
 public:
-    MediaControlInputElement(Document*, PseudoId, const String& type, HTMLMediaElement*, MediaControlElementType);
+    MediaControlInputElement(Document*, PseudoId, const String& type, HTMLMediaElement*);
+    virtual void attach();
+    virtual bool rendererIsNeeded(RenderStyle*);
+
+    virtual PassRefPtr<RenderStyle> styleForElement();
     void attachToParent(Element*);
     void update();
     void updateStyle();
+
     bool hitTest(const IntPoint& absPoint);
     MediaControlElementType displayType() const { return m_displayType; }
+
+    // Some elements are disabled by movie state (eg. mute if no audio).
+    virtual bool disabled() const  { return false; }
+
+    HTMLMediaElement* mediaElement() const { return m_mediaElement; }
+    virtual bool isMediaControlElement() const { return true; }
 
 protected:
     virtual void updateDisplayType() { }
@@ -101,7 +167,7 @@ protected:
 
     HTMLMediaElement* m_mediaElement;   
     PseudoId m_pseudoStyleId;
-    MediaControlElementType m_displayType;  // some elements can show multiple types (e.g. play/pause)
+    MediaControlElementType m_displayType;
 };
 
 // ----------------------------
@@ -111,6 +177,8 @@ public:
     MediaControlMuteButtonElement(Document*, HTMLMediaElement*);
     virtual void defaultEventHandler(Event*);
     virtual void updateDisplayType();
+    virtual bool disabled() const;
+    virtual bool rendererIsNeeded(RenderStyle*);
 };
 
 // ----------------------------
@@ -128,6 +196,7 @@ class MediaControlSeekButtonElement : public MediaControlInputElement {
 public:
     MediaControlSeekButtonElement(Document*, HTMLMediaElement*, bool forward);
     virtual void defaultEventHandler(Event*);
+    virtual void detach();
     void seekTimerFired(Timer<MediaControlSeekButtonElement>*);
 
 private:
@@ -136,6 +205,24 @@ private:
     bool m_capturing;
     Timer<MediaControlSeekButtonElement> m_seekTimer;
 };
+    
+// ----------------------------
+
+class MediaControlRewindButtonElement : public MediaControlInputElement {
+public:
+    MediaControlRewindButtonElement(Document*, HTMLMediaElement*);
+    virtual void defaultEventHandler(Event*);
+    virtual bool rendererIsNeeded(RenderStyle*);
+};
+
+// ----------------------------
+
+class MediaControlReturnToRealtimeButtonElement : public MediaControlInputElement {
+public:
+    MediaControlReturnToRealtimeButtonElement(Document*, HTMLMediaElement*);
+    virtual void defaultEventHandler(Event*);
+    virtual bool rendererIsNeeded(RenderStyle*);
+};    
 
 // ----------------------------
 
@@ -148,10 +235,37 @@ public:
 
 // ----------------------------
 
+class MediaControlVolumeSliderElement : public MediaControlInputElement {
+public:
+    MediaControlVolumeSliderElement(Document*, HTMLMediaElement*);
+    virtual void defaultEventHandler(Event*);
+};
+
+// ----------------------------
+
 class MediaControlFullscreenButtonElement : public MediaControlInputElement {
 public:
     MediaControlFullscreenButtonElement(Document*, HTMLMediaElement*);
     virtual void defaultEventHandler(Event*);
+    virtual bool rendererIsNeeded(RenderStyle*);
+};
+
+// ----------------------------
+
+class MediaControlTimeDisplayElement : public MediaControlElement {
+public:
+    MediaControlTimeDisplayElement(Document*, PseudoId, HTMLMediaElement*);
+    void setVisible(bool);
+    virtual PassRefPtr<RenderStyle> styleForElement();
+
+    void setCurrentValue(float);
+    float currentValue() const { return m_currentValue; }
+
+private:
+    String formatTime(float time);
+
+    float m_currentValue;
+    bool m_isVisible;
 };
 
 // ----------------------------
@@ -161,8 +275,9 @@ public:
     RenderMediaControlShadowRoot(Element* e) : RenderBlock(e) { }
     void setParent(RenderObject* p) { RenderObject::setParent(p); }
 };
-
+    
 // ----------------------------
+
 
 } //namespace WebCore
 #endif // enable(video)

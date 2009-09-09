@@ -1,12 +1,12 @@
 // [Name] go-task-get-method-accept-charset.js
 
-createWMLTestCase("Tests GET method of &lt;go&gt; element - accept-charset attribute", false);
+createDynamicWMLTestCase("Tests GET method of &lt;go&gt; element - accept-charset attribute", false);
 
 function setupTestDocument() {
     var cardElement = testDocument.documentElement.firstChild;
 
     var anchorElement = createWMLElement("anchor");
-    anchorElement.appendChild(testDocument.createTextNode("Start test"));
+    anchorElement.textContent = "Start test";
     cardElement.appendChild(anchorElement);
 
     var goElement = createWMLElement("go");

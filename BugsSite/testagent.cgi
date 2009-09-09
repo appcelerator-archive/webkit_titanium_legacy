@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -19,6 +19,6 @@
 
 use strict;
 print "content-type:text/plain\n\n";
-print "OK\n";
+print "OK " . ($::ENV{MOD_PERL} || "mod_cgi") . "\n";
 exit;
 

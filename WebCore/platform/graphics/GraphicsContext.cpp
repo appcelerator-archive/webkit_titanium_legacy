@@ -27,9 +27,9 @@
 #include "GraphicsContext.h"
 
 #include "BidiResolver.h"
+#include "Font.h"
 #include "Generator.h"
 #include "GraphicsContextPrivate.h"
-#include "Font.h"
 
 using namespace std;
 
@@ -89,7 +89,7 @@ void GraphicsContext::save()
         return;
 
     m_common->stack.append(m_common->state);
-    
+
     savePlatformState();
 }
 
@@ -104,7 +104,7 @@ void GraphicsContext::restore()
     }
     m_common->state = m_common->stack.last();
     m_common->stack.removeLast();
-    
+
     restorePlatformState();
 }
 
@@ -214,6 +214,7 @@ void GraphicsContext::setStrokePattern(PassRefPtr<Pattern> pattern)
     }
     m_common->state.strokeColorSpace = PatternColorSpace;
     m_common->state.strokePattern = pattern;
+    setPlatformStrokePattern(m_common->state.strokePattern.get());
 }
 
 void GraphicsContext::setFillPattern(PassRefPtr<Pattern> pattern)
@@ -225,6 +226,7 @@ void GraphicsContext::setFillPattern(PassRefPtr<Pattern> pattern)
     }
     m_common->state.fillColorSpace = PatternColorSpace;
     m_common->state.fillPattern = pattern;
+    setPlatformFillPattern(m_common->state.fillPattern.get());
 }
 
 void GraphicsContext::setStrokeGradient(PassRefPtr<Gradient> gradient)
@@ -236,6 +238,7 @@ void GraphicsContext::setStrokeGradient(PassRefPtr<Gradient> gradient)
     }
     m_common->state.strokeColorSpace = GradientColorSpace;
     m_common->state.strokeGradient = gradient;
+    setPlatformStrokeGradient(m_common->state.strokeGradient.get());
 }
 
 void GraphicsContext::setFillGradient(PassRefPtr<Gradient> gradient)
@@ -247,6 +250,7 @@ void GraphicsContext::setFillGradient(PassRefPtr<Gradient> gradient)
     }
     m_common->state.fillColorSpace = GradientColorSpace;
     m_common->state.fillGradient = gradient;
+    setPlatformFillGradient(m_common->state.fillGradient.get());
 }
 
 Gradient* GraphicsContext::fillGradient() const
@@ -301,7 +305,7 @@ bool GraphicsContext::paintingDisabled() const
 }
 
 void GraphicsContext::drawImage(Image* image, const IntPoint& p, CompositeOperator op)
-{        
+{
     drawImage(image, p, IntRect(0, 0, -1, -1), op);
 }
 
@@ -320,13 +324,15 @@ void GraphicsContext::drawImage(Image* image, const IntRect& dest, const IntRect
     drawImage(image, FloatRect(dest), srcRect, op, useLowQualityScale);
 }
 
+#if !PLATFORM(WINCE) || PLATFORM(QT)
 void GraphicsContext::drawText(const Font& font, const TextRun& run, const IntPoint& point, int from, int to)
 {
     if (paintingDisabled())
         return;
-    
+
     font.drawText(this, run, point, from, to);
 }
+#endif
 
 void GraphicsContext::drawBidiText(const Font& font, const TextRun& run, const FloatPoint& point)
 {
@@ -377,7 +383,7 @@ void GraphicsContext::initFocusRing(int width, int offset)
     if (paintingDisabled())
         return;
     clearFocusRing();
-    
+
     m_common->m_focusRingWidth = width;
     m_common->m_focusRingOffset = offset;
 }
@@ -390,12 +396,12 @@ void GraphicsContext::clearFocusRing()
 IntRect GraphicsContext::focusRingBoundingRect()
 {
     IntRect result = IntRect(0, 0, 0, 0);
-    
+
     const Vector<IntRect>& rects = focusRingRects();
     unsigned rectCount = rects.size();
     for (unsigned i = 0; i < rectCount; i++)
         result.unite(rects[i]);
-        
+
     return result;
 }
 
@@ -430,7 +436,7 @@ void GraphicsContext::drawImage(Image* image, const FloatRect& dest, const Float
     float tsh = src.height();
     float tw = dest.width();
     float th = dest.height();
-        
+
     if (tsw == -1)
         tsw = image->width();
     if (tsh == -1)
@@ -508,6 +514,24 @@ void GraphicsContext::fillRect(const FloatRect& rect, Generator& generator)
     generator.fill(this, rect);
 }
 
+#if !PLATFORM(SKIA)
+void GraphicsContext::setPlatformFillGradient(Gradient*)
+{
+}
+
+void GraphicsContext::setPlatformFillPattern(Pattern*)
+{
+}
+
+void GraphicsContext::setPlatformStrokeGradient(Gradient*)
+{
+}
+
+void GraphicsContext::setPlatformStrokePattern(Pattern*)
+{
+}
+#endif
+
 #if !PLATFORM(CG) && !PLATFORM(SKIA)
 // Implement this if you want to go ahead and push the drawing mode into your native context
 // immediately.
@@ -516,10 +540,39 @@ void GraphicsContext::setPlatformTextDrawingMode(int mode)
 }
 #endif
 
-#if !PLATFORM(QT) && !PLATFORM(CAIRO) && !PLATFORM(SKIA)
+#if !PLATFORM(QT) && !PLATFORM(CAIRO) && !PLATFORM(SKIA) && !PLATFORM(HAIKU)
 void GraphicsContext::setPlatformStrokeStyle(const StrokeStyle&)
 {
 }
 #endif
+
+void GraphicsContext::adjustLineToPixelBoundaries(FloatPoint& p1, FloatPoint& p2, float strokeWidth, const StrokeStyle& penStyle)
+{
+    // For odd widths, we add in 0.5 to the appropriate x/y so that the float arithmetic
+    // works out.  For example, with a border width of 3, WebKit will pass us (y1+y2)/2, e.g.,
+    // (50+53)/2 = 103/2 = 51 when we want 51.5.  It is always true that an even width gave
+    // us a perfect position, but an odd width gave us a position that is off by exactly 0.5.
+    if (penStyle == DottedStroke || penStyle == DashedStroke) {
+        if (p1.x() == p2.x()) {
+            p1.setY(p1.y() + strokeWidth);
+            p2.setY(p2.y() - strokeWidth);
+        } else {
+            p1.setX(p1.x() + strokeWidth);
+            p2.setX(p2.x() - strokeWidth);
+        }
+    }
+
+    if (static_cast<int>(strokeWidth) % 2) { //odd
+        if (p1.x() == p2.x()) {
+            // We're a vertical line.  Adjust our x.
+            p1.setX(p1.x() + 0.5f);
+            p2.setX(p2.x() + 0.5f);
+        } else {
+            // We're a horizontal line. Adjust our y.
+            p1.setY(p1.y() + 0.5f);
+            p2.setY(p2.y() + 0.5f);
+        }
+    }
+}
 
 }

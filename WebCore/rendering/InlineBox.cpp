@@ -88,28 +88,21 @@ void InlineBox::showTreeForThis() const
 int InlineBox::height() const
 {
 #if ENABLE(SVG)
-    if (isSVG())
-        return svgBoxHeight();
+    if (hasVirtualHeight())
+        return virtualHeight();
 #endif
-
+    
     if (renderer()->isText())
         return m_isText ? renderer()->style(m_firstLine)->font().height() : 0;
     if (renderer()->isBox() && parent())
         return toRenderBox(m_renderer)->height();
 
     ASSERT(isInlineFlowBox());
-    const InlineFlowBox* flowBox = static_cast<const InlineFlowBox*>(this);
     RenderBoxModelObject* flowObject = boxModelObject();
     const Font& font = renderer()->style(m_firstLine)->font();
     int result = font.height();
-    bool strictMode = renderer()->document()->inStrictMode();
     if (parent())
         result += flowObject->borderTop() + flowObject->paddingTop() + flowObject->borderBottom() + flowObject->paddingBottom();
-    if (strictMode || flowBox->hasTextChildren() || flowObject->hasHorizontalBordersOrPadding())
-        return result;
-    int bottom = root()->bottomOverflow();
-    if (y() + result > bottom)
-        result = bottom - y();
     return result;
 }
 
@@ -244,26 +237,26 @@ bool InlineBox::prevOnLineExists() const
     return m_prevOnLineExists;
 }
 
-InlineBox* InlineBox::firstLeafChild()
+InlineBox* InlineBox::nextLeafChild() const
 {
-    return this;
+    InlineBox* leaf = 0;
+    for (InlineBox* box = nextOnLine(); box && !leaf; box = box->nextOnLine())
+        leaf = box->isLeaf() ? box : static_cast<InlineFlowBox*>(box)->firstLeafChild();
+    if (!leaf && parent())
+        leaf = parent()->nextLeafChild();
+    return leaf;
 }
-
-InlineBox* InlineBox::lastLeafChild()
+    
+InlineBox* InlineBox::prevLeafChild() const
 {
-    return this;
+    InlineBox* leaf = 0;
+    for (InlineBox* box = prevOnLine(); box && !leaf; box = box->prevOnLine())
+        leaf = box->isLeaf() ? box : static_cast<InlineFlowBox*>(box)->lastLeafChild();
+    if (!leaf && parent())
+        leaf = parent()->prevLeafChild();
+    return leaf;
 }
-
-InlineBox* InlineBox::nextLeafChild()
-{
-    return parent() ? parent()->firstLeafChildAfterBox(this) : 0;
-}
-
-InlineBox* InlineBox::prevLeafChild()
-{
-    return parent() ? parent()->lastLeafChildBeforeBox(this) : 0;
-}
-
+    
 RenderObject::SelectionState InlineBox::selectionState()
 {
     return renderer()->selectionState();

@@ -24,8 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ClipboardGdk_h
-#define ClipboardGdk_h
+#ifndef ClipboardGtk_h
+#define ClipboardGtk_h
 
 #include "Clipboard.h"
 
@@ -47,7 +47,9 @@ namespace WebCore {
         String getData(const String&, bool&) const;
         bool setData(const String&, const String&);
 
-        HashSet<String> types() const;
+        virtual HashSet<String> types() const;
+        virtual PassRefPtr<FileList> files() const;
+
         IntPoint dragLocation() const;
         CachedImage* dragImage() const;
         void setDragImage(CachedImage*, const IntPoint&);

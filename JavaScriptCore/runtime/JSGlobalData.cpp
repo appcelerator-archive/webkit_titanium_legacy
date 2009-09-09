@@ -33,14 +33,17 @@
 #include "Collector.h"
 #include "CommonIdentifiers.h"
 #include "FunctionConstructor.h"
+#include "GetterSetter.h"
 #include "Interpreter.h"
 #include "JSActivation.h"
+#include "JSAPIValueWrapper.h"
 #include "JSArray.h"
 #include "JSByteArray.h"
 #include "JSClassRef.h"
 #include "JSFunction.h"
 #include "JSLock.h"
 #include "JSNotAnObject.h"
+#include "JSPropertyNameIterator.h"
 #include "JSStaticScopeObject.h"
 #include "Parser.h"
 #include "Lexer.h"
@@ -59,14 +62,14 @@ using namespace WTF;
 
 namespace JSC {
 
-extern const HashTable arrayTable;
-extern const HashTable jsonTable;
-extern const HashTable dateTable;
-extern const HashTable mathTable;
-extern const HashTable numberTable;
-extern const HashTable regExpTable;
-extern const HashTable regExpConstructorTable;
-extern const HashTable stringTable;
+extern JSC_CONST_HASHTABLE HashTable arrayTable;
+extern JSC_CONST_HASHTABLE HashTable jsonTable;
+extern JSC_CONST_HASHTABLE HashTable dateTable;
+extern JSC_CONST_HASHTABLE HashTable mathTable;
+extern JSC_CONST_HASHTABLE HashTable numberTable;
+extern JSC_CONST_HASHTABLE HashTable regExpTable;
+extern JSC_CONST_HASHTABLE HashTable regExpConstructorTable;
+extern JSC_CONST_HASHTABLE HashTable stringTable;
 
 struct VPtrSet {
     VPtrSet();
@@ -118,7 +121,10 @@ JSGlobalData::JSGlobalData(bool isShared, const VPtrSet& vptrSet)
     , stringStructure(JSString::createStructure(jsNull()))
     , notAnObjectErrorStubStructure(JSNotAnObjectErrorStub::createStructure(jsNull()))
     , notAnObjectStructure(JSNotAnObject::createStructure(jsNull()))
-#if !USE(ALTERNATE_JSIMMEDIATE)
+    , propertyNameIteratorStructure(JSPropertyNameIterator::createStructure(jsNull()))
+    , getterSetterStructure(GetterSetter::createStructure(jsNull()))
+    , apiWrapperStructure(JSAPIValueWrapper::createStructure(jsNull()))
+#if USE(JSVALUE32)
     , numberStructure(JSNumberCell::createStructure(jsNull()))
 #endif
     , jsArrayVPtr(vptrSet.jsArrayVPtr)
@@ -138,8 +144,9 @@ JSGlobalData::JSGlobalData(bool isShared, const VPtrSet& vptrSet)
     , initializingLazyNumericCompareFunction(false)
     , head(0)
     , dynamicGlobalObject(0)
-    , scopeNodeBeingReparsed(0)
+    , functionCodeBlockBeingReparsed(0)
     , firstStringifierToMark(0)
+    , markStack(vptrSet.jsArrayVPtr)
 {
 #if PLATFORM(MAC)
     startProfilerServerIfNeeded();
@@ -229,9 +236,8 @@ const Vector<Instruction>& JSGlobalData::numericCompareFunction(ExecState* exec)
 {
     if (!lazyNumericCompareFunction.size() && !initializingLazyNumericCompareFunction) {
         initializingLazyNumericCompareFunction = true;
-        RefPtr<ProgramNode> programNode = parser->parse<ProgramNode>(exec, 0, makeSource(UString("(function (v1, v2) { return v1 - v2; })")), 0, 0);
-        RefPtr<FunctionBodyNode> functionBody = extractFunctionBody(programNode.get());
-        lazyNumericCompareFunction = functionBody->bytecode(exec->scopeChain()).instructions();
+        RefPtr<FunctionExecutable> function = FunctionExecutable::fromGlobalCode(Identifier(exec, "numericCompare"), exec, 0, makeSource(UString("(function (v1, v2) { return v1 - v2; })")), 0, 0);
+        lazyNumericCompareFunction = function->bytecode(exec, exec->scopeChain()).instructions();
         initializingLazyNumericCompareFunction = false;
     }
 

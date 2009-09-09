@@ -66,6 +66,7 @@ WebInspector.TextPrompt.prototype = {
                 this._tabKeyPressed(event);
                 break;
             case "Right":
+            case "End":
                 if (!this.acceptAutoComplete())
                     this.autoCompleteSoon();
                 break;
@@ -159,13 +160,12 @@ WebInspector.TextPrompt.prototype = {
             return;
 
         var selectionRange = selection.getRangeAt(0);
-        var wordPrefixRange = selectionRange.startContainer.rangeOfWord(selectionRange.startOffset, this.completionStopCharacters, this.element, "backward");
 
         var fullWordRange = document.createRange();
-        fullWordRange.setStart(wordPrefixRange.startContainer, wordPrefixRange.startOffset);
+        fullWordRange.setStart(originalWordPrefixRange.startContainer, originalWordPrefixRange.startOffset);
         fullWordRange.setEnd(selectionRange.endContainer, selectionRange.endOffset);
 
-        if (originalWordPrefixRange.toString() != fullWordRange.toString())
+        if (originalWordPrefixRange.toString() + selectionRange.toString() != fullWordRange.toString())
             return;
 
         if (completions.length === 1 || selection.isCollapsed || auto) {
@@ -185,7 +185,7 @@ WebInspector.TextPrompt.prototype = {
                 var completionText = completions[foundIndex + 1];
         }
 
-        var wordPrefixLength = wordPrefixRange.toString().length;
+        var wordPrefixLength = originalWordPrefixRange.toString().length;
 
         this._userEnteredRange = fullWordRange;
         this._userEnteredText = fullWordRange.toString();

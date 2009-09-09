@@ -65,6 +65,10 @@ use File::Spec;
 use File::Temp qw(tempfile);
 use Getopt::Long;
 
+use FindBin;
+use lib $FindBin::Bin;
+use VCSUtils;
+
 sub checksum($);
 sub fixChangeLogPatch($);
 sub gitdiff2svndiff($);
@@ -80,6 +84,9 @@ if (!GetOptions("help!" => \$showHelp) || $showHelp) {
     exit 1;
 }
 
+my $pathScriptWasRunFrom = Cwd::getcwd();
+my $pathForRepositoryRoot = determineVCSRoot();
+
 my @copiedFiles;
 my %directoriesToCheck;
 
@@ -94,7 +101,7 @@ while (<>) {
         $filter = \&gitdiff2svndiff;
     }
     $_ = &$filter($_) if $filter;
-    if (/^Index: (.*)/) {
+    if (/^Index: (.+)/) {
         $indexPath = $1;
         if ($patch) {
             if ($copiedFromPath) {
@@ -133,7 +140,9 @@ for $patch (@copiedFiles) {
     patch($patch);
 }
 
-revertDirectories();
+if (isSVN()) {
+    revertDirectories();
+}
 
 exit 0;
 
@@ -220,7 +229,7 @@ sub patch($)
     my ($patch) = @_;
     return if !$patch;
 
-    unless ($patch =~ m|^Index: ([^\n]+)|) {
+    unless ($patch =~ m|^Index: ([^\r\n]+)|) {
         my $separator = '-' x 67;
         warn "Failed to find 'Index:' in:\n$separator\n$patch\n$separator\n";
         return;
@@ -289,6 +298,7 @@ sub patch($)
 
 sub revertDirectories()
 {
+    chdir $pathForRepositoryRoot;
     my %checkedDirectories;
     foreach my $path (reverse sort keys %directoriesToCheck) {
         my @dirs = File::Spec->splitdir($path);
@@ -330,7 +340,8 @@ sub svnStatus($)
         # be first (since any files with unknown status will be listed first).
         my $normalizedFullPath = File::Spec->catdir(File::Spec->splitdir($fullPath));
         while (<SVN>) {
-            chomp;
+            # Input may use a different EOL sequence than $/, so avoid chomp.
+            $_ =~ s/[\r\n]+$//g;
             my $normalizedStatPath = File::Spec->catdir(File::Spec->splitdir(substr($_, 7)));
             if ($normalizedFullPath eq $normalizedStatPath) {
                 $svnStatus = $_;
@@ -352,11 +363,13 @@ sub svnStatus($)
 sub unapplyPatch($$;$)
 {
     my ($patch, $fullPath, $options) = @_;
+    chdir $pathForRepositoryRoot;
     $options = [] if (! $options);
     my $command = "patch " . join(" ", "-p0", "-R", @{$options});
     open PATCH, "| $command" or die "Failed to patch $fullPath: $!";
     print PATCH $patch;
     close PATCH;
+    chdir $pathScriptWasRunFrom;
 }
 
 sub unsetChangeLogDate($$)

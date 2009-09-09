@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2007 Alexey Proskuryakov <ap@nypop.com>.
  * Copyright (C) 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -215,14 +216,29 @@ template<> inline CSSPrimitiveValue::CSSPrimitiveValue(ControlPart e)
         case MediaSeekForwardButtonPart:
             m_value.ident = CSSValueMediaSeekForwardButton;
             break;
+        case MediaRewindButtonPart:
+            m_value.ident = CSSValueMediaRewindButton;
+            break;
+        case MediaReturnToRealtimeButtonPart:
+            m_value.ident = CSSValueMediaReturnToRealtimeButton;
+            break;
         case MediaSliderPart:
             m_value.ident = CSSValueMediaSlider;
             break;
         case MediaSliderThumbPart:
             m_value.ident = CSSValueMediaSliderthumb;
             break;
-        case MediaTimelineContainerPart:
-            m_value.ident = CSSValueMediaTimelineContainer;
+        case MediaVolumeSliderContainerPart:
+            m_value.ident = CSSValueMediaVolumeSliderContainer;
+            break;
+        case MediaVolumeSliderPart:
+            m_value.ident = CSSValueMediaVolumeSlider;
+            break;
+        case MediaVolumeSliderThumbPart:
+            m_value.ident = CSSValueMediaVolumeSliderthumb;
+            break;
+        case MediaControlsBackgroundPart:
+            m_value.ident = CSSValueMediaControlsBackground;
             break;
         case MediaCurrentTimePart:
             m_value.ident = CSSValueMediaCurrentTimeDisplay;
@@ -292,6 +308,37 @@ template<> inline CSSPrimitiveValue::operator ControlPart() const
         return ControlPart(m_value.ident - CSSValueCheckbox + 1);
 }
 
+template<> inline CSSPrimitiveValue::CSSPrimitiveValue(EFillAttachment e)
+    : m_type(CSS_IDENT)
+{
+    switch (e) {
+        case ScrollBackgroundAttachment:
+            m_value.ident = CSSValueScroll;
+            break;
+        case LocalBackgroundAttachment:
+            m_value.ident = CSSValueLocal;
+            break;
+        case FixedBackgroundAttachment:
+            m_value.ident = CSSValueFixed;
+            break;
+    }
+}
+
+template<> inline CSSPrimitiveValue::operator EFillAttachment() const
+{
+    switch (m_value.ident) {
+        case CSSValueScroll:
+            return ScrollBackgroundAttachment;
+        case CSSValueLocal:
+            return LocalBackgroundAttachment;
+        case CSSValueFixed:
+            return FixedBackgroundAttachment;
+        default:
+            ASSERT_NOT_REACHED();
+            return ScrollBackgroundAttachment;
+    }
+}
+
 template<> inline CSSPrimitiveValue::CSSPrimitiveValue(EFillBox e)
     : m_type(CSS_IDENT)
 {
@@ -338,14 +385,14 @@ template<> inline CSSPrimitiveValue::CSSPrimitiveValue(EFillRepeat e)
         case RepeatFill:
             m_value.ident = CSSValueRepeat;
             break;
-        case RepeatXFill:
-            m_value.ident = CSSValueRepeatX;
-            break;
-        case RepeatYFill:
-            m_value.ident = CSSValueRepeatY;
-            break;
         case NoRepeatFill:
             m_value.ident = CSSValueNoRepeat;
+            break;
+        case RoundFill:
+            m_value.ident = CSSValueRound;
+            break;
+        case SpaceFill:
+            m_value.ident = CSSValueSpace;
             break;
     }
 }
@@ -355,12 +402,12 @@ template<> inline CSSPrimitiveValue::operator EFillRepeat() const
     switch (m_value.ident) {
         case CSSValueRepeat:
             return RepeatFill;
-        case CSSValueRepeatX:
-            return RepeatXFill;
-        case CSSValueRepeatY:
-            return RepeatYFill;
         case CSSValueNoRepeat:
             return NoRepeatFill;
+        case CSSValueRound:
+            return RoundFill;
+        case CSSValueSpace:
+            return SpaceFill;
         default:
             ASSERT_NOT_REACHED();
             return RepeatFill;
@@ -485,6 +532,7 @@ template<> inline CSSPrimitiveValue::operator EBoxOrient() const
         case CSSValueInlineAxis:
             return HORIZONTAL;
         case CSSValueVertical:
+        case CSSValueBlockAxis:
             return VERTICAL;
         default:
             ASSERT_NOT_REACHED();
@@ -740,6 +788,11 @@ template<> inline CSSPrimitiveValue::CSSPrimitiveValue(EDisplay e)
         case TABLE_CAPTION:
             m_value.ident = CSSValueTableCaption;
             break;
+#if ENABLE(WCSS)
+        case WAP_MARQUEE:
+            m_value.ident = CSSValueWapMarquee;
+            break;
+#endif
         case BOX:
             m_value.ident = CSSValueWebkitBox;
             break;

@@ -56,6 +56,7 @@ WebInspector.ScriptsPanel = function()
     this.filesSelectElement.className = "status-bar-item";
     this.filesSelectElement.id = "scripts-files";
     this.filesSelectElement.addEventListener("change", this._changeVisibleFile.bind(this), false);
+    this.filesSelectElement.handleKeyEvent = this.handleKeyEvent.bind(this);
     this.topStatusBar.appendChild(this.filesSelectElement);
 
     this.functionsSelectElement = document.createElement("select");
@@ -132,13 +133,11 @@ WebInspector.ScriptsPanel = function()
     for (var pane in this.sidebarPanes)
         this.sidebarElement.appendChild(this.sidebarPanes[pane].element);
 
-    // FIXME: remove the following line of code when the Breakpoints pane has content.
-    this.sidebarElement.removeChild(this.sidebarPanes.breakpoints.element);
-
     this.sidebarPanes.callstack.expanded = true;
     this.sidebarPanes.callstack.addEventListener("call frame selected", this._callFrameSelected, this);
 
     this.sidebarPanes.scopechain.expanded = true;
+    this.sidebarPanes.breakpoints.expanded = true;
 
     var panelEnablerHeading = WebInspector.UIString("You need to enable debugging before you can use the Scripts panel.");
     var panelEnablerDisclaimer = WebInspector.UIString("Enabling debugging will make scripts run slower.");
@@ -152,16 +151,46 @@ WebInspector.ScriptsPanel = function()
     this.element.appendChild(this.sidebarElement);
     this.element.appendChild(this.sidebarResizeElement);
 
-    this.enableToggleButton = document.createElement("button");
-    this.enableToggleButton.className = "enable-toggle-status-bar-item status-bar-item";
+    this.enableToggleButton = new WebInspector.StatusBarButton("", "enable-toggle-status-bar-item");
     this.enableToggleButton.addEventListener("click", this._toggleDebugging.bind(this), false);
 
-    this.pauseOnExceptionButton = document.createElement("button");
-    this.pauseOnExceptionButton.id = "scripts-pause-on-exceptions-status-bar-item";
-    this.pauseOnExceptionButton.className = "status-bar-item";
+    this.pauseOnExceptionButton = new WebInspector.StatusBarButton("", "scripts-pause-on-exceptions-status-bar-item");
     this.pauseOnExceptionButton.addEventListener("click", this._togglePauseOnExceptions.bind(this), false);
 
     this._breakpointsURLMap = {};
+
+    this._shortcuts = {};
+
+    var isMac = InspectorController.platform().indexOf("mac-") === 0;
+    var platformSpecificModifier = isMac ? WebInspector.KeyboardShortcut.Modifiers.Meta : WebInspector.KeyboardShortcut.Modifiers.Ctrl;
+
+    // Continue.
+    var handler = this.pauseButton.click.bind(this.pauseButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F8);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Slash, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
+
+    // Step over.
+    var handler = this.stepOverButton.click.bind(this.stepOverButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F10);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.SingleQuote, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
+
+    // Step into.
+    var handler = this.stepIntoButton.click.bind(this.stepIntoButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F11);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Semicolon, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
+
+    // Step out.
+    var handler = this.stepOutButton.click.bind(this.stepOutButton);
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.F11, WebInspector.KeyboardShortcut.Modifiers.Shift);
+    this._shortcuts[shortcut] = handler;
+    var shortcut = WebInspector.KeyboardShortcut.makeKey(WebInspector.KeyboardShortcut.KeyCodes.Semicolon, WebInspector.KeyboardShortcut.Modifiers.Shift, platformSpecificModifier);
+    this._shortcuts[shortcut] = handler;
 
     this.reset();
 }
@@ -176,7 +205,7 @@ WebInspector.ScriptsPanel.prototype = {
 
     get statusBarItems()
     {
-        return [this.enableToggleButton, this.pauseOnExceptionButton];
+        return [this.enableToggleButton.element, this.pauseOnExceptionButton.element];
     },
 
     get paused()
@@ -206,7 +235,7 @@ WebInspector.ScriptsPanel.prototype = {
             view.visible = false;
         }
         if (this._attachDebuggerWhenShown) {
-            InspectorController.enableDebuggerFromFrontend(false);
+            InspectorController.enableDebugger(false);
             delete this._attachDebuggerWhenShown;
         }
     },
@@ -254,7 +283,7 @@ WebInspector.ScriptsPanel.prototype = {
                 if (startingLine <= breakpoint.line) {
                     breakpoint.sourceID = sourceID;
                     if (breakpoint.enabled)
-                        InspectorController.addBreakpoint(breakpoint.sourceID, breakpoint.line);
+                        InspectorController.addBreakpoint(breakpoint.sourceID, breakpoint.line, breakpoint.condition);
                 }
             }
         }
@@ -263,6 +292,11 @@ WebInspector.ScriptsPanel.prototype = {
             this._sourceIDMap[sourceID] = (resource || script);
 
         this._addScriptToFilesMenu(script);
+    },
+
+    scriptOrResourceForID: function(id)
+    {
+        return this._sourceIDMap[id];
     },
 
     addBreakpoint: function(breakpoint)
@@ -326,29 +360,26 @@ WebInspector.ScriptsPanel.prototype = {
             updateInterface = true;
 
         var self = this;
-        function updatingCallbackWrapper(result)
+        function updatingCallbackWrapper(result, exception)
         {
-            callback(result);
+            callback(result, exception);
             if (updateInterface)
                 self.sidebarPanes.scopechain.update(selectedCallFrame);
-        }        
+        }
         this.doEvalInCallFrame(selectedCallFrame, code, updatingCallbackWrapper);
     },
 
     doEvalInCallFrame: function(callFrame, code, callback)
     {
-        function delayedEvaluation()
+        function evalCallback(result)
         {
-            try {
-                callback(callFrame.evaluate(code));
-            } catch (e) {
-                callback(e, true);
-            }
+            if (result)
+                callback(result.value, result.isException);
         }
-        setTimeout(delayedEvaluation, 0);
+        InjectedScriptAccess.evaluateInCallFrame(callFrame.id, code, evalCallback);
     },
 
-    variablesInScopeForSelectedCallFrame: function()
+    variablesInSelectedCallFrame: function()
     {
         var selectedCallFrame = this.sidebarPanes.callstack.selectedCallFrame;
         if (!this._paused || !selectedCallFrame)
@@ -357,15 +388,14 @@ WebInspector.ScriptsPanel.prototype = {
         var result = {};
         var scopeChain = selectedCallFrame.scopeChain;
         for (var i = 0; i < scopeChain.length; ++i) {
-            var scopeObject = scopeChain[i];
-            for (var property in scopeObject)
-                result[property] = true;
+            var scopeObjectProperties = scopeChain[i].properties;
+            for (var j = 0; j < scopeObjectProperties.length; ++j)
+                result[scopeObjectProperties[j]] = true;
         }
-
         return result;
     },
 
-    debuggerPaused: function()
+    debuggerPaused: function(callFrames)
     {
         this._paused = true;
         this._waitingToPause = false;
@@ -373,10 +403,8 @@ WebInspector.ScriptsPanel.prototype = {
 
         this._updateDebuggerButtons();
 
-        var callStackPane = this.sidebarPanes.callstack;
-        var currentFrame = InspectorController.currentCallFrame();
-        callStackPane.update(currentFrame, this._sourceIDMap);
-        callStackPane.selectedCallFrame = currentFrame;
+        this.sidebarPanes.callstack.update(callFrames, this._sourceIDMap);
+        this.sidebarPanes.callstack.selectedCallFrame = callFrames[0];
 
         WebInspector.currentPanel = this;
         window.focus();
@@ -394,7 +422,7 @@ WebInspector.ScriptsPanel.prototype = {
     attachDebuggerWhenShown: function()
     {
         if (this.element.parentElement) {
-            InspectorController.enableDebuggerFromFrontend(false);
+            InspectorController.enableDebugger(false);
         } else {
             this._attachDebuggerWhenShown = true;
         }
@@ -484,6 +512,19 @@ WebInspector.ScriptsPanel.prototype = {
         if (!view)
             return;
         this._showScriptOrResource((view.resource || view.script));
+    },
+
+    handleKeyEvent: function(event)
+    {
+        var shortcut = WebInspector.KeyboardShortcut.makeKeyFromEvent(event);
+        var handler = this._shortcuts[shortcut];
+        if (handler) {
+            handler(event);
+            event.preventDefault();
+            event.handled = true;
+        } else {
+            this.sidebarPanes.callstack.handleKeyEvent(event);
+        }
     },
 
     scriptViewForScript: function(script)
@@ -713,10 +754,10 @@ WebInspector.ScriptsPanel.prototype = {
     {
         if (InspectorController.pauseOnExceptions()) {
             this.pauseOnExceptionButton.title = WebInspector.UIString("Don't pause on exceptions.");
-            this.pauseOnExceptionButton.addStyleClass("toggled-on");
+            this.pauseOnExceptionButton.toggled = true;
         } else {
             this.pauseOnExceptionButton.title = WebInspector.UIString("Pause on exceptions.");
-            this.pauseOnExceptionButton.removeStyleClass("toggled-on");
+            this.pauseOnExceptionButton.toggled = false;
         }
     },
 
@@ -724,13 +765,13 @@ WebInspector.ScriptsPanel.prototype = {
     {
         if (InspectorController.debuggerEnabled()) {
             this.enableToggleButton.title = WebInspector.UIString("Debugging enabled. Click to disable.");
-            this.enableToggleButton.addStyleClass("toggled-on");
-            this.pauseOnExceptionButton.removeStyleClass("hidden");
+            this.enableToggleButton.toggled = true;
+            this.pauseOnExceptionButton.visible = true;
             this.panelEnablerView.visible = false;
         } else {
             this.enableToggleButton.title = WebInspector.UIString("Debugging disabled. Click to enable.");
-            this.enableToggleButton.removeStyleClass("toggled-on");
-            this.pauseOnExceptionButton.addStyleClass("hidden");
+            this.enableToggleButton.toggled = false;
+            this.pauseOnExceptionButton.visible = false;
             this.panelEnablerView.visible = true;
         }
 
@@ -815,7 +856,7 @@ WebInspector.ScriptsPanel.prototype = {
         if (InspectorController.debuggerEnabled())
             InspectorController.disableDebugger(true);
         else
-            InspectorController.enableDebuggerFromFrontend(!!optionalAlways);
+            InspectorController.enableDebugger(!!optionalAlways);
     },
 
     _togglePauseOnExceptions: function()

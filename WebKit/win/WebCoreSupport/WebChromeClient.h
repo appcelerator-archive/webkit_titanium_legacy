@@ -29,8 +29,10 @@
 #include <WebCore/FocusDirection.h>
 #include <WebCore/ScrollTypes.h>
 #include <wtf/Forward.h>
+#include <wtf/PassRefPtr.h>
 
 class WebView;
+class WebDesktopNotificationsDelegate;
 
 interface IWebUIDelegate;
 
@@ -73,7 +75,7 @@ public:
 
     virtual void setResizable(bool);
 
-    virtual void addMessageToConsole(WebCore::MessageSource source, WebCore::MessageLevel level, const WebCore::String& message, unsigned line, const WebCore::String& url);
+    virtual void addMessageToConsole(WebCore::MessageSource source, WebCore::MessageType type, WebCore::MessageLevel level, const WebCore::String& message, unsigned line, const WebCore::String& url);
 
     virtual bool canRunBeforeUnloadConfirmPanel();
     virtual bool runBeforeUnloadConfirmPanel(const WebCore::String& message, WebCore::Frame* frame);
@@ -96,14 +98,19 @@ public:
     virtual PlatformWidget platformWindow() const;
     virtual void contentsSizeChanged(WebCore::Frame*, const WebCore::IntSize&) const;
 
+    virtual void scrollbarsModeDidChange() const { }
     virtual void mouseDidMoveOverElement(const WebCore::HitTestResult&, unsigned modifierFlags);
 
-    virtual void setToolTip(const WebCore::String&);
+    virtual void setToolTip(const WebCore::String&, WebCore::TextDirection);
 
     virtual void print(WebCore::Frame*);
 
 #if ENABLE(DATABASE)
     virtual void exceededDatabaseQuota(WebCore::Frame*, const WebCore::String&);
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    virtual void reachedMaxAppCacheSize(int64_t spaceNeeded);
 #endif
 
     virtual void populateVisitedLinks();
@@ -127,8 +134,16 @@ public:
 
     virtual void requestGeolocationPermissionForFrame(WebCore::Frame*, WebCore::Geolocation*);
 
+#if ENABLE(NOTIFICATIONS)
+    virtual WebCore::NotificationPresenter* notificationPresenter() const { return reinterpret_cast<WebCore::NotificationPresenter*>(m_notificationsDelegate.get()); }
+#endif
+
 private:
     COMPtr<IWebUIDelegate> uiDelegate();
 
     WebView* m_webView;
+
+#if ENABLE(NOTIFICATIONS)
+    OwnPtr<WebDesktopNotificationsDelegate> m_notificationsDelegate;
+#endif
 };

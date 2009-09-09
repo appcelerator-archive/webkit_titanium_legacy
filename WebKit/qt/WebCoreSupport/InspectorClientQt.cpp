@@ -65,13 +65,15 @@ Q_SIGNALS:
 
 
 class InspectorClientView : public QWebView {
+
 public:
     InspectorClientView(InspectorController* controller)
         : QWebView(0)
         , m_controller(controller)
     {
+        setAttribute(Qt::WA_DeleteOnClose, true);
         setPage(new InspectorClientWebPage);
-        connect(page(), SIGNAL(destroyed()), SLOT(deleteLater()));
+        connect(page(), SIGNAL(destroyed()), this, SLOT(close()));
     }
 
 protected:
@@ -181,6 +183,11 @@ void InspectorClientQt::inspectedURLChanged(const String& newURL)
 {
     m_inspectedURL = newURL;
     updateWindowTitle();
+}
+
+void InspectorClientQt::inspectorWindowObjectCleared()
+{
+    notImplemented();
 }
 
 void InspectorClientQt::updateWindowTitle()

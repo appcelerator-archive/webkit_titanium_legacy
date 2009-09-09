@@ -79,6 +79,7 @@
 #include <WebCore/GDIObjectCounter.h>
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/HistoryItem.h>
+#include <WebCore/HitTestRequest.h>
 #include <WebCore/HitTestResult.h>
 #include <WebCore/IntRect.h>
 #include <WebCore/KeyboardEvent.h>
@@ -93,8 +94,10 @@
 #include <WebCore/PluginDatabase.h>
 #include <WebCore/PluginInfoStore.h>
 #include <WebCore/PluginView.h>
+#include <WebCore/PopupMenu.h>
 #include <WebCore/ProgressTracker.h>
 #include <WebCore/RenderTheme.h>
+#include <WebCore/RenderView.h>
 #include <WebCore/ResourceHandle.h>
 #include <WebCore/ResourceHandleClient.h>
 #include <WebCore/ScriptValue.h>
@@ -126,6 +129,7 @@
 #endif
 
 #include <wtf/HashSet.h>
+#include <comutil.h>
 #include <dimm.h>
 #include <oleacc.h>
 #include <ShlObj.h>
@@ -611,6 +615,8 @@ HRESULT STDMETHODCALLTYPE WebView::close()
 
     m_didClose = true;
 
+    WebNotificationCenter::defaultCenterInternal()->postNotificationName(_bstr_t(WebViewWillCloseNotification).GetBSTR(), static_cast<IWebView*>(this), 0);
+
     if (m_uiDelegatePrivate)
         m_uiDelegatePrivate->webViewClosing(this);
 
@@ -927,19 +933,6 @@ void WebView::paint(HDC dc, LPARAM options)
         paintIntoWindow(bitmapDC, hdc, blitRects[i]);
 
     ::DeleteDC(bitmapDC);
-
-    // Paint the gripper.
-    COMPtr<IWebUIDelegate> ui;
-    if (SUCCEEDED(uiDelegate(&ui))) {
-        COMPtr<IWebUIDelegatePrivate> uiPrivate;
-        if (SUCCEEDED(ui->QueryInterface(IID_IWebUIDelegatePrivate, (void**)&uiPrivate))) {
-            RECT r;
-            if (SUCCEEDED(uiPrivate->webViewResizerRect(this, &r))) {
-                LOCAL_GDI_COUNTER(2, __FUNCTION__" webViewDrawResizer delegate call");
-                uiPrivate->webViewDrawResizer(this, hdc, (frameView->containsScrollbarsAvoidingResizer() ? true : false), &r);
-            }
-        }
-    }
 
     if (!dc)
         EndPaint(m_viewWindow, &ps);
@@ -1268,12 +1261,6 @@ bool WebView::handleMouseEvent(UINT message, WPARAM wParam, LPARAM lParam)
                            abs(globalPrevPoint.y() - mouseEvent.pos().y()) < ::GetSystemMetrics(SM_CYDOUBLECLK);
     LONG messageTime = ::GetMessageTime();
 
-    if (inResizer(position)) {
-        if (m_uiDelegatePrivate)
-            m_uiDelegatePrivate->webViewSendResizeMessage(message, wParam, position);
-        return true;
-    }
-
     bool handled = false;
 
     if (message == WM_LBUTTONDOWN || message == WM_MBUTTONDOWN || message == WM_RBUTTONDOWN) {
@@ -1347,23 +1334,65 @@ bool WebView::gestureNotify(WPARAM wParam, LPARAM lParam)
     // If we don't have this function, we shouldn't be receiving this message
     ASSERT(SetGestureConfigPtr());
 
-    DWORD dwPanWant;
-    DWORD dwPanBlock; 
-
-    // Translate gesture location to client to hit test on scrollbars
+    bool hitScrollbar = false;
     POINT gestureBeginPoint = {gn->ptsLocation.x, gn->ptsLocation.y};
-    ScreenToClient(m_viewWindow, &gestureBeginPoint);
+    HitTestRequest request(HitTestRequest::ReadOnly);
+    for (Frame* childFrame = m_page->mainFrame(); childFrame; childFrame = EventHandler::subframeForTargetNode(m_gestureTargetNode.get())) {
+        FrameView* frameView = childFrame->view();
+        if (!frameView)
+            break;
+        RenderView* renderView = childFrame->document()->renderView();
+        if (!renderView)
+            break;
+        RenderLayer* layer = renderView->layer();
+        if (!layer)
+            break;
 
-    if (gestureBeginPoint.x > view->visibleWidth()) {
-        // We are in the scrollbar, turn off panning, need to be able to drag the scrollbar
-        dwPanWant = GC_PAN  | GC_PAN_WITH_INERTIA | GC_PAN_WITH_GUTTER;
-        dwPanBlock = GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY;
-    } else {
-        dwPanWant = GC_PAN  | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY | GC_PAN_WITH_INERTIA | GC_PAN_WITH_GUTTER;
-        dwPanBlock = GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY;
+        HitTestResult result(frameView->screenToContents(gestureBeginPoint));
+        layer->hitTest(request, result);
+        m_gestureTargetNode = result.innerNode();
+
+        if (!hitScrollbar)
+            hitScrollbar = result.scrollbar();
     }
 
-    GESTURECONFIG gc = { GID_PAN, dwPanWant , dwPanBlock } ;
+    if (!hitScrollbar) {
+        // The hit testing above won't detect if we've hit the main frame's vertical scrollbar. Check that manually now.
+        RECT webViewRect;
+        GetWindowRect(m_viewWindow, &webViewRect);
+        hitScrollbar = view->verticalScrollbar() && (gestureBeginPoint.x > (webViewRect.right - view->verticalScrollbar()->theme()->scrollbarThickness()));  
+    }
+
+    bool canBeScrolled = false;
+    if (m_gestureTargetNode) {
+        for (RenderObject* renderer = m_gestureTargetNode->renderer(); renderer; renderer = renderer->parent()) {
+            if (renderer->isBox() && toRenderBox(renderer)->canBeScrolledAndHasScrollableArea()) {
+                canBeScrolled = true;
+                break;
+            }
+        }
+    }
+
+    // We always allow two-fingered panning with inertia and a gutter (which limits movement to one
+    // direction in most cases).
+    DWORD dwPanWant = GC_PAN | GC_PAN_WITH_INERTIA | GC_PAN_WITH_GUTTER;
+    // We never allow single-fingered horizontal panning. That gesture is reserved for creating text
+    // selections. This matches IE.
+    DWORD dwPanBlock = GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY;
+
+    if (hitScrollbar || !canBeScrolled) {
+        // The part of the page under the gesture can't be scrolled, or the gesture is on a scrollbar.
+        // Disallow single-fingered vertical panning in this case, too, so we'll fall back to the default
+        // behavior (which allows the scrollbar thumb to be dragged, text selections to be made, etc.).
+        dwPanBlock |= GC_PAN_WITH_SINGLE_FINGER_VERTICALLY;
+    } else {
+        // The part of the page the gesture is under can be scrolled, and we're not under a scrollbar.
+        // Allow single-fingered vertical panning in this case, so the user will be able to pan the page
+        // with one or two fingers.
+        dwPanWant |= GC_PAN_WITH_SINGLE_FINGER_VERTICALLY;
+    }
+
+    GESTURECONFIG gc = { GID_PAN, dwPanWant, dwPanBlock };
     return SetGestureConfigPtr()(m_viewWindow, 0, 1, &gc, sizeof(GESTURECONFIG));
 }
 
@@ -1386,58 +1415,41 @@ bool WebView::gesture(WPARAM wParam, LPARAM lParam)
         m_lastPanX = gi.ptsLocation.x;
         m_lastPanY = gi.ptsLocation.y;
 
-        CloseGestureInfoHandlePtr()(gestureHandle);
+        break;
+    case GID_END:
+        m_gestureTargetNode = 0;
         break;
     case GID_PAN: {
+        // Where are the fingers currently?
+        long currentX = gi.ptsLocation.x;
+        long currentY = gi.ptsLocation.y;
+        // How far did we pan in each direction?
+        long deltaX = currentX - m_lastPanX;
+        long deltaY = currentY - m_lastPanY;
+        // Calculate the overpan for window bounce
+        m_yOverpan -= m_lastPanY - currentY;
+        m_xOverpan -= m_lastPanX - currentX;
+        // Update our class variables with updated values
+        m_lastPanX = currentX;
+        m_lastPanY = currentY;
+
         Frame* coreFrame = core(m_mainFrame);
         if (!coreFrame) {
             CloseGestureInfoHandlePtr()(gestureHandle);
             return false;
         }
 
-        ScrollView* view = coreFrame->view();
-        if (!view) {
-            CloseGestureInfoHandlePtr()(gestureHandle);
+        if (!m_gestureTargetNode || !m_gestureTargetNode->renderer())
             return false;
-        }
 
-        Scrollbar* vertScrollbar = view->verticalScrollbar();
-        if (!vertScrollbar) {
-            CloseGestureInfoHandlePtr()(gestureHandle);
-            return true;    //No panning of any kind when no vertical scrollbar, matches IE8
-        }
-
-        // Where are the fingers currently?
-        long currentX = gi.ptsLocation.x;
-        long currentY = gi.ptsLocation.y;
-        
-        // How far did we pan in each direction?
-        long deltaX = currentX - m_lastPanX;
-        long deltaY = currentY - m_lastPanY;
-        
-        // Calculate the overpan for window bounce
-        m_yOverpan -= m_lastPanY - currentY;
-        m_xOverpan -= m_lastPanX - currentX;
-        
-        // Update our class variables with updated values
-        m_lastPanX = currentX;
-        m_lastPanY = currentY;
-
-        // Represent the pan gesture as a mouse wheel event
-        PlatformWheelEvent wheelEvent(m_viewWindow, deltaX, deltaY, currentX, currentY);
-        coreFrame->eventHandler()->handleWheelEvent(wheelEvent);
-
+        // We negate here since panning up moves the content up, but moves the scrollbar down.
+        m_gestureTargetNode->renderer()->enclosingLayer()->scrollByRecursively(-deltaX, -deltaY);
+           
         if (!(UpdatePanningFeedbackPtr() && BeginPanningFeedbackPtr() && EndPanningFeedbackPtr())) {
             CloseGestureInfoHandlePtr()(gestureHandle);
             return true;
         }
 
-        // FIXME: Support Horizontal Window Bounce
-        if (vertScrollbar->currentPos() == 0)
-            UpdatePanningFeedbackPtr()(m_viewWindow, 0, m_yOverpan, gi.dwFlags & GF_INERTIA);
-        else if (vertScrollbar->currentPos() >= vertScrollbar->maximum())
-            UpdatePanningFeedbackPtr()(m_viewWindow, 0, m_yOverpan, gi.dwFlags & GF_INERTIA);
-        
         if (gi.dwFlags & GF_BEGIN) {
             BeginPanningFeedbackPtr()(m_viewWindow);
             m_yOverpan = 0;
@@ -1446,16 +1458,37 @@ bool WebView::gesture(WPARAM wParam, LPARAM lParam)
             m_yOverpan = 0;
         }
 
+        ScrollView* view = coreFrame->view();
+        if (!view) {
+            CloseGestureInfoHandlePtr()(gestureHandle);
+            return true;
+        }
+        Scrollbar* vertScrollbar = view->verticalScrollbar();
+        if (!vertScrollbar) {
+            CloseGestureInfoHandlePtr()(gestureHandle);
+            return true;
+        }
+
+        // FIXME: Support Horizontal Window Bounce. <https://webkit.org/b/28500>.
+        // FIXME: If the user starts panning down after a window bounce has started, the window doesn't bounce back 
+        // until they release their finger. <https://webkit.org/b/28501>.
+        if (vertScrollbar->currentPos() == 0)
+            UpdatePanningFeedbackPtr()(m_viewWindow, 0, m_yOverpan, gi.dwFlags & GF_INERTIA);
+        else if (vertScrollbar->currentPos() >= vertScrollbar->maximum())
+            UpdatePanningFeedbackPtr()(m_viewWindow, 0, m_yOverpan, gi.dwFlags & GF_INERTIA);
+
         CloseGestureInfoHandlePtr()(gestureHandle);
-        break;
+        return true;
     }
     default:
-        // We have encountered an unknown gesture - return false to pass it to DefWindowProc
-        CloseGestureInfoHandlePtr()(gestureHandle);
         break;
     }
 
-    return true;
+    // If we get to this point, the gesture has not been handled. We forward
+    // the call to DefWindowProc by returning false, and we don't need to 
+    // to call CloseGestureInfoHandle. 
+    // http://msdn.microsoft.com/en-us/library/dd353228(VS.85).aspx
+    return false;
 }
 
 bool WebView::mouseWheel(WPARAM wParam, LPARAM lParam, bool isMouseHWheel)
@@ -1470,6 +1503,23 @@ bool WebView::mouseWheel(WPARAM wParam, LPARAM lParam, bool isMouseHWheel)
         else
             makeTextLarger(0);
         return true;
+    }
+    
+    // FIXME: This doesn't fix https://bugs.webkit.org/show_bug.cgi?id=28217. This only fixes https://bugs.webkit.org/show_bug.cgi?id=28203.
+    HWND focusedWindow = GetFocus();
+    if (focusedWindow && focusedWindow != m_viewWindow) {
+        // Our focus is on a different hwnd, see if it's a PopupMenu and if so, set the focus back on us (which will hide the popup).
+        TCHAR className[256];
+
+        // Make sure truncation won't affect the comparison.
+        ASSERT(ARRAYSIZE(className) > _tcslen(PopupMenu::popupClassName()));
+
+        if (GetClassName(focusedWindow, className, ARRAYSIZE(className)) && !_tcscmp(className, PopupMenu::popupClassName())) {
+            // We don't let the WebView scroll here for two reasons - 1) To match Firefox behavior, 2) If we do scroll, we lose the
+            // focus ring around the select menu.
+            SetFocus(m_viewWindow);
+            return true;
+        }
     }
 
     PlatformWheelEvent wheelEvent(m_viewWindow, wParam, lParam, isMouseHWheel);
@@ -1564,6 +1614,7 @@ static const KeyDownEntry keyDownEntries[] = {
     { VK_RETURN, 0,                  "InsertNewline"                               },
     { VK_RETURN, CtrlKey,            "InsertNewline"                               },
     { VK_RETURN, AltKey,             "InsertNewline"                               },
+    { VK_RETURN, ShiftKey,           "InsertNewline"                               },
     { VK_RETURN, AltKey | ShiftKey,  "InsertNewline"                               },
 
     // It's not quite clear whether clipboard shortcuts and Undo/Redo should be handled
@@ -1585,6 +1636,7 @@ static const KeyPressEntry keyPressEntries[] = {
     { '\r',   0,                  "InsertNewline"                               },
     { '\r',   CtrlKey,            "InsertNewline"                               },
     { '\r',   AltKey,             "InsertNewline"                               },
+    { '\r',   ShiftKey,           "InsertNewline"                               },
     { '\r',   AltKey | ShiftKey,  "InsertNewline"                               },
 };
 
@@ -1722,15 +1774,7 @@ bool WebView::keyDown(WPARAM virtualKeyCode, LPARAM keyData, bool systemKeyDown)
             return false;
     }
 
-    if (!frame->eventHandler()->scrollOverflow(direction, granularity)) {
-        handled = frame->view()->scroll(direction, granularity);
-        Frame* parent = frame->tree()->parent();
-        while(!handled && parent) {
-            handled = parent->view()->scroll(direction, granularity);
-            parent = parent->tree()->parent();
-        }
-    }
-    return handled;
+    return frame->eventHandler()->scrollRecursively(direction, granularity);
 }
 
 bool WebView::keyPress(WPARAM charCode, LPARAM keyData, bool systemKeyDown)
@@ -1742,21 +1786,6 @@ bool WebView::keyPress(WPARAM charCode, LPARAM keyData, bool systemKeyDown)
     if (systemKeyDown)
         return frame->eventHandler()->handleAccessKey(keyEvent);
     return frame->eventHandler()->keyEvent(keyEvent);
-}
-
-bool WebView::inResizer(LPARAM lParam)
-{
-    if (!m_uiDelegatePrivate)
-        return false;
-
-    RECT r;
-    if (FAILED(m_uiDelegatePrivate->webViewResizerRect(this, &r)))
-        return false;
-
-    POINT pt;
-    pt.x = LOWORD(lParam);
-    pt.y = HIWORD(lParam);
-    return !!PtInRect(&r, pt);
 }
 
 static bool registerWebViewWindowClass()
@@ -1902,7 +1931,7 @@ static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, L
         case WM_SHOWWINDOW:
             lResult = DefWindowProc(hWnd, message, wParam, lParam);
             if (wParam == 0)
-                // The window is being hidden (e.g., because we switched tabs.
+                // The window is being hidden (e.g., because we switched tabs).
                 // Null out our backing store.
                 webView->deleteBackingStore();
             break;
@@ -1918,9 +1947,11 @@ static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, L
                 // Send focus events unless the previously focused window is a
                 // child of ours (for example a plugin).
                 if (!IsChild(hWnd, reinterpret_cast<HWND>(wParam)))
-                    frame->selection()->setFocused(true);
-            } else
+                    focusController->setFocused(true);
+            } else {
+                focusController->setFocused(true);
                 focusController->setFocusedFrame(webView->page()->mainFrame());
+            }
             break;
         }
         case WM_KILLFOCUS: {
@@ -1936,7 +1967,7 @@ static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, L
             webView->resetIME(frame);
             // Send blur events unless we're losing focus to a child of ours.
             if (!IsChild(hWnd, newFocusWnd))
-                frame->selection()->setFocused(false);
+                focusController->setFocused(false);
             break;
         }
         case WM_WINDOWPOSCHANGED:
@@ -2141,18 +2172,10 @@ exit:
     return versionStr;
 }
 
-const String& WebView::userAgentForKURL(const KURL& url)
+const String& WebView::userAgentForKURL(const KURL&)
 {
     if (m_userAgentOverridden)
         return m_userAgentCustom;
-
-    if (allowSiteSpecificHacks()) {
-        if (url.host() == "ads.pointroll.com") {
-            // <rdar://problem/6899044> Can't see Apple ad on nytimes.com unless I spoof the user agent
-            DEFINE_STATIC_LOCAL(const String, uaForAdsPointroll, ("Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/525.28.3 (KHTML, like Gecko) Version/3.2.3 Safari/525.29"));
-            return uaForAdsPointroll;
-        }
-    }
 
     if (!m_userAgentStandard.length())
         m_userAgentStandard = WebView::standardUserAgentWithApplicationName(m_applicationName);
@@ -2291,13 +2314,8 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
 
     registerWebViewWindowClass();
 
-    if (!::IsWindow(m_hostWindow)) {
-        ASSERT_NOT_REACHED();
-        return E_FAIL;
-    }
-
     m_viewWindow = CreateWindowEx(0, kWebViewWindowClassName, 0, WS_CHILD | WS_CLIPCHILDREN,
-        frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top, m_hostWindow, 0, gInstance, 0);
+        frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top, m_hostWindow ? m_hostWindow : HWND_MESSAGE, 0, gInstance, 0);
     ASSERT(::IsWindow(m_viewWindow));
 
     hr = registerDragDrop();
@@ -2833,7 +2851,7 @@ HRESULT STDMETHODCALLTYPE WebView::stringByEvaluatingJavaScriptFromString(
     if (!scriptExecutionResult)
         return E_FAIL;
     else if (scriptExecutionResult.isString()) {
-        JSLock lock(false);
+        JSLock lock(JSC::SilenceAssertionsOnly);
         *result = BString(String(scriptExecutionResult.getString()));
     }
 
@@ -2972,8 +2990,8 @@ HRESULT STDMETHODCALLTYPE WebView::setHostWindow(
     /* [in] */ OLE_HANDLE oleWindow)
 {
     HWND window = (HWND)(ULONG64)oleWindow;
-    if (m_viewWindow && window)
-        SetParent(m_viewWindow, window);
+    if (m_viewWindow)
+        SetParent(m_viewWindow, window ? window : HWND_MESSAGE);
 
     m_hostWindow = window;
 
@@ -4412,6 +4430,20 @@ HRESULT updateSharedSettingsFromPreferencesIfNeeded(IWebPreferences* preferences
 
 // IWebViewPrivate ------------------------------------------------------------
 
+HRESULT STDMETHODCALLTYPE WebView::MIMETypeForExtension(
+    /* [in] */ BSTR extension,
+    /* [retval][out] */ BSTR* mimeType)
+{
+    if (!mimeType)
+        return E_POINTER;
+
+    String extensionStr(extension, SysStringLen(extension));
+
+    *mimeType = BString(MIMETypeRegistry::getMIMETypeForExtension(extensionStr)).release();
+
+    return S_OK;
+}
+
 HRESULT STDMETHODCALLTYPE WebView::setCustomDropTarget(
     /* [in] */ IDropTarget* dt)
 {
@@ -5335,6 +5367,12 @@ HRESULT WebView::setMemoryCacheDelegateCallsEnabled(BOOL enabled)
 HRESULT WebView::setJavaScriptURLsAreAllowed(BOOL areAllowed)
 {
     m_page->setJavaScriptURLsAreAllowed(areAllowed);
+    return S_OK;
+}
+
+HRESULT WebView::setCanStartPlugins(BOOL canStartPlugins)
+{
+    m_page->setCanStartPlugins(canStartPlugins);
     return S_OK;
 }
 

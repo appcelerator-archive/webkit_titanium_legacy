@@ -55,14 +55,14 @@ public:
     virtual ~Field() { }
 };
 
-class Method : Noncopyable {
+class Method : public Noncopyable {
 public:
     virtual int numParameters() const = 0;
         
     virtual ~Method() { }
 };
 
-class Class : Noncopyable {
+class Class : public Noncopyable {
 public:
     virtual MethodList methodsNamed(const Identifier&, Instance*) const = 0;
     virtual Field* fieldNamed(const Identifier&, Instance*) const = 0;
@@ -111,6 +111,7 @@ public:
     virtual ~Instance();
 
     virtual bool getOwnPropertySlot(JSObject*, ExecState*, const Identifier&, PropertySlot&) { return false; }
+    virtual bool getOwnPropertyDescriptor(JSObject*, ExecState*, const Identifier&, PropertyDescriptor&) { return false; }
     virtual void put(JSObject*, ExecState*, const Identifier&, JSValue, PutPropertySlot&) { }
 
 protected:
@@ -120,7 +121,7 @@ protected:
     RefPtr<RootObject> _rootObject;
 };
 
-class Array : Noncopyable {
+class Array : public Noncopyable {
 public:
     Array(PassRefPtr<RootObject>);
     virtual ~Array();

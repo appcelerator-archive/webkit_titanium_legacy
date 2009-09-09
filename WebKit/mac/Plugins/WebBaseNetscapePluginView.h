@@ -53,6 +53,7 @@ namespace WebCore {
     
     int _mode;
     
+    BOOL _triedAndFailedToCreatePlugin;
     BOOL _loadManually;
     BOOL _shouldFireTimers;
     BOOL _isStarted;
@@ -108,6 +109,8 @@ namespace WebCore {
 - (BOOL)convertFromX:(double)sourceX andY:(double)sourceY space:(NPCoordinateSpace)sourceSpace
                  toX:(double *)destX andY:(double *)destY space:(NPCoordinateSpace)destSpace;
 - (WebCore::CString)resolvedURLStringForURL:(const char*)url target:(const char*)target;
+
+- (void)invalidatePluginContentRect:(NSRect)rect;
 
 @end
 

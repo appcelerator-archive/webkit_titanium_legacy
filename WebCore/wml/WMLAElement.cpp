@@ -73,17 +73,7 @@ void WMLAElement::parseMappedAttribute(MappedAttribute* attr)
 
 bool WMLAElement::supportsFocus() const
 {
-    return isFocusable() || (isLink() && document() && !document()->haveStylesheetsLoaded());
-}
-
-bool WMLAElement::isFocusable() const
-{
-    // FIXME: Even if we are not visible, we might have a child that is visible.
-    // Dave wants to fix that some day with a "has visible content" flag or the like.
-    if (!(isLink() && renderer() && renderer()->style()->visibility() == VISIBLE))
-        return false;
-
-    return true;
+    return isLink() || WMLElement::supportsFocus();
 }
 
 bool WMLAElement::isMouseFocusable() const
@@ -150,7 +140,7 @@ void WMLAElement::defaultEventHandler(Event* event)
         }
  
         if (!event->defaultPrevented() && document()->frame()) {
-            KURL url = document()->completeURL(parseURL(getAttribute(HTMLNames::hrefAttr)));
+            KURL url = document()->completeURL(deprecatedParseURL(getAttribute(HTMLNames::hrefAttr)));
             document()->frame()->loader()->urlSelected(url, target(), event, false, false, true);
         }
 

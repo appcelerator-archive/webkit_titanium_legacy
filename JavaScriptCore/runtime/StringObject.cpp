@@ -61,6 +61,13 @@ bool StringObject::getOwnPropertySlot(ExecState* exec, unsigned propertyName, Pr
     return JSObject::getOwnPropertySlot(exec, Identifier::from(exec, propertyName), slot);
 }
 
+bool StringObject::getOwnPropertyDescriptor(ExecState* exec, const Identifier& propertyName, PropertyDescriptor& descriptor)
+{
+    if (internalValue()->getStringPropertyDescriptor(exec, propertyName, descriptor))
+        return true;    
+    return JSObject::getOwnPropertyDescriptor(exec, propertyName, descriptor);
+}
+
 void StringObject::put(ExecState* exec, const Identifier& propertyName, JSValue value, PutPropertySlot& slot)
 {
     if (propertyName == exec->propertyNames().length)
@@ -81,21 +88,6 @@ void StringObject::getPropertyNames(ExecState* exec, PropertyNameArray& property
     for (int i = 0; i < size; ++i)
         propertyNames.add(Identifier(exec, UString::from(i)));
     return JSObject::getPropertyNames(exec, propertyNames);
-}
-
-UString StringObject::toString(ExecState*) const
-{
-    return internalValue()->value();
-}
-
-UString StringObject::toThisString(ExecState*) const
-{
-    return internalValue()->value();
-}
-
-JSString* StringObject::toThisJSString(ExecState*)
-{
-    return internalValue();
 }
 
 } // namespace JSC

@@ -34,7 +34,6 @@
 #import "WebDefaultUIDelegate.h"
 #import "WebFrameInternal.h" 
 #import "WebFrameView.h"
-#import "WebGraphicsExtras.h"
 #import "WebKitErrorsPrivate.h"
 #import "WebKitLogging.h"
 #import "WebNetscapeContainerCheckPrivate.h"
@@ -79,13 +78,12 @@
 #import <wtf/Assertions.h>
 #import <objc/objc-runtime.h>
 
-using std::max;
-
 #define LoginWindowDidSwitchFromUserNotification    @"WebLoginWindowDidSwitchFromUserNotification"
 #define LoginWindowDidSwitchToUserNotification      @"WebLoginWindowDidSwitchToUserNotification"
 
 using namespace WebCore;
 using namespace WebKit;
+using namespace std;
 
 static inline bool isDrawingModelQuickDraw(NPDrawingModel drawingModel)
 {
@@ -669,7 +667,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
     BOOL acceptedEvent;
     [self willCallPlugInFunction];
     {
-        JSC::JSLock::DropAllLocks dropAllLocks(false);
+        JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
         acceptedEvent = [_pluginPackage.get() pluginFuncs]->event(plugin, event);
     }
     [self didCallPlugInFunction];
@@ -973,7 +971,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
         inSetWindow = YES;        
         [self willCallPlugInFunction];
         {
-            JSC::JSLock::DropAllLocks dropAllLocks(false);
+            JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
             npErr = [_pluginPackage.get() pluginFuncs]->setwindow(plugin, &window);
         }
         [self didCallPlugInFunction];
@@ -1094,7 +1092,8 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
 {
     [super setLayer:newLayer];
 
-    if (_pluginLayer) {
+    if (newLayer && _pluginLayer) {
+        _pluginLayer.get().frame = [newLayer frame];
         _pluginLayer.get().autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
         [newLayer addSublayer:_pluginLayer.get()];
     }
@@ -1407,7 +1406,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
     NPError error;
     [self willCallPlugInFunction];
     {
-        JSC::JSLock::DropAllLocks dropAllLocks(false);
+        JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
         error = [_pluginPackage.get() pluginFuncs]->getvalue(plugin, NPPVpluginScriptableNPObject, &value);
     }
     [self didCallPlugInFunction];
@@ -1465,7 +1464,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
                                                             contentURL:[response URL]
                                                          pluginPageURL:nil
                                                             pluginName:nil // FIXME: Get this from somewhere
-                                                              MIMEType:[response _webcore_MIMEType]];
+                                                              MIMEType:[response MIMEType]];
             [[self dataSource] _documentLoader]->cancelMainResourceLoad(error);
             [error release];
             return;
@@ -1538,7 +1537,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
         if ([JSPluginRequest sendNotification]) {
             [self willCallPlugInFunction];
             {
-                JSC::JSLock::DropAllLocks dropAllLocks(false);
+                JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
                 [_pluginPackage.get() pluginFuncs]->urlnotify(plugin, [URL _web_URLCString], NPRES_DONE, [JSPluginRequest notifyData]);
             }
             [self didCallPlugInFunction];
@@ -1570,7 +1569,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
         
     [self willCallPlugInFunction];
     {
-        JSC::JSLock::DropAllLocks dropAllLocks(false);
+        JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
         [_pluginPackage.get() pluginFuncs]->urlnotify(plugin, [[[pluginRequest request] URL] _web_URLCString], reason, [pluginRequest notifyData]);
     }
     [self didCallPlugInFunction];
@@ -1614,7 +1613,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
                 if ([pluginRequest sendNotification]) {
                     [self willCallPlugInFunction];
                     {
-                        JSC::JSLock::DropAllLocks dropAllLocks(false);
+                        JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
                         [_pluginPackage.get() pluginFuncs]->urlnotify(plugin, [[[pluginRequest request] URL] _web_URLCString], NPERR_GENERIC_ERROR, [pluginRequest notifyData]);
                     }
                     [self didCallPlugInFunction];
@@ -1794,7 +1793,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
                 NSString *contentLength = [header objectForKey:@"Content-Length"];
 
                 if (contentLength != nil)
-                    dataLength = MIN((unsigned)[contentLength intValue], dataLength);
+                    dataLength = min<unsigned>([contentLength intValue], dataLength);
                 [header removeObjectForKey:@"Content-Length"];
 
                 if ([header count] > 0) {
@@ -1904,7 +1903,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
 -(void)invalidateRect:(NPRect *)invalidRect
 {
     LOG(Plugins, "NPN_InvalidateRect");
-    [self setNeedsDisplayInRect:NSMakeRect(invalidRect->left, invalidRect->top,
+    [self invalidatePluginContentRect:NSMakeRect(invalidRect->left, invalidRect->top,
         (float)invalidRect->right - invalidRect->left, (float)invalidRect->bottom - invalidRect->top)];
 }
 
@@ -1934,13 +1933,13 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
         break;
     }
     
-    [self setNeedsDisplayInRect:invalidRect];
+    [self invalidatePluginContentRect:invalidRect];
 }
 
 -(void)forceRedraw
 {
     LOG(Plugins, "forceRedraw");
-    [self setNeedsDisplay:YES];
+    [self invalidatePluginContentRect:[self bounds]];
     [[self window] displayIfNeeded];
 }
 
@@ -2373,7 +2372,7 @@ static inline void getNPRect(const NSRect& nr, NPRect& npr)
     // Tell the plugin to print into the GWorld
     [self willCallPlugInFunction];
     {
-        JSC::JSLock::DropAllLocks dropAllLocks(false);
+        JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);
         [_pluginPackage.get() pluginFuncs]->print(plugin, &npPrint);
     }
     [self didCallPlugInFunction];

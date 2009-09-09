@@ -21,22 +21,31 @@
 #include "config.h"
 #include "ObjectConstructor.h"
 
+#include "Error.h"
 #include "JSFunction.h"
 #include "JSGlobalObject.h"
 #include "ObjectPrototype.h"
+#include "PropertyDescriptor.h"
+#include "PrototypeFunction.h"
 
 namespace JSC {
 
 ASSERT_CLASS_FITS_IN_CELL(ObjectConstructor);
 
-ObjectConstructor::ObjectConstructor(ExecState* exec, PassRefPtr<Structure> structure, ObjectPrototype* objectPrototype)
-    : InternalFunction(&exec->globalData(), structure, Identifier(exec, "Object"))
+static JSValue JSC_HOST_CALL objectConstructorGetPrototypeOf(ExecState*, JSObject*, JSValue, const ArgList&);
+static JSValue JSC_HOST_CALL objectConstructorGetOwnPropertyDescriptor(ExecState*, JSObject*, JSValue, const ArgList&);
+
+ObjectConstructor::ObjectConstructor(ExecState* exec, PassRefPtr<Structure> structure, ObjectPrototype* objectPrototype, Structure* prototypeFunctionStructure)
+: InternalFunction(&exec->globalData(), structure, Identifier(exec, "Object"))
 {
     // ECMA 15.2.3.1
     putDirectWithoutTransition(exec->propertyNames().prototype, objectPrototype, DontEnum | DontDelete | ReadOnly);
-
+    
     // no. of arguments for constructor
     putDirectWithoutTransition(exec->propertyNames().length, jsNumber(exec, 1), ReadOnly | DontEnum | DontDelete);
+    
+    putDirectFunctionWithoutTransition(exec, new (exec) NativeFunctionWrapper(exec, prototypeFunctionStructure, 1, exec->propertyNames().getPrototypeOf, objectConstructorGetPrototypeOf), DontEnum);
+    putDirectFunctionWithoutTransition(exec, new (exec) NativeFunctionWrapper(exec, prototypeFunctionStructure, 2, exec->propertyNames().getOwnPropertyDescriptor, objectConstructorGetOwnPropertyDescriptor), DontEnum);
 }
 
 // ECMA 15.2.2
@@ -68,6 +77,43 @@ CallType ObjectConstructor::getCallData(CallData& callData)
 {
     callData.native.function = callObjectConstructor;
     return CallTypeHost;
+}
+
+JSValue JSC_HOST_CALL objectConstructorGetPrototypeOf(ExecState* exec, JSObject*, JSValue, const ArgList& args)
+{
+    if (!args.at(0).isObject())
+        return throwError(exec, TypeError, "Requested prototype of a value that is not an object.");
+    return asObject(args.at(0))->prototype();
+}
+
+JSValue JSC_HOST_CALL objectConstructorGetOwnPropertyDescriptor(ExecState* exec, JSObject*, JSValue, const ArgList& args)
+{
+    if (!args.at(0).isObject())
+        return throwError(exec, TypeError, "Requested property descriptor of a value that is not an object.");
+    UString propertyName = args.at(1).toString(exec);
+    if (exec->hadException())
+        return jsNull();
+    JSObject* object = asObject(args.at(0));
+    PropertyDescriptor descriptor;
+    if (!object->getOwnPropertyDescriptor(exec, Identifier(exec, propertyName), descriptor))
+        return jsUndefined();
+    if (exec->hadException())
+        return jsUndefined();
+    ASSERT(descriptor.isValid());
+
+    JSObject* description = constructEmptyObject(exec);
+    if (!descriptor.hasAccessors()) {
+        description->putDirect(exec->propertyNames().value, descriptor.value(), 0);
+        description->putDirect(exec->propertyNames().writable, jsBoolean(descriptor.writable()), 0);
+    } else {
+        description->putDirect(exec->propertyNames().get, descriptor.getter(), 0);
+        description->putDirect(exec->propertyNames().set, descriptor.setter(), 0);
+    }
+    
+    description->putDirect(exec->propertyNames().enumerable, jsBoolean(descriptor.enumerable()), 0);
+    description->putDirect(exec->propertyNames().configurable, jsBoolean(descriptor.configurable()), 0);
+
+    return description;
 }
 
 } // namespace JSC

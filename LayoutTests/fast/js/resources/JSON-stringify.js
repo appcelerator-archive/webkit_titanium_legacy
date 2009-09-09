@@ -45,8 +45,23 @@ function createTests() {
         return jsonObject.stringify(new Boolean(true));
     });
     result.push(function(jsonObject){
-        return jsonObject.stringify(new Boolean(false));
+        var value = new Number(1);
+        value.valueOf = function() { return 2; }
+        return jsonObject.stringify(value);
     });
+    result[result.length - 1].expected = '2';
+    result.push(function(jsonObject){
+        var value = new Boolean(true);
+        value.valueOf = function() { return 2; }
+        return jsonObject.stringify(value);
+    });
+    result[result.length - 1].expected = '2';
+    result.push(function(jsonObject){
+        var value = new String("fail");
+        value.toString = function() { return "converted string"; }
+        return jsonObject.stringify(value);
+    });
+    result[result.length - 1].expected = '"converted string"';
     result.push(function(jsonObject){
         return jsonObject.stringify(true);
     });
@@ -128,9 +143,10 @@ function createTests() {
     });
     result.push(function(jsonObject){
         var allString = true;
-        var array = [1,2,3];
-        return jsonObject.stringify({1:'a', 2:'b', 3:'c'}, array);
+        var array = [1, new Number(2), NaN, Infinity, -Infinity, new String("str")];
+        return jsonObject.stringify({"1":"1","2":"2","NaN":"NaN","Infinity":"Infinity","-Infinity":"-Infinity","str":"str"}, array);
     });
+    result[result.length - 1].expected = '{"1":"1","2":"2","NaN":"NaN","Infinity":"Infinity","-Infinity":"-Infinity","str":"str"}';
     result.push(function(jsonObject){
         var allString = true;
         var array = ["1","2","3"];
@@ -165,6 +181,21 @@ function createTests() {
     result.push(function(jsonObject){
         return jsonObject.stringify(simpleObject, null, 4);
     });
+    result.push(function(jsonObject){
+        return jsonObject.stringify(simpleObject, null, 10);
+    });
+    result.push(function(jsonObject){
+        return jsonObject.stringify(simpleObject, null, 11);
+    });
+    result[result.length - 1].expected = JSON.stringify(simpleObject, null, 10);
+    result.push(function(jsonObject){
+        return jsonObject.stringify(simpleObject, null, "          ");
+    });
+    result[result.length - 1].expected = JSON.stringify(simpleObject, null, 10);
+    result.push(function(jsonObject){
+        return jsonObject.stringify(simpleObject, null, "           ");
+    });
+    result[result.length - 1].expected = JSON.stringify(simpleObject, null, 10);
     result.push(function(jsonObject){
         return jsonObject.stringify(complexArray, null, "  ");
     });
@@ -316,6 +347,12 @@ function createTests() {
         return jsonObject.stringify({a:{toJSON:function(){ return null; }}});
     });
     result.push(function(jsonObject){
+        return jsonObject.stringify({a:{toJSON:function(){ return function(){}; }}});
+    });
+    result.push(function(jsonObject){
+        return jsonObject.stringify({a:function(){}});
+    });
+    result.push(function(jsonObject){
         var deepObject = {};
         for (var i = 0; i < 2048; i++)
             deepObject = {next:deepObject};
@@ -364,9 +401,9 @@ for (var i = 0; i < tests.length; i++) {
         if (tests[i].throws)
             shouldThrow('tests[i](nativeJSON)');
         else if (tests[i].expected)
-            shouldBe('tests[i](nativeJSON)',  'tests[i].expected')
+            shouldBe('tests[i](nativeJSON)',  "tests[i].expected");
         else
-            shouldBe('tests[i](nativeJSON)',  'tests[i](JSON)');
+            shouldBe('tests[i](nativeJSON)',  "tests[i](JSON)");
     }catch(e){}
 }
 successfullyParsed = true;

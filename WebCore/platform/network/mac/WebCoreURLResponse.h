@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2008, 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,9 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// FIXME: This is a workaround for <rdar://problem/5321972> REGRESSION: Plain text document from HTTP server detected
-// as application/octet-stream
-
 @interface NSURLResponse (WebCoreURLResponse)
-- (NSString *)_webcore_MIMEType;
+-(void)adjustMIMETypeIfNecessary;
+@end
+
+@interface NSURLResponse (Details)
+- (void)_setMIMEType:(NSString *)type;
 @end

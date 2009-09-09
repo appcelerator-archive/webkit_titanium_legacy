@@ -47,6 +47,9 @@ DOMTimer::DOMTimer(ScriptExecutionContext* context, ScheduledAction* action, int
     , m_action(action)
     , m_nextFireInterval(0)
     , m_repeatInterval(0)
+#if !ASSERT_DISABLED
+    , m_suspended(false)
+#endif
 {
     static int lastUsedTimeoutId = 0;
     ++lastUsedTimeoutId;
@@ -54,7 +57,7 @@ DOMTimer::DOMTimer(ScriptExecutionContext* context, ScheduledAction* action, int
     if (lastUsedTimeoutId <= 0)
         lastUsedTimeoutId = 1;
     m_timeoutId = lastUsedTimeoutId;
-    
+
     m_nestingLevel = timerNestingLevel + 1;
 
     scriptExecutionContext()->addTimeout(m_timeoutId, this);
@@ -74,11 +77,10 @@ DOMTimer::DOMTimer(ScriptExecutionContext* context, ScheduledAction* action, int
 
 DOMTimer::~DOMTimer()
 {
-    if (scriptExecutionContext()) {
+    if (scriptExecutionContext())
         scriptExecutionContext()->removeTimeout(m_timeoutId);
-    }
 }
-    
+
 int DOMTimer::install(ScriptExecutionContext* context, ScheduledAction* action, int timeout, bool singleShot)
 {
     // DOMTimer constructor links the new timer into a list of ActiveDOMObjects held by the 'context'.
@@ -110,7 +112,7 @@ void DOMTimer::fired()
             if (m_nestingLevel >= maxTimerNestingLevel)
                 augmentRepeatInterval(s_minTimerInterval - repeatInterval());
         }
-        
+
         // No access to member variables after this point, it can delete the timer.
         m_action->execute(context);
         return;
@@ -121,7 +123,7 @@ void DOMTimer::fired()
 
     // No access to member variables after this point.
     delete this;
-    
+
     action->execute(context);
     delete action;
     timerNestingLevel = 0;
@@ -147,24 +149,29 @@ void DOMTimer::stop()
     m_action.clear();
 }
 
-void DOMTimer::suspend() 
-{ 
-    ASSERT(m_nextFireInterval == 0 && m_repeatInterval == 0); 
+void DOMTimer::suspend()
+{
+#if !ASSERT_DISABLED
+    ASSERT(!m_suspended);
+    m_suspended = true;
+#endif
     m_nextFireInterval = nextFireInterval();
     m_repeatInterval = repeatInterval();
     TimerBase::stop();
-} 
- 
-void DOMTimer::resume() 
-{ 
+}
+
+void DOMTimer::resume()
+{
+#if !ASSERT_DISABLED
+    ASSERT(m_suspended);
+    m_suspended = false;
+#endif
     start(m_nextFireInterval, m_repeatInterval);
-    m_nextFireInterval = 0;
-    m_repeatInterval = 0;
-} 
- 
- 
-bool DOMTimer::canSuspend() const 
-{ 
+}
+
+
+bool DOMTimer::canSuspend() const
+{
     return true;
 }
 

@@ -82,7 +82,8 @@ namespace WebCore {
         bool parseFillImage(RefPtr<CSSValue>&);
         PassRefPtr<CSSValue> parseFillPositionXY(bool& xFound, bool& yFound);
         void parseFillPosition(RefPtr<CSSValue>&, RefPtr<CSSValue>&);
-        PassRefPtr<CSSValue> parseFillSize();
+        void parseFillRepeat(RefPtr<CSSValue>&, RefPtr<CSSValue>&);
+        PassRefPtr<CSSValue> parseFillSize(bool &allowComma);
         
         bool parseFillProperty(int propId, int& propId1, int& propId2, RefPtr<CSSValue>&, RefPtr<CSSValue>&);
         bool parseFillShorthand(int propId, const int* properties, int numProperties, bool important);
@@ -96,6 +97,7 @@ namespace WebCore {
         PassRefPtr<CSSValue> parseAnimationDuration();
         PassRefPtr<CSSValue> parseAnimationIterationCount();
         PassRefPtr<CSSValue> parseAnimationName();
+        PassRefPtr<CSSValue> parseAnimationPlayState();
         PassRefPtr<CSSValue> parseAnimationProperty();
         PassRefPtr<CSSValue> parseAnimationTimingFunction();
 
@@ -139,6 +141,7 @@ namespace WebCore {
         // CSS3 Parsing Routines (for properties specific to CSS3)
         bool parseShadow(int propId, bool important);
         bool parseBorderImage(int propId, bool important, RefPtr<CSSValue>&);
+        bool parseBorderRadius(int propId, bool important);
         
         bool parseReflect(int propId, bool important);
 
@@ -191,7 +194,6 @@ namespace WebCore {
         
         Vector<CSSSelector*>* reusableSelectorVector() { return &m_reusableSelectorVector; }
         
-    public:
         bool m_strict;
         bool m_important;
         int m_id;
@@ -217,7 +219,6 @@ namespace WebCore {
         AtomicString m_defaultNamespace;
 
         // tokenizer methods and data
-    public:
         int lex(void* yylval);
         int token() { return yyTok; }
         UChar* text(int* length);

@@ -1,13 +1,12 @@
 
 var video = null;
-var media = null;
+var mediaElement = null;
 var console = null;
 var printFullTestDetails = true; // This is optionaly switched of by test whose tested values can differ. (see disableFullTestDetailsPrinting())
 var Failed = false;
 
 findMediaElement();
 logConsole();
-setTimeout(hanged, 10000);
 
 if (window.layoutTestController) {
     layoutTestController.dumpAsText();
@@ -33,15 +32,8 @@ function findMediaElement()
     try {
         video = document.getElementsByTagName('video')[0];
         if (video)
-            media = video;
+            mediaElement = video;
     } catch (ex) { }
-}
-
-function hanged()
-{
-    logResult(Failed, "FAIL: timed out");
-    if (window.layoutTestController)
-        layoutTestController.notifyDone();  
 }
 
 function testAndEnd(testFuncString)
@@ -143,7 +135,7 @@ function waitForEvent(eventName, func, endit)
             endTest();    
     }
 
-    media.addEventListener(eventName, _eventCallback);
+    mediaElement.addEventListener(eventName, _eventCallback);
 }
 
 function waitForEventTestAndEnd(eventName, testFuncString)
@@ -165,7 +157,7 @@ function waitForEventAndTest(eventName, testFuncString, endit)
             endTest();    
     }
     
-    media.addEventListener(eventName, _eventCallback);
+    mediaElement.addEventListener(eventName, _eventCallback);
 }
 
 function testException(testString, exceptionString)
@@ -225,4 +217,16 @@ function consoleWrite(text)
 function relativeURL(url)
 {
     return url.substr(url.indexOf('/media/')+7);
+}
+
+
+function isInTimeRanges(ranges, time)
+{
+    var i = 0;
+    for (i = 0; i < ranges.length; ++i) {
+        if (time >= ranges.start(i) && time <= ranges.end(i)) {
+          return true;
+        }
+    }
+    return false;
 }

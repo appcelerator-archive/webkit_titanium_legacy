@@ -26,16 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import "DumpRenderTree.h"
+#import "config.h"
 #import "UIDelegate.h"
 
+#import "DumpRenderTree.h"
 #import "DumpRenderTreeDraggingInfo.h"
 #import "EventSendingController.h"
 #import "LayoutTestController.h"
 #import <WebKit/WebFramePrivate.h>
+#import <WebKit/WebGeolocationPrivate.h>
 #import <WebKit/WebHTMLViewPrivate.h>
-#import <WebKit/WebView.h>
 #import <WebKit/WebSecurityOriginPrivate.h>
+#import <WebKit/WebView.h>
 #import <wtf/Assertions.h>
 
 DumpRenderTreeDraggingInfo *draggingInfo = nil;
@@ -147,6 +149,12 @@ DumpRenderTreeDraggingInfo *draggingInfo = nil;
 {
     if (gLayoutTestController->dumpStatusCallbacks())
         printf("UI DELEGATE STATUS CALLBACK: setStatusText:%s\n", [text UTF8String]);
+}
+
+- (void)webView:(WebView *)sender frame:(WebFrame *)frame requestGeolocationPermission:(WebGeolocation *)geolocation securityOrigin:(WebSecurityOrigin *)origin
+{
+    if (gLayoutTestController->isGeolocationPermissionSet())
+        [geolocation setIsAllowed:gLayoutTestController->geolocationPermission()];
 }
 
 - (void)dealloc

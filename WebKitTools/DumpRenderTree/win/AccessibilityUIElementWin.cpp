@@ -157,6 +157,11 @@ JSStringRef AccessibilityUIElement::role()
     return JSStringCreateWithCharacters(roleText, _tcslen(roleText));
 }
 
+JSStringRef AccessibilityUIElement::subrole()
+{
+    return 0;
+}
+
 JSStringRef AccessibilityUIElement::title()
 {
     BSTR titleBSTR;
@@ -175,6 +180,11 @@ JSStringRef AccessibilityUIElement::description()
     wstring description(descriptionBSTR, SysStringLen(descriptionBSTR));
     ::SysFreeString(descriptionBSTR);
     return JSStringCreateWithCharacters(description.data(), description.length());
+}
+
+JSStringRef AccessibilityUIElement::language()
+{
+    return JSStringCreateWithCharacters(0, 0);
 }
 
 double AccessibilityUIElement::x()
@@ -209,6 +219,21 @@ double AccessibilityUIElement::height()
     return height;
 }
 
+double AccessibilityUIElement::clickPointX()
+{
+    return 0;
+}
+
+double AccessibilityUIElement::clickPointY()
+{
+    return 0;
+}
+
+JSStringRef AccessibilityUIElement::valueDescription()
+{
+    return 0;
+}
+
 double AccessibilityUIElement::intValue()
 {
     BSTR valueBSTR;
@@ -230,7 +255,17 @@ double AccessibilityUIElement::maxValue()
     return 0;
 }
 
-bool AccessibilityUIElement::supportsPressAction()
+bool AccessibilityUIElement::isActionSupported(JSStringRef action)
+{
+    return false;
+}
+
+bool AccessibilityUIElement::isEnabled()
+{
+    return false;
+}
+
+bool AccessibilityUIElement::isRequired() const
 {
     return false;
 }
@@ -295,6 +330,11 @@ JSStringRef AccessibilityUIElement::boundsForRange(unsigned location, unsigned l
     return JSStringCreateWithCharacters(0, 0);
 }
 
+JSStringRef AccessibilityUIElement::stringForRange(unsigned, unsigned)
+{
+    return JSStringCreateWithCharacters(0, 0);
+}
+
 AccessibilityUIElement AccessibilityUIElement::cellForColumnAndRow(unsigned column, unsigned row)
 {
     return 0;
@@ -319,3 +359,10 @@ bool AccessibilityUIElement::isAttributeSettable(JSStringRef attribute)
     return false;
 }
 
+void AccessibilityUIElement::increment()
+{
+}
+
+void AccessibilityUIElement::decrement()
+{
+}

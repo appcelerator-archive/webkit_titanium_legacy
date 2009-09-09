@@ -46,6 +46,11 @@
 
 #include <wtf/MathExtras.h>
 
+namespace WebCore 
+{
+extern bool isPathSkiaSafe(const SkMatrix& transform, const SkPath& path);
+}
+
 // State -----------------------------------------------------------------------
 
 // Encapsulates the additional painting state information we store for each
@@ -58,17 +63,17 @@ struct PlatformContextSkia::State {
     // Common shader state.
     float m_alpha;
     SkXfermode::Mode m_xferMode;
-    SkShader* m_gradient;
-    SkShader* m_pattern;
     bool m_useAntialiasing;
     SkDrawLooper* m_looper;
 
     // Fill.
     SkColor m_fillColor;
+    SkShader* m_fillShader;
 
     // Stroke.
     WebCore::StrokeStyle m_strokeStyle;
     SkColor m_strokeColor;
+    SkShader* m_strokeShader;
     float m_strokeThickness;
     int m_dashRatio;  // Ratio of the length of a dash to its width.
     float m_miterLimit;
@@ -99,14 +104,14 @@ private:
 PlatformContextSkia::State::State()
     : m_alpha(1)
     , m_xferMode(SkXfermode::kSrcOver_Mode)
-    , m_gradient(0)
-    , m_pattern(0)
     , m_useAntialiasing(true)
     , m_looper(0)
     , m_fillColor(0xFF000000)
+    , m_fillShader(0)
     , m_strokeStyle(WebCore::SolidStroke)
     , m_strokeColor(WebCore::Color::black)
     , m_strokeThickness(0)
+    , m_strokeShader(0)
     , m_dashRatio(3)
     , m_miterLimit(4)
     , m_lineCap(SkPaint::kDefault_Cap)
@@ -119,14 +124,14 @@ PlatformContextSkia::State::State()
 PlatformContextSkia::State::State(const State& other)
     : m_alpha(other.m_alpha)
     , m_xferMode(other.m_xferMode)
-    , m_gradient(other.m_gradient)
-    , m_pattern(other.m_pattern)
     , m_useAntialiasing(other.m_useAntialiasing)
     , m_looper(other.m_looper)
     , m_fillColor(other.m_fillColor)
+    , m_fillShader(other.m_fillShader)
     , m_strokeStyle(other.m_strokeStyle)
     , m_strokeColor(other.m_strokeColor)
     , m_strokeThickness(other.m_strokeThickness)
+    , m_strokeShader(other.m_strokeShader)
     , m_dashRatio(other.m_dashRatio)
     , m_miterLimit(other.m_miterLimit)
     , m_lineCap(other.m_lineCap)
@@ -141,16 +146,16 @@ PlatformContextSkia::State::State(const State& other)
     // Up the ref count of these. saveRef does nothing if 'this' is NULL.
     m_looper->safeRef();
     m_dash->safeRef();
-    m_gradient->safeRef();
-    m_pattern->safeRef();
+    m_fillShader->safeRef();
+    m_strokeShader->safeRef();
 }
 
 PlatformContextSkia::State::~State()
 {
     m_looper->safeUnref();
     m_dash->safeUnref();
-    m_gradient->safeUnref();
-    m_pattern->safeUnref();
+    m_fillShader->safeUnref();
+    m_strokeShader->safeUnref();
 }
 
 SkColor PlatformContextSkia::State::applyAlpha(SkColor c) const
@@ -273,8 +278,12 @@ void PlatformContextSkia::drawRect(SkRect rect)
         (m_state->m_strokeColor & 0xFF000000)) {
         // We do a fill of four rects to simulate the stroke of a border.
         SkColor oldFillColor = m_state->m_fillColor;
-        if (oldFillColor != m_state->m_strokeColor)
-            setFillColor(m_state->m_strokeColor);
+
+        // setFillColor() will set the shader to NULL, so save a ref to it now. 
+        SkShader* oldFillShader = m_state->m_fillShader;
+        oldFillShader->safeRef();
+        setFillColor(m_state->m_strokeColor);
+        paint.reset();
         setupPaintForFilling(&paint);
         SkRect topBorder = { rect.fLeft, rect.fTop, rect.fRight, rect.fTop + 1 };
         canvas()->drawRect(topBorder, paint);
@@ -284,14 +293,15 @@ void PlatformContextSkia::drawRect(SkRect rect)
         canvas()->drawRect(leftBorder, paint);
         SkRect rightBorder = { rect.fRight - 1, rect.fTop + 1, rect.fRight, rect.fBottom - 1 };
         canvas()->drawRect(rightBorder, paint);
-        if (oldFillColor != m_state->m_strokeColor)
-            setFillColor(oldFillColor);
+        setFillColor(oldFillColor);
+        setFillShader(oldFillShader);
+        oldFillShader->safeUnref();
     }
 }
 
 void PlatformContextSkia::setupPaintCommon(SkPaint* paint) const
 {
-#ifdef SK_DEBUGx
+#if defined(SK_DEBUG)
     {
         SkPaint defaultPaint;
         SkASSERT(*paint == defaultPaint);
@@ -301,17 +311,13 @@ void PlatformContextSkia::setupPaintCommon(SkPaint* paint) const
     paint->setAntiAlias(m_state->m_useAntialiasing);
     paint->setXfermodeMode(m_state->m_xferMode);
     paint->setLooper(m_state->m_looper);
-
-    if (m_state->m_gradient)
-        paint->setShader(m_state->m_gradient);
-    else if (m_state->m_pattern)
-        paint->setShader(m_state->m_pattern);
 }
 
 void PlatformContextSkia::setupPaintForFilling(SkPaint* paint) const
 {
     setupPaintCommon(paint);
     paint->setColor(m_state->applyAlpha(m_state->m_fillColor));
+    paint->setShader(m_state->m_fillShader);
 }
 
 float PlatformContextSkia::setupPaintForStroking(SkPaint* paint, SkRect* rect, int length) const
@@ -320,6 +326,7 @@ float PlatformContextSkia::setupPaintForStroking(SkPaint* paint, SkRect* rect, i
     float width = m_state->m_strokeThickness;
 
     paint->setColor(m_state->applyAlpha(m_state->m_strokeColor));
+    paint->setShader(m_state->m_strokeShader);
     paint->setStyle(SkPaint::kStroke_Style);
     paint->setStrokeWidth(SkFloatToScalar(width));
     paint->setStrokeCap(m_state->m_lineCap);
@@ -337,20 +344,27 @@ float PlatformContextSkia::setupPaintForStroking(SkPaint* paint, SkRect* rect, i
             width = m_state->m_dashRatio * width;
             // Fall through.
         case WebCore::DottedStroke:
-            SkScalar dashLength;
-            if (length) {
-                // Determine about how many dashes or dots we should have.
-                float roundedWidth = roundf(width);
-                int numDashes = roundedWidth ? (length / roundedWidth) : length;
-                if (!(numDashes & 1))
-                    numDashes++;    // Make it odd so we end on a dash/dot.
-                // Use the number of dashes to determine the length of a
-                // dash/dot, which will be approximately width
-                dashLength = SkScalarDiv(SkIntToScalar(length), SkIntToScalar(numDashes));
-            } else
-                dashLength = SkFloatToScalar(width);
-            SkScalar intervals[2] = { dashLength, dashLength };
-            paint->setPathEffect(new SkDashPathEffect(intervals, 2, 0))->unref();
+            // Truncate the width, since we don't want fuzzy dots or dashes.
+            int dashLength = static_cast<int>(width);
+            // Subtract off the endcaps, since they're rendered separately.
+            int distance = length - 2 * static_cast<int>(m_state->m_strokeThickness);
+            int phase = 1;
+            if (dashLength > 1) {
+                // Determine how many dashes or dots we should have.
+                int numDashes = distance / dashLength;
+                int remainder = distance % dashLength;
+                // Adjust the phase to center the dashes within the line.
+                if (numDashes % 2 == 0) {
+                    // Even:  shift right half a dash, minus half the remainder
+                    phase = (dashLength - remainder) / 2;
+                } else {
+                    // Odd:  shift right a full dash, minus half the remainder
+                    phase = dashLength - remainder / 2;
+                }
+            }
+            SkScalar dashLengthSk = SkIntToScalar(dashLength);
+            SkScalar intervals[2] = { dashLengthSk, dashLengthSk };
+            paint->setPathEffect(new SkDashPathEffect(intervals, 2, SkIntToScalar(phase)))->unref();
         }
     }
 
@@ -390,6 +404,7 @@ void PlatformContextSkia::setXfermodeMode(SkXfermode::Mode pdm)
 void PlatformContextSkia::setFillColor(SkColor color)
 {
     m_state->m_fillColor = color;
+    setFillShader(NULL);
 }
 
 SkDrawLooper* PlatformContextSkia::getDrawLooper() const
@@ -410,6 +425,7 @@ void PlatformContextSkia::setStrokeStyle(WebCore::StrokeStyle strokeStyle)
 void PlatformContextSkia::setStrokeColor(SkColor strokeColor)
 {
     m_state->m_strokeColor = strokeColor;
+    setStrokeShader(NULL);
 }
 
 float PlatformContextSkia::getStrokeThickness() const
@@ -420,6 +436,15 @@ float PlatformContextSkia::getStrokeThickness() const
 void PlatformContextSkia::setStrokeThickness(float thickness)
 {
     m_state->m_strokeThickness = thickness;
+}
+
+void PlatformContextSkia::setStrokeShader(SkShader* strokeShader)
+{
+    if (strokeShader != m_state->m_strokeShader) {
+        m_state->m_strokeShader->safeUnref();
+        m_state->m_strokeShader = strokeShader;
+        m_state->m_strokeShader->safeRef();
+    }
 }
 
 int PlatformContextSkia::getTextDrawingMode() const
@@ -467,10 +492,13 @@ void PlatformContextSkia::addPath(const SkPath& path)
 
 SkPath PlatformContextSkia::currentPathInLocalCoordinates() const
 {
-    SkPath localPath = m_path;
     const SkMatrix& matrix = m_canvas->getTotalMatrix();
     SkMatrix inverseMatrix;
-    matrix.invert(&inverseMatrix);
+    if (!matrix.invert(&inverseMatrix))
+        return SkPath();
+    if (!WebCore::isPathSkiaSafe(inverseMatrix, m_path))
+        return SkPath();
+    SkPath localPath = m_path;
     localPath.transform(inverseMatrix);
     return localPath;
 }
@@ -480,19 +508,12 @@ void PlatformContextSkia::setFillRule(SkPath::FillType fr)
     m_path.setFillType(fr);
 }
 
-void PlatformContextSkia::setGradient(SkShader* gradient)
+void PlatformContextSkia::setFillShader(SkShader* fillShader)
 {
-    if (gradient != m_state->m_gradient) {
-        m_state->m_gradient->safeUnref();
-        m_state->m_gradient = gradient;
-    }
-}
-
-void PlatformContextSkia::setPattern(SkShader* pattern)
-{
-    if (pattern != m_state->m_pattern) {
-        m_state->m_pattern->safeUnref();
-        m_state->m_pattern = pattern;
+    if (fillShader != m_state->m_fillShader) {
+        m_state->m_fillShader->safeUnref();
+        m_state->m_fillShader = fillShader;
+        m_state->m_fillShader->safeRef();
     }
 }
 

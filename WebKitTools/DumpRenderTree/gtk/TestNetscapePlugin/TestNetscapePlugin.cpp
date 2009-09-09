@@ -38,46 +38,6 @@
 #include <stdlib.h>
 #include <X11/Xlib.h>
 
-static void log(NPP instance, const char* format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    char message[2048] = "PLUGIN: ";
-    vsprintf(message + strlen(message), format, args);
-    va_end(args);
-
-    NPObject* windowObject = 0;
-    NPError error = browser->getvalue(instance, NPNVWindowNPObject, &windowObject);
-    if (error != NPERR_NO_ERROR) {
-        fprintf(stderr, "Failed to retrieve window object while logging: %s\n", message);
-        return;
-    }
-
-    NPVariant consoleVariant;
-    if (!browser->getproperty(instance, windowObject, browser->getstringidentifier("console"), &consoleVariant)) {
-        fprintf(stderr, "Failed to retrieve console object while logging: %s\n", message);
-        browser->releaseobject(windowObject);
-        return;
-    }
-
-    NPObject* consoleObject = NPVARIANT_TO_OBJECT(consoleVariant);
-
-    NPVariant messageVariant;
-    STRINGZ_TO_NPVARIANT(message, messageVariant);
-
-    NPVariant result;
-    if (!browser->invoke(instance, consoleObject, browser->getstringidentifier("log"), &messageVariant, 1, &result)) {
-        fprintf(stderr, "Failed to invoke console.log while logging: %s\n", message);
-        browser->releaseobject(consoleObject);
-        browser->releaseobject(windowObject);
-        return;
-    }
-
-    browser->releasevariantvalue(&result);
-    browser->releaseobject(consoleObject);
-    browser->releaseobject(windowObject);
-}
-
 extern "C" {
     NPError NP_Initialize (NPNetscapeFuncs *aMozillaVTable, NPPluginFuncs *aPluginVTable);
     NPError NP_Shutdown(void);
@@ -86,13 +46,13 @@ extern "C" {
 }
 
 static NPError
-webkit_test_plugin_new_instance(NPMIMEType mimetype,
+webkit_test_plugin_new_instance(NPMIMEType /*mimetype*/,
                                 NPP instance,
-                                uint16_t mode,
+                                uint16_t /*mode*/,
                                 int16_t argc,
                                 char *argn[],
                                 char *argv[],
-                                NPSavedData *savedData)
+                                NPSavedData* /*savedData*/)
 {
     if (browser->version >= 14) {
         PluginObject* obj = (PluginObject*)browser->createobject(instance, getPluginClass());
@@ -111,6 +71,11 @@ webkit_test_plugin_new_instance(NPMIMEType mimetype,
                 obj->logSetWindow = TRUE;
             else if (strcasecmp(argn[i], "testnpruntime") == 0)
                 testNPRuntime(instance);
+            else if (strcasecmp(argn[i], "logSrc") == 0) {
+                for (int i = 0; i < argc; i++)
+                    if (strcasecmp(argn[i], "src") == 0)
+                        pluginLog(instance, "src: %s", argv[i]);
+            }
         }
 
         instance->pdata = obj;
@@ -120,7 +85,7 @@ webkit_test_plugin_new_instance(NPMIMEType mimetype,
 }
 
 static NPError
-webkit_test_plugin_destroy_instance(NPP instance, NPSavedData **save)
+webkit_test_plugin_destroy_instance(NPP instance, NPSavedData** /*save*/)
 {
     PluginObject* obj = static_cast<PluginObject*>(instance->pdata);
     if (obj) {
@@ -134,7 +99,7 @@ webkit_test_plugin_destroy_instance(NPP instance, NPSavedData **save)
             free(obj->onURLNotify);
 
         if (obj->logDestroy)
-            log(instance, "NPP_Destroy");
+            pluginLog(instance, "NPP_Destroy");
 
         browser->releaseobject(&obj->header);
     }
@@ -149,7 +114,7 @@ webkit_test_plugin_set_window(NPP instance, NPWindow *window)
 
     if (obj) {
         if (obj->logSetWindow) {
-            log(instance, "NPP_SetWindow: %d %d", (int)window->width, (int)window->height);
+            pluginLog(instance, "NPP_SetWindow: %d %d", (int)window->width, (int)window->height);
             obj->logSetWindow = false;
         }
     }
@@ -173,9 +138,9 @@ static void executeScript(const PluginObject* obj, const char* script)
 
 static NPError
 webkit_test_plugin_new_stream(NPP instance,
-                              NPMIMEType type,
+                              NPMIMEType /*type*/,
                               NPStream *stream,
-                              NPBool seekable,
+                              NPBool /*seekable*/,
                               uint16* stype)
 {
     PluginObject* obj = static_cast<PluginObject*>(instance->pdata);
@@ -195,7 +160,7 @@ webkit_test_plugin_new_stream(NPP instance,
 }
 
 static NPError
-webkit_test_plugin_destroy_stream(NPP instance, NPStream *stream, NPError reason)
+webkit_test_plugin_destroy_stream(NPP instance, NPStream* /*stream*/, NPError /*reason*/)
 {
     PluginObject* obj = (PluginObject*)instance->pdata;
 
@@ -206,28 +171,28 @@ webkit_test_plugin_destroy_stream(NPP instance, NPStream *stream, NPError reason
 }
 
 static void
-webkit_test_plugin_stream_as_file(NPP instance, NPStream *stream, const char* fname)
+webkit_test_plugin_stream_as_file(NPP /*instance*/, NPStream* /*stream*/, const char* /*fname*/)
 {
 }
 
 static int32
-webkit_test_plugin_write_ready(NPP instance, NPStream *stream)
+webkit_test_plugin_write_ready(NPP /*instance*/, NPStream* /*stream*/)
 {
     return 0;
 }
 
 static int32
-webkit_test_plugin_write(NPP instance,
-                         NPStream *stream,
-                         int32_t offset,
-                         int32_t len,
-                         void *buffer)
+webkit_test_plugin_write(NPP /*instance*/,
+                         NPStream* /*stream*/,
+                         int32_t /*offset*/,
+                         int32_t /*len*/,
+                         void* /*buffer*/)
 {
     return 0;
 }
 
 static void
-webkit_test_plugin_print(NPP instance, NPPrint* platformPrint)
+webkit_test_plugin_print(NPP /*instance*/, NPPrint* /*platformPrint*/)
 {
 }
 
@@ -239,7 +204,7 @@ webkit_test_plugin_handle_event(NPP instance, void* event)
         return 0;
 
     XEvent* evt = static_cast<XEvent*>(event);
-    log(instance, "event %d", evt->type);
+    pluginLog(instance, "event %d", evt->type);
 
     return 0;
 }
@@ -262,10 +227,10 @@ webkit_test_plugin_get_value(NPP instance, NPPVariable variable, void *value)
 
     switch (variable) {
         case NPPVpluginNameString:
-            *((char **)value) = "WebKit Test PlugIn";
+            *((char **)value) = const_cast<char*>("WebKit Test PlugIn");
             break;
         case NPPVpluginDescriptionString:
-            *((char **)value) = "Simple Netscape plug-in that handles test content for WebKit";
+            *((char **)value) = const_cast<char*>("Simple Netscape plug-in that handles test content for WebKit");
             break;
         case NPPVpluginNeedsXEmbed:
             *((NPBool *)value) = TRUE;
@@ -293,7 +258,7 @@ webkit_test_plugin_get_value(NPP instance, NPPVariable variable, void *value)
 }
 
 static NPError
-webkit_test_plugin_set_value(NPP instance, NPNVariable variable, void *value)
+webkit_test_plugin_set_value(NPP /*instance*/, NPNVariable /*variable*/, void* /*value*/)
 {
     return NPERR_NO_ERROR;
 }
@@ -301,7 +266,7 @@ webkit_test_plugin_set_value(NPP instance, NPNVariable variable, void *value)
 char *
 NP_GetMIMEDescription(void)
 {
-    return "application/x-webkit-test-netscape:testnetscape:test netscape content";
+    return const_cast<char*>("application/x-webkit-test-netscape:testnetscape:test netscape content");
 }
 
 NPError
@@ -313,8 +278,6 @@ NP_Initialize (NPNetscapeFuncs *aMozillaVTable, NPPluginFuncs *aPluginVTable)
     if ((aMozillaVTable->version >> 8) > NP_VERSION_MAJOR)
         return NPERR_INCOMPATIBLE_VERSION_ERROR;
 
-    if (aMozillaVTable->size < sizeof (NPNetscapeFuncs))
-        return NPERR_INVALID_FUNCTABLE_ERROR;
     if (aPluginVTable->size < sizeof (NPPluginFuncs))
         return NPERR_INVALID_FUNCTABLE_ERROR;
 
@@ -347,7 +310,7 @@ NP_Shutdown(void)
 }
 
 NPError
-NP_GetValue(void *future, NPPVariable variable, void *value)
+NP_GetValue(void* /*future*/, NPPVariable variable, void *value)
 {
     return webkit_test_plugin_get_value(NULL, variable, value);
 }

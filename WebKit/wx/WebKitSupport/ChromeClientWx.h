@@ -76,6 +76,7 @@ public:
     virtual void setResizable(bool);
 
     virtual void addMessageToConsole(MessageSource source,
+                                     MessageType type,
                                      MessageLevel level,
                                      const String& message,
                                      unsigned int lineNumber,
@@ -106,15 +107,21 @@ public:
     virtual PlatformWidget platformWindow() const;
     virtual void contentsSizeChanged(Frame*, const IntSize&) const;
 
+    virtual void scrollbarsModeDidChange() const { }
     virtual void mouseDidMoveOverElement(const HitTestResult&, unsigned modifierFlags);
 
-    virtual void setToolTip(const String&);
+    virtual void setToolTip(const String&, TextDirection);
 
     virtual void print(Frame*);
 
 #if ENABLE(DATABASE)
     virtual void exceededDatabaseQuota(Frame*, const String&);
 #endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    virtual void reachedMaxAppCacheSize(int64_t spaceNeeded);
+#endif
+
     virtual void runOpenPanel(Frame*, PassRefPtr<FileChooser>);
 
     virtual void formStateDidChange(const Node*) { }

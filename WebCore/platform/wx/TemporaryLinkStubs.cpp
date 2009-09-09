@@ -88,11 +88,6 @@ Vector<char> loadResourceIntoArray(const char* resourceName)
     return resource;
 }
 
-int findNextSentenceFromIndex(UChar const*,int,int,bool) { notImplemented(); return 0; }
-void findSentenceBoundary(UChar const*,int,int,int*,int*) { notImplemented(); }
-
-int WebCore::findNextWordFromIndex(UChar const*,int,int,bool) { notImplemented(); return 0; }
-
 DragImageRef Frame::dragImageForSelection() { notImplemented(); return 0; }
 
 void GraphicsContext::addInnerRoundedRectClip(const IntRect& rect, int thickness) { notImplemented(); }
@@ -102,8 +97,6 @@ void GraphicsContext::addInnerRoundedRectClip(const IntRect& rect, int thickness
 /********************************************************/
 static WebCore::Cursor localCursor;
 const WebCore::Cursor& WebCore::moveCursor() { return localCursor; }
-
-void WebCore::findWordBoundary(UChar const* str,int len,int position,int* start, int* end) { notImplemented(); *start=position; *end=position; }
 
 void Widget::setIsSelected(bool) { notImplemented(); }
 
@@ -118,11 +111,7 @@ void GraphicsContext::setLineJoin(LineJoin) { notImplemented(); }
 void GraphicsContext::setMiterLimit(float) { notImplemented(); }
 void GraphicsContext::setAlpha(float) { notImplemented(); }
 
-Color WebCore::focusRingColor() { return 0xFF0000FF; }
-
 void Image::drawPattern(GraphicsContext*, const FloatRect& srcRect, const TransformationMatrix& patternTransform, const FloatPoint& phase, CompositeOperator, const FloatRect& destRect) { notImplemented(); } 
-
-ScrollbarTheme* ScrollbarTheme::nativeTheme() { notImplemented(); static ScrollbarTheme theme; return &theme; }
 
 String FileChooser::basenameForWidth(const Font&, int width) const { notImplemented(); return String(); }
 
@@ -135,11 +124,6 @@ void Editor::showColorPanel() { notImplemented(); }
 void Editor::showFontPanel() { notImplemented(); }
 void Editor::showStylesPanel() { notImplemented(); }
 
-bool EventHandler::tabsToAllControls(KeyboardEvent* event) const { notImplemented(); return false; }
-bool EventHandler::passSubframeEventToSubframe(MouseEventWithHitTestResults&, Frame* subframe, HitTestResult*) { notImplemented(); return false; }
-bool EventHandler::passMouseDownEventToWidget(Widget*) { notImplemented(); return false; }
-bool EventHandler::passWheelEventToWidget(PlatformWheelEvent&, Widget*) { notImplemented(); return false; }
-
 void SearchPopupMenu::saveRecentSearches(const AtomicString& name, const Vector<String>& searchItems) { notImplemented(); }
 void SearchPopupMenu::loadRecentSearches(const AtomicString& name, Vector<String>& searchItems) { notImplemented(); }
 SearchPopupMenu::SearchPopupMenu(PopupMenuClient* client) : PopupMenu(client) { notImplemented(); }
@@ -149,12 +133,11 @@ namespace WebCore {
 float userIdleTime() { notImplemented(); return FLT_MAX; } // return an arbitrarily high userIdleTime so that releasing pages from the page cache isn't postponed
 void getSupportedKeySizes(Vector<String>&) { notImplemented(); }
 String signedPublicKeyAndChallengeString(unsigned keySizeIndex, const String &challengeString, const KURL &url) { return String(); }
+const char* currentSearchLocaleID() { notImplemented(); return ""; }
 const char* currentTextBreakLocaleID() { notImplemented(); return "en_us"; }
 
 String KURL::fileSystemPath() const { notImplemented(); return String(); }
 
 PassRefPtr<SharedBuffer> SharedBuffer::createWithContentsOfFile(const String&) { notImplemented(); return 0; }
-
-void prefetchDNS(const String& hostname) { notImplemented(); }
 
 }

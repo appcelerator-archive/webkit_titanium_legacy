@@ -76,6 +76,11 @@ typedef enum {
 } WebDashboardBehavior;
 #endif
 
+typedef enum {
+    WebInjectAtDocumentStart,
+    WebInjectAtDocumentEnd,
+} WebUserScriptInjectionTime;
+
 @interface WebController : NSTreeController {
     IBOutlet WebView *webView;
 }
@@ -256,6 +261,9 @@ Could be worth adding to the API.
 // _close is now replaced by public method -close. It remains here only for backward compatibility
 // until callers can be weaned off of it.
 - (void)_close;
+
+// Indicates if the WebView is in the midst of a user gesture.
+- (BOOL)_isProcessingUserGesture;
 
 // SPI for DumpRenderTree
 - (void)_updateActiveState;
@@ -440,6 +448,19 @@ Could be worth adding to the API.
 // Which pasteboard text is coming from in editing delegate methods such as shouldInsertNode.
 - (NSPasteboard *)_insertionPasteboard;
 
+// Whitelists access from an origin (sourceOrigin) to a set of one or more origins described by the parameters:
+// - destinationProtocol: The protocol to grant access to.
+// - destinationHost: The host to grant access to.
+// - allowDestinationSubdomains: If host is a domain, setting this to YES will whitelist host and all its subdomains, recursively.
++ (void)_whiteListAccessFromOrigin:(NSString *)sourceOrigin destinationProtocol:(NSString *)destinationProtocol destinationHost:(NSString *)destinationHost allowDestinationSubdomains:(BOOL)allowDestinationSubdomains;
+
+// Removes all white list entries created with _whiteListAccessFromOrigin.
++ (void)_resetOriginAccessWhiteLists;
+
++ (void)_addUserScriptToGroup:(NSString *)groupName source:(NSString *)source url:(NSURL *)url worldID:(unsigned)worldID patterns:(NSArray *)patterns injectionTime:(WebUserScriptInjectionTime)injectionTime;
++ (void)_removeUserContentFromGroup:(NSString *)groupName worldID:(unsigned)worldID;
++ (void)_removeAllUserContentFromGroup:(NSString *)groupName;
+
 @end
 
 @interface WebView (WebViewPrintingPrivate)
@@ -518,6 +539,9 @@ Could be worth adding to the API.
 - (void)webView:(WebView *)sender didHandleOnloadEventsForFrame:(WebFrame *)frame;
 
 - (void)webView:(WebView *)sender didFirstVisuallyNonEmptyLayoutInFrame:(WebFrame *)frame;
+
+// For implementing the WebInspector's test harness
+- (void)webView:(WebView *)webView didClearInspectorWindowObject:(WebScriptObject *)windowObject forFrame:(WebFrame *)frame;
 
 @end
 

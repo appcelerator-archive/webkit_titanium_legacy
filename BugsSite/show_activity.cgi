@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -24,11 +24,15 @@
 
 use strict;
 
-use lib qw(.);
-use vars qw ($template $vars);
+use lib qw(. lib);
 
-require "CGI.pl";
+use Bugzilla;
+use Bugzilla::Error;
+use Bugzilla::Bug;
+
 my $cgi = Bugzilla->cgi;
+my $template = Bugzilla->template;
+my $vars = {};
 
 ###############################################################################
 # Begin Data/Security Validation
@@ -47,11 +51,11 @@ ValidateBugID($bug_id);
 ###############################################################################
 
 ($vars->{'operations'}, $vars->{'incomplete_data'}) = 
-                                                 GetBugActivity($bug_id);
+    Bugzilla::Bug::GetBugActivity($bug_id);
 
-$vars->{'bug_id'} = $bug_id;
+$vars->{'bug'} = new Bugzilla::Bug($bug_id);
 
-print Bugzilla->cgi->header();
+print $cgi->header();
 
 $template->process("bug/activity/show.html.tmpl", $vars)
   || ThrowTemplateError($template->error());

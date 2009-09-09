@@ -30,6 +30,7 @@ namespace WebCore {
 
 class FormDataList;
 class HTMLFormElement;
+class ValidityState;
 
 class HTMLFormControlElement : public HTMLElement {
 public:
@@ -40,6 +41,10 @@ public:
     virtual int tagPriority() const { return 1; }
 
     HTMLFormElement* form() const { return m_form; }
+    virtual ValidityState* validity();
+
+    bool formNoValidate() const;
+    void setFormNoValidate(bool);
 
     virtual bool isTextFormControl() const { return false; }
     virtual bool isEnabledFormControl() const { return !disabled(); }
@@ -72,6 +77,9 @@ public:
     virtual bool autofocus() const;
     void setAutofocus(bool);
 
+    bool required() const;
+    void setRequired(bool);
+
     virtual void recalcStyle(StyleChange);
 
     virtual const AtomicString& formControlName() const;
@@ -97,16 +105,27 @@ public:
     virtual short tabIndex() const;
 
     virtual bool willValidate() const;
+    bool checkValidity();
+    void setCustomValidity(const String&);
+
+    virtual bool valueMissing() const { return false; }
+    virtual bool patternMismatch() const { return false; }
 
     void formDestroyed() { m_form = 0; }
+
+    virtual void dispatchFocusEvent();
+    virtual void dispatchBlurEvent();
 
 protected:
     void removeFromForm();
 
 private:
     virtual HTMLFormElement* virtualForm() const;
+    virtual bool isDefaultButtonForForm() const;
+    virtual bool isValidFormControlElement();
 
     HTMLFormElement* m_form;
+    RefPtr<ValidityState> m_validityState;
     bool m_disabled;
     bool m_readOnly;
     bool m_valueMatchesRenderer;

@@ -31,10 +31,14 @@
 #include "config.h"
 #include "ScrollView.h"
 
+#include "ChromeClient.h"
 #include "FloatRect.h"
+#include "Frame.h"
+#include "FrameView.h"
 #include "GraphicsContext.h"
 #include "HostWindow.h"
 #include "IntRect.h"
+#include "Page.h"
 #include "PlatformMouseEvent.h"
 #include "PlatformWheelEvent.h"
 #include "ScrollbarGtk.h"
@@ -119,6 +123,52 @@ void ScrollView::platformRemoveChild(Widget* child)
 
     if (GTK_IS_CONTAINER(parent) && parent == child->platformWidget()->parent)
         gtk_container_remove(GTK_CONTAINER(parent), child->platformWidget());
+}
+
+IntRect ScrollView::visibleContentRect(bool includeScrollbars) const
+{
+    if (!m_horizontalAdjustment)
+        return IntRect(IntPoint(m_scrollOffset.width(), m_scrollOffset.height()),
+                       IntSize(max(0, width() - (verticalScrollbar() && !includeScrollbars ? verticalScrollbar()->width() : 0)),
+                               max(0, height() - (horizontalScrollbar() && !includeScrollbars ? horizontalScrollbar()->height() : 0))));
+
+    // Main frame.
+    GtkWidget* measuredWidget = hostWindow()->platformWindow();
+    GtkWidget* parent = gtk_widget_get_parent(measuredWidget);
+
+    // We may not be in a widget that displays scrollbars, but we may
+    // have other kinds of decoration that make us smaller.
+    if (parent && includeScrollbars)
+        measuredWidget = parent;
+
+    return IntRect(IntPoint(m_scrollOffset.width(), m_scrollOffset.height()),
+                   IntSize(measuredWidget->allocation.width,
+                           measuredWidget->allocation.height));
+}
+
+void ScrollView::setScrollbarModes(ScrollbarMode horizontalMode, ScrollbarMode verticalMode)
+{
+    if (horizontalMode == m_horizontalScrollbarMode && verticalMode == m_verticalScrollbarMode)
+        return;
+
+    m_horizontalScrollbarMode = horizontalMode;
+    m_verticalScrollbarMode = verticalMode;
+
+    // We don't really care about reporting policy changes on frames
+    // that have no adjustments attached to them.
+    if (!m_horizontalAdjustment) {
+        updateScrollbars(scrollOffset());
+        return;
+    }
+
+    if (!isFrameView())
+        return;
+
+    // For frames that do have adjustments attached, we want to report
+    // policy changes, so that they may be applied to the widget to
+    // which the WebView has been added, for instance.
+    if (hostWindow())
+        hostWindow()->scrollbarsModeDidChange();
 }
 
 }

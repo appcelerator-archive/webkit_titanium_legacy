@@ -31,6 +31,7 @@
 #include "KURL.h"
 #include "Location.h"
 #include "ScriptController.h"
+#include <runtime/JSFunction.h>
 #include <runtime/PrototypeFunction.h>
 
 using namespace JSC;
@@ -90,6 +91,51 @@ bool JSLocation::getOwnPropertySlotDelegate(ExecState* exec, const Identifier& p
 
     printErrorMessageForFrame(frame, message);
     slot.setUndefined();
+    return true;
+}
+
+bool JSLocation::getOwnPropertyDescriptorDelegate(ExecState* exec, const Identifier& propertyName, PropertyDescriptor& descriptor)
+{
+    Frame* frame = impl()->frame();
+    if (!frame) {
+        descriptor.setUndefined();
+        return true;
+    }
+    
+    // When accessing Location cross-domain, functions are always the native built-in ones.
+    // See JSDOMWindow::getOwnPropertySlotDelegate for additional details.
+    
+    // Our custom code is only needed to implement the Window cross-domain scheme, so if access is
+    // allowed, return false so the normal lookup will take place.
+    String message;
+    if (allowsAccessFromFrame(exec, frame, message))
+        return false;
+    
+    // Check for the few functions that we allow, even when called cross-domain.
+    const HashEntry* entry = JSLocationPrototype::s_info.propHashTable(exec)->entry(exec, propertyName);
+    PropertySlot slot;
+    if (entry && (entry->attributes() & Function)) {
+        if (entry->function() == jsLocationPrototypeFunctionReplace) {
+            slot.setCustom(this, nonCachingStaticReplaceFunctionGetter);
+            descriptor.setDescriptor(slot.getValue(exec, propertyName), entry->attributes());
+            return true;
+        } else if (entry->function() == jsLocationPrototypeFunctionReload) {
+            slot.setCustom(this, nonCachingStaticReloadFunctionGetter);
+            descriptor.setDescriptor(slot.getValue(exec, propertyName), entry->attributes());
+            return true;
+        } else if (entry->function() == jsLocationPrototypeFunctionAssign) {
+            slot.setCustom(this, nonCachingStaticAssignFunctionGetter);
+            descriptor.setDescriptor(slot.getValue(exec, propertyName), entry->attributes());
+            return true;
+        }
+    }
+    
+    // FIXME: Other implementers of the Window cross-domain scheme (Window, History) allow toString,
+    // but for now we have decided not to, partly because it seems silly to return "[Object Location]" in
+    // such cases when normally the string form of Location would be the URL.
+    
+    printErrorMessageForFrame(frame, message);
+    descriptor.setUndefined();
     return true;
 }
 
@@ -245,13 +291,13 @@ void JSLocation::setHash(ExecState* exec, JSValue value)
     ASSERT(frame);
 
     KURL url = frame->loader()->url();
-    String oldRef = url.ref();
+    String oldFragmentIdentifier = url.fragmentIdentifier();
     String str = value.toString(exec);
     if (str.startsWith("#"))
         str = str.substring(1);
-    if (oldRef == str || (oldRef.isNull() && str.isEmpty()))
+    if (equalIgnoringNullity(oldFragmentIdentifier, str))
         return;
-    url.setRef(str);
+    url.setFragmentIdentifier(str);
 
     navigateIfAllowed(exec, frame, url, !frame->script()->anyPageIsProcessingUserGesture(), false);
 }

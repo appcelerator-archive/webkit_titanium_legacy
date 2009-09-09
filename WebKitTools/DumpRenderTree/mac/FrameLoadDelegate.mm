@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import "config.h"
 #import "DumpRenderTree.h"
 #import "FrameLoadDelegate.h"
 
@@ -47,6 +48,7 @@
 #import <WebKit/WebHTMLViewPrivate.h>
 #import <WebKit/WebKit.h>
 #import <WebKit/WebNSURLExtras.h>
+#import <WebKit/WebSecurityOriginPrivate.h>
 #import <wtf/Assertions.h>
 
 @interface NSURLRequest (PrivateThingsWeShouldntReallyUse)
@@ -120,6 +122,11 @@
     // if we finish all the commands, we're ready to dump state
     if (WorkQueue::shared()->processWork() && !gLayoutTestController->waitToDump())
         dump();
+}
+
+- (void)resetToConsistentState
+{
+    accessibilityController->resetToConsistentState();
 }
 
 - (void)webView:(WebView *)c locationChangeDone:(NSError *)error forDataSource:(WebDataSource *)dataSource
@@ -345,6 +352,18 @@
         NSString *string = [NSString stringWithFormat:@"%@ - didHandleOnloadEventsForFrame", [frame _drt_descriptionSuitableForTestResult]];
         printf ("%s\n", [string UTF8String]);
     }
+}
+
+- (void)webViewDidDisplayInsecureContent:(WebView *)sender
+{
+    if (!done && gLayoutTestController->dumpFrameLoadCallbacks())
+        printf ("didDisplayInsecureContent\n");
+}
+
+- (void)webView:(WebView *)sender didRunInsecureContent:(WebSecurityOrigin *)origin
+{
+    if (!done && gLayoutTestController->dumpFrameLoadCallbacks())
+        printf ("didRunInsecureContent\n");
 }
 
 @end

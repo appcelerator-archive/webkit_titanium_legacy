@@ -124,6 +124,11 @@ bool Event::isOverflowEvent() const
     return false;
 }
 
+bool Event::isPageTransitionEvent() const
+{
+    return false;
+}
+
 bool Event::isProgressEvent() const
 {
     return false;
@@ -158,6 +163,13 @@ bool Event::isStorageEvent() const
 }
 #endif
 
+#if ENABLE(WORKERS)
+bool Event::isErrorEvent() const
+{
+    return false;
+}
+#endif
+    
 bool Event::storesResultAsString() const
 {
     return false;

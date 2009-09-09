@@ -1,4 +1,85 @@
 =================
+WebKitGTK+ 1.1.14
+=================
+
+What's new in WebKitGTK+ 1.1.14?
+
+  - New API has been added to WebKitWebFrame to allow applying
+    scrollbars policy as requested by web applications to the main
+    frame; if the parent of the WebKitWebView widget is a
+    GtkScrolledWindow, policy is applied by the default handler.
+  - A new API has been added to help dealing with the various
+    resources that are downloaded to compose the final rendering; you
+    can now obtain the source code for a page that is loaded, for
+    instance.
+  - A new property has been added to WebKitWebView to allow setting it
+    to "View Source" mode.
+  - HTML5 database has gained API to manage the individual databases,
+    including usage and quota.
+  - A new signal `resource-request-starting' has been added to the
+    WebKitWebView to allow modification of outgoing requests for every
+    resource.
+  - Connection limit has been increased to 60 total connections, 6
+    per-host, matching other browsers more closely; this seems to have
+    improved loading time of some sites.
+  - Undo/redo support has been added to editable texts.
+  - The usual stream of small improvements and bug fixes.
+
+=================
+WebKitGTK+ 1.1.13
+=================
+
+What's new in WebKitGTK+ 1.1.13?
+
+  - GNOME Keyring support was removed in favor of the new Password
+    Manager soup feature; to get exactly the same behavior,
+    applications should use SoupPasswordManagerGNOME. This requires
+    libsoup 2.27.91 or newer.
+  - Several accessibility improvements, including support for testing
+    the a11y infrastructure in our layout tests.
+  - You can now enable/disable HTML5 offline application cache using a
+    new setting added to WebKitWebSettings.
+  - Drag support has landed, meaning you can start playing with HTML5
+    drag and drop support; drop support is still missing.
+  - A crash with scripts closing windows has been fixed.
+  - Image cursors support has been added.
+  - The usual stream of small improvements and bug fixes.
+
+=================
+WebKitGTK+ 1.1.12
+=================
+
+What's new in WebKitGTK+ 1.1.12?
+
+  - Fix WebKitSoupAuthDialog to only save passwords in gnome-keyring
+    (if enabled) when authentication succeeds.
+  - Implement a proper size_request method for WebKitWebView. The
+    widget will request the size of the whole page as its size
+    requisition.
+  - Many a11y improvements.
+  - The usual amount of other misc fixes.
+  - WEBKIT_DEBUG variable now accepts channel names in any case
+    again.
+
+=================
+WebKitGTK+ 1.1.11
+=================
+
+What's new in WebKitGTK+ 1.1.11?
+
+  - WebKit has got a new feature - a XSS auditor, that should improve
+    security; this feature is still experimental, and disabled by
+    default, but applications can enable it using the setting.
+  - The hackish content sniffing code that was beig used to avoid
+    pages requesting downloads instead of displaying content has been
+    replaced by usage of a new Soup feature, which implements proper
+    content sniffing.
+  - More accessibility work, including fixes for problems which were
+    critical for a possible GNOME 2.28 release.
+  - Pasting rich text from other browsers should now work as expected.
+  - The usual amount of misc fixes.
+
+=================
 WebKitGTK+ 1.1.10
 =================
 

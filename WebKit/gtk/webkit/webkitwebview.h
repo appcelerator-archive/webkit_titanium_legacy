@@ -52,7 +52,10 @@ typedef enum {
 typedef enum
 {
     WEBKIT_WEB_VIEW_TARGET_INFO_HTML,
-    WEBKIT_WEB_VIEW_TARGET_INFO_TEXT
+    WEBKIT_WEB_VIEW_TARGET_INFO_TEXT,
+    WEBKIT_WEB_VIEW_TARGET_INFO_IMAGE,
+    WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST,
+    WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL
 } WebKitWebViewTargetInfo;
 
 struct _WebKitWebView {
@@ -73,6 +76,8 @@ struct _WebKitWebViewClass {
                                                            WebKitWebFrame       *web_frame);
 
     gboolean                   (* web_view_ready)          (WebKitWebView* web_view);
+
+    gboolean                   (* close_web_view)         (WebKitWebView* web_view);
 
     WebKitNavigationResponse   (* navigation_requested)   (WebKitWebView        *web_view,
                                                            WebKitWebFrame       *frame,
@@ -114,14 +119,15 @@ struct _WebKitWebViewClass {
     void                       (* set_scroll_adjustments) (WebKitWebView        *web_view,
                                                            GtkAdjustment        *hadjustment,
                                                            GtkAdjustment        *vadjustment);
+
+    void                       (* undo)                   (WebKitWebView        *web_view);
+    void                       (* redo)                   (WebKitWebView        *web_view);
+
     /* Padding for future expansion */
     void (*_webkit_reserved0) (void);
     void (*_webkit_reserved1) (void);
     void (*_webkit_reserved2) (void);
     void (*_webkit_reserved3) (void);
-    void (*_webkit_reserved4) (void);
-    void (*_webkit_reserved5) (void);
-    void (*_webkit_reserved6) (void);
 };
 
 WEBKIT_API GType
@@ -337,6 +343,25 @@ webkit_web_view_get_load_status                 (WebKitWebView        *web_view)
 
 WEBKIT_API gdouble
 webkit_web_view_get_progress                    (WebKitWebView        *web_view);
+
+WEBKIT_API void
+webkit_web_view_undo                            (WebKitWebView        *webView);
+
+WEBKIT_API gboolean
+webkit_web_view_can_undo                        (WebKitWebView        *webView);
+
+WEBKIT_API void
+webkit_web_view_redo                            (WebKitWebView        *webView);
+
+WEBKIT_API gboolean
+webkit_web_view_can_redo                        (WebKitWebView        *webView);
+
+WEBKIT_API void
+webkit_web_view_set_view_source_mode            (WebKitWebView        *web_view,
+                                                 gboolean             view_source_mode);
+
+WEBKIT_API gboolean
+webkit_web_view_get_view_source_mode            (WebKitWebView        *web_view);
 
 G_END_DECLS
 

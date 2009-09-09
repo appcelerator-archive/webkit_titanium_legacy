@@ -74,15 +74,6 @@
 
 #endif /* PLATFORM(WIN_OS) */
 
-// On MSW, wx headers need to be included before windows.h is.
-// The only way we can always ensure this is if we include wx here.
-#if PLATFORM(WX)
-// The defines in KeyboardCodes.h conflict with Windows as well, and the only way I've found
-// to address the problem is include KeyboarddCodes.h before windows.h, so do it here.
-#include "KeyboardCodes.h"
-#include <wx/defs.h>
-#endif
-
 #ifdef __cplusplus
 
 // These undefs match up with defines in WebCorePrefix.h for Mac OS X.
@@ -91,6 +82,15 @@
 #undef delete
 #include <wtf/FastMalloc.h>
 
+#endif
+
+// On MSW, wx headers need to be included before windows.h is.
+// The only way we can always ensure this is if we include wx here.
+#if PLATFORM(WX)
+// The defines in KeyboardCodes.h conflict with Windows as well, and the only way I've found
+// to address the problem is include KeyboarddCodes.h before windows.h, so do it here.
+#include "KeyboardCodes.h"
+#include <wx/defs.h>
 #endif
 
 // this breaks compilation of <QFontDatabase>, at least, so turn it off for now
@@ -107,16 +107,19 @@
 #endif
 
 #if PLATFORM(WIN)
-#if 0
-#define WTF_PLATFORM_CG 1
-#undef WTF_PLATFORM_CAIRO
-#define WTF_USE_CFNETWORK 1
-#undef WTF_USE_CURL
-#else
+#if defined(WIN_CAIRO)
 #undef WTF_PLATFORM_CG
 #define WTF_PLATFORM_CAIRO 1
 #undef WTF_USE_CFNETWORK
 #define WTF_USE_CURL 1
+#ifndef _WINSOCKAPI_
+#define _WINSOCKAPI_ // Prevent inclusion of winsock.h in windows.h
+#endif
+#else
+#define WTF_PLATFORM_CG 1
+#undef WTF_PLATFORM_CAIRO
+#define WTF_USE_CFNETWORK 1
+#undef WTF_USE_CURL
 #endif
 #undef WTF_USE_WININET
 #define WTF_PLATFORM_CF 1

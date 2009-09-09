@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -23,30 +23,27 @@
 
 use strict;
 
-use lib qw(.);
+use lib qw(. lib);
 
 use File::Temp;
-use Bugzilla;
-use Bugzilla::Config qw(:DEFAULT $webdotdir);
-use Bugzilla::Util;
-use Bugzilla::BugMail;
 
-require "CGI.pl";
+use Bugzilla;
+use Bugzilla::Constants;
+use Bugzilla::Util;
+use Bugzilla::Error;
+use Bugzilla::Bug;
+use Bugzilla::Status;
 
 Bugzilla->login();
 
 my $cgi = Bugzilla->cgi;
-
+my $template = Bugzilla->template;
+my $vars = {};
 # Connect to the shadow database if this installation is using one to improve
 # performance.
-Bugzilla->switch_to_shadow_db();
+my $dbh = Bugzilla->switch_to_shadow_db();
 
-use vars qw($template $vars $userid);
-
-my %seen;
-my %edgesdone;
-my %bugtitles; # html title attributes for imagemap areas
-
+local our (%seen, %edgesdone, %bugtitles);
 
 # CreateImagemap: This sub grabs a local filename as a parameter, reads the 
 # dot-generated image map datafile residing in that file and turns it into
@@ -69,15 +66,13 @@ sub CreateImagemap {
             $default = qq{<area alt="" shape="default" href="$1">\n};
         }
 
-        if ($line =~ /^rectangle \((.*),(.*)\) \((.*),(.*)\) (http[^ ]*)(.*)?$/) {
-            my ($leftx, $rightx, $topy, $bottomy, $url) = ($1, $3, $2, $4, $5);
+        if ($line =~ /^rectangle \((.*),(.*)\) \((.*),(.*)\) (http[^ ]*) (\d+)(\\n.*)?$/) {
+            my ($leftx, $rightx, $topy, $bottomy, $url, $bugid) = ($1, $3, $2, $4, $5, $6);
 
             # Pick up bugid from the mapdata label field. Getting the title from
             # bugtitle hash instead of mapdata allows us to get the summary even
             # when showsummary is off, and also gives us status and resolution.
-
-            my ($bugid) = ($6 =~ /^\s*(\d+)/);
-            my $bugtitle = value_quote($bugtitles{$bugid});
+            my $bugtitle = html_quote(clean_text($bugtitles{$bugid}));
             $map .= qq{<area alt="bug $bugid" name="bug$bugid" shape="rect" } .
                     qq{title="$bugtitle" href="$url" } .
                     qq{coords="$leftx,$topy,$rightx,$bottomy">\n};
@@ -100,16 +95,27 @@ sub AddLink {
     }
 }
 
-my $rankdir = $cgi->param('rankdir') || "LR";
+# The list of valid directions. Some are not proposed in the dropdrown
+# menu despite the fact that they are valid.
+my @valid_rankdirs = ('LR', 'RL', 'TB', 'BT');
 
-if (!defined $cgi->param('id') && !defined $cgi->param('doall')) {
+my $rankdir = $cgi->param('rankdir') || 'TB';
+# Make sure the submitted 'rankdir' value is valid.
+if (lsearch(\@valid_rankdirs, $rankdir) < 0) {
+    $rankdir = 'TB';
+}
+
+my $display = $cgi->param('display') || 'tree';
+my $webdotdir = bz_locations()->{'webdotdir'};
+
+if (!defined $cgi->param('id') && $display ne 'doall') {
     ThrowCodeError("missing_bug_id");
 }
 
 my ($fh, $filename) = File::Temp::tempfile("XXXXXXXXXX",
                                            SUFFIX => '.dot',
                                            DIR => $webdotdir);
-my $urlbase = Param('urlbase');
+my $urlbase = Bugzilla->params->{'urlbase'};
 
 print $fh "digraph G {";
 print $fh qq{
@@ -119,36 +125,58 @@ node [URL="${urlbase}show_bug.cgi?id=\\N", style=filled, color=lightgrey]
 
 my %baselist;
 
-if ($cgi->param('doall')) {
-    SendSQL("SELECT blocked, dependson FROM dependencies");
+if ($display eq 'doall') {
+    my $dependencies = $dbh->selectall_arrayref(
+                           "SELECT blocked, dependson FROM dependencies");
 
-    while (MoreSQLData()) {
-        my ($blocked, $dependson) = FetchSQLData();
+    foreach my $dependency (@$dependencies) {
+        my ($blocked, $dependson) = @$dependency;
         AddLink($blocked, $dependson, $fh);
     }
 } else {
     foreach my $i (split('[\s,]+', $cgi->param('id'))) {
-        $i = trim($i);
         ValidateBugID($i);
         $baselist{$i} = 1;
     }
 
     my @stack = keys(%baselist);
-    foreach my $id (@stack) {
-        SendSQL("SELECT blocked, dependson 
-                 FROM   dependencies 
-                 WHERE  blocked = $id or dependson = $id");
-        while (MoreSQLData()) {
-            my ($blocked, $dependson) = FetchSQLData();
-            if ($blocked != $id && !exists $seen{$blocked}) {
-                push @stack, $blocked;
-            }
 
-            if ($dependson != $id && !exists $seen{$dependson}) {
-                push @stack, $dependson;
-            }
+    if ($display eq 'web') {
+        my $sth = $dbh->prepare(q{SELECT blocked, dependson
+                                    FROM dependencies
+                                   WHERE blocked = ? OR dependson = ?});
 
-            AddLink($blocked, $dependson, $fh);
+        foreach my $id (@stack) {
+            my $dependencies = $dbh->selectall_arrayref($sth, undef, ($id, $id));
+            foreach my $dependency (@$dependencies) {
+                my ($blocked, $dependson) = @$dependency;
+                if ($blocked != $id && !exists $seen{$blocked}) {
+                    push @stack, $blocked;
+                }
+                if ($dependson != $id && !exists $seen{$dependson}) {
+                    push @stack, $dependson;
+                }
+                AddLink($blocked, $dependson, $fh);
+            }
+        }
+    }
+    # This is the default: a tree instead of a spider web.
+    else {
+        my @blocker_stack = @stack;
+        foreach my $id (@blocker_stack) {
+            my $blocker_ids = Bugzilla::Bug::EmitDependList('blocked', 'dependson', $id);
+            foreach my $blocker_id (@$blocker_ids) {
+                push(@blocker_stack, $blocker_id) unless $seen{$blocker_id};
+                AddLink($id, $blocker_id, $fh);
+            }
+        }
+        my @dependent_stack = @stack;
+        foreach my $id (@dependent_stack) {
+            my $dep_bug_ids = Bugzilla::Bug::EmitDependList('dependson', 'blocked', $id);
+            foreach my $dep_bug_id (@$dep_bug_ids) {
+                push(@dependent_stack, $dep_bug_id) unless $seen{$dep_bug_id};
+                AddLink($dep_bug_id, $id, $fh);
+            }
         }
     }
 
@@ -157,16 +185,13 @@ if ($cgi->param('doall')) {
     }
 }
 
+my $sth = $dbh->prepare(
+              q{SELECT bug_status, resolution, short_desc
+                  FROM bugs
+                 WHERE bugs.bug_id = ?});
 foreach my $k (keys(%seen)) {
-    my $summary = "";
-    my $stat;
-    my $resolution;
-
     # Retrieve bug information from the database
- 
-    SendSQL("SELECT bug_status, resolution, short_desc FROM bugs " .
-            "WHERE bugs.bug_id = $k");
-    ($stat, $resolution, $summary) = FetchSQLData();
+    my ($stat, $resolution, $summary) = $dbh->selectrow_array($sth, undef, $k);
     $stat ||= 'NEW';
     $resolution ||= '';
     $summary ||= '';
@@ -176,6 +201,7 @@ foreach my $k (keys(%seen)) {
         $resolution = $summary = '';
     }
 
+    $vars->{'short_desc'} = $summary if ($k eq $cgi->param('id'));
 
     my @params;
 
@@ -188,7 +214,7 @@ foreach my $k (keys(%seen)) {
         push(@params, "shape=box");
     }
 
-    if (IsOpenedState($stat)) {
+    if (is_open_state($stat)) {
         push(@params, "color=green");
     }
 
@@ -216,11 +242,13 @@ close $fh;
 
 chmod 0777, $filename;
 
-my $webdotbase = Param('webdotbase');
+my $webdotbase = Bugzilla->params->{'webdotbase'};
 
 if ($webdotbase =~ /^https?:/) {
-     # Remote dot server
-     my $url = PerformSubsts($webdotbase) . $filename;
+     # Remote dot server. We don't hardcode 'urlbase' here in case
+     # 'sslbase' is in use.
+     $webdotbase =~ s/%([a-z]*)%/Bugzilla->params->{$1}/eg;
+     my $url = $webdotbase . $filename;
      $vars->{'image_url'} = $url . ".gif";
      $vars->{'map_url'} = $url . ".map";
 } else {
@@ -240,6 +268,11 @@ if ($webdotbase =~ /^https?:/) {
     
     # On Windows $pngfilename will contain \ instead of /
     $pngfilename =~ s|\\|/|g if $^O eq 'MSWin32';
+
+    # Under mod_perl, pngfilename will have an absolute path, and we
+    # need to make that into a relative path.
+    my $cgi_root = bz_locations()->{cgi_path};
+    $pngfilename =~ s#^\Q$cgi_root\E/?##;
     
     $vars->{'image_url'} = $pngfilename;
 
@@ -278,9 +311,11 @@ foreach my $f (@files)
     }
 }
 
-$vars->{'bug_id'} = $cgi->param('id');
+# Make sure we only include valid integers (protects us from XSS attacks).
+my @bugs = grep(detaint_natural($_), split(/[\s,]+/, $cgi->param('id')));
+$vars->{'bug_id'} = join(', ', @bugs);
 $vars->{'multiple_bugs'} = ($cgi->param('id') =~ /[ ,]/);
-$vars->{'doall'} = $cgi->param('doall');
+$vars->{'display'} = $display;
 $vars->{'rankdir'} = $rankdir;
 $vars->{'showsummary'} = $cgi->param('showsummary');
 

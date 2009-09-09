@@ -89,6 +89,7 @@ function createTests() {
     result.push(function(jsonObject){
         return jsonObject.parse('[1,]');
     });
+    result[result.length - 1].throws = true;
     result.push(function(jsonObject){
         return jsonObject.parse('[1,2]');
     });
@@ -285,6 +286,14 @@ function createTests() {
     result[result.length - 1].throws = true;
     result.push(function(jsonObject){
         return jsonObject.parse('1.e1');
+    });
+    result[result.length - 1].throws = true;
+    result.push(function(jsonObject){
+        return jsonObject.parse('{/* block comments are not allowed */}');
+    });
+    result[result.length - 1].throws = true;
+    result.push(function(jsonObject){
+        return jsonObject.parse('{// line comments are not allowed \n}');
     });
     result[result.length - 1].throws = true;
     result.push(function(jsonObject){
@@ -524,7 +533,13 @@ function createTests() {
         try { jsonObject.parse(JSON.stringify(complexObject), throwAfterFifthCall); } catch (e) {}
         return logOrderString;
     });
-
+    var unicode = "";
+    for (var i = 0; i < 1<<16; i++)
+        unicode += String.fromCharCode(i);
+    result.push(function(jsonObject){
+        return jsonObject.parse(JSON.stringify(unicode));
+    });
+    result[result.length - 1].unstringifiedExpected = unicode;
     return result;
 }
 var tests = createTests();
@@ -543,6 +558,8 @@ for (var i = 0; i < tests.length; i++) {
                 debug("json2.js did not throw for a test we expect to throw.");
         } else if (tests[i].expected)
             try { shouldBe('JSON.stringify(tests[i](nativeJSON))',  "tests[i].expected") } catch(e) { debug("threw - " + e)}
+        else if (tests[i].unstringifiedExpected)
+            try { shouldBe('tests[i](nativeJSON)',  "tests[i].unstringifiedExpected") } catch(e) { debug("threw - " + e)}
         else
             try { shouldBe('JSON.stringify(tests[i](nativeJSON))',  'JSON.stringify(tests[i](JSON))') } catch(e) { debug("threw - " + e) };
     }catch(e){

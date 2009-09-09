@@ -1,4 +1,3 @@
-[%# 1.0@bugzilla.org %]
 [%# The contents of this file are subject to the Mozilla Public
   # License Version 1.1 (the "License"); you may not use this file
   # except in compliance with the License. You may obtain a copy of
@@ -23,45 +22,59 @@
 
 [% PROCESS global/variables.none.tmpl %]
 
-[% bugidsummary = flag.target.bug.id _ ': ' _ flag.target.bug.summary %]
-[% attidsummary = flag.target.attachment.id _ ': ' _
-                  flag.target.attachment.summary %]
-[% statuses = { '+' => "granted" , '-' => 'denied' , 'X' => "cancelled" ,
+[% bugidsummary = bug.bug_id _ ': ' _ bug.short_desc %]
+[% attidsummary = attachment.id _ ': ' _ attachment.description %]
+[% statuses = { '+' => "granted" , '-' => 'denied' , 'X' => "canceled" ,
                 '?' => "asked" } %]
+
+[% to_identity = "" %]
+[% on_behalf_of = 0 %]
 [% IF flag.status == '?' %]
-  [% to_identity = flag.addressee.identity _ " for" %]
   [% subject_status = "requested" %]
+  [% IF flag.setter.id == user.id %]
+    [% to_identity = flag.requestee.identity _ " for" %]
+  [% ELSE %]
+    [% on_behalf_of = 1 %]
+    [% IF flag.requestee %][% to_identity = " to " _ flag.requestee.identity %][% END %]
+  [% END %]
 [% ELSE %]
-  [% IF flag.addressee %]
-    [% to_identity = flag.addressee.identity _ "'s request for" %]
+  [% IF flag.requester %]
+    [% to_identity = flag.requester.identity _ "'s request for" %]
   [% END %]
   [% subject_status = statuses.${flag.status} %]
 [% END %]
-From: bugzilla-request-daemon
+From: [% Param('mailfrom') %]
 To: [% to %]
-Subject: [% flag.type.name %] [%+ subject_status %]: [[% terms.Bug %] [%+ flag.target.bug.id %]] [% flag.target.bug.summary %]
-[%- IF flag.target.attachment.exists %] :
-  [Attachment [% flag.target.attachment.id %]] [% flag.target.attachment.summary %][% END %]
+Subject: [% flag.type.name %] [%+ subject_status %]: [[% terms.Bug %] [%+ bug.bug_id %]] [% bug.short_desc %]
+[%- IF attachment %] :
+  [Attachment [% attachment.id %]] [% attachment.description %][% END %]
+X-Bugzilla-Type: request
+[%+ threadingmarker %]
 
 [%+ USE wrap -%]
 [%- FILTER bullet = wrap(80) -%]
 
+[% IF on_behalf_of %]
+[% user.identity %] has reassigned [% flag.setter.identity %]'s request for [% flag.type.name %]
+[% to_identity %]:
+[% ELSE %]
 [% user.identity %] has [% statuses.${flag.status} %] [%+ to_identity %] [%+ flag.type.name %]:
+[% END %]
 
 [% terms.Bug %] [%+ bugidsummary %]
 [% END %]
-[%+ Param('urlbase') %]show_bug.cgi?id=[% flag.target.bug.id %]
-[% IF flag.target.attachment.exists %]
+[%+ urlbase %]show_bug.cgi?id=[% bug.bug_id %]
+[% IF attachment %]
 
 [% FILTER bullet = wrap(80) %]
 Attachment [% attidsummary %]
 [%- END %]
-[%+ Param('urlbase') %]attachment.cgi?id=[% flag.target.attachment.id %]&action=edit
+[%+ urlbase %]attachment.cgi?id=[% attachment.id %]&action=edit
 [%- END %]
 [%- FILTER bullet = wrap(80) %]
 
 [% USE Bugzilla %]
-[% IF Bugzilla.cgi.param("comment").length > 0 %]
+[% IF Bugzilla.cgi.param("comment") && Bugzilla.cgi.param("comment").length > 0 %]
 ------- Additional Comments from [% user.identity %]
 [%+ Bugzilla.cgi.param("comment") %]
 [% END %]

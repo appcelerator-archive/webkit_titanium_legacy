@@ -121,6 +121,19 @@ JSStringRef LayoutTestController::copyEncodedHostName(JSStringRef name)
     return 0;
 }
 
+void LayoutTestController::disableImageLoading()
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+    
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+    
+    preferences->setLoadsImagesAutomatically(FALSE);
+}
+
 void LayoutTestController::dispatchPendingLoadRequests()
 {
     // FIXME: Implement for testing fix for 6727495
@@ -167,6 +180,17 @@ size_t LayoutTestController::webHistoryItemCount()
     if (FAILED(sharedHistoryPrivate->allItems(&count, 0)))
         return 0;
 
+    return count;
+}
+
+unsigned LayoutTestController::workerThreadCount() const
+{
+    COMPtr<IWebWorkersPrivate> workers;
+    if (FAILED(WebKitCreateInstance(CLSID_WebWorkersPrivate, 0, __uuidof(workers), reinterpret_cast<void**>(&workers))))
+        return 0;
+    unsigned count;
+    if (FAILED(workers->workerThreadCount(&count)))
+        return 0;
     return count;
 }
 
@@ -247,6 +271,16 @@ void LayoutTestController::setAcceptsEditing(bool acceptsEditing)
     editingDelegate->setAcceptsEditing(acceptsEditing);
 }
 
+void LayoutTestController::setAlwaysAcceptCookies(bool alwaysAcceptCookies)
+{
+    if (alwaysAcceptCookies == m_alwaysAcceptCookies)
+        return;
+
+    if (!::setAlwaysAcceptCookies(alwaysAcceptCookies))
+        return;
+    m_alwaysAcceptCookies = alwaysAcceptCookies;
+}
+
 void LayoutTestController::setAuthorAndUserStylesEnabled(bool flag)
 {
     COMPtr<IWebView> webView;
@@ -275,6 +309,18 @@ void LayoutTestController::setCustomPolicyDelegate(bool setDelegate, bool permis
         webView->setPolicyDelegate(policyDelegate);
     } else
         webView->setPolicyDelegate(0);
+}
+
+void LayoutTestController::setMockGeolocationPosition(double latitude, double longitude, double accuracy)
+{
+    // FIXME: Implement for Geolocation layout tests.
+    // See https://bugs.webkit.org/show_bug.cgi?id=28264.
+}
+
+void LayoutTestController::setMockGeolocationError(int code, JSStringRef message)
+{
+    // FIXME: Implement for Geolocation layout tests.
+    // See https://bugs.webkit.org/show_bug.cgi?id=28264.
 }
 
 void LayoutTestController::setIconDatabaseEnabled(bool iconDatabaseEnabled)
@@ -602,14 +648,11 @@ void LayoutTestController::setSelectTrailingWhitespaceEnabled(bool flag)
     viewEditing->setSelectTrailingWhitespaceEnabled(flag ? TRUE : FALSE);
 }
 
-static const CFTimeInterval waitToDumpWatchdogInterval = 10.0;
+static const CFTimeInterval waitToDumpWatchdogInterval = 15.0;
 
 static void CALLBACK waitUntilDoneWatchdogFired(HWND, UINT, UINT_PTR, DWORD)
 {
-    const char* message = "FAIL: Timed out waiting for notifyDone to be called\n";
-    fprintf(stderr, message);
-    fprintf(stdout, message);
-    dump();
+    gLayoutTestController->waitToDumpWatchdogTimerFired();
 }
 
 void LayoutTestController::setWaitToDump(bool waitUntilDone)
@@ -694,9 +737,43 @@ void LayoutTestController::clearAllDatabases()
     databaseManager->deleteAllDatabases();
 }
 
+void LayoutTestController::overridePreference(JSStringRef key, JSStringRef value)
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+
+    COMPtr<IWebPreferencesPrivate> prefsPrivate(Query, preferences);
+    if (!prefsPrivate)
+        return;
+
+    BSTR keyBSTR = JSStringCopyBSTR(key);
+    BSTR valueBSTR = JSStringCopyBSTR(value);
+    prefsPrivate->setPreferenceForTest(keyBSTR, valueBSTR);
+    SysFreeString(keyBSTR);
+    SysFreeString(valueBSTR);
+}
+
 void LayoutTestController::setDatabaseQuota(unsigned long long quota)
 {
-    printf("ERROR: LayoutTestController::setDatabaseQuota() not implemented\n");
+    COMPtr<IWebDatabaseManager> databaseManager;
+    COMPtr<IWebDatabaseManager> tmpDatabaseManager;
+
+    if (FAILED(WebKitCreateInstance(CLSID_WebDatabaseManager, 0, IID_IWebDatabaseManager, (void**)&tmpDatabaseManager)))
+        return;
+    if (FAILED(tmpDatabaseManager->sharedWebDatabaseManager(&databaseManager)))
+        return;
+
+    databaseManager->setQuota(TEXT("file:///"), quota);
+}
+
+void LayoutTestController::setAppCacheMaximumSize(unsigned long long size)
+{
+    printf("ERROR: LayoutTestController::setAppCacheMaximumSize() not implemented\n");
 }
 
 bool LayoutTestController::pauseAnimationAtTimeOnElementWithId(JSStringRef animationName, double time, JSStringRef elementId)
@@ -760,4 +837,14 @@ unsigned LayoutTestController::numberOfActiveAnimations() const
         return 0;
 
     return number;
+}
+
+void LayoutTestController::whiteListAccessFromOrigin(JSStringRef sourceOrigin, JSStringRef destinationProtocol, JSStringRef destinationHost, bool allowDestinationSubdomains)
+{
+    printf("LayoutTestController::whiteListAccessFromOrigin not implemented\n");
+}
+
+void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
+{
+    printf("LayoutTestController::addUserScript not implemented.\n");
 }

@@ -1,6 +1,7 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
  *  Copyright (C) 2003, 2007, 2008 Apple Inc. All Rights Reserved.
+ *  Copyright (C) 2009 Torch Mobile, Inc.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +23,7 @@
 #include "RegExpConstructor.h"
 
 #include "ArrayPrototype.h"
+#include "Error.h"
 #include "JSArray.h"
 #include "JSFunction.h"
 #include "JSString.h"
@@ -88,19 +90,26 @@ const ClassInfo RegExpConstructor::info = { "Function", &InternalFunction::info,
 @end
 */
 
-struct RegExpConstructorPrivate {
+struct RegExpConstructorPrivate : FastAllocBase {
     // Global search cache / settings
     RegExpConstructorPrivate()
         : lastNumSubPatterns(0)
         , multiline(false)
+        , lastOvectorIndex(0)
     {
     }
 
+    const Vector<int, 32>& lastOvector() const { return ovector[lastOvectorIndex]; }
+    Vector<int, 32>& lastOvector() { return ovector[lastOvectorIndex]; }
+    Vector<int, 32>& tempOvector() { return ovector[lastOvectorIndex ? 0 : 1]; }
+    void changeLastOvector() { lastOvectorIndex = lastOvectorIndex ? 0 : 1; }
+
     UString input;
     UString lastInput;
-    OwnArrayPtr<int> lastOvector;
-    unsigned lastNumSubPatterns : 31;
+    Vector<int, 32> ovector[2];
+    unsigned lastNumSubPatterns : 30;
     bool multiline : 1;
+    unsigned lastOvectorIndex : 1;
 };
 
 RegExpConstructor::RegExpConstructor(ExecState* exec, PassRefPtr<Structure> structure, RegExpPrototype* regExpPrototype)
@@ -121,20 +130,19 @@ RegExpConstructor::RegExpConstructor(ExecState* exec, PassRefPtr<Structure> stru
 */
 void RegExpConstructor::performMatch(RegExp* r, const UString& s, int startOffset, int& position, int& length, int** ovector)
 {
-    OwnArrayPtr<int> tmpOvector;
-    position = r->match(s, startOffset, &tmpOvector);
+    position = r->match(s, startOffset, &d->tempOvector());
 
     if (ovector)
-        *ovector = tmpOvector.get();
+        *ovector = d->tempOvector().data();
 
     if (position != -1) {
-        ASSERT(tmpOvector);
+        ASSERT(!d->tempOvector().isEmpty());
 
-        length = tmpOvector[1] - tmpOvector[0];
+        length = d->tempOvector()[1] - d->tempOvector()[0];
 
         d->input = s;
         d->lastInput = s;
-        d->lastOvector.set(tmpOvector.release());
+        d->changeLastOvector();
         d->lastNumSubPatterns = r->numSubpatterns();
     }
 }
@@ -147,8 +155,8 @@ RegExpMatchesArray::RegExpMatchesArray(ExecState* exec, RegExpConstructorPrivate
     d->lastInput = data->lastInput;
     d->lastNumSubPatterns = data->lastNumSubPatterns;
     unsigned offsetVectorSize = (data->lastNumSubPatterns + 1) * 2; // only copying the result part of the vector
-    d->lastOvector.set(new int[offsetVectorSize]);
-    memcpy(d->lastOvector.get(), data->lastOvector.get(), offsetVectorSize * sizeof(int));
+    d->lastOvector().resize(offsetVectorSize);
+    memcpy(d->lastOvector().data(), data->lastOvector().data(), offsetVectorSize * sizeof(int));
     // d->multiline is not needed, and remains uninitialized
 
     setLazyCreationData(d);
@@ -167,13 +175,13 @@ void RegExpMatchesArray::fillArrayInstance(ExecState* exec)
     unsigned lastNumSubpatterns = d->lastNumSubPatterns;
 
     for (unsigned i = 0; i <= lastNumSubpatterns; ++i) {
-        int start = d->lastOvector[2 * i];
+        int start = d->lastOvector()[2 * i];
         if (start >= 0)
-            JSArray::put(exec, i, jsSubstring(exec, d->lastInput, start, d->lastOvector[2 * i + 1] - start));
+            JSArray::put(exec, i, jsSubstring(exec, d->lastInput, start, d->lastOvector()[2 * i + 1] - start));
     }
 
     PutPropertySlot slot;
-    JSArray::put(exec, exec->propertyNames().index, jsNumber(exec, d->lastOvector[0]), slot);
+    JSArray::put(exec, exec->propertyNames().index, jsNumber(exec, d->lastOvector()[0]), slot);
     JSArray::put(exec, exec->propertyNames().input, jsString(exec, d->input), slot);
 
     delete d;
@@ -187,10 +195,10 @@ JSObject* RegExpConstructor::arrayOfMatches(ExecState* exec) const
 
 JSValue RegExpConstructor::getBackref(ExecState* exec, unsigned i) const
 {
-    if (d->lastOvector && i <= d->lastNumSubPatterns) {
-        int start = d->lastOvector[2 * i];
+    if (!d->lastOvector().isEmpty() && i <= d->lastNumSubPatterns) {
+        int start = d->lastOvector()[2 * i];
         if (start >= 0)
-            return jsSubstring(exec, d->lastInput, start, d->lastOvector[2 * i + 1] - start);
+            return jsSubstring(exec, d->lastInput, start, d->lastOvector()[2 * i + 1] - start);
     }
     return jsEmptyString(exec);
 }
@@ -199,31 +207,36 @@ JSValue RegExpConstructor::getLastParen(ExecState* exec) const
 {
     unsigned i = d->lastNumSubPatterns;
     if (i > 0) {
-        ASSERT(d->lastOvector);
-        int start = d->lastOvector[2 * i];
+        ASSERT(!d->lastOvector().isEmpty());
+        int start = d->lastOvector()[2 * i];
         if (start >= 0)
-            return jsSubstring(exec, d->lastInput, start, d->lastOvector[2 * i + 1] - start);
+            return jsSubstring(exec, d->lastInput, start, d->lastOvector()[2 * i + 1] - start);
     }
     return jsEmptyString(exec);
 }
 
 JSValue RegExpConstructor::getLeftContext(ExecState* exec) const
 {
-    if (d->lastOvector)
-        return jsSubstring(exec, d->lastInput, 0, d->lastOvector[0]);
+    if (!d->lastOvector().isEmpty())
+        return jsSubstring(exec, d->lastInput, 0, d->lastOvector()[0]);
     return jsEmptyString(exec);
 }
 
 JSValue RegExpConstructor::getRightContext(ExecState* exec) const
 {
-    if (d->lastOvector)
-        return jsSubstring(exec, d->lastInput, d->lastOvector[1], d->lastInput.size() - d->lastOvector[1]);
+    if (!d->lastOvector().isEmpty())
+        return jsSubstring(exec, d->lastInput, d->lastOvector()[1], d->lastInput.size() - d->lastOvector()[1]);
     return jsEmptyString(exec);
 }
     
 bool RegExpConstructor::getOwnPropertySlot(ExecState* exec, const Identifier& propertyName, PropertySlot& slot)
 {
     return getStaticValueSlot<RegExpConstructor, InternalFunction>(exec, ExecState::regExpConstructorTable(exec), this, propertyName, slot);
+}
+
+bool RegExpConstructor::getOwnPropertyDescriptor(ExecState* exec, const Identifier& propertyName, PropertyDescriptor& descriptor)
+{
+    return getStaticValueDescriptor<RegExpConstructor, InternalFunction>(exec, ExecState::regExpConstructorTable(exec), this, propertyName, descriptor);
 }
 
 JSValue regExpConstructorDollar1(ExecState* exec, const Identifier&, const PropertySlot& slot)
@@ -322,7 +335,7 @@ JSObject* constructRegExp(ExecState* exec, const ArgList& args)
     JSValue arg0 = args.at(0);
     JSValue arg1 = args.at(1);
 
-    if (arg0.isObject(&RegExpObject::info)) {
+    if (arg0.inherits(&RegExpObject::info)) {
         if (!arg1.isUndefined())
             return throwError(exec, TypeError, "Cannot supply flags when constructing one RegExp from another.");
         return asObject(arg0);

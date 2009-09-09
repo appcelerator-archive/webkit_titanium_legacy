@@ -38,6 +38,11 @@
 
 namespace WebCore {
 
+PassRefPtr<V8CustomXPathNSResolver> V8CustomXPathNSResolver::create(v8::Handle<v8::Object> resolver)
+{
+    return adoptRef(new V8CustomXPathNSResolver(resolver));
+}
+
 V8CustomXPathNSResolver::V8CustomXPathNSResolver(v8::Handle<v8::Object> resolver)
     : m_resolver(resolver)
 {
@@ -61,7 +66,7 @@ String V8CustomXPathNSResolver::lookupNamespaceURI(const String& prefix)
 
     if (lookupNamespaceURIFunc.IsEmpty() && !m_resolver->IsFunction()) {
         Frame* frame = V8Proxy::retrieveFrameForEnteredContext();
-        log_info(frame, "XPathNSResolver does not have a lookupNamespaceURI method.", String());
+        logInfo(frame, "XPathNSResolver does not have a lookupNamespaceURI method.", String());
         return String();
     }
 
@@ -74,13 +79,13 @@ String V8CustomXPathNSResolver::lookupNamespaceURI(const String& prefix)
     v8::Handle<v8::Function> function = lookupNamespaceURIFunc.IsEmpty() ? v8::Handle<v8::Function>::Cast(m_resolver) : lookupNamespaceURIFunc;
 
     V8Proxy* proxy = V8Proxy::retrieve();
-    v8::Handle<v8::Value> retval = proxy->CallFunction(function, m_resolver, argc, argv);
+    v8::Handle<v8::Value> retval = proxy->callFunction(function, m_resolver, argc, argv);
 
     // Eat exceptions from namespace resolver and return an empty string. This will most likely cause NAMESPACE_ERR.
     if (try_catch.HasCaught())
         return String();
 
-    return valueToStringWithNullCheck(retval);
+    return toWebCoreStringWithNullCheck(retval);
 }
 
 } // namespace WebCore

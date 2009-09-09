@@ -28,6 +28,7 @@
 #include "JSObjectRef.h"
 
 #include "APICast.h"
+#include "CodeBlock.h"
 #include "DateConstructor.h"
 #include "ErrorConstructor.h"
 #include "FunctionConstructor.h"
@@ -449,7 +450,7 @@ JSObjectRef JSObjectCallAsConstructor(JSContextRef ctx, JSObjectRef object, size
     return result;
 }
 
-struct OpaqueJSPropertyNameArray {
+struct OpaqueJSPropertyNameArray : FastAllocBase {
     OpaqueJSPropertyNameArray(JSGlobalData* globalData)
         : refCount(0)
         , globalData(globalData)
@@ -491,7 +492,7 @@ JSPropertyNameArrayRef JSPropertyNameArrayRetain(JSPropertyNameArrayRef array)
 void JSPropertyNameArrayRelease(JSPropertyNameArrayRef array)
 {
     if (--array->refCount == 0) {
-        JSLock lock(array->globalData->isSharedInstance);
+        JSLock lock(array->globalData->isSharedInstance ? LockForReal : SilenceAssertionsOnly);
         delete array;
     }
 }
@@ -511,7 +512,7 @@ void JSPropertyNameAccumulatorAddName(JSPropertyNameAccumulatorRef array, JSStri
     PropertyNameArray* propertyNames = toJS(array);
 
     propertyNames->globalData()->heap.registerThread();
-    JSLock lock(propertyNames->globalData()->isSharedInstance);
+    JSLock lock(propertyNames->globalData()->isSharedInstance ? LockForReal : SilenceAssertionsOnly);
 
     propertyNames->add(propertyName->identifier(propertyNames->globalData()));
 }

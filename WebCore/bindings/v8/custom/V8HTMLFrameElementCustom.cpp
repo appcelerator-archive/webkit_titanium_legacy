@@ -30,6 +30,7 @@
 
 #include "config.h"
 #include "HTMLFrameElement.h"
+#include "HTMLNames.h"
 
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
@@ -37,20 +38,22 @@
 
 namespace WebCore {
 
+using namespace HTMLNames; 
+
 ACCESSOR_SETTER(HTMLFrameElementSrc)
 {
-    HTMLFrameElement* frame = V8Proxy::DOMWrapperToNode<HTMLFrameElement>(info.Holder());
+    HTMLFrameElement* frame = V8DOMWrapper::convertDOMWrapperToNode<HTMLFrameElement>(info.Holder());
     String srcValue = toWebCoreStringWithNullCheck(value);
 
     if (!allowSettingFrameSrcToJavascriptUrl(frame, srcValue))
         return;
 
-    frame->setSrc(srcValue);
+    frame->setAttribute(srcAttr, srcValue); 
 }
 
 ACCESSOR_SETTER(HTMLFrameElementLocation)
 {
-    HTMLFrameElement* frame = V8Proxy::DOMWrapperToNode<HTMLFrameElement>(info.Holder());
+    HTMLFrameElement* frame = V8DOMWrapper::convertDOMWrapperToNode<HTMLFrameElement>(info.Holder());
     String locationValue = toWebCoreStringWithNullCheck(value);
 
     if (!allowSettingFrameSrcToJavascriptUrl(frame, locationValue))

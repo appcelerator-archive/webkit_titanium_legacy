@@ -41,18 +41,19 @@ JSCustomPositionCallback::JSCustomPositionCallback(JSObject* callback, Frame* fr
 {
 }
 
-void JSCustomPositionCallback::handleEvent(Geoposition* geoposition, bool& raisedException)
+void JSCustomPositionCallback::handleEvent(Geoposition* geoposition)
 {
     ASSERT(m_callback);
     ASSERT(m_frame);
     
     if (!m_frame->script()->isEnabled())
         return;
-    
+
+    // FIXME: This is likely the wrong globalObject (for prototype chains at least)
     JSGlobalObject* globalObject = m_frame->script()->globalObject();
     ExecState* exec = globalObject->globalExec();
     
-    JSC::JSLock lock(false);
+    JSC::JSLock lock(SilenceAssertionsOnly);
     
     JSValue function = m_callback->get(exec, Identifier(exec, "handleEvent"));
     CallData callData;
@@ -67,18 +68,16 @@ void JSCustomPositionCallback::handleEvent(Geoposition* geoposition, bool& raise
     }
     
     RefPtr<JSCustomPositionCallback> protect(this);
-    
+
     MarkedArgumentBuffer args;
-    args.append(toJS(exec, geoposition));
-    
+    args.append(toJS(exec, deprecatedGlobalObjectForPrototype(exec), geoposition));
+
     globalObject->globalData()->timeoutChecker.start();
     call(exec, function, callType, callData, m_callback, args);
     globalObject->globalData()->timeoutChecker.stop();
     
-    if (exec->hadException()) {
+    if (exec->hadException())
         reportCurrentException(exec);
-        raisedException = true;
-    }
     
     Document::updateStyleForAllDocuments();
 }

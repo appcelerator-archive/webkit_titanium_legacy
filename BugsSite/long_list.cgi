@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/env perl -wT
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -22,11 +22,10 @@
 #                 Gervase Markham <gerv@gerv.net>
 
 use strict;
-use lib qw(.);
+use lib qw(. lib);
+use Bugzilla;
 
-require "CGI.pl";
-
-our $cgi;
+my $cgi = Bugzilla->cgi;
 
 # Convert comma/space separated elements into separate params
 my $buglist = $cgi->param('buglist') || $cgi->param('bug_id') || $cgi->param('id');

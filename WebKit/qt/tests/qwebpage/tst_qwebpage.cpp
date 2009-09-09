@@ -92,6 +92,7 @@ private slots:
     void cleanupTestCase();
 
     void acceptNavigationRequest();
+    void infiniteLoopJS();
     void loadFinished();
     void acceptNavigationRequestWithNewWindow();
     void userStyleSheet();
@@ -106,8 +107,12 @@ private slots:
     void textSelection();
     void textEditing();
     void backActionUpdate();
-
+    void frameAt();
     void requestCache();
+    void protectBindingsRuntimeObjectsFromCollector();
+    void localURLSchemes();
+    void testOptionalJSObjects();
+    void testEnablePersistentStorage();
 
 private:
 
@@ -192,6 +197,26 @@ void tst_QWebPage::acceptNavigationRequest()
     m_view->setPage(0);
 }
 
+class JSTestPage : public QWebPage
+{
+Q_OBJECT
+public:
+    JSTestPage(QObject* parent = 0)
+    : QWebPage(parent) {}
+
+public slots:
+    bool shouldInterruptJavaScript() {
+        return true; 
+    }
+};
+
+void tst_QWebPage::infiniteLoopJS()
+{
+    JSTestPage* newPage = new JSTestPage(m_view);
+    m_view->setPage(newPage);
+    m_view->setHtml(QString("<html><bodytest</body></html>"), QUrl());
+    m_view->page()->mainFrame()->evaluateJavaScript("var run = true;var a = 1;while(run){a++;}");
+}
 
 void tst_QWebPage::loadFinished()
 {
@@ -382,6 +407,10 @@ void tst_QWebPage::database()
 
     QWebSettings::setOfflineStorageDefaultQuota(1024 * 1024);
     QVERIFY(QWebSettings::offlineStorageDefaultQuota() == 1024 * 1024);
+
+    m_page->settings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
+    m_page->settings()->setAttribute(QWebSettings::SessionStorageEnabled, true);
+    m_page->settings()->setAttribute(QWebSettings::OfflineStorageDatabaseEnabled, true);
 
     QString dbFileName = path + "Databases.db";
 
@@ -605,7 +634,6 @@ void tst_QWebPage::createViewlessPlugin()
 // import private API
 void QWEBKIT_EXPORT qt_webpage_setGroupName(QWebPage* page, const QString& groupName);
 QString QWEBKIT_EXPORT qt_webpage_groupName(QWebPage* page);
-void QWEBKIT_EXPORT qt_websettings_setLocalStorageDatabasePath(QWebSettings* settings, const QString& path);
 
 void tst_QWebPage::multiplePageGroupsAndLocalStorage()
 {
@@ -616,9 +644,11 @@ void tst_QWebPage::multiplePageGroupsAndLocalStorage()
     QWebView view1;
     QWebView view2;
 
-    qt_websettings_setLocalStorageDatabasePath(view1.page()->settings(), QDir::toNativeSeparators(QDir::currentPath() + "/path1"));
+    view1.page()->settings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
+    view1.page()->settings()->setLocalStoragePath(QDir::toNativeSeparators(QDir::currentPath() + "/path1"));
     qt_webpage_setGroupName(view1.page(), "group1");
-    qt_websettings_setLocalStorageDatabasePath(view2.page()->settings(), QDir::toNativeSeparators(QDir::currentPath() + "/path2"));
+    view2.page()->settings()->setAttribute(QWebSettings::LocalStorageEnabled, true);    
+    view2.page()->settings()->setLocalStoragePath(QDir::toNativeSeparators(QDir::currentPath() + "/path2"));
     qt_webpage_setGroupName(view2.page(), "group2");
     QCOMPARE(qt_webpage_groupName(view1.page()), QString("group1"));
     QCOMPARE(qt_webpage_groupName(view2.page()), QString("group2"));
@@ -1114,6 +1144,134 @@ void tst_QWebPage::backActionUpdate()
     QTRY_COMPARE(loadSpy.count(), 2);
 
     QVERIFY(action->isEnabled());
+}
+
+void frameAtHelper(QWebPage* webPage, QWebFrame* webFrame, QPoint framePosition)
+{
+    if (!webFrame)
+        return;
+
+    framePosition += QPoint(webFrame->pos());
+    QList<QWebFrame*> children = webFrame->childFrames();
+    for (int i = 0; i < children.size(); ++i) {
+        if (children.at(i)->childFrames().size() > 0)
+            frameAtHelper(webPage, children.at(i), framePosition);
+
+        QRect frameRect(children.at(i)->pos() + framePosition, children.at(i)->geometry().size());
+        QVERIFY(children.at(i) == webPage->frameAt(frameRect.topLeft()));
+    }
+}
+
+void tst_QWebPage::frameAt()
+{
+    QWebView webView;
+    QWebPage* webPage = webView.page();
+    QSignalSpy loadSpy(webPage, SIGNAL(loadFinished(bool)));
+    QUrl url = QUrl("qrc:///frametest/iframe.html");
+    webPage->mainFrame()->load(url);
+    QTRY_COMPARE(loadSpy.count(), 1);
+    frameAtHelper(webPage, webPage->mainFrame(), webPage->mainFrame()->pos());
+}
+
+// import a little DRT helper function to trigger the garbage collector
+void QWEBKIT_EXPORT qt_drt_garbageCollector_collect();
+
+void tst_QWebPage::protectBindingsRuntimeObjectsFromCollector()
+{
+    QSignalSpy loadSpy(m_view, SIGNAL(loadFinished(bool)));
+
+    PluginPage* newPage = new PluginPage(m_view);
+    m_view->setPage(newPage);
+
+    m_view->settings()->setAttribute(QWebSettings::PluginsEnabled, true);
+
+    m_view->setHtml(QString("<html><body><object type='application/x-qt-plugin' classid='lineedit' id='mylineedit'/></body></html>"));
+    QTRY_COMPARE(loadSpy.count(), 1);
+
+    newPage->mainFrame()->evaluateJavaScript("function testme(text) { var lineedit = document.getElementById('mylineedit'); lineedit.setText(text); lineedit.selectAll(); }");
+
+    newPage->mainFrame()->evaluateJavaScript("testme('foo')");
+
+    qt_drt_garbageCollector_collect();
+
+    // don't crash!
+    newPage->mainFrame()->evaluateJavaScript("testme('bar')");
+}
+
+void tst_QWebPage::localURLSchemes()
+{
+    int i = QWebSecurityOrigin::localSchemes().size();
+    QWebSecurityOrigin::removeLocalScheme("file");
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
+    QWebSecurityOrigin::addLocalScheme("file");
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
+    QString myscheme = "myscheme";
+    QWebSecurityOrigin::addLocalScheme(myscheme);
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i + 1);
+    QVERIFY(QWebSecurityOrigin::localSchemes().contains(myscheme));
+    QWebSecurityOrigin::removeLocalScheme(myscheme);
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
+    QWebSecurityOrigin::removeLocalScheme(myscheme);
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
+}
+
+static inline bool testFlag(QWebPage& webPage, QWebSettings::WebAttribute settingAttribute, const QString& jsObjectName, bool settingValue)
+{
+    webPage.settings()->setAttribute(settingAttribute, settingValue);
+    return webPage.mainFrame()->evaluateJavaScript(QString("(window.%1 != undefined)").arg(jsObjectName)).toBool();
+}
+
+void tst_QWebPage::testOptionalJSObjects()
+{
+    // Once a feature is enabled and the JS object is accessed turning off the setting will not turn off
+    // the visibility of the JS object any more. For this reason this test uses two QWebPage instances.
+    // Part of the test is to make sure that the QWebPage instances do not interfere with each other so turning on
+    // a feature for one instance will not turn it on for another.
+
+    QWebPage webPage1;
+    QWebPage webPage2;
+
+    webPage1.currentFrame()->setHtml(QString("<html><body>test</body></html>"), QUrl());
+    webPage2.currentFrame()->setHtml(QString("<html><body>test</body></html>"), QUrl());
+
+    QCOMPARE(testFlag(webPage1, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", false), false);
+    QCOMPARE(testFlag(webPage2, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", true),  true);
+    QCOMPARE(testFlag(webPage1, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", false), false);
+    QCOMPARE(testFlag(webPage2, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", false), true);
+
+    QCOMPARE(testFlag(webPage1, QWebSettings::LocalStorageEnabled, "localStorage", false), false);
+    QCOMPARE(testFlag(webPage2, QWebSettings::LocalStorageEnabled, "localStorage", true),  true);
+    QCOMPARE(testFlag(webPage1, QWebSettings::LocalStorageEnabled, "localStorage", false), false);
+    QCOMPARE(testFlag(webPage2, QWebSettings::LocalStorageEnabled, "localStorage", false), true);
+
+    QCOMPARE(testFlag(webPage1, QWebSettings::SessionStorageEnabled, "sessionStorage", false), false);
+    QCOMPARE(testFlag(webPage2, QWebSettings::SessionStorageEnabled, "sessionStorage", true),  true);
+    QCOMPARE(testFlag(webPage1, QWebSettings::SessionStorageEnabled, "sessionStorage", false), false);
+    QCOMPARE(testFlag(webPage2, QWebSettings::SessionStorageEnabled, "sessionStorage", false), true);
+}
+
+void tst_QWebPage::testEnablePersistentStorage()
+{
+    QWebPage webPage;
+
+    // By default all persistent options should be disabled
+    QCOMPARE(webPage.settings()->testAttribute(QWebSettings::LocalStorageEnabled), false);
+    QCOMPARE(webPage.settings()->testAttribute(QWebSettings::OfflineStorageDatabaseEnabled), false);
+    QCOMPARE(webPage.settings()->testAttribute(QWebSettings::OfflineWebApplicationCacheEnabled), false);
+    QVERIFY(webPage.settings()->iconDatabasePath().isEmpty());
+
+    QWebSettings::enablePersistentStorage();
+
+    // Give it some time to initialize - icon database needs it
+    QTest::qWait(1000);
+
+    QCOMPARE(webPage.settings()->testAttribute(QWebSettings::LocalStorageEnabled), true);
+    QCOMPARE(webPage.settings()->testAttribute(QWebSettings::OfflineStorageDatabaseEnabled), true);
+    QCOMPARE(webPage.settings()->testAttribute(QWebSettings::OfflineWebApplicationCacheEnabled), true);
+
+    QVERIFY(!webPage.settings()->offlineStoragePath().isEmpty());
+    QVERIFY(!webPage.settings()->offlineWebApplicationCachePath().isEmpty());
+    QVERIFY(!webPage.settings()->iconDatabasePath().isEmpty());
 }
 
 QTEST_MAIN(tst_QWebPage)

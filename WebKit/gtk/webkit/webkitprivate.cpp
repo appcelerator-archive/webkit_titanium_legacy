@@ -22,6 +22,7 @@
 
 #include "webkitsoupauthdialog.h"
 #include "webkitprivate.h"
+#include "ApplicationCacheStorage.h"
 #include "ChromeClientGtk.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -36,6 +37,7 @@
 #include "ResourceHandleClient.h"
 #include "ResourceHandleInternal.h"
 #include <runtime/InitializeThreading.h>
+#include "SecurityOrigin.h"
 
 #if ENABLE(DATABASE)
 #include "DatabaseTracker.h"
@@ -96,7 +98,7 @@ WebKitWebNavigationReason kit(WebCore::NavigationType type)
 
 WebCore::NavigationType core(WebKitWebNavigationReason type)
 {
-    return (WebCore::NavigationType)type;
+    return static_cast<WebCore::NavigationType>(type);
 }
 
 WebCore::ResourceRequest core(WebKitNetworkRequest* request)
@@ -109,7 +111,40 @@ WebCore::ResourceRequest core(WebKitNetworkRequest* request)
     return ResourceRequest(url);
 }
 
+WebCore::EditingBehavior core(WebKitEditingBehavior type)
+{
+    return (WebCore::EditingBehavior)type;
+}
+
 } /** end namespace WebKit */
+
+namespace WTF {
+
+template <> void freeOwnedGPtr<SoupMessage>(SoupMessage* soupMessage)
+{
+    if (soupMessage)
+        g_object_unref(soupMessage);
+}
+
+template <> void freeOwnedGPtr<WebKitNetworkRequest>(WebKitNetworkRequest* request)
+{
+    if (request)
+        g_object_unref(request);
+}
+
+template <> void freeOwnedGPtr<WebKitNetworkResponse>(WebKitNetworkResponse* response)
+{
+    if (response)
+        g_object_unref(response);
+}
+
+template <> void freeOwnedGPtr<WebKitWebResource>(WebKitWebResource* resource)
+{
+    if (resource)
+        g_object_unref(resource);
+}
+
+}
 
 static GtkWidget* currentToplevelCallback(WebKitSoupAuthDialog* feature, SoupMessage* message, gpointer userData)
 {
@@ -155,9 +190,11 @@ void webkit_init()
     WebCore::pageCache()->setCapacity(3);
 
 #if ENABLE(DATABASE)
-    // FIXME: It should be possible for client applications to override this default location
     gchar* databaseDirectory = g_build_filename(g_get_user_data_dir(), "webkit", "databases", NULL);
-    WebCore::DatabaseTracker::tracker().setDatabaseDirectoryPath(databaseDirectory);
+    webkit_set_web_database_directory_path(databaseDirectory);
+
+    // FIXME: It should be possible for client applications to override the default appcache location
+    WebCore::cacheStorage().setCacheDirectory(databaseDirectory);
     g_free(databaseDirectory);
 #endif
 
@@ -166,8 +203,23 @@ void webkit_init()
     Pasteboard::generalPasteboard()->setHelper(new WebKit::PasteboardHelperGtk());
 
     SoupSession* session = webkit_get_default_session();
+
     SoupSessionFeature* authDialog = static_cast<SoupSessionFeature*>(g_object_new(WEBKIT_TYPE_SOUP_AUTH_DIALOG, NULL));
     g_signal_connect(authDialog, "current-toplevel", G_CALLBACK(currentToplevelCallback), NULL);
     soup_session_add_feature(session, authDialog);
     g_object_unref(authDialog);
+
+    SoupSessionFeature* sniffer = static_cast<SoupSessionFeature*>(g_object_new(SOUP_TYPE_CONTENT_SNIFFER, NULL));
+    soup_session_add_feature(session, sniffer);
+    g_object_unref(sniffer);
+}
+
+void webkit_white_list_access_from_origin(const gchar* sourceOrigin, const gchar* destinationProtocol, const gchar* destinationHost, bool allowDestinationSubdomains)
+{
+    SecurityOrigin::whiteListAccessFromOrigin(*SecurityOrigin::createFromString(sourceOrigin), destinationProtocol, destinationHost, allowDestinationSubdomains);
+}
+
+void webkit_reset_origin_access_white_lists()
+{
+    SecurityOrigin::resetOriginAccessWhiteLists();
 }

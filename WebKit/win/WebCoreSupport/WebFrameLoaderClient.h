@@ -35,6 +35,7 @@
 
 namespace WebCore {
     class PluginManualLoader;
+    class PluginView;
 }
 
 template <typename T> class COMPtr;
@@ -91,6 +92,9 @@ public:
     virtual void updateGlobalHistoryRedirectLinks();
     virtual bool shouldGoToHistoryItem(WebCore::HistoryItem*) const;
 
+    virtual void didDisplayInsecureContent();
+    virtual void didRunInsecureContent(WebCore::SecurityOrigin*);
+
     virtual PassRefPtr<WebCore::DocumentLoader> createDocumentLoader(const WebCore::ResourceRequest&, const WebCore::SubstituteData&);
     virtual void setTitle(const WebCore::String& title, const WebCore::KURL&);
 
@@ -102,10 +106,12 @@ public:
 
     virtual PassRefPtr<WebCore::Frame> createFrame(const WebCore::KURL& url, const WebCore::String& name, WebCore::HTMLFrameOwnerElement* ownerElement,
                                const WebCore::String& referrer, bool allowsScrolling, int marginWidth, int marginHeight);
-    virtual WebCore::Widget* createPlugin(const WebCore::IntSize&, WebCore::HTMLPlugInElement*, const WebCore::KURL&, const Vector<WebCore::String>&, const Vector<WebCore::String>&, const WebCore::String&, bool loadManually);
+    virtual PassRefPtr<WebCore::Widget> createPlugin(const WebCore::IntSize&, WebCore::HTMLPlugInElement*, const WebCore::KURL&, const Vector<WebCore::String>&, const Vector<WebCore::String>&, const WebCore::String&, bool loadManually);
     virtual void redirectDataToPlugin(WebCore::Widget* pluginWidget);
 
     virtual bool shouldUsePluginDocument(const WebCore::String& mimeType) const;
+
+    virtual void dispatchDidFailToStartPlugin(const WebCore::PluginView*) const;
 
 protected:
     WebFrameLoaderClient(WebFrame*);

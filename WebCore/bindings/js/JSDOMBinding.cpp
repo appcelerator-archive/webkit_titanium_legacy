@@ -18,11 +18,6 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// gcc 3.x can't handle including the HashMap pointer specialization in this file
-#if defined __GNUC__ && !defined __GLIBCXX__ // less than gcc 3.4
-#define HASH_MAP_PTR_SPEC_WORKAROUND 1
-#endif
-
 #include "config.h"
 #include "JSDOMBinding.h"
 
@@ -32,6 +27,8 @@
 #include "EventException.h"
 #include "ExceptionCode.h"
 #include "Frame.h"
+#include "HTMLAudioElement.h"
+#include "HTMLCanvasElement.h"
 #include "HTMLImageElement.h"
 #include "HTMLScriptElement.h"
 #include "HTMLNames.h"
@@ -46,6 +43,8 @@
 #include "RangeException.h"
 #include "ScriptController.h"
 #include "XMLHttpRequestException.h"
+#include <runtime/Error.h>
+#include <runtime/JSFunction.h>
 #include <runtime/PrototypeFunction.h>
 #include <wtf/StdLibExtras.h>
 
@@ -268,18 +267,48 @@ static inline bool isObservableThroughDOM(JSNode* jsNode)
     Node* node = jsNode->impl();
 
     if (node->inDocument()) {
-        // 1. If a node is in the document, and its wrapper has custom properties,
+        // If a node is in the document, and its wrapper has custom properties,
         // the wrapper is observable because future access to the node through the
         // DOM must reflect those properties.
         if (jsNode->hasCustomProperties())
             return true;
 
-        // 2. If a node is in the document, and has event listeners, its wrapper is
+        // If a node is in the document, and has event listeners, its wrapper is
         // observable because its wrapper is responsible for marking those event listeners.
         if (node->eventListeners().size())
             return true; // Technically, we may overzealously mark a wrapper for a node that has only non-JS event listeners. Oh well.
+
+        // If a node owns another object with a wrapper with custom properties,
+        // the wrapper must be treated as observable, because future access to
+        // those objects through the DOM must reflect those properties.
+        // FIXME: It would be better if this logic could be in the node next to
+        // the custom markChildren functions rather than here.
+        if (node->isElementNode()) {
+            if (NamedNodeMap* attributes = static_cast<Element*>(node)->attributeMap()) {
+                if (DOMObject* wrapper = getCachedDOMObjectWrapper(*jsNode->globalObject()->globalData(), attributes)) {
+                    if (wrapper->hasCustomProperties())
+                        return true;
+                }
+            }
+            if (node->isStyledElement()) {
+                if (CSSMutableStyleDeclaration* style = static_cast<StyledElement*>(node)->inlineStyleDecl()) {
+                    if (DOMObject* wrapper = getCachedDOMObjectWrapper(*jsNode->globalObject()->globalData(), style)) {
+                        if (wrapper->hasCustomProperties())
+                            return true;
+                    }
+                }
+            }
+            if (static_cast<Element*>(node)->hasTagName(canvasTag)) {
+                if (CanvasRenderingContext* context = static_cast<HTMLCanvasElement*>(node)->renderingContext()) {
+                    if (DOMObject* wrapper = getCachedDOMObjectWrapper(*jsNode->globalObject()->globalData(), context)) {
+                        if (wrapper->hasCustomProperties())
+                            return true;
+                    }
+                }
+            }
+        }
     } else {
-        // 3. If a wrapper is the last reference to an image or script element
+        // If a wrapper is the last reference to an image or script element
         // that is loading but not in the document, the wrapper is observable
         // because it is the only thing keeping the image element alive, and if
         // the image element is destroyed, its load event will not fire.
@@ -288,23 +317,27 @@ static inline bool isObservableThroughDOM(JSNode* jsNode)
             return true;
         if (node->hasTagName(scriptTag) && !static_cast<HTMLScriptElement*>(node)->haveFiredLoadEvent())
             return true;
+#if ENABLE(VIDEO)
+        if (node->hasTagName(audioTag) && !static_cast<HTMLAudioElement*>(node)->paused())
+            return true;
+#endif
     }
 
     return false;
 }
 
-void markDOMNodesForDocument(Document* doc)
+void markDOMNodesForDocument(MarkStack& markStack, Document* doc)
 {
     JSWrapperCache& nodeDict = doc->wrapperCache();
     JSWrapperCache::iterator nodeEnd = nodeDict.end();
     for (JSWrapperCache::iterator nodeIt = nodeDict.begin(); nodeIt != nodeEnd; ++nodeIt) {
         JSNode* jsNode = nodeIt->second;
-        if (!jsNode->marked() && isObservableThroughDOM(jsNode))
-            jsNode->mark();
+        if (isObservableThroughDOM(jsNode))
+            markStack.append(jsNode);
     }
 }
 
-void markActiveObjectsForContext(JSGlobalData& globalData, ScriptExecutionContext* scriptExecutionContext)
+void markActiveObjectsForContext(MarkStack& markStack, JSGlobalData& globalData, ScriptExecutionContext* scriptExecutionContext)
 {
     // If an element has pending activity that may result in event listeners being called
     // (e.g. an XMLHttpRequest), we need to keep JS wrappers alive.
@@ -317,8 +350,8 @@ void markActiveObjectsForContext(JSGlobalData& globalData, ScriptExecutionContex
             // Generally, an active object with pending activity must have a wrapper to mark its listeners.
             // However, some ActiveDOMObjects don't have JS wrappers (timers created by setTimeout is one example).
             // FIXME: perhaps need to make sure even timers have a markable 'wrapper'.
-            if (wrapper && !wrapper->marked())
-                wrapper->mark();
+            if (wrapper)
+                markStack.append(wrapper);
         }
     }
 
@@ -328,8 +361,8 @@ void markActiveObjectsForContext(JSGlobalData& globalData, ScriptExecutionContex
         // If the message port is remotely entangled, then always mark it as in-use because we can't determine reachability across threads.
         if (!(*iter)->locallyEntangledPort() || (*iter)->hasPendingActivity()) {
             DOMObject* wrapper = getCachedDOMObjectWrapper(globalData, *iter);
-            if (wrapper && !wrapper->marked())
-                wrapper->mark();
+            if (wrapper)
+                markStack.append(wrapper);
         }
     }
 }
@@ -346,14 +379,17 @@ void updateDOMNodeDocument(Node* node, Document* oldDocument, Document* newDocum
     addWrapper(wrapper);
 }
 
-void markDOMObjectWrapper(JSGlobalData& globalData, void* object)
+void markDOMObjectWrapper(MarkStack& markStack, JSGlobalData& globalData, void* object)
 {
+    // FIXME: This could be changed to only mark wrappers that are "observable"
+    // as markDOMNodesForDocument does, allowing us to collect more wrappers,
+    // but doing this correctly would be challenging.
     if (!object)
         return;
     DOMObject* wrapper = getCachedDOMObjectWrapper(globalData, object);
-    if (!wrapper || wrapper->marked())
+    if (!wrapper)
         return;
-    wrapper->mark();
+    markStack.append(wrapper);
 }
 
 JSValue jsStringOrNull(ExecState* exec, const String& s)
@@ -450,31 +486,36 @@ void setDOMException(ExecState* exec, ExceptionCode ec)
     if (!ec || exec->hadException())
         return;
 
+    // FIXME: All callers to setDOMException need to pass in the right global object
+    // for now, we're going to assume the lexicalGlobalObject.  Which is wrong in cases like this:
+    // frames[0].document.createElement(null, null); // throws an exception which should have the subframes prototypes.
+    JSDOMGlobalObject* globalObject = deprecatedGlobalObjectForPrototype(exec);
+
     ExceptionCodeDescription description;
     getExceptionCodeDescription(ec, description);
 
     JSValue errorObject;
     switch (description.type) {
         case DOMExceptionType:
-            errorObject = toJS(exec, DOMCoreException::create(description));
+            errorObject = toJS(exec, globalObject, DOMCoreException::create(description));
             break;
         case RangeExceptionType:
-            errorObject = toJS(exec, RangeException::create(description));
+            errorObject = toJS(exec, globalObject, RangeException::create(description));
             break;
         case EventExceptionType:
-            errorObject = toJS(exec, EventException::create(description));
+            errorObject = toJS(exec, globalObject, EventException::create(description));
             break;
         case XMLHttpRequestExceptionType:
-            errorObject = toJS(exec, XMLHttpRequestException::create(description));
+            errorObject = toJS(exec, globalObject, XMLHttpRequestException::create(description));
             break;
 #if ENABLE(SVG)
         case SVGExceptionType:
-            errorObject = toJS(exec, SVGException::create(description).get(), 0);
+            errorObject = toJS(exec, globalObject, SVGException::create(description).get(), 0);
             break;
 #endif
 #if ENABLE(XPATH)
         case XPathExceptionType:
-            errorObject = toJS(exec, XPathException::create(description));
+            errorObject = toJS(exec, globalObject, XPathException::create(description));
             break;
 #endif
     }
@@ -582,6 +623,29 @@ void cacheDOMConstructor(ExecState* exec, const ClassInfo* classInfo, JSObject* 
     JSDOMConstructorMap& constructors = static_cast<JSDOMGlobalObject*>(exec->lexicalGlobalObject())->constructors();
     ASSERT(!constructors.contains(classInfo));
     constructors.set(classInfo, constructor);
+}
+
+JSC::JSObject* toJSSequence(ExecState* exec, JSValue value, unsigned& length)
+{
+    JSObject* object = value.getObject();
+    if (!object) {
+        throwError(exec, TypeError);
+        return 0;
+    }
+    JSValue lengthValue = object->get(exec, exec->propertyNames().length);
+    if (exec->hadException())
+        return 0;
+
+    if (lengthValue.isUndefinedOrNull()) {
+        throwError(exec, TypeError);
+        return 0;
+    }
+
+    length = lengthValue.toUInt32(exec);
+    if (exec->hadException())
+        return 0;
+
+    return object;
 }
 
 } // namespace WebCore

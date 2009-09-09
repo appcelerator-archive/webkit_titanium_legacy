@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2008 Christian Dywan <christian@imendio.com>
+ * Copyright (C) 2009 Jan Michael Alonzo <jmalonzo@gmail.com
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -33,6 +34,11 @@ G_BEGIN_DECLS
 #define WEBKIT_IS_WEB_SETTINGS_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass),  WEBKIT_TYPE_WEB_SETTINGS))
 #define WEBKIT_WEB_SETTINGS_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj),  WEBKIT_TYPE_WEB_SETTINGS, WebKitWebSettingsClass))
 
+typedef enum {
+    WEBKIT_EDITING_BEHAVIOR_MAC,
+    WEBKIT_EDITING_BEHAVIOR_WINDOWS
+} WebKitEditingBehavior;
+
 typedef struct _WebKitWebSettingsPrivate WebKitWebSettingsPrivate;
 
 struct _WebKitWebSettings {
@@ -53,13 +59,16 @@ struct _WebKitWebSettingsClass {
 };
 
 WEBKIT_API GType
-webkit_web_settings_get_type (void);
+webkit_web_settings_get_type          (void);
 
 WEBKIT_API WebKitWebSettings *
-webkit_web_settings_new      (void);
+webkit_web_settings_new               (void);
 
 WEBKIT_API WebKitWebSettings *
-webkit_web_settings_copy     (WebKitWebSettings *web_settings);
+webkit_web_settings_copy              (WebKitWebSettings *web_settings);
+
+WEBKIT_API G_CONST_RETURN gchar *
+webkit_web_settings_get_user_agent    (WebKitWebSettings *web_settings);
 
 G_END_DECLS
 

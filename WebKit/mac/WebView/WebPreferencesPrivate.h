@@ -83,6 +83,9 @@ extern NSString *WebPreferencesRemovedNotification;
 - (BOOL)webArchiveDebugModeEnabled;
 - (void)setWebArchiveDebugModeEnabled:(BOOL)webArchiveDebugModeEnabled;
 
+- (BOOL)localFileContentSniffingEnabled;
+- (void)setLocalFileContentSniffingEnabled:(BOOL)localFileContentSniffingEnabled;
+
 - (BOOL)offlineWebApplicationCacheEnabled;
 - (void)setOfflineWebApplicationCacheEnabled:(BOOL)offlineWebApplicationCacheEnabled;
 
@@ -114,6 +117,10 @@ extern NSString *WebPreferencesRemovedNotification;
 - (WebTextDirectionSubmenuInclusionBehavior)textDirectionSubmenuInclusionBehavior;
 - (void)setTextDirectionSubmenuInclusionBehavior:(WebTextDirectionSubmenuInclusionBehavior)behavior;
 
+// Used to set preference specified in the test via LayoutTestController.overridePreference(..).
+// For use with DumpRenderTree only.
+- (void)_setPreferenceForTestWithValue:(NSString *)value forKey:(NSString *)key;
+
 // If site-specific spoofing is enabled, some pages that do inappropriate user-agent string checks will be
 // passed a nonstandard user-agent string to get them to work correctly. This method might be removed in
 // the future when there's no more need for it.
@@ -126,10 +133,15 @@ extern NSString *WebPreferencesRemovedNotification;
 
 - (NSString *)_ftpDirectoryTemplatePath;
 - (void)_setFTPDirectoryTemplatePath:(NSString *)path;
+
 - (void)_setForceFTPDirectoryListings:(BOOL)force;
 - (BOOL)_forceFTPDirectoryListings;
+
 - (NSString *)_localStorageDatabasePath;
 - (void)_setLocalStorageDatabasePath:(NSString *)path;
+
+- (BOOL)acceleratedCompositingEnabled;
+- (void)setAcceleratedCompositingEnabled:(BOOL)enabled;
 
 // Other private methods
 - (void)_postPreferencesChangesNotification;

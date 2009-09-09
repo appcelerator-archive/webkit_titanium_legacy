@@ -42,6 +42,8 @@
 
 namespace WebCore {
 
+class String;
+
 class FontPlatformData {
 public:
     FontPlatformData(WTF::HashTableDeletedValueType)
@@ -85,7 +87,7 @@ public:
     bool syntheticBold() const { return m_syntheticBold; }
     bool syntheticOblique() const { return m_syntheticOblique; }
 
-    void setFont(cairo_t*) const;
+    cairo_scaled_font_t* scaledFont() const { return m_scaledFont; }
 
     unsigned hash() const
     {
@@ -106,6 +108,10 @@ public:
         return m_font == hashTableDeletedFontValue();
 #endif
     };
+
+#ifndef NDEBUG
+    String description() const;
+#endif
 
 #if defined(USE_FREETYPE)
     FcPattern* m_pattern;

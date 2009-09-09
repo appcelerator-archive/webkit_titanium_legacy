@@ -47,6 +47,7 @@
 #include "MappedAttribute.h"
 #include "Page.h"
 #include "RenderTextControl.h"
+#include "ValidityState.h"
 #include <limits>
 #include <wtf/CurrentTime.h>
 #include <wtf/RandomNumber.h>
@@ -328,7 +329,7 @@ static void transferMailtoPostFormDataToURL(RefPtr<FormData>& data, KURL& url, c
     url.setQuery(query);
 }
 
-void HTMLFormElement::submit(Event* event, bool activateSubmitButton, bool lockHistory, bool lockBackForwardList)
+void HTMLFormElement::submit(Event* event, bool activateSubmitButton, bool lockHistory)
 {
     FrameView* view = document()->view();
     Frame* frame = document()->frame();
@@ -389,14 +390,14 @@ void HTMLFormElement::submit(Event* event, bool activateSubmitButton, bool lockH
                 m_url = url.string();
             }
 
-            frame->loader()->submitForm("POST", m_url, data.release(), m_target, m_formDataBuilder.encodingType(), String(), lockHistory, lockBackForwardList, event, formState.release());
+            frame->loader()->submitForm("POST", m_url, data.release(), m_target, m_formDataBuilder.encodingType(), String(), lockHistory, event, formState.release());
         } else {
             Vector<char> boundary = m_formDataBuilder.generateUniqueBoundaryString();
-            frame->loader()->submitForm("POST", m_url, createFormData(boundary.data()), m_target, m_formDataBuilder.encodingType(), boundary.data(), lockHistory, lockBackForwardList, event, formState.release());
+            frame->loader()->submitForm("POST", m_url, createFormData(boundary.data()), m_target, m_formDataBuilder.encodingType(), boundary.data(), lockHistory, event, formState.release());
         }
     } else {
         m_formDataBuilder.setIsMultiPartForm(false);
-        frame->loader()->submitForm("GET", m_url, createFormData(CString()), m_target, String(), String(), lockHistory, lockBackForwardList, event, formState.release());
+        frame->loader()->submitForm("GET", m_url, createFormData(CString()), m_target, String(), String(), lockHistory, event, formState.release());
     }
 
     if (needButtonActivation && firstSuccessfulSubmitButton)
@@ -415,7 +416,7 @@ void HTMLFormElement::reset()
 
     // ### DOM2 labels this event as not cancelable, however
     // common browsers( sick! ) allow it be cancelled.
-    if ( !dispatchEvent(eventNames().resetEvent,true, true) ) {
+    if ( !dispatchEvent(eventNames().resetEvent, true, true) ) {
         m_inreset = false;
         return;
     }
@@ -429,7 +430,7 @@ void HTMLFormElement::reset()
 void HTMLFormElement::parseMappedAttribute(MappedAttribute* attr)
 {
     if (attr->name() == actionAttr)
-        m_url = parseURL(attr->value());
+        m_url = deprecatedParseURL(attr->value());
     else if (attr->name() == targetAttr)
         m_target = attr->value();
     else if (attr->name() == methodAttr)
@@ -537,6 +538,16 @@ void HTMLFormElement::setName(const String &value)
     setAttribute(nameAttr, value);
 }
 
+bool HTMLFormElement::noValidate() const
+{
+    return !getAttribute(novalidateAttr).isNull();
+}
+
+void HTMLFormElement::setNoValidate(bool novalidate)
+{
+    setAttribute(novalidateAttr, novalidate ? "" : 0);
+}
+
 void HTMLFormElement::setAcceptCharset(const String &value)
 {
     setAttribute(accept_charsetAttr, value);
@@ -575,6 +586,31 @@ String HTMLFormElement::target() const
 void HTMLFormElement::setTarget(const String &value)
 {
     setAttribute(targetAttr, value);
+}
+
+HTMLFormControlElement* HTMLFormElement::defaultButton() const
+{
+    for (unsigned i = 0; i < formElements.size(); ++i) {
+        HTMLFormControlElement* control = formElements[i];
+        if (control->isSuccessfulSubmitButton())
+            return control;
+    }
+
+    return 0;
+}
+
+bool HTMLFormElement::checkValidity()
+{
+    // TODO: Check for unhandled invalid controls, see #27452 for tips.
+
+    bool hasOnlyValidControls = true;
+    for (unsigned i = 0; i < formElements.size(); ++i) {
+        HTMLFormControlElement* control = formElements[i];
+        if (!control->checkValidity())
+            hasOnlyValidControls = false;
+    }
+
+    return hasOnlyValidControls;
 }
 
 PassRefPtr<HTMLFormControlElement> HTMLFormElement::elementForAlias(const AtomicString& alias)

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -649,7 +649,7 @@ sub write_bugs {
         }
     } elsif ($pr_data{"State"} eq "suspended") {
         $bug_status = "RESOLVED";
-        $resolution = "LATER";
+        $resolution = "WONTFIX";
     } else {
         $bug_status = "NEW";
         $resolution = "";
@@ -861,8 +861,6 @@ sub map_username_to_realname() {
     return("");
 }
 
-# This routine was copied from globals.pl which was largely copied
-# from Mysql.pm.
 sub detaint_string {
     my ($str) = @_;
     $str =~ m/^(.*)$/s;

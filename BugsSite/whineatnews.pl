@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 # -*- Mode: perl; indent-tabs-mode: nil -*-
 #
 # The contents of this file are subject to the Mozilla Public
@@ -20,6 +20,7 @@
 #
 # Contributor(s): Terry Weissman <terry@mozilla.org>
 #                 Joseph Heenan <joseph@heenan.me.uk>
+#                 Frédéric Buclin <LpSolit@gmail.com>
 
 
 # This is a script suitable for running once a day from a cron job.  It 
@@ -28,30 +29,35 @@
 # touched for more than the number of days specified in the whinedays param.
 
 use strict;
-use lib '.';
+use lib qw(. lib);
 
-require "globals.pl";
-
-use Bugzilla::BugMail;
+use Bugzilla;
+use Bugzilla::Mailer;
+use Bugzilla::Util;
+use Bugzilla::User;
 
 # Whining is disabled if whinedays is zero
-exit unless Param('whinedays') >= 1;
+exit unless Bugzilla->params->{'whinedays'} >= 1;
 
 my $dbh = Bugzilla->dbh;
-SendSQL("SELECT bug_id, short_desc, login_name " .
-        "FROM bugs INNER JOIN profiles ON userid = assigned_to " .
-        "WHERE (bug_status = 'NEW' OR bug_status = 'REOPENED') " .
-        "AND " . $dbh->sql_to_days('NOW()') . " - " .
-                 $dbh->sql_to_days('delta_ts') . " > " .
-                 Param('whinedays') . " " .
-        "ORDER BY bug_id");
+my $query = q{SELECT bug_id, short_desc, login_name
+                FROM bugs
+          INNER JOIN profiles
+                  ON userid = assigned_to
+               WHERE (bug_status = ? OR bug_status = ?)
+                 AND disable_mail = 0
+                 AND } . $dbh->sql_to_days('NOW()') . " - " .
+                       $dbh->sql_to_days('delta_ts') . " > " .
+                       Bugzilla->params->{'whinedays'} .
+          " ORDER BY bug_id";
 
 my %bugs;
 my %desc;
-my @row;
 
-while (@row = FetchSQLData()) {
-    my ($id, $desc, $email) = (@row);
+my $slt_bugs = $dbh->selectall_arrayref($query, undef, 'NEW', 'REOPENED');
+
+foreach my $bug (@$slt_bugs) {
+    my ($id, $desc, $email) = @$bug;
     if (!defined $bugs{$email}) {
         $bugs{$email} = [];
     }
@@ -63,22 +69,28 @@ while (@row = FetchSQLData()) {
 }
 
 
-my $template = Param('whinemail');
-my $urlbase = Param('urlbase');
-my $emailsuffix = Param('emailsuffix');
-
 foreach my $email (sort (keys %bugs)) {
-    my %substs;
-    $substs{'email'} = $email . $emailsuffix;
-    $substs{'userid'} = $email;
-    my $msg = PerformSubsts($template, \%substs);
+    my $user = new Bugzilla::User({name => $email});
+    next if $user->email_disabled;
 
+    my $vars = {'email' => $email};
+
+    my @bugs = ();
     foreach my $i (@{$bugs{$email}}) {
-        $msg .= "  " . shift(@{$desc{$email}}) . "\n";
-        $msg .= "    -> ${urlbase}show_bug.cgi?id=$i\n";
+        my $bug = {};
+        $bug->{'summary'} = shift(@{$desc{$email}});
+        $bug->{'id'} = $i;
+        push @bugs, $bug;
     }
+    $vars->{'bugs'} = \@bugs;
 
-    Bugzilla::BugMail::MessageToMTA($msg);
+    my $msg;
+    my $template = Bugzilla->template_inner($user->settings->{'lang'}->{'value'});
+    $template->process("email/whine.txt.tmpl", $vars, \$msg)
+      or die($template->error());
+
+    Bugzilla->template_inner("");
+    MessageToMTA($msg);
 
     print "$email      " . join(" ", @{$bugs{$email}}) . "\n";
 }

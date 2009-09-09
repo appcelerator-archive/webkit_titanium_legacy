@@ -204,11 +204,11 @@ PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page* page)
 
 bool RenderThemeChromiumWin::supportsFocusRing(const RenderStyle* style) const
 {
-   // Let webkit draw one of its halo rings around any focused element,
-   // except push buttons. For buttons we use the windows PBS_DEFAULTED
-   // styling to give it a blue border.
-   return style->appearance() == ButtonPart
-       || style->appearance() == PushButtonPart;
+    // Let webkit draw one of its halo rings around any focused element,
+    // except push buttons. For buttons we use the windows PBS_DEFAULTED
+    // styling to give it a blue border.
+    return style->appearance() == ButtonPart
+            || style->appearance() == PushButtonPart;
 }
 
 Color RenderThemeChromiumWin::platformActiveSelectionBackgroundColor() const
@@ -316,13 +316,14 @@ void RenderThemeChromiumWin::adjustSliderThumbSize(RenderObject* o) const
     // These sizes match what WinXP draws for various menus.
     const int sliderThumbAlongAxis = 11;
     const int sliderThumbAcrossAxis = 21;
-    if (o->style()->appearance() == SliderThumbHorizontalPart || o->style()->appearance() == MediaSliderThumbPart) {
+    if (o->style()->appearance() == SliderThumbHorizontalPart) {
         o->style()->setWidth(Length(sliderThumbAlongAxis, Fixed));
         o->style()->setHeight(Length(sliderThumbAcrossAxis, Fixed));
     } else if (o->style()->appearance() == SliderThumbVerticalPart) {
         o->style()->setWidth(Length(sliderThumbAcrossAxis, Fixed));
         o->style()->setHeight(Length(sliderThumbAlongAxis, Fixed));
-    }
+    } else
+        RenderThemeChromiumSkia::adjustSliderThumbSize(o);
 }
 
 bool RenderThemeChromiumWin::paintCheckbox(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r)
@@ -425,7 +426,7 @@ bool RenderThemeChromiumWin::paintMenuList(RenderObject* o, const RenderObject::
 // static
 void RenderThemeChromiumWin::setDefaultFontSize(int fontSize)
 {
-    defaultFontSize = static_cast<float>(fontSize);
+    RenderThemeChromiumSkia::setDefaultFontSize(fontSize);
 
     // Reset cached fonts.
     smallSystemFont = menuFont = labelFont = FontDescription();
@@ -464,7 +465,7 @@ unsigned RenderThemeChromiumWin::determineSliderThumbState(RenderObject* o)
         result = TUS_DISABLED;
     else if (supportsFocus(o->style()->appearance()) && isFocused(o->parent()))
         result = TUS_FOCUSED;
-    else if (static_cast<RenderSlider*>(o->parent())->inDragMode())
+    else if (toRenderSlider(o->parent())->inDragMode())
         result = TUS_PRESSED;
     else if (isHovered(o))
         result = TUS_HOT;

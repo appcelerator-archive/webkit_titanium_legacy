@@ -25,6 +25,7 @@
 #include <qnetworkproxy.h>
 #include <qpointer.h>
 #include <qevent.h>
+#include <qgraphicssceneevent.h>
 
 #include "qwebpage.h"
 #include "qwebhistory.h"
@@ -35,8 +36,7 @@
 
 #include <wtf/RefPtr.h>
 
-namespace WebCore
-{
+namespace WebCore {
     class ChromeClientQt;
     class ContextMenuClientQt;
     class ContextMenuItem;
@@ -45,18 +45,7 @@ namespace WebCore
     class Element;
     class Node;
     class Page;
-
-#ifndef QT_NO_CURSOR
-    class SetCursorEvent : public QEvent {
-    public:
-        static const int EventType = 724;
-        SetCursorEvent(const QCursor&);
-
-        QCursor cursor() const;
-    private:
-        QCursor m_cursor;
-    };
-#endif
+    class Frame;
 }
 
 QT_BEGIN_NAMESPACE
@@ -65,18 +54,14 @@ class QMenu;
 class QBitArray;
 QT_END_NAMESPACE
 
-class QWebPagePrivate
-{
+class QWebPagePrivate {
 public:
-    QWebPagePrivate(QWebPage *);
+    QWebPagePrivate(QWebPage*);
     ~QWebPagePrivate();
     void createMainFrame();
 #ifndef QT_NO_CONTEXTMENU
-    QMenu *createContextMenu(const WebCore::ContextMenu *webcoreMenu, const QList<WebCore::ContextMenuItem> *items, QBitArray *visitedWebActions);
+    QMenu* createContextMenu(const WebCore::ContextMenu* webcoreMenu, const QList<WebCore::ContextMenuItem>* items, QBitArray* visitedWebActions);
 #endif
-
-    QWebFrame *frameAt(const QPoint &pos) const;
-
     void _q_onLoadProgressChanged(int);
     void _q_webActionTriggered(bool checked);
 #ifndef NDEBUG
@@ -89,31 +74,42 @@ public:
     void timerEvent(QTimerEvent*);
 
     void mouseMoveEvent(QMouseEvent*);
+    void mouseMoveEvent(QGraphicsSceneMouseEvent*);
     void mousePressEvent(QMouseEvent*);
+    void mousePressEvent(QGraphicsSceneMouseEvent*);
     void mouseDoubleClickEvent(QMouseEvent*);
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent*);
     void mouseTripleClickEvent(QMouseEvent*);
+    void mouseTripleClickEvent(QGraphicsSceneMouseEvent*);
     void mouseReleaseEvent(QMouseEvent*);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent*);
 #ifndef QT_NO_CONTEXTMENU
     void contextMenuEvent(QContextMenuEvent*);
 #endif
 #ifndef QT_NO_WHEELEVENT
     void wheelEvent(QWheelEvent*);
+    void wheelEvent(QGraphicsSceneWheelEvent*);
 #endif
     void keyPressEvent(QKeyEvent*);
     void keyReleaseEvent(QKeyEvent*);
     void focusInEvent(QFocusEvent*);
     void focusOutEvent(QFocusEvent*);
 
-    void dragEnterEvent(QDragEnterEvent *);
-    void dragLeaveEvent(QDragLeaveEvent *);
-    void dragMoveEvent(QDragMoveEvent *);
-    void dropEvent(QDropEvent *);
+    void dragEnterEvent(QDragEnterEvent*);
+    void dragEnterEvent(QGraphicsSceneDragDropEvent*);
+    void dragLeaveEvent(QDragLeaveEvent*);
+    void dragLeaveEvent(QGraphicsSceneDragDropEvent*);
+    void dragMoveEvent(QDragMoveEvent*);
+    void dragMoveEvent(QGraphicsSceneDragDropEvent*);
+    void dropEvent(QDropEvent*);
+    void dropEvent(QGraphicsSceneDragDropEvent*);
 
     void inputMethodEvent(QInputMethodEvent*);
 
     void shortcutOverrideEvent(QKeyEvent*);
-    void leaveEvent(QEvent *);
-    bool handleScrolling(QKeyEvent*);
+    void leaveEvent(QEvent*);
+    void handleClipboard(QEvent*, Qt::MouseButton);
+    bool handleScrolling(QKeyEvent*, WebCore::Frame*);
 
 #ifndef QT_NO_SHORTCUT
     static QWebPage::WebAction editorActionForKeyEvent(QKeyEvent* event);

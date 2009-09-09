@@ -37,16 +37,23 @@
 
 #include <QtGui>
 #include <QDebug>
+#include <QtNetwork/QNetworkProxy>
 #if QT_VERSION >= 0x040400 && !defined(QT_NO_PRINTER)
 #include <QPrintPreviewDialog>
 #endif
 
+#ifndef QT_NO_UITOOLS
 #include <QtUiTools/QUiLoader>
+#endif
 
 #include <QVector>
 #include <QTextStream>
 #include <QFile>
 #include <cstdio>
+
+#ifndef NDEBUG
+void QWEBKIT_EXPORT qt_drt_garbageCollector_collect();
+#endif
 
 class WebPage : public QWebPage
 {
@@ -61,32 +68,47 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    MainWindow(const QString& url = QString()): currentZoom(100) {
+    MainWindow(QString url = QString()): currentZoom(100) {
+        setAttribute(Qt::WA_DeleteOnClose);
+
         view = new QWebView(this);
         setCentralWidget(view);
 
-        view->setPage(new WebPage(view));
-
+        WebPage* page = new WebPage(view);
+        view->setPage(page);
+        
         connect(view, SIGNAL(loadFinished(bool)),
                 this, SLOT(loadFinished()));
         connect(view, SIGNAL(titleChanged(const QString&)),
                 this, SLOT(setWindowTitle(const QString&)));
         connect(view->page(), SIGNAL(linkHovered(const QString&, const QString&, const QString &)),
                 this, SLOT(showLinkHover(const QString&, const QString&)));
-        connect(view->page(), SIGNAL(windowCloseRequested()), this, SLOT(deleteLater()));
+        connect(view->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
         setupUI();
+
+        // set the proxy to the http_proxy env variable - if present        
+        QUrl proxyUrl = view->guessUrlFromString(qgetenv("http_proxy"));
+        if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
+            int proxyPort = (proxyUrl.port() > 0)  ? proxyUrl.port() : 8080;
+            page->networkAccessManager()->setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort));
+        }
+
+        QFileInfo fi(url);
+        if (fi.exists() && fi.isRelative())
+            url = fi.absoluteFilePath();
 
         QUrl qurl = view->guessUrlFromString(url);
         if (qurl.isValid()) {
             urlEdit->setText(qurl.toEncoded());
             view->load(qurl);
 
-            // the zoom values are chosen to be like in Mozilla Firefox 3
-            zoomLevels << 30 << 50 << 67 << 80 << 90;
-            zoomLevels << 100;
-            zoomLevels << 110 << 120 << 133 << 150 << 170 << 200 << 240 << 300;
         }
+
+        // the zoom values are chosen to be like in Mozilla Firefox 3
+        zoomLevels << 30 << 50 << 67 << 80 << 90;
+        zoomLevels << 100;
+        zoomLevels << 110 << 120 << 133 << 150 << 170 << 200 << 240 << 300;
     }
 
     QWebPage* webPage() const {
@@ -310,6 +332,7 @@ private:
 QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
 {
     MainWindow *mw = new MainWindow;
+    mw->show();
     return mw->webPage();
 }
 
@@ -318,8 +341,13 @@ QObject *WebPage::createPlugin(const QString &classId, const QUrl &url, const QS
     Q_UNUSED(url);
     Q_UNUSED(paramNames);
     Q_UNUSED(paramValues);
+#ifndef QT_NO_UITOOLS
     QUiLoader loader;
     return loader.createWidget(classId, view());
+#else
+    Q_UNUSED(classId);
+    return 0;
+#endif
 }
 
 class URLLoader : public QObject
@@ -387,6 +415,18 @@ private:
 
 #include "main.moc"
 
+int launcherMain(const QApplication& app)
+{
+#ifndef NDEBUG
+    int retVal = app.exec();
+    qt_drt_garbageCollector_collect();
+    QWebSettings::clearMemoryCaches();
+    return retVal;
+#else
+    return app.exec();
+#endif
+}
+
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
@@ -403,33 +443,35 @@ int main(int argc, char **argv)
 
     QWebSettings::globalSettings()->setAttribute(QWebSettings::PluginsEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
+    QWebSettings::enablePersistentStorage();
 
     const QStringList args = app.arguments();
 
-    // robotized
     if (args.contains(QLatin1String("-r"))) {
+        // robotized
         QString listFile = args.at(2);
         if (!(args.count() == 3) && QFile::exists(listFile)) {
             qDebug() << "Usage: QtLauncher -r listfile";
             exit(0);
         }
-        MainWindow window(url);
-        QWebView *view = window.webView();
+        MainWindow* window = new MainWindow;
+        QWebView *view = window->webView();
         URLLoader loader(view, listFile);
         QObject::connect(view, SIGNAL(loadFinished(bool)), &loader, SLOT(loadNext()));
-        window.show();
-        return app.exec();
+        loader.loadNext();
+        window->show();
+        launcherMain(app);
     } else {
         if (args.count() > 1)
             url = args.at(1);
 
-        MainWindow window(url);
+        MainWindow* window = new MainWindow(url);
 
         // Opens every given urls in new windows
         for (int i = 2; i < args.count(); i++)
-            window.newWindow(args.at(i));
+            window->newWindow(args.at(i));
 
-        window.show();
-        return app.exec();
+        window->show();
+        launcherMain(app);
     }
 }

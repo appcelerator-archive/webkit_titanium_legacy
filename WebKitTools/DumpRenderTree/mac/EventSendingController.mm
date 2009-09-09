@@ -29,6 +29,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import "config.h"
 #import "EventSendingController.h"
 
 #import "DumpRenderTree.h"
@@ -503,6 +504,15 @@ static NSEventType eventTypeForMouseButtonAndAction(int button, MouseAction acti
     } else if ([character isEqualToString:@"delete"]) {
         const unichar ch = 0x7f;
         eventCharacter = [NSString stringWithCharacters:&ch length:1];
+    }
+
+    // Compare the input string with the function-key names defined by the DOM spec (i.e. "F1",...,"F24").
+    // If the input string is a function-key name, set its key code.
+    for (unsigned i = 1; i <= 24; i++) {
+        if ([character isEqualToString:[NSString stringWithFormat:@"F%u", i]]) {
+            const unichar ch = NSF1FunctionKey + (i - 1);
+            eventCharacter = [NSString stringWithCharacters:&ch length:1];
+        }
     }
 
     NSString *charactersIgnoringModifiers = eventCharacter;

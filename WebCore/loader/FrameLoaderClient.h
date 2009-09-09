@@ -59,12 +59,14 @@ namespace WebCore {
     class IntSize;
     class KURL;
     class NavigationAction;
+    class PluginView;
     class ResourceError;
     class ResourceHandle;
     class ResourceLoader;
     struct ResourceRequest;
     class ResourceResponse;
     class ScriptString;
+    class SecurityOrigin;
     class SharedBuffer;
     class SubstituteData;
     class String;
@@ -163,6 +165,15 @@ namespace WebCore {
 
         virtual bool shouldGoToHistoryItem(HistoryItem*) const = 0;
 
+        // This frame has displayed inactive content (such as an image) from an
+        // insecure source.  Inactive content cannot spread to other frames.
+        virtual void didDisplayInsecureContent() = 0;
+
+        // The indicated security origin has run active content (such as a
+        // script) from an insecure source.  Note that the insecure content can
+        // spread to other frames in the same origin.
+        virtual void didRunInsecureContent(SecurityOrigin*) = 0;
+
         virtual ResourceError cancelledError(const ResourceRequest&) = 0;
         virtual ResourceError blockedError(const ResourceRequest&) = 0;
         virtual ResourceError cannotShowURLError(const ResourceRequest&) = 0;
@@ -200,10 +211,12 @@ namespace WebCore {
 
         virtual PassRefPtr<Frame> createFrame(const KURL& url, const String& name, HTMLFrameOwnerElement* ownerElement,
                                    const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) = 0;
-        virtual Widget* createPlugin(const IntSize&, HTMLPlugInElement*, const KURL&, const Vector<String>&, const Vector<String>&, const String&, bool loadManually) = 0;
+        virtual PassRefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement*, const KURL&, const Vector<String>&, const Vector<String>&, const String&, bool loadManually) = 0;
         virtual void redirectDataToPlugin(Widget* pluginWidget) = 0;
-        
-        virtual Widget* createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const KURL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) = 0;
+
+        virtual PassRefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const KURL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) = 0;
+
+        virtual void dispatchDidFailToStartPlugin(const PluginView*) const { }
 
         virtual ObjectContentType objectContentType(const KURL& url, const String& mimeType) = 0;
         virtual String overrideMediaType() const = 0;
@@ -211,7 +224,13 @@ namespace WebCore {
         virtual void windowObjectCleared() = 0;
         virtual void documentElementAvailable() = 0;
         virtual void didPerformFirstNavigation() const = 0; // "Navigation" here means a transition from one page to another that ends up in the back/forward list.
-        
+
+#if USE(V8)
+        virtual void didCreateScriptContextForFrame() = 0;
+        virtual void didDestroyScriptContextForFrame() = 0;
+        virtual void didCreateIsolatedScriptContext() = 0;
+#endif
+
         virtual void registerForIconNotification(bool listen = true) = 0;
         
 #if PLATFORM(MAC)
@@ -225,6 +244,7 @@ namespace WebCore {
 #endif
 
         virtual bool shouldUsePluginDocument(const String& /*mimeType*/) const { return false; }
+        virtual bool shouldLoadMediaElementURL(const KURL&) const { return true; }
     };
 
 } // namespace WebCore

@@ -72,7 +72,7 @@ static bool isURLAllowed(Document* doc, const String& url)
     KURL completeURL = doc->completeURL(url);
     bool foundSelfReference = false;
     for (Frame* frame = doc->frame(); frame; frame = frame->tree()->parent()) {
-        if (equalIgnoringRef(frame->loader()->url(), completeURL)) {
+        if (equalIgnoringFragmentIdentifier(frame->loader()->url(), completeURL)) {
             if (foundSelfReference)
                 return false;
             foundSelfReference = true;
@@ -140,6 +140,24 @@ static inline bool shouldUseEmbedDescendant(HTMLObjectElement* objectElement, co
     return !(havePlugin(pluginData, activeXType())
         && serviceTypeForClassId(objectElement->classId(), pluginData) == activeXType());
 #endif
+}
+
+static void mapDataParamToSrc(Vector<String>* paramNames, Vector<String>* paramValues)
+{
+    // Some plugins don't understand the "data" attribute of the OBJECT tag (i.e. Real and WMP
+    // require "src" attribute).
+    int srcIndex = -1, dataIndex = -1;
+    for (unsigned int i = 0; i < paramNames->size(); ++i) {
+        if (equalIgnoringCase((*paramNames)[i], "src"))
+            srcIndex = i;
+        else if (equalIgnoringCase((*paramNames)[i], "data"))
+            dataIndex = i;
+    }
+
+    if (srcIndex == -1 && dataIndex != -1) {
+        paramNames->append("src");
+        paramValues->append((*paramValues)[dataIndex]);
+    }
 }
 
 void RenderPartObject::updateWidget(bool onlyCreateNonNetscapePlugins)
@@ -238,6 +256,8 @@ void RenderPartObject::updateWidget(bool onlyCreateNonNetscapePlugins)
             }
         }
 
+        mapDataParamToSrc(&paramNames, &paramValues);
+
         // If we still don't have a type, try to map from a specific CLASSID to a type.
         if (serviceType.isEmpty())
             serviceType = serviceTypeForClassId(o->classId(), pluginData);
@@ -262,7 +282,7 @@ void RenderPartObject::updateWidget(bool onlyCreateNonNetscapePlugins)
                 return;
         }
 
-        bool success = frame->loader()->requestObject(this, url, AtomicString(o->name()), serviceType, paramNames, paramValues);
+        bool success = frame->loader()->requestObject(this, url, o->getAttribute(nameAttr), serviceType, paramNames, paramValues);
         if (!success && m_hasFallbackContent)
             o->renderFallbackContent();
     } else if (node()->hasTagName(embedTag)) {
@@ -330,9 +350,11 @@ void RenderPartObject::layout()
 
     calcWidth();
     calcHeight();
-    adjustOverflowForBoxShadowAndReflect();
 
     RenderPart::layout();
+
+    m_overflow.clear();
+    addShadowOverflow();
 
     if (!widget() && frameView())
         frameView()->addWidgetToUpdate(this);

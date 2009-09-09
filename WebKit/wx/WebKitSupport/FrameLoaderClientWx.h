@@ -33,6 +33,7 @@
 #include "KURL.h"
 #include "ResourceResponse.h"
 
+class wxWebFrame;
 class wxWebView;
 
 namespace WebCore {
@@ -51,9 +52,8 @@ namespace WebCore {
     public:
         FrameLoaderClientWx();
         ~FrameLoaderClientWx();
-        void setFrame(Frame *frame);
+        void setFrame(wxWebFrame *frame);
         void setWebView(wxWebView *webview);
-        virtual void detachFrameLoader();
 
         virtual bool hasWebView() const; // mainly for assertions
 
@@ -150,6 +150,9 @@ namespace WebCore {
         virtual void saveScrollPositionAndViewStateToItem(HistoryItem*);
         virtual bool canCachePage() const;
         
+        virtual void didDisplayInsecureContent();
+        virtual void didRunInsecureContent(SecurityOrigin*);
+
         virtual void setMainDocumentError(DocumentLoader*, const ResourceError&);
         virtual void committedLoad(DocumentLoader*, const char*, int);
         virtual ResourceError cancelledError(const ResourceRequest&);
@@ -190,11 +193,11 @@ namespace WebCore {
 
         virtual PassRefPtr<Frame> createFrame(const KURL& url, const String& name, HTMLFrameOwnerElement* ownerElement,
                                    const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight);
-        virtual Widget* createPlugin(const IntSize&, HTMLPlugInElement*, const KURL&, const Vector<String>&, const Vector<String>&, const String&, bool loadManually) ;
+        virtual PassRefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement*, const KURL&, const Vector<String>&, const Vector<String>&, const String&, bool loadManually) ;
         virtual void redirectDataToPlugin(Widget* pluginWidget);
         virtual ResourceError pluginWillHandleLoadError(const ResourceResponse&);
         
-        virtual Widget* createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const KURL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues);
+        virtual PassRefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const KURL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues);
 
         virtual ObjectContentType objectContentType(const KURL& url, const String& mimeType);
         virtual String overrideMediaType() const;
@@ -207,7 +210,8 @@ namespace WebCore {
         virtual void registerForIconNotification(bool listen = true);
 
     private:
-        Frame *m_frame;
+        wxWebFrame *m_webFrame;
+        Frame* m_frame;
         wxWebView *m_webView;
         ResourceResponse m_response;
         bool m_firstData;

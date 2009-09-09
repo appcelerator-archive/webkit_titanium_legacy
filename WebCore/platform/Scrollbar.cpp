@@ -392,9 +392,9 @@ void Scrollbar::setFrameRect(const IntRect& rect)
     // Get our window resizer rect and see if we overlap.  Adjust to avoid the overlap
     // if necessary.
     IntRect adjustedRect(rect);
-    if (parent()) {
-        bool overlapsResizer = false;
-        ScrollView* view = parent();
+    bool overlapsResizer = false;
+    ScrollView* view = parent();
+    if (view && !rect.isEmpty() && !view->windowResizerRect().isEmpty()) {
         IntRect resizerRect = view->convertFromContainingWindow(view->windowResizerRect());
         if (rect.intersects(resizerRect)) {
             if (orientation() == HorizontalScrollbar) {
@@ -411,11 +411,11 @@ void Scrollbar::setFrameRect(const IntRect& rect)
                 }
             }
         }
-
-        if (overlapsResizer != m_overlapsResizer) {
-            m_overlapsResizer = overlapsResizer;
+    }
+    if (overlapsResizer != m_overlapsResizer) {
+        m_overlapsResizer = overlapsResizer;
+        if (view)
             view->adjustScrollbarsAvoidingResizerCount(m_overlapsResizer ? 1 : -1);
-        }
     }
 
     Widget::setFrameRect(adjustedRect);
@@ -449,9 +449,36 @@ void Scrollbar::invalidateRect(const IntRect& rect)
         m_client->invalidateScrollbarRect(this, rect);
 }
 
-PlatformMouseEvent Scrollbar::transformEvent(const PlatformMouseEvent& event)
+IntRect Scrollbar::convertToContainingView(const IntRect& localRect) const
 {
-    return event;
+    if (m_client)
+        return m_client->convertFromScrollbarToContainingView(this, localRect);
+
+    return Widget::convertToContainingView(localRect);
+}
+
+IntRect Scrollbar::convertFromContainingView(const IntRect& parentRect) const
+{
+    if (m_client)
+        return m_client->convertFromContainingViewToScrollbar(this, parentRect);
+
+    return Widget::convertFromContainingView(parentRect);
+}
+
+IntPoint Scrollbar::convertToContainingView(const IntPoint& localPoint) const
+{
+    if (m_client)
+        return m_client->convertFromScrollbarToContainingView(this, localPoint);
+
+    return Widget::convertToContainingView(localPoint);
+}
+
+IntPoint Scrollbar::convertFromContainingView(const IntPoint& parentPoint) const
+{
+    if (m_client)
+        return m_client->convertFromContainingViewToScrollbar(this, parentPoint);
+
+    return Widget::convertFromContainingView(parentPoint);
 }
 
 }

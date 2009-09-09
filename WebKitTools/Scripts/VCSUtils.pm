@@ -1,4 +1,4 @@
-# Copyright (C) 2007 Apple Inc.  All rights reserved.
+# Copyright (C) 2007, 2008, 2009 Apple Inc.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,28 +25,47 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Module to share code to work with various version control systems.
+package VCSUtils;
 
 use strict;
 use warnings;
+
+use Cwd qw();  # "qw()" prevents warnings about redefining getcwd() with "use POSIX;"
+use File::Basename;
 use File::Spec;
-use webkitdirs;
 
 BEGIN {
-   use Exporter   ();
-   our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-   $VERSION     = 1.00;
-   @ISA         = qw(Exporter);
-   @EXPORT      = qw(&isGitDirectory &isGit &isSVNDirectory &isSVN &makeFilePathRelative);
-   %EXPORT_TAGS = ( );
-   @EXPORT_OK   = ();
+    use Exporter   ();
+    our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
+    $VERSION     = 1.00;
+    @ISA         = qw(Exporter);
+    @EXPORT      = qw(
+        &chdirReturningRelativePath
+        &determineSVNRoot
+        &determineVCSRoot
+        &gitBranch
+        &isGit
+        &isGitBranchBuild
+        &isGitDirectory
+        &isSVN
+        &isSVNDirectory
+        &isSVNVersion16OrNewer
+        &makeFilePathRelative
+        &pathRelativeToSVNRepositoryRootForPath
+        &svnRevisionForDirectory
+    );
+    %EXPORT_TAGS = ( );
+    @EXPORT_OK   = ();
 }
 
 our @EXPORT_OK;
 
-my $isGit;
-my $isSVN;
 my $gitBranch;
+my $gitRoot;
+my $isGit;
 my $isGitBranchBuild;
+my $isSVN;
+my $svnVersion;
 
 sub isGitDirectory($)
 {
@@ -66,7 +85,7 @@ sub gitBranch()
 {
     unless (defined $gitBranch) {
         chomp($gitBranch = `git symbolic-ref -q HEAD`);
-        $gitBranch = "" if exitStatus($?);
+        $gitBranch = "" if main::exitStatus($?); # FIXME: exitStatus is defined in webkitdirs.pm
         $gitBranch =~ s#^refs/heads/##;
         $gitBranch = "" if $gitBranch eq "master";
     }
@@ -102,6 +121,96 @@ sub isSVN()
 
     $isSVN = isSVNDirectory(".");
     return $isSVN;
+}
+
+sub svnVersion()
+{
+    return $svnVersion if defined $svnVersion;
+
+    if (!isSVN()) {
+        $svnVersion = 0;
+    } else {
+        chomp($svnVersion = `svn --version --quiet`);
+    }
+    return $svnVersion;
+}
+
+sub isSVNVersion16OrNewer()
+{
+    my $version = svnVersion();
+    return eval "v$version" ge v1.6;
+}
+
+sub chdirReturningRelativePath($)
+{
+    my ($directory) = @_;
+    my $previousDirectory = Cwd::getcwd();
+    chdir $directory;
+    my $newDirectory = Cwd::getcwd();
+    return "." if $newDirectory eq $previousDirectory;
+    return File::Spec->abs2rel($previousDirectory, $newDirectory);
+}
+
+sub determineGitRoot()
+{
+    chomp(my $gitDir = `git rev-parse --git-dir`);
+    return dirname($gitDir);
+}
+
+sub determineSVNRoot()
+{
+    my $devNull = File::Spec->devnull();
+    my $last = '';
+    my $path = '.';
+    my $parent = '..';
+    my $repositoryRoot;
+    my $repositoryUUID;
+    while (1) {
+        my $thisRoot;
+        my $thisUUID;
+        # Ignore error messages in case we've run past the root of the checkout.
+        open INFO, "svn info '$path' 2> $devNull |" or die;
+        while (<INFO>) {
+            if (/^Repository Root: (.+)/) {
+                $thisRoot = $1;
+            }
+            if (/^Repository UUID: (.+)/) {
+                $thisUUID = $1;
+            }
+            if ($thisRoot && $thisUUID) {
+                local $/ = undef;
+                <INFO>; # Consume the rest of the input.
+            }
+        }
+        close INFO;
+
+        # It's possible (e.g. for developers of some ports) to have a WebKit
+        # checkout in a subdirectory of another checkout.  So abort if the
+        # repository root or the repository UUID suddenly changes.
+        last if !$thisUUID;
+        $repositoryUUID = $thisUUID if !$repositoryUUID;
+        last if $thisUUID ne $repositoryUUID;
+
+        last if !$thisRoot;
+        $repositoryRoot = $thisRoot if !$repositoryRoot;
+        last if $thisRoot ne $repositoryRoot;
+
+        $last = $path;
+        $path = File::Spec->catdir($parent, $path);
+    }
+
+    return File::Spec->rel2abs($last);
+}
+
+sub determineVCSRoot()
+{
+    if (isGit()) {
+        return determineGitRoot();
+    }
+    if (isSVN()) {
+        return determineSVNRoot();
+    }
+    die "Unable to determine VCS root";
 }
 
 sub svnRevisionForDirectory($)
@@ -142,8 +251,6 @@ sub pathRelativeToSVNRepositoryRootForPath($)
     return $svnURL;
 }
 
-
-my $gitRoot;
 sub makeFilePathRelative($)
 {
     my ($path) = @_;

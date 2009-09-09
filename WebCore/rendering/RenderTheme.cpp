@@ -42,6 +42,12 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
+static Color& customFocusRingColor()
+{
+    DEFINE_STATIC_LOCAL(Color, color, ());
+    return color;
+}
+
 RenderTheme::RenderTheme()
 #if USE(NEW_THEME)
     : m_theme(platformTheme())
@@ -177,6 +183,7 @@ void RenderTheme::adjustStyle(CSSStyleSelector* selector, RenderStyle* style, El
         case MenulistButtonPart:
             return adjustMenuListButtonStyle(selector, style, e);
         case MediaSliderPart:
+        case MediaVolumeSliderPart:
         case SliderHorizontalPart:
         case SliderVerticalPart:
             return adjustSliderTrackStyle(selector, style, e);
@@ -262,18 +269,30 @@ bool RenderTheme::paint(RenderObject* o, const RenderObject::PaintInfo& paintInf
             return paintMediaSeekBackButton(o, paintInfo, r);
         case MediaSeekForwardButtonPart:
             return paintMediaSeekForwardButton(o, paintInfo, r);
+        case MediaRewindButtonPart:
+            return paintMediaRewindButton(o, paintInfo, r);
+        case MediaReturnToRealtimeButtonPart:
+            return paintMediaReturnToRealtimeButton(o, paintInfo, r);
         case MediaSliderPart:
             return paintMediaSliderTrack(o, paintInfo, r);
         case MediaSliderThumbPart:
             if (o->parent()->isSlider())
                 return paintMediaSliderThumb(o, paintInfo, r);
             break;
+        case MediaVolumeSliderContainerPart:
+            return paintMediaVolumeSliderContainer(o, paintInfo, r);
+        case MediaVolumeSliderPart:
+            return paintMediaVolumeSliderTrack(o, paintInfo, r);
+        case MediaVolumeSliderThumbPart:
+            if (o->parent()->isSlider())
+                return paintMediaVolumeSliderThumb(o, paintInfo, r);
+            break;
         case MediaTimeRemainingPart:
             return paintMediaTimeRemaining(o, paintInfo, r);
         case MediaCurrentTimePart:
             return paintMediaCurrentTime(o, paintInfo, r);
-        case MediaTimelineContainerPart:
-            return paintMediaTimelineContainer(o, paintInfo, r);
+        case MediaControlsBackgroundPart:
+            return paintMediaControlsBackground(o, paintInfo, r);
         case MenulistButtonPart:
         case TextFieldPart:
         case TextAreaPart:
@@ -309,6 +328,7 @@ bool RenderTheme::paintBorderOnly(RenderObject* o, const RenderObject::PaintInfo
         case TextAreaPart:
             return paintTextArea(o, paintInfo, r);
         case MenulistButtonPart:
+        case SearchFieldPart:
             return true;
         case CheckboxPart:
         case RadioPart:
@@ -321,7 +341,6 @@ bool RenderTheme::paintBorderOnly(RenderObject* o, const RenderObject::PaintInfo
         case SliderVerticalPart:
         case SliderThumbHorizontalPart:
         case SliderThumbVerticalPart:
-        case SearchFieldPart:
         case SearchFieldCancelButtonPart:
         case SearchFieldDecorationPart:
         case SearchFieldResultsDecorationPart:
@@ -847,6 +866,16 @@ Color RenderTheme::platformActiveTextSearchHighlightColor() const
 Color RenderTheme::platformInactiveTextSearchHighlightColor() const
 {
     return Color(255, 255, 0); // Yellow.
+}
+
+void RenderTheme::setCustomFocusRingColor(const Color& c)
+{
+    customFocusRingColor() = c;
+}
+
+Color RenderTheme::focusRingColor()
+{
+    return customFocusRingColor().isValid() ? customFocusRingColor() : defaultTheme()->platformFocusRingColor();
 }
 
 } // namespace WebCore

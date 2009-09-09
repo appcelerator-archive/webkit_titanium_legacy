@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003, 2005 Apple Computer, Inc.  All rights reserved.
+ * Copyright (C) 2003, 2005, 2009 Apple Computer, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -129,6 +129,7 @@
 - (NSString *)AXHeadingText;
 - (NSString *)AXDefinitionListTermText;
 - (NSString *)AXDefinitionListDefinitionText;
+- (NSString *)AXARIAContentGroupText:(NSString *)ariaType;
 
 - (NSString *)AXButtonActionVerb;
 - (NSString *)AXRadioButtonActionVerb;
@@ -140,6 +141,13 @@
 - (NSString *)multipleFileUploadTextForNumberOfFiles:(unsigned)numberOfFiles;
 // FTP Directory Related
 - (NSString *)unknownFileSizeText;
+
+- (NSString *)mediaElementLoadingStateText;
+- (NSString *)mediaElementLiveBroadcastStateText;
+- (NSString*)localizedMediaControlElementString:(NSString*)name;
+- (NSString*)localizedMediaControlElementHelpText:(NSString*)name;
+- (NSString*)localizedMediaTimeDescription:(float)time;
+
 
 @end
 

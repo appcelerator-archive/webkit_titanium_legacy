@@ -21,7 +21,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef XSSAuditor_h
@@ -62,7 +62,7 @@ namespace WebCore {
     // * ScriptController::evaluate - used to evaluate JavaScript scripts.
     // * ScriptController::createInlineEventListener - used to create JavaScript event handlers.
     // * HTMLTokenizer::scriptHandler - used to load external JavaScript scripts.
-    // 
+    //
     class XSSAuditor {
     public:
         XSSAuditor(Frame*);
@@ -72,7 +72,11 @@ namespace WebCore {
 
         // Determines whether the script should be allowed or denied execution
         // based on the content of any user-submitted data.
-        bool canEvaluate(const String& sourceCode) const;
+        bool canEvaluate(const String& code) const;
+
+        // Determines whether the JavaScript URL should be allowed or denied execution
+        // based on the content of any user-submitted data.
+        bool canEvaluateJavaScriptURL(const String& code) const;
 
         // Determines whether the event listener should be created based on the
         // content of any user-submitted data.
@@ -80,21 +84,49 @@ namespace WebCore {
 
         // Determines whether the external script should be loaded based on the
         // content of any user-submitted data.
-        bool canLoadExternalScriptFromSrc(const String& url) const;
+        bool canLoadExternalScriptFromSrc(const String& context, const String& url) const;
 
-        // Determines whether object should be loaded based on the content of 
+        // Determines whether object should be loaded based on the content of
         // any user-submitted data.
         //
         // This method is called by FrameLoader::requestObject.
         bool canLoadObject(const String& url) const;
 
-    private:
-        static String decodeURL(const String& url, const TextEncoding& encoding = UTF8Encoding(), bool allowNullCharacters = false);
+        // Determines whether the base URL should be changed based on the content
+        // of any user-submitted data.
+        //
+        // This method is called by HTMLBaseElement::process.
+        bool canSetBaseElementURL(const String& url) const;
 
-        bool findInRequest(const String&) const;
+    private:
+        class CachingURLCanonicalizer
+        {
+        public:
+            CachingURLCanonicalizer() : m_decodeEntities(false) { }
+            String canonicalizeURL(const String& url, const TextEncoding& encoding, bool decodeEntities);
+
+        private:
+            // The parameters we were called with last.
+            String m_inputURL;
+            TextEncoding m_encoding;
+            bool m_decodeEntities;
+
+            // The cached result.
+            String m_cachedCanonicalizedURL;
+        };
+
+        static String canonicalize(const String&);
+        static String decodeURL(const String& url, const TextEncoding& encoding, bool decodeEntities);
+        static String decodeHTMLEntities(const String&, bool leaveUndecodableEntitiesUntouched = true);
+
+        bool findInRequest(const String&, bool decodeEntities = true) const;
+        bool findInRequest(Frame*, const String&, bool decodeEntities = true) const;
 
         // The frame to audit.
         Frame* m_frame;
+
+        // A state store to help us avoid canonicalizing the same URL repeated.
+        mutable CachingURLCanonicalizer m_cache;
     };
 
 } // namespace WebCore

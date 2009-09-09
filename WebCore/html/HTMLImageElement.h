@@ -67,19 +67,11 @@ public:
     CachedImage* cachedImage() const { return m_imageLoader.image(); }
     void setCachedImage(CachedImage* i) { m_imageLoader.setImage(i); };
 
-    void setLoadManually (bool loadManually) { m_imageLoader.setLoadManually(loadManually); }
+    void setLoadManually(bool loadManually) { m_imageLoader.setLoadManually(loadManually); }
 
-    String name() const;
-    void setName(const String&);
+    const AtomicString& alt() const;
 
-    String align() const;
-    void setAlign(const String&);
-
-    String alt() const;
-    void setAlt(const String&);
-
-    String border() const;
-    void setBorder(const String&);
+    virtual bool draggable() const;
 
     void setHeight(int);
 
@@ -97,9 +89,6 @@ public:
 
     KURL src() const;
     void setSrc(const String&);
-
-    String useMap() const;
-    void setUseMap(const String&);
 
     int vspace() const;
     void setVspace(int);

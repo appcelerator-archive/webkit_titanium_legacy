@@ -30,6 +30,8 @@
 
 #include "config.h"
 
+#if ENABLE(DOM_STORAGE)
+
 #include "Storage.h"
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
@@ -40,13 +42,12 @@ namespace WebCore {
 // Get an array containing the names of indexed properties in a collection.
 v8::Handle<v8::Array> V8Custom::v8StorageNamedPropertyEnumerator(const v8::AccessorInfo& info)
 {
-    Storage* storage = V8Proxy::ToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
+    Storage* storage = V8DOMWrapper::convertToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
     unsigned int length = storage->length();
     v8::Handle<v8::Array> properties = v8::Array::New(length);
     for (unsigned int i = 0; i < length; ++i) {
-        ExceptionCode ec = 0;
-        String key = storage->key(i, ec);
-        ASSERT(!ec);
+        String key = storage->key(i);
+        ASSERT(!key.isNull());
         String val = storage->getItem(key);
         properties->Set(v8::Integer::New(i), v8String(key));
     }
@@ -56,10 +57,10 @@ v8::Handle<v8::Array> V8Custom::v8StorageNamedPropertyEnumerator(const v8::Acces
 
 static v8::Handle<v8::Value> storageGetter(v8::Local<v8::String> v8Name, const v8::AccessorInfo& info)
 {
-    Storage* storage = V8Proxy::ToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
+    Storage* storage = V8DOMWrapper::convertToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
     String name = toWebCoreString(v8Name);
 
-    if (storage->contains(name))
+    if (storage->contains(name) && name != "length")
         return v8String(storage->getItem(name));
 
     return notHandledByInterceptor();
@@ -80,7 +81,7 @@ NAMED_PROPERTY_GETTER(Storage)
 
 static v8::Handle<v8::Value> storageSetter(v8::Local<v8::String> v8Name, v8::Local<v8::Value> v8Value, const v8::AccessorInfo& info)
 {
-    Storage* storage = V8Proxy::ToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
+    Storage* storage = V8DOMWrapper::convertToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
     String name = toWebCoreString(v8Name);
     String value = toWebCoreString(v8Value);
 
@@ -115,7 +116,7 @@ NAMED_PROPERTY_SETTER(Storage)
 
 static v8::Handle<v8::Boolean> storageDeleter(v8::Local<v8::String> v8Name, const v8::AccessorInfo& info)
 {
-    Storage* storage = V8Proxy::ToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
+    Storage* storage = V8DOMWrapper::convertToNativeObject<Storage>(V8ClassIndex::STORAGE, info.Holder());
     String name = toWebCoreString(v8Name);
     
     if (storage->contains(name)) {
@@ -140,3 +141,5 @@ NAMED_PROPERTY_DELETER(Storage)
 }
 
 } // namespace WebCore
+
+#endif

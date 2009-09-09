@@ -89,15 +89,26 @@ static const unsigned cMaxUpdateScrollbarsPass = 2;
 
 - (void)updateScrollers
 {
-    BOOL hasVerticalScroller = [self hasVerticalScroller];
+    NSView *documentView = [self documentView];
+
+    // If we came in here with the view already needing a layout, then go ahead and do that
+    // first.  (This will be the common case, e.g., when the page changes due to window resizing for example).
+    // This layout will not re-enter updateScrollers and does not count towards our max layout pass total.
+    if (!suppressLayout && !suppressScrollers && [documentView isKindOfClass:[WebHTMLView class]]) {
+        WebHTMLView* htmlView = (WebHTMLView*)documentView;
+        if ([htmlView _needsLayout]) {
+            inUpdateScrollers = YES;
+            [(id <WebDocumentView>)documentView layout];
+            inUpdateScrollers = NO;
+        }
+    }
+
     BOOL hasHorizontalScroller = [self hasHorizontalScroller];
+    BOOL hasVerticalScroller = [self hasVerticalScroller];
     
     BOOL newHasHorizontalScroller = hasHorizontalScroller;
     BOOL newHasVerticalScroller = hasVerticalScroller;
     
-    BOOL needsLayout = NO;
-
-    NSView *documentView = [self documentView];
     if (!documentView) {
         newHasHorizontalScroller = NO;
         newHasVerticalScroller = NO;
@@ -122,19 +133,7 @@ static const unsigned cMaxUpdateScrollbarsPass = 2;
         return;
     }
 
-    needsLayout = NO;
-
-    // If we came in here with the view already needing a layout, then go ahead and do that
-    // first.  (This will be the common case, e.g., when the page changes due to window resizing for example).
-    // This layout will not re-enter updateScrollers and does not count towards our max layout pass total.
-    if ([documentView isKindOfClass:[WebHTMLView class]]) {
-        WebHTMLView* htmlView = (WebHTMLView*)documentView;
-        if ([htmlView _needsLayout]) {
-            inUpdateScrollers = YES;
-            [(id <WebDocumentView>)documentView layout];
-            inUpdateScrollers = NO;
-        }
-    }
+    BOOL needsLayout = NO;
 
     NSSize documentSize = [documentView frame].size;
     NSSize visibleSize = [self documentVisibleRect].size;
@@ -199,7 +198,8 @@ static const unsigned cMaxUpdateScrollbarsPass = 2;
         // http://www.linuxpowered.com/archive/howto/Net-HOWTO-8.html.
         // The underlying cause is some problem in the NSText machinery, but I was not
         // able to pin it down.
-        if (!inUpdateScrollers && [[NSGraphicsContext currentContext] isDrawingToScreen])
+        NSGraphicsContext *currentContext = [NSGraphicsContext currentContext];
+        if (!inUpdateScrollers && (!currentContext || [currentContext isDrawingToScreen]))
             [self updateScrollers];
     }
 
@@ -216,6 +216,15 @@ static const unsigned cMaxUpdateScrollbarsPass = 2;
     if (suppressScrollers) { 
         [[self verticalScroller] setNeedsDisplay: NO]; 
         [[self horizontalScroller] setNeedsDisplay: NO]; 
+    }
+#endif
+
+#if USE(ACCELERATED_COMPOSITING) && defined(BUILDING_ON_LEOPARD)
+    NSView *documentView = [self documentView];
+    if ([documentView isKindOfClass:[WebHTMLView class]]) {
+        WebHTMLView *htmlView = (WebHTMLView *)documentView;
+        if ([htmlView _isUsingAcceleratedCompositing])
+            [htmlView _updateLayerHostingViewPosition];
     }
 #endif
 }

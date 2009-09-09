@@ -76,7 +76,7 @@ class Node;
 class Range;
 class String;
     
-class Pasteboard : Noncopyable {
+class Pasteboard : public Noncopyable {
 public:
 #if PLATFORM(MAC)
     //Helper functions to allow Clipboard to share code
@@ -95,13 +95,14 @@ public:
     bool canSmartReplace();
     PassRefPtr<DocumentFragment> documentFragment(Frame*, PassRefPtr<Range>, bool allowPlainText, bool& chosePlainText);
     String plainText(Frame* = 0);
-#if PLATFORM(QT)
+#if PLATFORM(QT) || PLATFORM(CHROMIUM)
     bool isSelectionMode() const;
     void setSelectionMode(bool selectionMode);
 #endif
 
 #if PLATFORM(GTK)
     void setHelper(PasteboardHelper*);
+    PasteboardHelper* m_helper;
 #endif
 
 private:
@@ -117,11 +118,7 @@ private:
     HWND m_owner;
 #endif
 
-#if PLATFORM(GTK)
-    PasteboardHelper* m_helper;
-#endif
-
-#if PLATFORM(QT)
+#if PLATFORM(QT) || PLATFORM(CHROMIUM)
     bool m_selectionMode;
 #endif
 

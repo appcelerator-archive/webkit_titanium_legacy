@@ -44,6 +44,9 @@ G_BEGIN_DECLS
 typedef struct _WebKitNetworkRequest WebKitNetworkRequest;
 typedef struct _WebKitNetworkRequestClass WebKitNetworkRequestClass;
 
+typedef struct _WebKitNetworkResponse WebKitNetworkResponse;
+typedef struct _WebKitNetworkResponseClass WebKitNetworkResponseClass;
+
 typedef struct _WebKitWebBackForwardList WebKitWebBackForwardList;
 typedef struct _WebKitWebBackForwardListClass WebKitWebBackForwardListClass;
 
@@ -70,6 +73,18 @@ typedef struct _WebKitWebViewClass WebKitWebViewClass;
 
 typedef struct _WebKitDownload WebKitDownload;
 typedef struct _WebKitDownloadClass WebKitDownloadClass;
+
+typedef struct _WebKitWebResource WebKitWebResource;
+typedef struct _WebKitWebResourceClass WebKitWebResourceClass;
+
+typedef struct _WebKitWebDataSource WebKitWebDataSource;
+typedef struct _WebKitWebDataSourceClass WebKitWebDataSourceClass;
+
+typedef struct _WebKitWebDatabase WebKitWebDatabase;
+typedef struct _WebKitWebDatabaseClass WebKitWebDatabaseClass;
+
+typedef struct _WebKitSecurityOrigin WebKitSecurityOrigin;
+typedef struct _WebKitSecurityOriginClass WebKitSecurityOriginClass;
 
 G_END_DECLS
 

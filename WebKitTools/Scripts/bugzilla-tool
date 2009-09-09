@@ -1,5 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # Copyright (c) 2009, Google Inc. All rights reserved.
+# Copyright (c) 2009 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -31,48 +32,32 @@
 
 import os
 import re
+import StringIO # for add_patch_to_bug file wrappers
 import subprocess
 import sys
+import time
 
+from datetime import datetime
 from optparse import OptionParser, IndentedHelpFormatter, SUPPRESS_USAGE, make_option
 
 # Import WebKit-specific modules.
 from modules.bugzilla import Bugzilla
-from modules.scm import detect_scm_system, ScriptError
+from modules.changelogs import ChangeLog, view_source_url
+from modules.logging import error, log, tee
+from modules.scm import CommitMessage, detect_scm_system, ScriptError
+from modules.buildbot import BuildBot
 
-def log(string):
-    print >> sys.stderr, string
+def plural(noun):
+    # This is a dumb plural() implementation which was just enough for our uses.
+    if re.search('h$', noun):
+        return noun + 'es'
+    else:
+        return noun + 's'
 
-def error(string):
-    log(string)
-    exit(1)
-
-# These could be put in some sort of changelogs.py.
-def latest_changelog_entry(changelog_path):
-    # e.g. 2009-06-03  Eric Seidel  <eric@webkit.org>
-    changelog_date_line_regexp = re.compile('^(\d{4}-\d{2}-\d{2})' # Consume the date.
-                                  + '\s+(.+)\s+' # Consume the name.
-                                  + '<([^<>]+)>$') # And finally the email address.
-    
-    entry_lines = []
-    changelog = open(changelog_path)
-    try:
-        log("Parsing ChangeLog: " + changelog_path)
-        # The first line should be a date line.
-        first_line = changelog.readline()
-        if not changelog_date_line_regexp.match(first_line):
-            return None
-        entry_lines.append(first_line)
-        
-        for line in changelog:
-            # If we've hit the next entry, return.
-            if changelog_date_line_regexp.match(line):
-                return ''.join(entry_lines)
-            entry_lines.append(line)
-    finally:
-        changelog.close()
-    # We never found a date line!
-    return None
+def pluralize(noun, count):
+    if count != 1:
+        noun = plural(noun)
+    return "%d %s" % (count, noun)
 
 def modified_changelogs(scm):
     changelog_paths = []
@@ -82,28 +67,41 @@ def modified_changelogs(scm):
             changelog_paths.append(path)
     return changelog_paths
 
+def parse_bug_id(message):
+    match = re.search("http\://webkit\.org/b/(?P<bug_id>\d+)", message)
+    if match:
+        return match.group('bug_id')
+    match = re.search(Bugzilla.bug_server_regex + "show_bug\.cgi\?id=(?P<bug_id>\d+)", message)
+    if match:
+        return match.group('bug_id')
+    return None
+
 def commit_message_for_this_commit(scm):
     changelog_paths = modified_changelogs(scm)
     if not len(changelog_paths):
-        error("Found no modified ChangeLogs, can't create a commit message.")
+        raise ScriptError("Found no modified ChangeLogs, cannot create a commit message.\n"
+                          "All changes require a ChangeLog.  See:\n"
+                          "http://webkit.org/coding/contributing.html")
 
     changelog_messages = []
-    for path in changelog_paths:
-        changelog_entry = latest_changelog_entry(path)
+    for changelog_path in changelog_paths:
+        log("Parsing ChangeLog: %s" % changelog_path)
+        changelog_entry = ChangeLog(changelog_path).latest_entry()
         if not changelog_entry:
-            error("Failed to parse ChangeLog: " + os.path.abspath(path))
+            error("Failed to parse ChangeLog: " + os.path.abspath(changelog_path))
         changelog_messages.append(changelog_entry)
-    
+
     # FIXME: We should sort and label the ChangeLog messages like commit-log-editor does.
-    return ''.join(changelog_messages)
+    return CommitMessage(''.join(changelog_messages).splitlines())
 
 
 class Command:
-    def __init__(self, help_text, argument_names="", options=[]):
+    def __init__(self, help_text, argument_names="", options=[], requires_local_commits=False):
         self.help_text = help_text
         self.argument_names = argument_names
         self.options = options
-        self.option_parser = OptionParser(usage=SUPPRESS_USAGE, add_help_option=False, option_list=self.options)
+        self.option_parser = HelpPrintingOptionParser(usage=SUPPRESS_USAGE, add_help_option=False, option_list=self.options)
+        self.requires_local_commits = requires_local_commits
     
     def name_with_arguments(self, command_name):
         usage_string = command_name
@@ -127,12 +125,12 @@ class BugsInCommitQueue(Command):
     def execute(self, options, args, tool):
         bug_ids = tool.bugs.fetch_bug_ids_from_commit_queue()
         for bug_id in bug_ids:
-            print "%s" % tool.bugs.bug_url_for_bug_id(bug_id)
+            print "%s" % bug_id
 
 
 class PatchesInCommitQueue(Command):
     def __init__(self):
-        Command.__init__(self, 'Patches attached to bugs in the commit queue')
+        Command.__init__(self, 'Patches in the commit queue')
 
     def execute(self, options, args, tool):
         patches = tool.bugs.fetch_patches_from_commit_queue()
@@ -156,10 +154,18 @@ class ApplyPatchesFromBug(Command):
     def __init__(self):
         options = [
             make_option("--no-update", action="store_false", dest="update", default=True, help="Don't update the working directory before applying patches"),
-            make_option("--force-clean", action="store_true", dest="force_clean", default=False, help="Clean working directory before applying patches (removes local changes and commits)"),
-            make_option("--no-clean", action="store_false", dest="clean", default=True, help="Don't check if the working directory is clean before applying patches"),
+            make_option("--local-commit", action="store_true", dest="local_commit", default=False, help="Make a local commit for each applied patch"),
         ]
+        options += WebKitLandingScripts.cleaning_options()
         Command.__init__(self, 'Applies all patches on a bug to the local working directory without committing.', 'BUGID', options=options)
+
+    @staticmethod
+    def apply_patches(patches, scm, commit_each):
+        for patch in patches:
+            scm.apply_patch(patch)
+            if commit_each:
+                commit_message = commit_message_for_this_commit(scm)
+                scm.commit_locally_with_message(commit_message.message() or patch['name'])
 
     def execute(self, options, args, tool):
         bug_id = args[0]
@@ -170,95 +176,272 @@ class ApplyPatchesFromBug(Command):
         if options.update:
             tool.scm().update_webkit()
         
-        for patch in patches:
-            # FIXME: Should have an option to local-commit each patch after application.
-            tool.scm().apply_patch(patch)
+        if options.local_commit and not tool.scm().supports_local_commits():
+            error("--local-commit passed, but %s does not support local commits" % tool.scm().display_name())
+        
+        self.apply_patches(patches, tool.scm(), options.local_commit)
 
 
-def bug_comment_from_commit_text(commit_text):
-    comment_lines = []
-    commit_lines = commit_text.splitlines()
-    for line in commit_lines:
-        comment_lines.append(line)
-        match = re.match("^Committed r(\d+)$", line)
-        if match:
-            revision = match.group(1)
-            comment_lines.append("http://trac.webkit.org/changeset/" + revision)
-            break
-    return "\n".join(comment_lines)
+def bug_comment_from_svn_revision(svn_revision):
+    return "Committed r%s: <%s>" % (svn_revision, view_source_url(svn_revision))
+
+def bug_comment_from_commit_text(scm, commit_text):
+    match = re.search(scm.commit_success_regexp(), commit_text, re.MULTILINE)
+    svn_revision = match.group('svn_revision')
+    return bug_comment_from_svn_revision(svn_revision)
+
+
+class WebKitLandingScripts:
+    @staticmethod
+    def cleaning_options():
+        return [
+            make_option("--force-clean", action="store_true", dest="force_clean", default=False, help="Clean working directory before applying patches (removes local changes and commits)"),
+            make_option("--no-clean", action="store_false", dest="clean", default=True, help="Don't check if the working directory is clean before applying patches"),
+        ]
+
+    @staticmethod
+    def land_options():
+        return [
+            make_option("--ignore-builders", action="store_false", dest="check_builders", default=True, help="Don't check to see if the build.webkit.org builders are green before landing."),
+            make_option("--no-close", action="store_false", dest="close_bug", default=True, help="Leave bug open after landing."),
+            make_option("--no-build", action="store_false", dest="build", default=True, help="Commit without building first, implies --no-test."),
+            make_option("--no-test", action="store_false", dest="test", default=True, help="Commit without running run-webkit-tests."),
+            make_option("--quiet", action="store_true", dest="quiet", default=False, help="Produce less console output."),
+            make_option("--commit-queue", action="store_true", dest="commit_queue", default=False, help="Run in commit queue mode (no user interaction)."),
+        ]
+
+    @staticmethod
+    def run_and_throw_if_fail(args, quiet=False):
+        # Passing None will use the default input/outputs
+        child_output = open(os.devnull, "w") if quiet else None
+
+        child_process = subprocess.Popen(args, stdout=child_output, stderr=child_output)
+        return_code = child_process.wait()
+
+        if child_output:
+            child_output.close()
+
+        if return_code:
+            raise ScriptError("%s failed with exit code %d" % (args, return_code))
+
+    # We might need to pass scm into this function for scm.checkout_root
+    @staticmethod
+    def webkit_script_path(script_name):
+        return os.path.join("WebKitTools", "Scripts", script_name)
+
+    @classmethod
+    def run_webkit_script(cls, script_name, quiet=False):
+        log("Running %s" % script_name)
+        cls.run_and_throw_if_fail(cls.webkit_script_path(script_name), quiet)
+
+    @classmethod
+    def build_webkit(cls, quiet=False):
+        cls.run_webkit_script("build-webkit", quiet)
+
+    @staticmethod
+    def ensure_builders_are_green(buildbot, options):
+        if not options.check_builders or buildbot.core_builders_are_green():
+            return
+        error("Builders at %s are red, please do not commit.  Pass --ignore-builders to bypass this check." % (buildbot.buildbot_host))
+
+    @classmethod
+    def run_webkit_tests(cls, launch_safari, quiet=False):
+        args = [cls.webkit_script_path("run-webkit-tests")]
+        if not launch_safari:
+            args.append("--no-launch-safari")
+        if quiet:
+            args.append("--quiet")
+        # When landing patches we almost always want to fail as fast as possible.
+        args.append("--exit-after-n-failures=1")
+        cls.run_and_throw_if_fail(args)
+
+    @staticmethod
+    def setup_for_landing(scm, options):
+        os.chdir(scm.checkout_root)
+        scm.ensure_no_local_commits(options.force_clean)
+        if options.clean:
+            scm.ensure_clean_working_directory(options.force_clean)
+
+    @classmethod
+    def build_and_commit(cls, scm, options):
+        if options.build:
+            cls.build_webkit(quiet=options.quiet)
+            if options.test:
+                cls.run_webkit_tests(launch_safari=not options.commit_queue, quiet=options.quiet)
+        commit_message = commit_message_for_this_commit(scm)
+        commit_log = scm.commit_with_message(commit_message.message())
+        return bug_comment_from_commit_text(scm, commit_log)
 
 
 class LandAndUpdateBug(Command):
     def __init__(self):
-        Command.__init__(self, 'Lands the current working directory diff and updates the bug.', 'BUGID')
+        options = [
+            make_option("-r", "--reviewer", action="store", type="string", dest="reviewer", help="Update ChangeLogs to say Reviewed by REVIEWER."),
+        ]
+        options += WebKitLandingScripts.land_options()
+        Command.__init__(self, 'Lands the current working directory diff and updates the bug if provided.', '[BUGID]', options=options)
+
+    def guess_reviewer_from_bug(self, bugs, bug_id):
+        patches = bugs.fetch_reviewed_patches_from_bug(bug_id)
+        if len(patches) != 1:
+            log("%s on bug %s, cannot infer reviewer." % (pluralize("reviewed patch", len(patches)), bug_id))
+            return None
+        patch = patches[0]
+        reviewer = patch['reviewer']
+        log('Guessing "%s" as reviewer from attachment %s on bug %s.' % (reviewer, patch['id'], bug_id))
+        return reviewer
+
+    def update_changelogs_with_reviewer(self, reviewer, bug_id, tool):
+        if not reviewer:
+            if not bug_id:
+                log("No bug id provided and --reviewer= not provided.  Not updating ChangeLogs with reviewer.")
+                return
+            reviewer = self.guess_reviewer_from_bug(tool.bugs, bug_id)
+
+        if not reviewer:
+            log("Failed to guess reviewer from bug %s and --reviewer= not provided.  Not updating ChangeLogs with reviewer." % bug_id)
+            return
+
+        changelogs = modified_changelogs(tool.scm())
+        for changelog_path in changelogs:
+            ChangeLog(changelog_path).set_reviewer(reviewer)
 
     def execute(self, options, args, tool):
-        bug_id = args[0]
+        bug_id = args[0] if len(args) else None
         os.chdir(tool.scm().checkout_root)
-        commit_message = commit_message_for_this_commit(tool.scm())
-        commit_log = tool.scm().commit_with_message(commit_message)
-        comment_text = bug_comment_from_commit_text(commit_log)
-        tool.bugs.close_bug_as_fixed(bug_id, comment_text)
+
+        WebKitLandingScripts.ensure_builders_are_green(tool.buildbot, options)
+
+        self.update_changelogs_with_reviewer(options.reviewer, bug_id, tool)
+
+        comment_text = WebKitLandingScripts.build_and_commit(tool.scm(), options)
+        if bug_id:
+            log("Updating bug %s" % bug_id)
+            if options.close_bug:
+                tool.bugs.close_bug_as_fixed(bug_id, comment_text)
+            else:
+                # FIXME: We should a smart way to figure out if the patch is attached
+                # to the bug, and if so obsolete it.
+                tool.bugs.post_comment_to_bug(bug_id, comment_text)
+        else:
+            log(comment_text)
+            log("No bug id provided.")
 
 
-class LandPatchesFromBug(Command):
+class LandPatchesFromBugs(Command):
     def __init__(self):
-        options = [
-            make_option("--no-update", action="store_false", dest="update", default=True, help="Don't update the working directory before applying patches"),
-            make_option("--force-clean", action="store_true", dest="force_clean", default=False, help="Clean working directory before applying patches (removes local changes and commits)"),
-            make_option("--no-clean", action="store_false", dest="clean", default=True, help="Don't check if the working directory is clean before applying patches"),
-            make_option("--no-build", action="store_false", dest="build", default=True, help="Commit without building first, implies --no-test."),
-            make_option("--no-test", action="store_false", dest="test", default=True, help="Commit without runnning run-webkit-tests."),
-        ]
+        options = WebKitLandingScripts.cleaning_options()
+        options += WebKitLandingScripts.land_options()
         Command.__init__(self, 'Lands all patches on a bug optionally testing them first', 'BUGID', options=options)
 
+    @classmethod
+    def land_patches(cls, bug_id, patches, options, tool):
+        try:
+            comment_text = ""
+            for patch in patches:
+                tool.scm().update_webkit() # Update before every patch in case the tree has changed
+                log("Applying %s from bug %s." % (patch['id'], bug_id))
+                tool.scm().apply_patch(patch, force=options.commit_queue)
+                # Make sure the tree is still green after updating, before building this patch.
+                # The first patch ends up checking tree status twice, but that's OK.
+                WebKitLandingScripts.ensure_builders_are_green(tool.buildbot, options)
+                comment_text = WebKitLandingScripts.build_and_commit(tool.scm(), options)
+                tool.bugs.clear_attachment_flags(patch['id'], comment_text)
+
+            if options.close_bug:
+                tool.bugs.close_bug_as_fixed(bug_id, "All reviewed patches have been landed.  Closing bug.")
+        except ScriptError, e:
+            tool.bugs.reject_patch_from_commit_queue(patch['id'], e)
+            # We should add a comment to the bug, and r- the patch on failure
+            error(e)
+
     @staticmethod
-    def run_and_throw_if_fail(script_name):
-        build_webkit_process = subprocess.Popen(script_name, shell=True)
-        return_code = build_webkit_process.wait()
-        if return_code:
-            raise ScriptError(script_name + " failed with code " + return_code)
+    def _fetch_list_of_patches_to_land(options, args, tool):
+        bugs_to_patches = {}
+        patch_count = 0
+        for bug_id in args:
+            patches = []
+            if options.commit_queue:
+                patches = tool.bugs.fetch_commit_queue_patches_from_bug(bug_id)
+            else:
+                patches = tool.bugs.fetch_reviewed_patches_from_bug(bug_id)
 
-    def build_webkit(self):
-        self.run_and_throw_if_fail("build-webkit")
+            patches_found = len(patches)
+            log("%s found on %s." % (pluralize("reviewed patch", patches_found), bug_id))
 
-    def run_webkit_tests(self):
-        self.run_and_throw_if_fail("run-webkit-tests")
+            patch_count += patches_found
+            if patches_found:
+                bugs_to_patches[bug_id] = patches
+
+        log("Landing %s from %s." % (pluralize("patch", patch_count), pluralize("bug", len(args))))
+        return bugs_to_patches
 
     def execute(self, options, args, tool):
-        bug_id = args[0]
+        if not len(args):
+            error("bug-id(s) required")
 
-        try:
-            patches = tool.bugs.fetch_reviewed_patches_from_bug(bug_id)
-            comment_text = ""
+        # Check the tree status here so we can fail early
+        WebKitLandingScripts.ensure_builders_are_green(tool.buildbot, options)
 
-            os.chdir(tool.scm().checkout_root)
-            tool.scm().ensure_no_local_commits(options.force_clean)
-            if options.clean:
-                tool.scm().ensure_clean_working_directory(options.force_clean)
-            if options.update:
-                tool.scm().update_webkit()
-            
-            for patch in patches:
-                tool.scm().apply_patch(patch)
-                if options.build:
-                    self.build_webkit()
-                    if options.test:
-                        self.run_webkit_tests()
-                commit_message = commit_message_for_this_commit(tool.scm())
-                commit_log = tool.scm().commit_with_message(commit_message)
-                comment_text = bug_comment_from_commit_text(commit_log)
-                # If we're commiting more than one patch, update the bug as we go.
-                if len(patches) > 1:
-                    tool.bugs.obsolete_attachment(patch['id'], comment_text)
+        bugs_to_patches = self._fetch_list_of_patches_to_land(options, args, tool)
 
-            if len(patches) > 1:
-                comment_text = "All reviewed patches landed, closing."
+        WebKitLandingScripts.setup_for_landing(tool.scm(), options)
 
-            tool.bugs.close_bug_as_fixed(bug_id, comment_text)
-        except ScriptError, error:
-            log(error)
-            # We could add a comment to the bug about the failure.
+        for bug_id in bugs_to_patches.keys():
+            self.land_patches(bug_id, bugs_to_patches[bug_id], options, tool)
+
+
+class MarkBugFixed(Command):
+    def __init__(self):
+        options = [
+            make_option("-b", "--bug-id", action="store", type="string", dest="bug_id", help="Specify bug id if no URL is provided in the commit log."),
+        ]
+        Command.__init__(self, 'Marks a bug as fixed based on a bug id and a commit revision.', '[rNNNNN]', options=options)
+
+    def _fetch_commit_log(self, scm, svn_revision):
+        if not svn_revision:
+            return scm.last_svn_commit_log()
+        return scm.svn_commit_log(svn_revision)
+
+    def _determine_bug_id_and_svn_revision(self, tool, bug_id, svn_revision):
+        commit_log = self._fetch_commit_log(tool.scm(), svn_revision)
+
+        if not bug_id:
+            bug_id = parse_bug_id(commit_log)
+
+        if not svn_revision:
+            match = re.search("^r(?P<svn_revision>\d+) \|", commit_log, re.MULTILINE)
+            if match:
+                svn_revision = match.group('svn_revision')
+
+        if not bug_id or not svn_revision:
+            not_found = []
+            if not bug_id:
+                not_found.append("bug id")
+            if not svn_revision:
+                not_found.append("svn revision")
+            error("Could not find %s on command-line or in last commit." % " or ".join(not_found))
+
+        log("Bug: <http://webkit.org/b/%s> %s" % (bug_id, tool.bugs.fetch_title_from_bug(bug_id)))
+        log("Revision: %s" % svn_revision)
+        answer = raw_input("Is this correct (y/N)? ")
+        if not re.match("^\s*y(es)?", answer, re.IGNORECASE):
+            exit(1)
+
+        return (bug_id, svn_revision)
+
+    def execute(self, options, args, tool):
+        if len(args) > 1:
+            error("Only one revision may be specified.")
+
+        bug_id = options.bug_id
+        svn_revision = args[0] if len(args) == 1 else None
+
+        if not bug_id or not svn_revision:
+            (bug_id, svn_revision) = self._determine_bug_id_and_svn_revision(tool, bug_id, svn_revision)
+
+        log("Updating bug %s" % bug_id)
+        tool.bugs.close_bug_as_fixed(bug_id, bug_comment_from_svn_revision(svn_revision))
 
 
 class CommitMessageForCurrentDiff(Command):
@@ -267,7 +450,7 @@ class CommitMessageForCurrentDiff(Command):
 
     def execute(self, options, args, tool):
         os.chdir(tool.scm().checkout_root)
-        print "%s" % commit_message_for_this_commit(tool.scm())
+        print "%s" % commit_message_for_this_commit(tool.scm()).message()
 
 
 class ObsoleteAttachmentsOnBug(Command):
@@ -278,63 +461,269 @@ class ObsoleteAttachmentsOnBug(Command):
         bug_id = args[0]
         attachments = tool.bugs.fetch_attachments_from_bug(bug_id)
         for attachment in attachments:
-            if not attachment['obsolete']:
+            if not attachment['is_obsolete']:
                 tool.bugs.obsolete_attachment(attachment['id'])
 
 
 class PostDiffAsPatchToBug(Command):
     def __init__(self):
         options = [
+            make_option("--no-obsolete", action="store_false", dest="obsolete_patches", default=True, help="Do not obsolete old patches before posting this one."),
             make_option("--no-review", action="store_false", dest="review", default=True, help="Do not mark the patch for review."),
             make_option("-m", "--description", action="store", type="string", dest="description", help="Description string for the attachment (default: 'patch')"),
         ]
         Command.__init__(self, 'Attaches the current working directory diff to a bug as a patch file.', 'BUGID', options=options)
 
+    @staticmethod
+    def obsolete_patches_on_bug(bug_id, bugs):
+        patches = bugs.fetch_patches_from_bug(bug_id)
+        if len(patches):
+            log("Obsoleting %s on bug %s" % (pluralize('old patch', len(patches)), bug_id))
+            for patch in patches:
+                bugs.obsolete_attachment(patch['id'])
+
     def execute(self, options, args, tool):
         bug_id = args[0]
-        
-        diff_process = subprocess.Popen(tool.scm().create_patch_command(), stdout=subprocess.PIPE, shell=True)
-        diff_process.wait() # Make sure svn-create-patch is done before we continue.
-        
-        description = options.description or "patch"
-        tool.bugs.add_patch_to_bug(bug_id, diff_process.stdout, description, mark_for_review=options.review)
+
+        if options.obsolete_patches:
+            self.obsolete_patches_on_bug(bug_id, tool.bugs)
+
+        diff = tool.scm().create_patch()
+        diff_file = StringIO.StringIO(diff) # add_patch_to_bug expects a file-like object
+
+        description = options.description or "Patch v1"
+        tool.bugs.add_patch_to_bug(bug_id, diff_file, description, mark_for_review=options.review)
 
 
 class PostCommitsAsPatchesToBug(Command):
     def __init__(self):
         options = [
+            make_option("-b", "--bug-id", action="store", type="string", dest="bug_id", help="Specify bug id if no URL is provided in the commit log."),
+            make_option("--no-comment", action="store_false", dest="comment", default=True, help="Do not use commit log message as a comment for the patch."),
+            make_option("--no-obsolete", action="store_false", dest="obsolete_patches", default=True, help="Do not obsolete old patches before posting new ones."),
             make_option("--no-review", action="store_false", dest="review", default=True, help="Do not mark the patch for review."),
+            make_option("-m", "--description", action="store", type="string", dest="description", help="Description string for the attachment (default: 'patch')"),
         ]
-        Command.__init__(self, 'Attaches a range of local commits to a bug as patch files.', 'BUGID COMMITISH', options=options)
+        Command.__init__(self, 'Attaches a range of local commits to bugs as patch files.', 'COMMITISH', options=options, requires_local_commits=True)
 
     def execute(self, options, args, tool):
-        bug_id = args[0]
-        
-        if not tool.scm().supports_local_commits():
-            log(tool.scm().display_name() + " does not support local commits.")
-            exit(1)
-        
-        commit_ids = tool.scm().commit_ids_from_range_arguments(args[1:])
-        
+        if not args:
+            error("%s argument is required" % self.argument_names)
+
+        commit_ids = tool.scm().commit_ids_from_commitish_arguments(args)
         if len(commit_ids) > 10:
-            log("Are you sure you want to attach %d patches to bug %s?" % (len(commit_ids), bug_id))
+            error("Are you sure you want to attach %s patches?" % (pluralize('patch', len(commit_ids))))
             # Could add a --patches-limit option.
-            exit(1)
-        
-        log("Attaching %d commits as patches to bug %s" % (len(commit_ids), bug_id))
+
+        have_obsoleted_patches = set()
         for commit_id in commit_ids:
-            commit_message = tool.scm().commit_message_for_commit(commit_id)
-            commit_lines = commit_message.splitlines()
-            
-            description = commit_lines[0]
-            comment_text = "\n".join(commit_lines[1:])
+            # FIXME: commit_message is the wrong place to look for the bug_id
+            # the ChangeLogs should have the bug id, but the local commit message might not.
+            commit_message = tool.scm().commit_message_for_local_commit(commit_id)
+
+            bug_id = options.bug_id or parse_bug_id(commit_message.message())
+            if not bug_id:
+                log("Skipping %s: No bug id found in commit log or specified with --bug-id." % commit_id)
+                continue
+
+            if options.obsolete_patches and bug_id not in have_obsoleted_patches:
+                PostDiffAsPatchToBug.obsolete_patches_on_bug(bug_id, tool.bugs)
+                have_obsoleted_patches.add(bug_id)
+
+            description = options.description or commit_message.description(lstrip=True, strip_url=True)
+            comment_text = None
+            if (options.comment):
+                comment_text = commit_message.body(lstrip=True)
+                comment_text += "---\n"
+                comment_text += tool.scm().files_changed_summary_for_commit(commit_id)
+
+            diff = tool.scm().create_patch_from_local_commit(commit_id)
+            diff_file = StringIO.StringIO(diff) # add_patch_to_bug expects a file-like object
+            tool.bugs.add_patch_to_bug(bug_id, diff_file, description, comment_text, mark_for_review=options.review)
+
+
+class CreateBug(Command):
+    def __init__(self):
+        options = [
+            make_option("--cc", action="store", type="string", dest="cc", help="Comma-separated list of email addresses to carbon-copy."),
+            make_option("--component", action="store", type="string", dest="component", help="Component for the new bug."),
+            make_option("--no-prompt", action="store_false", dest="prompt", default=True, help="Do not prompt for bug title and comment; use commit log instead."),
+            make_option("--no-review", action="store_false", dest="review", default=True, help="Do not mark the patch for review."),
+        ]
+        Command.__init__(self, 'Create a bug from local changes or local commits.', '[COMMITISH]', options=options)
+
+    def create_bug_from_commit(self, options, args, tool):
+        commit_ids = tool.scm().commit_ids_from_commitish_arguments(args)
+        if len(commit_ids) > 3:
+            error("Are you sure you want to create one bug with %s patches?" % len(commit_ids))
+
+        commit_id = commit_ids[0]
+
+        bug_title = ""
+        comment_text = ""
+        if options.prompt:
+            (bug_title, comment_text) = self.prompt_for_bug_title_and_comment()
+        else:
+            commit_message = tool.scm().commit_message_for_local_commit(commit_id)
+            bug_title = commit_message.description(lstrip=True, strip_url=True)
+            comment_text = commit_message.body(lstrip=True)
             comment_text += "---\n"
             comment_text += tool.scm().files_changed_summary_for_commit(commit_id)
-        
-            # This is a little bit of a hack, that we pass stdout as the patch file.
-            # We could alternatively make an in-memory file-like object with the patch contents.
-            diff_process = subprocess.Popen(tool.scm().show_diff_command_for_commit(commit_id), stdout=subprocess.PIPE, shell=True)
-            tool.bugs.add_patch_to_bug(bug_id, diff_process.stdout, description, comment_text, mark_for_review=options.review)
+
+        diff = tool.scm().create_patch_from_local_commit(commit_id)
+        diff_file = StringIO.StringIO(diff) # create_bug_with_patch expects a file-like object
+        bug_id = tool.bugs.create_bug_with_patch(bug_title, comment_text, options.component, diff_file, "Patch v1", cc=options.cc, mark_for_review=options.review)
+
+        if bug_id and len(commit_ids) > 1:
+            options.bug_id = bug_id
+            options.obsolete_patches = False
+            # FIXME: We should pass through --no-comment switch as well.
+            PostCommitsAsPatchesToBug.execute(self, options, commit_ids[1:], tool)
+
+    def create_bug_from_patch(self, options, args, tool):
+        bug_title = ""
+        comment_text = ""
+        if options.prompt:
+            (bug_title, comment_text) = self.prompt_for_bug_title_and_comment()
+        else:
+            commit_message = commit_message_for_this_commit(tool.scm())
+            bug_title = commit_message.description(lstrip=True, strip_url=True)
+            comment_text = commit_message.body(lstrip=True)
+
+        diff = tool.scm().create_patch()
+        diff_file = StringIO.StringIO(diff) # create_bug_with_patch expects a file-like object
+        bug_id = tool.bugs.create_bug_with_patch(bug_title, comment_text, options.component, diff_file, "Patch v1", cc=options.cc, mark_for_review=options.review)
+
+    def prompt_for_bug_title_and_comment(self):
+        bug_title = raw_input("Bug title: ")
+        print "Bug comment (hit ^D on blank line to end):"
+        lines = sys.stdin.readlines()
+        try:
+            sys.stdin.seek(0, os.SEEK_END)
+        except IOError:
+            # Cygwin raises an Illegal Seek (errno 29) exception when the above
+            # seek() call is made. Ignoring it seems to cause no harm.
+            # FIXME: Figure out a way to get avoid the exception in the first
+            # place.
+            pass
+        else:
+            raise
+        comment_text = ''.join(lines)
+        return (bug_title, comment_text)
+
+    def execute(self, options, args, tool):
+        if len(args):
+            if (not tool.scm().supports_local_commits()):
+                error("Extra arguments not supported; patch is taken from working directory.")
+            self.create_bug_from_commit(options, args, tool)
+        else:
+            self.create_bug_from_patch(options, args, tool)
+
+
+class CheckTreeStatus(Command):
+    def __init__(self):
+        Command.__init__(self, 'Print out the status of the webkit builders.')
+
+    def execute(self, options, args, tool):
+        for builder in tool.buildbot.builder_statuses():
+            status_string = "ok" if builder['is_green'] else 'FAIL'
+            print "%s : %s" % (status_string.ljust(4), builder['name'])
+
+
+class LandPatchesFromCommitQueue(Command):
+    def __init__(self):
+        options = [
+            make_option("--no-confirm", action="store_false", dest="confirm", default=True, help="Do not ask the user for confirmation before running the queue.  Dangerous!"),
+        ]
+        Command.__init__(self, 'Run the commit queue.', options=options)
+        self._original_stdout = None
+        self._original_stderr = None
+        self._files_for_output = []
+
+    queue_log_path = 'commit_queue.log'
+    bug_logs_directory = 'commit_queue_logs'
+
+    def _tee_outputs_to_files(self, files):
+        if not self._original_stdout:
+            self._original_stdout = sys.stdout
+            self._original_stderr = sys.stderr
+        if files and len(files):
+            sys.stdout = tee(self._original_stdout, *files)
+            sys.stderr = tee(self._original_stderr, *files)
+        else:
+            sys.stdout = self._original_stdout
+            sys.stderr = self._original_stderr
+
+    @staticmethod
+    def _sleep(log_message):
+        log("%s  Sleeping 5 minutes... %s" % (log_message, datetime.now()))
+        time.sleep(300) # Wait 5 minutes
+
+    @staticmethod
+    def _open_log_file(log_path):
+        (log_directory, log_name) = os.path.split(log_path)
+        if log_directory and not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+        return open(log_path, 'a+')
+
+    def _add_log_to_output_tee(self, path):
+        log_file = self._open_log_file(path)
+        self._files_for_output.append(log_file)
+        self._tee_outputs_to_files(self._files_for_output)
+        return log_file
+
+    def _remove_log_from_output_tee(self, log_file):
+        self._files_for_output.remove(log_file)
+        self._tee_outputs_to_files(self._files_for_output)
+        log_file.close()
+
+    def _run_command(self, args):
+        child_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        # Use our own custom wait loop because Popen ignores our tee'd stderr/stdout
+        while True:
+            output_line = child_process.stdout.readline()
+            if output_line == '' and child_process.poll() != None:
+                return child_process.poll()
+            sys.stdout.write(output_line)
+
+    def execute(self, options, args, tool):
+        log("CAUTION: commit-queue will discard all local changes in %s" % tool.scm().checkout_root)
+        if options.confirm:
+            response = raw_input("Are you sure?  Type 'yes' to continue: ")
+            if (response != 'yes'):
+                error("User declined.")
+
+        queue_log = self._add_log_to_output_tee(self.queue_log_path)
+        log("Running WebKit Commit Queue. %s" % datetime.now())
+
+        while (True):
+            # Either of these calls could throw URLError which shouldn't stop the queue.
+            # We catch all exceptions just in case.
+            try:
+                bug_ids = tool.bugs.fetch_bug_ids_from_commit_queue()
+                if not len(bug_ids):
+                    self._sleep("Empty queue.")
+                    continue
+                log("%s in commit queue. [%s]" % (pluralize('bug', len(bug_ids)), ", ".join(bug_ids)))
+
+                if not tool.buildbot.core_builders_are_green():
+                    self._sleep("Builders are red.")
+                    continue
+            except Exception, e:
+                self._sleep("Exception while checking queue and bots: %s." % e)
+                continue
+
+            # Try to land patches on the first bug in the queue before looping
+            bug_id = bug_ids[0]
+            bug_log_path = os.path.join(self.bug_logs_directory, "%s.log" % bug_id)
+            bug_log = self._add_log_to_output_tee(bug_log_path)
+            bugzilla_tool_path = __file__ # re-execute this script
+            self._run_command([bugzilla_tool_path, 'land-patches', '--force-clean', '--commit-queue', '--quiet', bug_id])
+            self._remove_log_from_output_tee(bug_log)
+
+        log("Finished WebKit Commit Queue. %s" % datetime.now())
+        self._remove_log_from_output_tee(queue_log)
 
 
 class NonWrappingEpilogIndentedHelpFormatter(IndentedHelpFormatter):
@@ -347,26 +736,40 @@ class NonWrappingEpilogIndentedHelpFormatter(IndentedHelpFormatter):
             return "\n" + epilog + "\n"
         return ""
 
+
+class HelpPrintingOptionParser(OptionParser):
+    def error(self, msg):
+        self.print_usage(sys.stderr)
+        error_message = "%s: error: %s\n" % (self.get_prog_name(), msg)
+        error_message += "\nType '" + self.get_prog_name() + " --help' to see usage.\n"
+        self.exit(2, error_message)
+
+
 class BugzillaTool:
     def __init__(self):
         self.cached_scm = None
         self.bugs = Bugzilla()
+        self.buildbot = BuildBot()
         self.commands = [
             { 'name' : 'bugs-to-commit', 'object' : BugsInCommitQueue() },
             { 'name' : 'patches-to-commit', 'object' : PatchesInCommitQueue() },
             { 'name' : 'reviewed-patches', 'object' : ReviewedPatchesOnBug() },
+            { 'name' : 'create-bug', 'object' : CreateBug() },
             { 'name' : 'apply-patches', 'object' : ApplyPatchesFromBug() },
-            { 'name' : 'land-and-update', 'object' : LandAndUpdateBug() },
-            { 'name' : 'land-patches', 'object' : LandPatchesFromBug() },
+            { 'name' : 'land-diff', 'object' : LandAndUpdateBug() },
+            { 'name' : 'land-patches', 'object' : LandPatchesFromBugs() },
+            { 'name' : 'mark-fixed', 'object' : MarkBugFixed() },
             { 'name' : 'commit-message', 'object' : CommitMessageForCurrentDiff() },
             { 'name' : 'obsolete-attachments', 'object' : ObsoleteAttachmentsOnBug() },
             { 'name' : 'post-diff', 'object' : PostDiffAsPatchToBug() },
             { 'name' : 'post-commits', 'object' : PostCommitsAsPatchesToBug() },
+            { 'name' : 'tree-status', 'object' : CheckTreeStatus() },
+            { 'name' : 'commit-queue', 'object' : LandPatchesFromCommitQueue() },
         ]
-        
-        self.global_option_parser = OptionParser(usage=self.usage_line(), formatter=NonWrappingEpilogIndentedHelpFormatter(), epilog=self.commands_usage())
+
+        self.global_option_parser = HelpPrintingOptionParser(usage=self.usage_line(), formatter=NonWrappingEpilogIndentedHelpFormatter(), epilog=self.commands_usage())
         self.global_option_parser.add_option("--dry-run", action="store_true", dest="dryrun", help="do not touch remote servers", default=False)
-    
+
     def scm(self):
         # Lazily initialize SCM to not error-out before command line parsing (or when running non-scm commands).
         original_cwd = os.path.abspath('.')
@@ -383,17 +786,20 @@ class BugzillaTool:
                 error("FATAL: Failed to determine the SCM system for either %s or %s" % (original_cwd, webkit_directory))
         
         return self.cached_scm
-    
+
     @staticmethod
     def usage_line():
         return "Usage: %prog [options] command [command-options] [command-arguments]"
-    
+
     def commands_usage(self):
         commands_text = "Commands:\n"
         longest_name_length = 0
         command_rows = []
+        scm_supports_local_commits = self.scm().supports_local_commits()
         for command in self.commands:
             command_object = command['object']
+            if command_object.requires_local_commits and not scm_supports_local_commits:
+                continue
             command_name_and_args = command_object.name_with_arguments(command['name'])
             command_rows.append({ 'name-and-args': command_name_and_args, 'object': command_object })
             longest_name_length = max([longest_name_length, len(command_name_and_args)])
@@ -453,8 +859,12 @@ class BugzillaTool:
         command = self.command_by_name(command_name)
         if not command:
             self.global_option_parser.error(command_name + " is not a recognized command")
-        
+
         command_object = command['object']
+
+        if command_object.requires_local_commits and not self.scm().supports_local_commits():
+            error(command_name + " requires local commits using %s in %s." % (self.scm().display_name(), self.scm().checkout_root))
+
         (command_options, command_args) = command_object.parse_args(args_after_command_name)
         return command_object.execute(command_options, command_args, self)
 

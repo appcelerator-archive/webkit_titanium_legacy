@@ -20,7 +20,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef StorageSyncManager_h
@@ -28,20 +28,25 @@
 
 #if ENABLE(DOM_STORAGE)
 
-#include "LocalStorageArea.h"
-#include "LocalStorageTask.h"
-#include "LocalStorageThread.h"
+#include "PlatformString.h"
 
+#include <wtf/PassRefPtr.h>
+#include <wtf/RefPtr.h>
 #include <wtf/Threading.h>
 
 namespace WebCore {
 
+    class LocalStorageThread;
+    class SecurityOrigin;
+    class StorageAreaSync;
+
     class StorageSyncManager : public ThreadSafeShared<StorageSyncManager> {
     public:
         static PassRefPtr<StorageSyncManager> create(const String& path);
+        ~StorageSyncManager();
 
-        bool scheduleImport(PassRefPtr<LocalStorageArea>);
-        void scheduleSync(PassRefPtr<LocalStorageArea>);
+        bool scheduleImport(PassRefPtr<StorageAreaSync>);
+        void scheduleSync(PassRefPtr<StorageAreaSync>);
 
         void close();
 

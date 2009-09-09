@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-WebInspector.Resource = function(requestHeaders, url, domain, path, lastPathComponent, identifier, mainResource, cached)
+WebInspector.Resource = function(requestHeaders, url, domain, path, lastPathComponent, identifier, mainResource, cached, requestMethod, requestFormData)
 {
     this.identifier = identifier;
 
@@ -39,6 +39,8 @@ WebInspector.Resource = function(requestHeaders, url, domain, path, lastPathComp
     this.path = path;
     this.lastPathComponent = lastPathComponent;
     this.cached = cached;
+    this.requestMethod = requestMethod || "";
+    this.requestFormData = requestFormData || "";
 
     this.category = WebInspector.resourceCategories.other;
 }
@@ -341,12 +343,6 @@ WebInspector.Resource.prototype = {
         }
     },
 
-    get documentNode() {
-        if ("identifier" in this)
-            return InspectorController.getResourceDocumentNode(this.identifier);
-        return null;
-    },
-
     get requestHeaders()
     {
         if (this._requestHeaders === undefined)
@@ -489,7 +485,8 @@ WebInspector.Resource.prototype = {
         // Otherwise, we flood the Console with too many tips.
         /*
         var msg = new WebInspector.ConsoleMessage(WebInspector.ConsoleMessage.MessageSource.Other,
-            WebInspector.ConsoleMessage.MessageLevel.Tip, -1, this.url, null, 1, tip.message);
+            WebInspector.ConsoleMessage.MessageType.Log, WebInspector.ConsoleMessage.MessageLevel.Tip, 
+            -1, this.url, null, 1, tip.message);
         WebInspector.console.addMessage(msg);
         */
     },
@@ -543,12 +540,12 @@ WebInspector.Resource.prototype = {
 
     _checkWarning: function(warning)
     {
-        var addWarning = false;
         var msg;
         switch (warning.id) {
             case WebInspector.Warnings.IncorrectMIMEType.id:
                 if (!this._mimeTypeIsConsistentWithType())
                     msg = new WebInspector.ConsoleMessage(WebInspector.ConsoleMessage.MessageSource.Other,
+                        WebInspector.ConsoleMessage.MessageType.Log, 
                         WebInspector.ConsoleMessage.MessageLevel.Warning, -1, this.url, null, 1,
                         String.sprintf(WebInspector.Warnings.IncorrectMIMEType.message,
                         WebInspector.Resource.Type.toString(this.type), this.mimeType));

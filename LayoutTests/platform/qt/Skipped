@@ -1,19 +1,84 @@
-# ------- missing features in DRT
+# ------- missing features
 accessibility
-printing
+fast/xsl
+media
+webarchive
+svg/webarchive
+http/tests/webarchive
+
 editing/selection/4975120.html
 editing/selection/5109817.html
 editing/selection/5354455-1.html
 editing/selection/5354455-2.html
 editing/selection/caret-and-focus-ring.html
+fast/loader/subframe-navigate-during-main-frame-load.html
 fast/events/popup-blocking-click-in-iframe.html
 
-# -------- crashes
+# Plain text controller currently in Mac DumpRenderTree only.
+editing/text-iterator/basic-iteration.html
+
+# Fluctuating tests
+animations/transform-origin-vs-functions.html
+
+# ------- works on 64 bit but not on 32 bit
+svg/custom/path-getTotalLength.svg
+svg/custom/glyph-setting-d-attribute.svg
+fast/canvas/canvas-getImageData.html
+
+# ------- crashes
+fast/loader/empty-embed-src-attribute.html
+fast/text/find-hidden-text.html
+
+# ============================================================================= #
+#            Missing features in our DumpRenderTree implementation              #
+# ============================================================================= #
+
+# Missing textInputController.setMarkedText()
+fast/forms/input-maxlength-ime-preedit.html
+fast/forms/input-maxlength-ime-completed.html
+
+# Missing layoutTestController.overridePreference()
+fast/events/pageshow-pagehide-on-back-cached.html
+fast/events/tab-focus-anchor.html
+fast/events/click-focus-anchor.html
+
+# Missing layoutTestController.overridePreference()
+fast/events/pageshow-pagehide-on-back-cached-with-frames.html
+fast/loader/frames-with-unload-handlers-in-page-cache.html
+
+# Missing layoutTestController.waitForPolicyDelegate()
+# https://bugs.webkit.org/show_bug.cgi?id=25037
+fast/encoding/mailto-always-utf-8.html
+fast/forms/mailto/advanced-get.html
+fast/forms/mailto/advanced-put.html
+fast/forms/mailto/get-multiple-items-text-plain.html
+fast/forms/mailto/get-multiple-items-x-www-form-urlencoded.html
+fast/forms/mailto/get-multiple-items.html
+fast/forms/mailto/get-non-ascii-always-utf-8.html
+fast/forms/mailto/get-non-ascii-text-plain-latin-1.html
+fast/forms/mailto/get-non-ascii-text-plain.html
+fast/forms/mailto/get-non-ascii.html
+fast/forms/mailto/get-overwrite-query.html
+fast/forms/mailto/post-append-query.html
+fast/forms/mailto/post-multiple-items-multipart-form-data.html
+fast/forms/mailto/post-multiple-items-text-plain.html
+fast/forms/mailto/post-multiple-items-x-www-form-urlencoded.html
+fast/forms/mailto/post-multiple-items.html
+fast/forms/mailto/post-text-plain-with-accept-charset.html
+fast/forms/mailto/post-text-plain.html
+
+# ============================================================================= #
 
 # ------- missing eventSender.beginDragWithFiles
 editing/pasteboard/file-input-files-access.html
 fast/events/drag-to-navigate.html
 fast/events/prevent-drag-to-navigate.html
+fast/forms/get-file-upload.html
+
+# ------- failing worker test
+# Currently fails because on QNetworkReply::ContentNotFound error we
+# still deliver the content instead of reporting it as failure to WebCore
+fast/workers/worker-constructor.html
 
 # ------- failing editing tests
 editing/deleting/delete-to-end-of-paragraph.html
@@ -49,14 +114,12 @@ editing/selection/fake-doubleclick.html
 editing/selection/fake-drag.html
 editing/selection/inline-closest-leaf-child.html
 editing/selection/mixed-editability-1.html
-editing/selection/move-begin-end.html
 editing/selection/paragraph-granularity.html
 editing/selection/select-from-textfield-outwards.html
 editing/selection/selection-actions.html
 editing/selection/selection-background.html
 editing/selection/triple-click-in-pre.html
 editing/selection/word-granularity.html
-editing/style/5091898.html
 editing/style/style-3681552-fix-002.html
 
 editing/pasteboard/4076267-2.html
@@ -79,7 +142,6 @@ editing/pasteboard/input-field-1.html
 editing/pasteboard/interchange-newline-2.html
 editing/pasteboard/paste-RTFD.html
 editing/pasteboard/paste-TIFF.html
-editing/pasteboard/paste-into-anchor-text.html
 editing/pasteboard/paste-text-001.html
 editing/pasteboard/paste-text-008.html
 editing/pasteboard/paste-text-013.html
@@ -100,11 +162,12 @@ editing/pasteboard/unrendered-br.html
 # ------- failures due to missing XSLT support
 fast/dom/Window/get-set-properties.html
 fast/dom/Window/window-properties.html
+fast/js/instanceof-operator.html
+fast/dom/prototype-inheritance.html
 
 # ------- failures for tests with results
 fast/forms/drag-out-of-textarea.html
 fast/frames/frame-src-attribute.html
-fast/frames/removal-before-attach-crash.html
 fast/loader/user-style-sheet-resource-load-callbacks.html
 fast/overflow/003.xml
 fast/text/international/bidi-menulist.html
@@ -119,7 +182,6 @@ fast/css/ignore-text-zoom.html
 fast/css/ignore-text-zoom.html
 fast/dom/clientWidthAfterDocumentIsRemoved.html
 fast/dom/focus-contenteditable.html
-fast/dom/gc-8.html
 fast/dom/gc-10.html
 fast/dom/global-constructors.html
 fast/dom/isindex-002.html
@@ -145,7 +207,6 @@ fast/encoding/GBK/iso-ir-58.html
 fast/encoding/GBK/x-euc-cn.html
 fast/encoding/GBK/x-gbk.html
 fast/events/5056619.html
-fast/events/arrow-navigation.html
 fast/events/autoscroll.html
 fast/events/click-count.html
 fast/events/content-changed-during-drop.html
@@ -162,6 +223,8 @@ fast/events/reveal-link-when-focused.html
 fast/events/standalone-image-drag-to-editable.html
 fast/events/updateLayoutForHitTest.html
 fast/events/xsl-onload.xhtml
+fast/forms/input-list.html
+fast/forms/input-selectedoption.html
 fast/forms/access-key.html
 fast/forms/button-cannot-be-nested.html
 fast/forms/button-spacebar-click.html
@@ -182,22 +245,20 @@ fast/forms/onchange-enter-submit.html
 fast/forms/onselect-textarea.html
 fast/forms/onselect-textfield.html
 fast/forms/password-doubleclick-selection.html
-fast/forms/search-event-delay.html
 fast/forms/search-rtl.html
 fast/forms/select-accesskey.html
 fast/forms/select-writing-direction-natural.html
 fast/forms/slider-mouse-events.html
 fast/forms/tabbing-input-iframe.html
 fast/forms/textAreaLineHeight.html
-fast/forms/textarea-appearance-wrap.html
 fast/forms/textarea-scroll-height.html
 fast/forms/textarea-scrollbar.html
 fast/forms/textarea-scrolled-type.html
-fast/frames/frame-navigation.html
 fast/frames/iframe-window-focus.html
 fast/history/clicked-link-is-visited.html
 fast/history/go-back-to-changed-name.html
 fast/html/keygen.html
+fast/images/icon-decoding.html
 fast/inline/dirtyLinesForInline.html
 fast/invalid/missing-end-tag.xhtml
 fast/invalid/residual-style.html
@@ -274,31 +335,20 @@ fast/xsl/xslt-second-level-import.xml
 fast/xsl/xslt-string-parameters.html
 fast/xsl/xslt-url.xml
 fast/xsl/xslt_unicode.xml
-plugins/bindings-test.html
+
 plugins/call-as-function-test.html
-plugins/destroy-stream-twice.html
 plugins/embed-attributes-setting.html
-plugins/embed-inside-object.html
-plugins/get-empty-url.html
 plugins/get-url-that-the-resource-load-delegate-will-disallow.html
 plugins/get-url-with-blank-target.html
 plugins/geturl-replace-query.html
-plugins/inner-html-display-none.html
-plugins/invoke.html
 plugins/jsobjc-dom-wrappers.html
 plugins/jsobjc-simple.html
 plugins/mouse-events.html
-plugins/netscape-destroy-plugin-script-objects.html
-plugins/netscape-dom-access.html
-plugins/netscape-enumerate.html
-plugins/netscape-invoke-default.html
-plugins/netscape-plugin-setwindow-size.html
 plugins/open-and-close-window-with-plugin.html
-plugins/plugin-javascript-access.html
-plugins/plugin-remove-subframe.html
 plugins/root-object-premature-delete-crash.html
 plugins/throw-on-dealloc.html
 plugins/undefined-property-crash.html
+
 security/block-test.html
 svg/W3C-SVG-1.1/animate-elem-02-t.svg
 svg/W3C-SVG-1.1/animate-elem-03-t.svg
@@ -421,7 +471,6 @@ svg/W3C-SVG-1.1/fonts-elem-04-b.svg
 svg/W3C-SVG-1.1/fonts-elem-05-t.svg
 svg/W3C-SVG-1.1/fonts-elem-06-t.svg
 svg/W3C-SVG-1.1/fonts-elem-07-b.svg
-svg/W3C-SVG-1.1/fonts-glyph-02-t.svg
 svg/W3C-SVG-1.1/fonts-glyph-03-t.svg
 svg/W3C-SVG-1.1/fonts-glyph-04-t.svg
 svg/W3C-SVG-1.1/fonts-kern-01-t.svg
@@ -635,7 +684,6 @@ svg/custom/feComponentTransfer-Linear.svg
 svg/custom/feComponentTransfer-Table.svg
 svg/custom/feDisplacementMap-01.svg
 svg/custom/fill-update.svg
-svg/custom/filter-source-alpha.svg
 svg/custom/foreign-object-skew.svg
 svg/custom/fractional-rects.svg
 svg/custom/getTransformToElement.svg
@@ -765,7 +813,6 @@ svg/custom/use-nested-transform.svg
 svg/custom/use-on-g-containing-use.svg
 svg/custom/use-on-g.svg
 svg/custom/use-on-rect.svg
-svg/custom/use-on-symbol-inside-pattern.svg
 svg/custom/use-on-symbol.svg
 svg/custom/use-on-text.svg
 svg/custom/use-on-use.svg
@@ -854,41 +901,15 @@ svg/hixie/viewbox/preserveAspectRatio/001.xml
 svg/hixie/viewbox/preserveAspectRatio/002.xml
 
 # ------- <video> support
-media
-
-# ------ storage support
-storage
+fast/forms/slider-delete-while-dragging-thumb.html
 
 # ------ web archive support
-webarchive
-svg/webarchive
 svg/custom/image-with-prefix-in-webarchive.svg
-http/tests/webarchive
-
-# ----- XSLT currently not supported
-fast/xsl
 
 # ------- storage support
 # Missing LayoutTestController implementations and database related delegate callback
-storage/quota-tracking.html
-storage/success-callback.html
-
-# most of the http tests need work
-http/tests/incremental
-http/tests/local
-http/tests/misc/location-test-xsl-style-sheet.xml
-http/tests/misc/willCacheResponse-delegate-callback.html
-http/tests/misc/window-dot-stop.html
-http/tests/multipart
-http/tests/navigation
-http/tests/plugins
-http/tests/security 
-http/tests/ssl
-http/tests/uri
-http/tests/xmlhttprequest
-
-# Application cache
-http/tests/appcache
+storage/domstorage/localstorage/iframe-events.html
+storage/domstorage/sessionstorage/iframe-events.html
 
 # Tests that currently fail but perhaps used to work at some point.
 fast/dom/css-cached-import-rule.html
@@ -900,13 +921,7 @@ fast/forms/001.html
 fast/forms/focus2.html
 fast/forms/search-cancel-button-mouseup.html
 fast/frames/001.html
-fast/js/date-DST-time-cusps.html
 fast/text/monospace-width-cache.html
-
-# Disabled worker threads
-fast/workers
-fast/events/dispatchEvent-crash.html
-http/tests/xmlhttprequest/workers
 
 # Tests that fail randomly. Is this style related?
 fast/forms/listbox-width-change.html
@@ -916,14 +931,9 @@ fast/forms/menulist-width-change.html
 # Tests that fail and probably are real bugs, but that were
 # put into the skipped list for now to have some kind of
 # reference, so we don't introduce regressions.
-css1/box_properties/clear.html
-css2.1/t040306-syntax-01-f.html
-dom/xhtml/level2/html/HTMLBaseElement01.xhtml
-dom/xhtml/level2/html/HTMLBaseElement02.xhtml
 editing/deleting/5144139-2.html
 editing/deleting/5300379.html
 editing/deleting/5408255.html
-editing/deleting/5729680.html
 editing/deleting/delete-block-merge-contents-001.html
 editing/deleting/delete-block-merge-contents-019.html
 editing/deleting/delete-block-merge-contents-020.html
@@ -938,11 +948,7 @@ editing/deleting/smart-delete-003.html
 editing/deleting/smart-delete-004.html
 editing/execCommand/4920488.html
 editing/execCommand/4920742-1.html
-editing/execCommand/5144139-1.html
-editing/execCommand/5432254-2.html
-editing/execCommand/boldSelection.html
 editing/execCommand/create-list-with-hr.html
-editing/execCommand/delete-no-scroll.html
 editing/execCommand/modifyForeColorByCharacter.html
 editing/execCommand/print.html
 editing/execCommand/remove-formatting-2.html
@@ -989,25 +995,20 @@ editing/style/remove-underline-across-paragraph-in-bold.html
 editing/style/remove-underline-across-paragraph.html
 editing/style/remove-underline-after-paragraph-in-bold.html
 editing/style/remove-underline-after-paragraph.html
-editing/style/remove-underline-from-stylesheet.html
 fast/clip/outline-overflowClip.html
 fast/css-generated-content/012.html
 fast/css-generated-content/hover-style-change.html
 fast/css-generated-content/positioned-background-hit-test-crash.html
 fast/css-generated-content/wbr-with-before-content.html
-fast/css/computed-style-without-renderer.html
-fast/css/computed-style.html
 fast/css/css2-system-fonts.html
 fast/css/namespaces/003.xml
 fast/css/namespaces/007.xml
 fast/doctypes/003.html
 fast/dom/assign-to-window-status.html
 fast/dom/frame-loading-via-document-write.html
-fast/dom/javascript-url-crash-function.html
 fast/dom/set-frame-src-while-running-script-in-frame.html
 fast/dom/wrapper-classes.html
 fast/dom/HTMLDocument/hasFocus.html
-fast/dom/getElementsByClassName/011.xml
 fast/dynamic/move-node-with-selection.html
 fast/dynamic/paused-event-dispatch.html
 fast/dynamic/selection-highlight-adjust.html
@@ -1058,7 +1059,6 @@ fast/frames/onlyCommentInIFrame.html
 fast/history/subframe-is-visited.html
 fast/inline/positionedLifetime.html
 fast/invalid/junk-data.xml
-fast/js/garbage-collect-after-string-appends.html
 fast/layers/layer-visibility.html
 fast/lists/003.html
 fast/lists/markers-in-selection.html
@@ -1086,14 +1086,10 @@ fast/text/basic/014.html
 fast/text/international/rtl-white-space-pre-wrap.html
 fast/text/whitespace/001.html
 fast/text/whitespace/pre-wrap-overflow-selection.html
-plugins/getintidentifier-special-values.html
-plugins/netscape-get-property-return-value.html
-plugins/netscape-identifier-conversion.html
 svg/W3C-SVG-1.1/struct-frag-01-t.svg
 svg/css/getComputedStyle-basic.xhtml
 svg/custom/SVGPoint-matrixTransform.svg
 svg/custom/baseval-animval-equality.svg
-svg/custom/image-clipped-hit.svg
 svg/custom/stroke-width-click.svg
 svg/custom/text-ctm.svg
 svg/custom/text-repaint-including-stroke.svg
@@ -1141,174 +1137,12 @@ fast/loader/stop-provisional-loads.html
 # Skip tests with metrics for now
 animations/animation-drt-api.html
 animations/animation-drt-api-multiple-keyframes.html
-css1/basic/class_as_selector.html
-css1/basic/comments.html
-css1/basic/containment.html
-css1/basic/contextual_selectors.html
-css1/basic/grouping.html
-css1/basic/id_as_selector.html
-css1/basic/inheritance.html
-css1/box_properties/acid_test.html
-css1/box_properties/border_bottom.html
-css1/box_properties/border_bottom_inline.html
-css1/box_properties/border_bottom_width.html
-css1/box_properties/border_bottom_width_inline.html
-css1/box_properties/border_color.html
-css1/box_properties/border_color_inline.html
-css1/box_properties/border.html
-css1/box_properties/border_inline.html
-css1/box_properties/border_left.html
-css1/box_properties/border_left_inline.html
-css1/box_properties/border_left_width.html
-css1/box_properties/border_left_width_inline.html
-css1/box_properties/border_right.html
-css1/box_properties/border_right_inline.html
-css1/box_properties/border_right_width.html
-css1/box_properties/border_right_width_inline.html
-css1/box_properties/border_style.html
-css1/box_properties/border_style_inline.html
-css1/box_properties/border_top.html
-css1/box_properties/border_top_inline.html
-css1/box_properties/border_top_width.html
-css1/box_properties/border_top_width_inline.html
-css1/box_properties/border_width.html
-css1/box_properties/border_width_inline.html
-css1/box_properties/clear_float.html
-css1/box_properties/float_elements_in_series.html
-css1/box_properties/float.html
-css1/box_properties/float_margin.html
-css1/box_properties/float_on_text_elements.html
-css1/box_properties/height.html
-css1/box_properties/margin_bottom.html
-css1/box_properties/margin_bottom_inline.html
-css1/box_properties/margin.html
-css1/box_properties/margin_inline.html
-css1/box_properties/margin_left.html
-css1/box_properties/margin_left_inline.html
-css1/box_properties/margin_right.html
-css1/box_properties/margin_right_inline.html
-css1/box_properties/margin_top.html
-css1/box_properties/margin_top_inline.html
-css1/box_properties/padding_bottom.html
-css1/box_properties/padding_bottom_inline.html
-css1/box_properties/padding.html
-css1/box_properties/padding_inline.html
-css1/box_properties/padding_left.html
-css1/box_properties/padding_left_inline.html
-css1/box_properties/padding_right.html
-css1/box_properties/padding_right_inline.html
-css1/box_properties/padding_top.html
-css1/box_properties/padding_top_inline.html
-css1/box_properties/width.html
-css1/cascade/cascade_order.html
-css1/cascade/important.html
-css1/classification/display.html
-css1/classification/list_style.html
-css1/classification/list_style_image.html
-css1/classification/list_style_position.html
-css1/classification/list_style_type.html
-css1/classification/white_space.html
-css1/color_and_background/background_attachment.html
-css1/color_and_background/background_color.html
-css1/color_and_background/background.html
-css1/color_and_background/background_image.html
-css1/color_and_background/background_position.html
-css1/color_and_background/background_repeat.html
-css1/color_and_background/color.html
-css1/conformance/forward_compatible_parsing.html
-css1/font_properties/font_family.html
-css1/font_properties/font.html
-css1/font_properties/font_size.html
-css1/font_properties/font_style.html
-css1/font_properties/font_variant.html
-css1/font_properties/font_weight.html
-css1/formatting_model/canvas.html
-css1/formatting_model/floating_elements.html
-css1/formatting_model/height_of_lines.html
-css1/formatting_model/horizontal_formatting.html
-css1/formatting_model/inline_elements.html
-css1/formatting_model/replaced_elements.html
-css1/formatting_model/vertical_formatting.html
-css1/pseudo/anchor.html
-css1/pseudo/firstletter.html
-css1/pseudo/firstline.html
-css1/pseudo/multiple_pseudo_elements.html
-css1/pseudo/pseudo_elements_in_selectors.html
-css1/text_properties/letter_spacing.html
-css1/text_properties/line_height.html
-css1/text_properties/text_align.html
-css1/text_properties/text_decoration.html
-css1/text_properties/text_indent.html
-css1/text_properties/text_transform.html
-css1/text_properties/vertical_align.html
-css1/text_properties/word_spacing.html
-css1/units/color_units.html
-css1/units/length_units.html
-css1/units/percentage_units.html
-css1/units/urls.html
 css2.1/css1_forward_compatible_parsing.html
 css2.1/t010403-shand-border-00-c.html
 css2.1/t010403-shand-font-00-b.html
 css2.1/t010403-shand-font-01-b.html
 css2.1/t010403-shand-font-02-b.html
 css2.1/t010403-shand-font-03-b.html
-css2.1/t040102-keywords-00-b.html
-css2.1/t040102-keywords-01-b.html
-css2.1/t040103-case-00-b.html
-css2.1/t040103-case-01-c.html
-css2.1/t040103-escapes-00-b.html
-css2.1/t040103-escapes-01-b.html
-css2.1/t040103-escapes-02-d.html
-css2.1/t040103-escapes-03-b.html
-css2.1/t040103-escapes-04-b.html
-css2.1/t040103-escapes-05-c.html
-css2.1/t040103-escapes-06-b.html
-css2.1/t040103-escapes-07-b.html
-css2.1/t040103-escapes-08-b.html
-css2.1/t040103-ident-00-c.html
-css2.1/t040103-ident-01-c.html
-css2.1/t040103-ident-02-c.html
-css2.1/t040103-ident-03-c.html
-css2.1/t040103-ident-04-c.html
-css2.1/t040103-ident-05-c.html
-css2.1/t040103-ident-06-c.html
-css2.1/t040103-ident-07-c.html
-css2.1/t040103-ident-08-c.html
-css2.1/t040103-ident-09-c.html
-css2.1/t040103-ident-10-c.html
-css2.1/t040103-ident-11-c.html
-css2.1/t040103-ident-12-c.html
-css2.1/t040103-ident-13-c.html
-css2.1/t040105-atkeyw-00-b.html
-css2.1/t040105-atkeyw-01-b.html
-css2.1/t040105-atkeyw-02-b.html
-css2.1/t040105-atrule-00-b.html
-css2.1/t040105-atrule-01-b.html
-css2.1/t040105-atrule-02-b.html
-css2.1/t040105-atrule-03-b.html
-css2.1/t040105-atrule-04-b.html
-css2.1/t040105-import-00-b.html
-css2.1/t040105-import-01-b.html
-css2.1/t040109-c17-comments-00-b.html
-css2.1/t040109-c17-comments-01-b.html
-css2.1/t0402-c71-fwd-parsing-00-f.html
-css2.1/t0402-c71-fwd-parsing-01-f.html
-css2.1/t0402-c71-fwd-parsing-02-f.html
-css2.1/t0402-c71-fwd-parsing-03-f.html
-css2.1/t0402-c71-fwd-parsing-04-f.html
-css2.1/t0402-syntax-01-f.html
-css2.1/t0402-syntax-02-f.html
-css2.1/t0402-syntax-03-f.html
-css2.1/t0402-syntax-04-f.html
-css2.1/t0402-syntax-05-f.html
-css2.1/t0402-syntax-06-f.html
-css2.1/t040302-c61-ex-len-00-b-a.html
-css2.1/t040302-c61-phys-len-00-b.html
-css2.1/t040302-c61-rel-len-00-b-ag.html
-css2.1/t040303-c62-percent-00-b-ag.html
-css2.1/t040304-c64-uri-00-a-g.html
-css2.1/t040306-c63-color-00-b-ag.html
-css2.1/t040307-syntax-01-b.html
 css2.1/t050201-c12-grouping-00-b.html
 css2.1/t0505-c16-descendant-00-e.html
 css2.1/t0505-c16-descendant-01-e.html
@@ -1522,40 +1356,7 @@ css2.1/t1008-c44-ln-box-00-d-ag.html
 css2.1/t1008-c44-ln-box-01-d-ag.html
 css2.1/t1008-c44-ln-box-02-d-ag.html
 css2.1/t1008-c44-ln-box-03-d-ag.html
-css2.1/t1202-counter-00-b.html
-css2.1/t1202-counter-01-b.html
-css2.1/t1202-counter-02-b.html
-css2.1/t1202-counter-03-b.html
-css2.1/t1202-counter-04-b.html
-css2.1/t1202-counter-05-b.html
-css2.1/t1202-counter-06-b.html
-css2.1/t1202-counter-07-b.html
-css2.1/t1202-counter-08-b.html
-css2.1/t1202-counter-09-b.html
-css2.1/t1202-counter-11-b.html
-css2.1/t1202-counter-12-b.html
-css2.1/t1202-counter-13-b.html
-css2.1/t1202-counter-14-b.html
-css2.1/t1202-counter-15-b.html
-css2.1/t1202-counter-16-f.html
-css2.1/t1202-counters-00-b.html
-css2.1/t1202-counters-01-b.html
-css2.1/t1202-counters-02-b.html
-css2.1/t1202-counters-03-b.html
 css2.1/t1202-counters-04-b.html
-css2.1/t1202-counters-05-b.html
-css2.1/t1202-counters-06-b.html
-css2.1/t1202-counters-07-b.html
-css2.1/t1202-counters-08-b.html
-css2.1/t1202-counters-09-b.html
-css2.1/t1202-counters-11-b.html
-css2.1/t1202-counters-12-b.html
-css2.1/t1202-counters-13-b.html
-css2.1/t1202-counters-14-b.html
-css2.1/t1202-counters-15-b.html
-css2.1/t1202-counters-16-c.html
-css2.1/t1202-counters-17-d.html
-css2.1/t1202-counters-18-f.html
 css2.1/t120401-scope-00-b.html
 css2.1/t120401-scope-01-c.html
 css2.1/t120401-scope-02-c.html
@@ -1578,51 +1379,9 @@ css2.1/t1204-reset-00-c-o.html
 css2.1/t1204-reset-01-c-o.html
 css2.1/t1204-reset-02-c-o.html
 css2.1/t1204-root-e.html
-css2.1/t1205-c561-list-displ-00-b.html
-css2.1/t1205-c563-list-type-00-b.html
-css2.1/t1205-c563-list-type-01-b.html
-css2.1/t1205-c564-list-img-00-b-g.html
-css2.1/t1205-c565-list-pos-00-b.html
 css2.1/t1205-c566-list-stl-00-e-ag.html
-css2.1/t1205-c566-list-stl-01-c-g.html
 css2.1/t1401-c531-color-00-a.html
-css2.1/t140201-c532-bgcolor-00-a.html
-css2.1/t140201-c532-bgcolor-01-b.html
-css2.1/t140201-c533-bgimage-00-a.html
-css2.1/t140201-c533-bgimage-01-b-g.html
-css2.1/t140201-c534-bgre-00-b-ag.html
-css2.1/t140201-c534-bgre-01-b-ag.html
-css2.1/t140201-c534-bgreps-00-c-ag.html
-css2.1/t140201-c534-bgreps-01-c-ag.html
-css2.1/t140201-c534-bgreps-02-c-ag.html
-css2.1/t140201-c534-bgreps-03-c-ag.html
-css2.1/t140201-c534-bgreps-04-c-ag.html
-css2.1/t140201-c534-bgreps-05-c-ag.html
-css2.1/t140201-c535-bg-fixd-00-b-g.html
-css2.1/t140201-c536-bgpos-00-b-ag.html
-css2.1/t140201-c536-bgpos-01-b-ag.html
-css2.1/t140201-c537-bgfxps-00-c-ag.html
 css2.1/t1402-c45-bg-canvas-00-b.html
-css2.1/t1503-c522-font-family-00-b.html
-css2.1/t1504-c523-font-style-00-b.html
-css2.1/t1504-c543-txt-decor-00-d-g.html
-css2.1/t1505-c524-font-var-00-b.html
-css2.1/t1506-c525-font-wt-00-b.html
-css2.1/t1507-c526-font-sz-00-b.html
-css2.1/t1507-c526-font-sz-01-b-a.html
-css2.1/t1507-c526-font-sz-02-b-a.html
-css2.1/t1507-c526-font-sz-03-f-a.html
-css2.1/t1508-c527-font-00-b.html
-css2.1/t1508-c527-font-01-b.html
-css2.1/t1508-c527-font-02-b.html
-css2.1/t1508-c527-font-03-b.html
-css2.1/t1508-c527-font-04-b.html
-css2.1/t1508-c527-font-05-b.html
-css2.1/t1508-c527-font-06-b.html
-css2.1/t1508-c527-font-07-b.html
-css2.1/t1508-c527-font-08-b.html
-css2.1/t1508-c527-font-09-b.html
-css2.1/t1508-c527-font-10-c.html
 css2.1/t1601-c547-indent-00-b-a.html
 css2.1/t1601-c547-indent-01-d.html
 css2.1/t1602-c43-center-00-d-ag.html
@@ -1633,56 +1392,6 @@ css2.1/t1604-c542-letter-sp-00-b-a.html
 css2.1/t1604-c542-letter-sp-01-b-a.html
 css2.1/t1605-c545-txttrans-00-b-ag.html
 css2.1/t1606-c562-white-sp-00-b-ag.html
-css2.1/t170602-bdr-conflct-w-00-d.html
-css2.1/t170602-bdr-conflct-w-01-d.html
-css2.1/t170602-bdr-conflct-w-02-d.html
-css2.1/t170602-bdr-conflct-w-03-d.html
-css2.1/t170602-bdr-conflct-w-04-d.html
-css2.1/t170602-bdr-conflct-w-05-d.html
-css2.1/t170602-bdr-conflct-w-06-d.html
-css2.1/t170602-bdr-conflct-w-07-d.html
-css2.1/t170602-bdr-conflct-w-08-d.html
-css2.1/t170602-bdr-conflct-w-09-d.html
-css2.1/t170602-bdr-conflct-w-10-d.html
-css2.1/t170602-bdr-conflct-w-11-d.html
-css2.1/t170602-bdr-conflct-w-12-d.html
-css2.1/t170602-bdr-conflct-w-13-d.html
-css2.1/t170602-bdr-conflct-w-14-d.html
-css2.1/t170602-bdr-conflct-w-15-d.html
-css2.1/t170602-bdr-conflct-w-16-d.html
-css2.1/t170602-bdr-conflct-w-17-d.html
-css2.1/t170602-bdr-conflct-w-18-d.html
-css2.1/t170602-bdr-conflct-w-19-d.html
-css2.1/t170602-bdr-conflct-w-20-d.html
-css2.1/t170602-bdr-conflct-w-21-d.html
-css2.1/t170602-bdr-conflct-w-22-d.html
-css2.1/t170602-bdr-conflct-w-23-d.html
-css2.1/t170602-bdr-conflct-w-24-d.html
-css2.1/t170602-bdr-conflct-w-25-d.html
-css2.1/t170602-bdr-conflct-w-26-d.html
-css2.1/t170602-bdr-conflct-w-27-d.html
-css2.1/t170602-bdr-conflct-w-28-d.html
-css2.1/t170602-bdr-conflct-w-29-d.html
-css2.1/t170602-bdr-conflct-w-30-d.html
-css2.1/t170602-bdr-conflct-w-31-d.html
-css2.1/t170602-bdr-conflct-w-32-d.html
-css2.1/t170602-bdr-conflct-w-33-d.html
-css2.1/t170602-bdr-conflct-w-34-d.html
-css2.1/t170602-bdr-conflct-w-35-d.html
-css2.1/t170602-bdr-conflct-w-36-d.html
-css2.1/t170602-bdr-conflct-w-37-d.html
-css2.1/t170602-bdr-conflct-w-38-d.html
-css2.1/t170602-bdr-conflct-w-39-d.html
-css2.1/t170602-bdr-conflct-w-40-d.html
-css2.1/t170602-bdr-conflct-w-41-d.html
-css2.1/t170602-bdr-conflct-w-42-d.html
-css2.1/t170602-bdr-conflct-w-43-d.html
-css2.1/t170602-bdr-conflct-w-44-d.html
-css2.1/t170602-bdr-conflct-w-45-d.html
-css2.1/t170602-bdr-conflct-w-46-d.html
-css2.1/t170602-bdr-conflct-w-47-d.html
-css2.1/t170602-bdr-conflct-w-48-d.html
-css2.1/t170602-bdr-conflct-w-49-d.html
 css2.1/t170602-bdr-conflct-w-50-d.html
 css2.1/t170602-bdr-conflct-w-51-d.html
 css2.1/t170602-bdr-conflct-w-52-d.html
@@ -1751,8 +1460,6 @@ dom/xhtml/level3/core/nodegetbaseuri18.xhtml
 dom/xhtml/level3/core/nodelookupnamespaceuri01.xhtml
 dom/xhtml/level3/core/nodelookupprefix19.xhtml
 editing/deleting/4845371.html
-editing/deleting/4866671.html
-editing/deleting/4875189.html
 editing/deleting/4922367.html
 editing/deleting/5026848-1.html
 editing/deleting/5026848-2.html
@@ -1763,7 +1470,6 @@ editing/deleting/5099303.html
 editing/deleting/5115601.html
 editing/deleting/5126166.html
 editing/deleting/5156801-2.html
-editing/deleting/5156801.html
 editing/deleting/5168598.html
 editing/deleting/5206311-1.html
 editing/deleting/5206311-2.html
@@ -1907,30 +1613,20 @@ editing/execCommand/4786404-1.html
 editing/execCommand/4786404-2.html
 editing/execCommand/4916402.html
 editing/execCommand/4916541.html
-editing/execCommand/4916583.html
 editing/execCommand/4924441.html
 editing/execCommand/5049671.html
 editing/execCommand/5062376.html
 editing/execCommand/5080333-1.html
 editing/execCommand/5080333-2.html
-editing/execCommand/5119244.html
-editing/execCommand/5120591.html
 editing/execCommand/5136770.html
 editing/execCommand/5138441.html
 editing/execCommand/5142012-1.html
 editing/execCommand/5142012-2.html
-editing/execCommand/5142012-3.html
-editing/execCommand/5164796.html
 editing/execCommand/5190926.html
-editing/execCommand/5207369.html
-editing/execCommand/5210032.html
-editing/execCommand/5432254-1.html
 editing/execCommand/5481523.html
 editing/execCommand/5482023.html
 editing/execCommand/5569741.html
 editing/execCommand/5573879.html
-editing/execCommand/5700414-1.html
-editing/execCommand/5700414-2.html
 editing/execCommand/create-list-from-range-selection.html
 editing/execCommand/find-after-replace.html
 editing/execCommand/findString-2.html
@@ -1944,7 +1640,6 @@ editing/execCommand/indent-empty-root.html
 editing/execCommand/indent-list-item.html
 editing/execCommand/indent-selection.html
 editing/execCommand/insertHorizontalRule.html
-editing/execCommand/insertHTML.html
 editing/execCommand/insertImage.html
 editing/execCommand/insert-list-and-stitch.html
 editing/execCommand/insert-list-empty-div.html
@@ -1956,11 +1651,8 @@ editing/execCommand/outdent-blockquote-test4.html
 editing/execCommand/outdent-selection.html
 editing/execCommand/paste-1.html
 editing/execCommand/paste-2.html
-editing/execCommand/remove-list-1.html
 editing/execCommand/remove-list-from-range-selection.html
 editing/execCommand/remove-list-item-1.html
-editing/execCommand/remove-list-items.html
-editing/execCommand/switch-list-type.html
 editing/inserting/12882.html
 editing/inserting/4840662.html
 editing/inserting/4875189-1.html
@@ -2196,7 +1888,6 @@ editing/selection/5131716-1.html
 editing/selection/5131716-2.html
 editing/selection/5131716-3.html
 editing/selection/5131716-4.html
-editing/selection/5213963.html
 editing/selection/5234383-1.html
 editing/selection/5234383-2.html
 editing/selection/5240265.html
@@ -2209,7 +1900,6 @@ editing/selection/caret-rtl-2.html
 editing/selection/caret-rtl.html
 editing/selection/clear-selection.html
 editing/selection/contenteditable-click-inside.html
-editing/selection/contenteditable-click-outside.html
 editing/selection/display-table-text.html
 editing/selection/drag-in-iframe.html
 editing/selection/drag-text-delay.html
@@ -2326,7 +2016,6 @@ editing/style/relative-font-size-change-002.html
 editing/style/relative-font-size-change-003.html
 editing/style/relative-font-size-change-004.html
 editing/style/remove-underline.html
-editing/style/remove-underline-in-bold.html
 editing/style/smoosh-styles-001.html
 editing/style/smoosh-styles-003.html
 editing/style/style-3681552-fix-001.html
@@ -2363,31 +2052,13 @@ editing/unsupported-content/table-delete-002.html
 editing/unsupported-content/table-delete-003.html
 editing/unsupported-content/table-type-after.html
 editing/unsupported-content/table-type-before.html
-fast/backgrounds/001.html
 fast/backgrounds/animated-gif-as-background.html
-fast/backgrounds/animated-svg-as-background.html
 fast/backgrounds/animated-svg-as-mask.html
 fast/backgrounds/background-clip-text.html
-fast/backgrounds/background-inherit-color-bug.html
-fast/backgrounds/background-origin-root-element.html
-fast/backgrounds/background-position-1.html
-fast/backgrounds/background-position-rounding.html
-fast/backgrounds/mask-composite.html
 fast/backgrounds/opacity-on-document-element.html
-fast/backgrounds/repeat/mask-negative-offset-repeat.html
-fast/backgrounds/repeat/negative-offset-repeat.html
 fast/backgrounds/repeat/negative-offset-repeat-transformed.html
-fast/backgrounds/repeat/noRepeatCorrectClip.html
-fast/backgrounds/size/backgroundSize15.html
 fast/backgrounds/size/backgroundSize16.html
-fast/backgrounds/size/zero.html
-fast/backgrounds/solid-color-context-restore.html
-fast/backgrounds/svg-as-background-1.html
-fast/backgrounds/svg-as-background-2.html
-fast/backgrounds/svg-as-background-3.html
-fast/backgrounds/svg-as-background-4.html
-fast/backgrounds/svg-as-background-5.html
-fast/backgrounds/svg-as-background-6.html
+fast/backgrounds/size/parsing-inherit.html
 fast/backgrounds/svg-as-mask.html
 fast/block/basic/001.html
 fast/block/basic/002.html
@@ -2679,17 +2350,10 @@ fast/borders/fieldsetBorderRadius.html
 fast/borders/inline-mask-overlay-image.html
 fast/borders/svg-as-border-image-2.html
 fast/borders/svg-as-border-image.html
-fast/box-shadow/basic-shadows.html
 fast/box-shadow/border-radius-big.html
 fast/box-sizing/box-sizing.html
 fast/box-sizing/panels-one.html
 fast/box-sizing/panels-two.html
-fast/canvas/canvas-as-image.html
-fast/canvas/canvas-as-image-incremental-repaint.html
-fast/canvas/canvas-before-css.html
-fast/canvas/canvas-bg.html
-fast/canvas/canvas-bg-zoom.html
-fast/canvas/canvas-composite.html
 fast/canvas/canvasDrawingIntoSelf.html
 fast/canvas/canvas-incremental-repaint-2.html
 fast/canvas/canvas-incremental-repaint.html
@@ -2697,27 +2361,11 @@ fast/canvas/canvas-resize-reset.html
 fast/canvas/canvas-size-change-after-layout.html
 fast/canvas/canvas-text-alignment.html
 fast/canvas/canvas-text-baseline.html
-fast/canvas/canvas-transform-identity.html
-fast/canvas/canvas-transform-infinity.html
-fast/canvas/canvas-transform-multiply.html
-fast/canvas/canvas-transform-nan.html
-fast/canvas/canvas-transform-non-invertible.html
-fast/canvas/canvas-transforms-during-path.html
-fast/canvas/canvas-transform-skewed.html
-fast/canvas/drawImage.html
 fast/canvas/fillrect_gradient.html
 fast/canvas/fillrect-gradient-zero-stops.html
 fast/canvas/fill-stroke-clip-reset-path.html
 fast/canvas/image-object-in-canvas.html
 fast/canvas/patternfill-repeat.html
-fast/canvas/quadraticCurveTo.xml
-fast/canvas/shadow-offset-1.html
-fast/canvas/shadow-offset-2.html
-fast/canvas/shadow-offset-3.html
-fast/canvas/shadow-offset-4.html
-fast/canvas/shadow-offset-5.html
-fast/canvas/shadow-offset-6.html
-fast/canvas/shadow-offset-7.html
 fast/canvas/zero-size-fill-rect.html
 fast/clip/001.html
 fast/clip/002.html
@@ -2855,7 +2503,6 @@ fast/css/list-outline.html
 fast/css/live-cssrules.html
 fast/css/margin-bottom-form-element-quirk.html
 fast/css/margin-bottom-form-element-strict.html
-fast/css/marginComputedStyle.html
 fast/css/margin-top-bottom-dynamic.html
 fast/css/MarqueeLayoutTest.html
 fast/css/max-height-none.html
@@ -2924,9 +2571,6 @@ fast/css/ZeroOpacityLayers2.html
 fast/css/ZeroOpacityLayers.html
 fast/css/zoom-font-size.html
 fast/css/zoom-property-parsing.html
-fast/doctypes/001.html
-fast/doctypes/002.html
-fast/doctypes/004.html
 fast/dom/anchor-text.html
 fast/dom/blur-contenteditable.html
 fast/dom/children-nodes.html
@@ -2953,7 +2597,6 @@ fast/dom/HTMLHeadElement/textInHead3.html
 fast/dom/HTMLHeadElement/textInHead4.html
 fast/dom/HTMLHeadElement/textInHead5.html
 fast/dom/HTMLImageElement/image-alt-text.html
-fast/dom/HTMLInputElement/checked-pseudo-selector.html
 fast/dom/HTMLInputElement/input-image-alt-text.html
 fast/dom/HTMLLinkElement/pending-stylesheet-count.html
 fast/dom/HTMLObjectElement/vspace-hspace-as-number.html
@@ -2971,12 +2614,8 @@ fast/dom/Range/surroundContents-1.html
 fast/dom/row-inner-text.html
 fast/dom/setPrimitiveValue.html
 fast/dom/stripNullFromTextNodes.html
-fast/dom/StyleSheet/ownerNode-lifetime-2.html
 fast/dom/Window/btoa-pnglet.html
 fast/dom/Window/open-existing-pop-up-blocking.html
-fast/dom/Window/Plug-ins.html
-fast/dom/Window/timeout-released-on-close.html
-fast/dom/Window/window-resize.html
 fast/dynamic/002.html
 fast/dynamic/004.html
 fast/dynamic/006.html
@@ -3026,12 +2665,10 @@ fast/events/context-no-deselect.html
 fast/events/event-listener-on-link.html
 fast/events/event-sender-mouse-moved.html
 fast/events/event-view-toString.html
-fast/events/frame-programmatic-focus.html
 fast/events/label-focus.html
 fast/events/mouse-click-events.html
 fast/events/offsetX-offsetY.html
 fast/events/onload-re-entry.html
-fast/events/onunload-not-on-body.html
 fast/flexbox/001.html
 fast/flexbox/002.html
 fast/flexbox/003.html
@@ -3080,7 +2717,6 @@ fast/forms/checkbox-radio-onchange.html
 fast/forms/control-clip.html
 fast/forms/control-clip-overflow.html
 fast/forms/disabled-select-change-index.html
-fast/forms/dragging-to-disabled-file-input.html
 fast/forms/encoding-test.html
 fast/forms/fieldset-align.html
 fast/forms/fieldset-with-float.html
@@ -3089,7 +2725,6 @@ fast/forms/file-input-disabled.html
 fast/forms/float-before-fieldset.html
 fast/forms/floating-textfield-relayout.html
 fast/forms/form-added-to-table.html
-fast/forms/form-and-frame-interaction-retains-values.html
 fast/forms/form-element-geometry.html
 fast/forms/form-hides-table.html
 fast/forms/form-in-malformed-markup.html
@@ -3199,26 +2834,18 @@ fast/forms/targeted-frame-submission.html
 fast/forms/textarea-align.html
 fast/forms/textarea-setinnerhtml.html
 fast/forms/textarea-width.html
-fast/forms/textfield-drag-into-disabled.html
 fast/forms/textfield-outline.html
 fast/forms/textfield-overflow.html
-fast/forms/text-field-setvalue-crash.html
 fast/forms/thumbslider-crash.html
 fast/forms/thumbslider-no-parent-slider.html
 fast/forms/visual-hebrew-text-field.html
 fast/forms/willvalidate-000.html
-fast/frames/content-opacity-1.html
-fast/frames/content-opacity-2.html
 fast/frames/contentWindow_Frame.html
 fast/frames/contentWindow_iFrame.html
 fast/frames/frameElement-frame.html
 fast/frames/frameElement-iframe.html
 fast/frames/frame-element-name.html
-fast/frames/frame-scrolling-attribute.html
-fast/frames/frameset-style-recalc.html
 fast/frames/iframe-option-crash.xhtml
-fast/frames/iframe-scrolling-attribute.html
-fast/frames/iframe-text-contents.html
 fast/frames/iframe-with-frameborder.html
 fast/frames/inline-object-inside-frameset.html
 fast/frames/viewsource-attribute.html
@@ -3231,21 +2858,13 @@ fast/gradients/simple-gradients.html
 fast/html/link-rel-stylesheet.html
 fast/html/listing.html
 fast/html/marquee-scroll.html
-fast/images/animated-gif-with-offsets.html
 fast/images/animated-svg-as-image.html
-fast/images/embed-image.html
-fast/images/favicon-as-image.html
 fast/images/image-map-anchor-children.html
 fast/images/imagemap-case.html
-fast/images/object-image.html
 fast/images/pdf-as-background.html
 fast/images/pdf-as-image-landscape.html
 fast/images/pdf-as-tiled-background.html
-fast/images/svg-as-background.html
-fast/images/svg-as-image.html
-fast/images/svg-as-relative-image.html
 fast/images/svg-as-tiled-background.html
-fast/images/svg-width-100p-as-background.html
 fast/inline/001.html
 fast/inline/002.html
 fast/inline/25277-2.html
@@ -3308,9 +2927,7 @@ fast/invalid/nestedh3s.html
 fast/invalid/table-inside-stray-table-content.html
 fast/invalid/table-residual-style-crash.html
 fast/invalid/td-inside-object.html
-fast/js/exceptions-thrown-in-callbacks.html
 fast/js/global-constructors.html
-fast/js/navigator-mimeTypes-length.html
 fast/layers/add-layer-with-nested-stacking.html
 fast/layers/inline-dirty-z-order-lists.html
 fast/layers/layer-content-visibility-change.html
@@ -4498,7 +4115,6 @@ tables/mozilla/bugs/bug9072.html
 tables/mozilla/bugs/bug9123-1.html
 tables/mozilla/bugs/bug9123-2.html
 tables/mozilla/bugs/bug92143.html
-tables/mozilla/bugs/bug92647-2.html
 tables/mozilla/bugs/bug9271-1.html
 tables/mozilla/bugs/bug9271-2.html
 tables/mozilla/bugs/bug92868.html
@@ -5052,30 +4668,173 @@ transforms/2d/transform-origin-borderbox.html
 transforms/2d/zoom-menulist.html
 transforms/no_transform_hit_testing.html
 transitions/transition-drt-api.html
-transitions/transition-drt-api.htmlfast/canvas/canvas-as-image-incremental-repaint.html
 
-# Bug 25037: [Qt] Implement layoutTestController.waitForPolicyDelegate <https://bugs.webkit.org/show_bug.cgi?id=25037>
-fast/encoding/mailto-always-utf-8.html
-fast/forms/mailto/advanced-get.html
-fast/forms/mailto/advanced-put.html
-fast/forms/mailto/get-multiple-items-text-plain.html
-fast/forms/mailto/get-multiple-items-x-www-form-urlencoded.html
-fast/forms/mailto/get-multiple-items.html
-fast/forms/mailto/get-non-ascii-always-utf-8.html
-fast/forms/mailto/get-non-ascii-text-plain-latin-1.html
-fast/forms/mailto/get-non-ascii-text-plain.html
-fast/forms/mailto/get-non-ascii.html
-fast/forms/mailto/get-overwrite-query.html
-fast/forms/mailto/post-append-query.html
-fast/forms/mailto/post-multiple-items-multipart-form-data.html
-fast/forms/mailto/post-multiple-items-text-plain.html
-fast/forms/mailto/post-multiple-items-x-www-form-urlencoded.html
-fast/forms/mailto/post-multiple-items.html
-fast/forms/mailto/post-text-plain-with-accept-charset.html
-fast/forms/mailto/post-text-plain.html
+# new skipped tests that need to be fixed/investigated
 
-# Plain text controller currently in Mac DumpRenderTree only.
-editing/text-iterator
+dom/xhtml/level3/core/canonicalform08.xhtml
+dom/xhtml/level3/core/canonicalform09.xhtml
+editing/deleting/delete-ligature-001.html
+editing/deleting/delete-ligature-002.html
+editing/deleting/delete-ligature-003.html
+editing/deleting/skip-virama-001.html
+editing/deleting/smart-editing-disabled.html
+editing/execCommand/19089.html
+editing/inserting/5803706-1.html
+editing/inserting/5994480-2.html
+editing/pasteboard/copy-crash.html
+editing/pasteboard/files-during-page-drags.html
+editing/pasteboard/get-data-text-plain-drop.html
+editing/pasteboard/paste-plaintext-user-select-none.html
+editing/selection/doubleclick-whitespace-crash.html
+editing/selection/doubleclick-whitespace-img-crash.html
+editing/selection/doubleclick-whitespace.html
+editing/selection/drag-start-event-client-x-y.html
+editing/selection/extend-selection-bidi.html
+editing/selection/extend-selection.html
+editing/selection/hit-test-anonymous.html
+editing/selection/home-end.html
+editing/selection/user-drag-element-and-user-select-none.html
+editing/style/apply-through-end-of-document.html
+fast/block/positioning/absolute-in-inline-rtl-4.html
+fast/canvas/canvas-composite-alpha.html
+fast/canvas/canvas-gradient-addStop-error.html
+fast/css/zoom-body-scroll.html
+fast/dom/cssTarget-crash.html
+fast/dom/getBoundingClientRect.html
+fast/dom/getClientRects.html
+fast/dom/location-assign.html
+fast/dom/tabindex-clamp.html
+fast/dom/Document/document-charset.html
+fast/dom/HTMLScriptElement/nested-execution.html
+fast/dom/Window/custom-constructors.html
+fast/dom/Window/webkitConvertPoint.html
+fast/dom/Window/window-lookup-precedence.html
+fast/encoding/char-encoding-mac.html
+fast/encoding/hebrew/8859-8-e.html
+fast/encoding/hebrew/8859-8-i.html
+fast/encoding/hebrew/logical.html
+fast/events/autoscroll-nonscrollable-iframe-in-scrollable-div.html
+fast/events/crash-on-mutate-during-drop.html
+fast/events/mouseup-from-button2.html
+fast/events/mouseup-outside-button.html
+fast/events/pointer-events-2.html
+fast/events/right-click-focus.html
+fast/events/special-key-events-in-input-text.html
+fast/events/stopPropagation-submit.html
+fast/events/tabindex-focus-blur-all.html
+fast/forms/option-mouseevents.html
+fast/forms/search-abs-pos-cancel-button.html
+fast/forms/slider-transformed.html
+fast/forms/slider-zoomed.html
+fast/forms/submit-to-url-fragment.html
+fast/forms/text-control-intrinsic-widths.html
+fast/forms/textarea-hard-linewrap-empty.html
+fast/forms/textarea-linewrap-dynamic.html
+fast/forms/textarea-metrics.html
+fast/forms/textarea-scrollbar-height.html
+fast/forms/textarea-setvalue-submit.html
+fast/history/back-forward-is-asynchronous.html
+fast/history/window-open.html
+fast/loader/cancel-load-during-port-block-timer.html
+fast/loader/javascript-url-hierarchical-execution.html
+fast/loader/main-document-url-for-non-http-loads.html
+fast/loader/null-request-after-willSendRequest.html
+fast/loader/policy-delegate-action-hit-test-zoomed.html
+fast/loader/reload-policy-delegate.html
+fast/loading/subframe-removes-itself.html
+fast/parser/xml-declaration-missing-ending-mark.html
+fast/replaced/table-percent-height-text-controls.html
+fast/xmlhttprequest/xmlhttprequest-gc.html
+fast/xmlhttprequest/xmlhttprequest-get.xhtml
+fast/xmlhttprequest/xmlhttprequest-nonexistent-file.html
+platform/qt/fast/events/event-sender-keydown-frame.html
+plugins/netscape-plugin-setwindow-size-2.html
+security/set-form-autocomplete-attribute.html
+svg/custom/svg-fonts-in-text-controls.html
+svg/custom/text-dom-removal.svg
+svg/custom/use-clipped-transform.svg
+svg/dom/length-list-parser.html
+svg/dom/SVGScriptElement/script-load-and-error-events.svg
+transforms/2d/transform-2d.html
+editing/selection/extend-selection-after-double-click.html
 
-# Needed to cover the fix for <rdar://problem/6727495>
-http/tests/loading/deleted-host-in-resource-load-delegate-callback.html
+# This port doesn't support isolated worlds yet.
+http/tests/security/isolatedWorld/all-window-properties.html
+http/tests/security/isolatedWorld/all-window-prototypes.html
+http/tests/security/isolatedWorld/body-properties.html
+http/tests/security/isolatedWorld/body-prototype.html
+http/tests/security/isolatedWorld/click-event.html
+http/tests/security/isolatedWorld/document-open.html
+http/tests/security/isolatedWorld/document-properties.html
+http/tests/security/isolatedWorld/document-prototype.html
+http/tests/security/isolatedWorld/global-variables.html
+http/tests/security/isolatedWorld/image-properties.html
+http/tests/security/isolatedWorld/image-prototype.html
+http/tests/security/isolatedWorld/location-properties.html
+http/tests/security/isolatedWorld/location-prototype.html
+http/tests/security/isolatedWorld/storage-properties.html
+http/tests/security/isolatedWorld/storage-prototype.html
+http/tests/security/isolatedWorld/number-prototype.html
+http/tests/security/isolatedWorld/object-prototype.html
+http/tests/security/isolatedWorld/string-prototype.html
+http/tests/security/isolatedWorld/window-properties.html
+
+# Missing DRT ability return a null request for willSendRequest redirect calls
+http/tests/misc/will-send-request-returns-null-on-redirect.html
+
+# Audio related tests are failing on buildbot
+# See: https://bugs.webkit.org/show_bug.cgi?id=27910
+fast/dom/constructed-objects-prototypes.html
+fast/dom/constructors-cached-navigate.html
+fast/dom/constructors-cached.html
+
+# Intermittent failure of these two animation related tests
+# https://bugs.webkit.org/show_bug.cgi?id=27912
+animations/change-keyframes.html
+transitions/zero-duration-with-non-zero-delay-end.html
+
+# Printing related layout test failure has no results, but obvious error message
+# https://bugs.webkit.org/show_bug.cgi?id=27913
+printing/media-queries-print.html
+
+# Final four tests before Qt buildbot is green
+# https://bugs.webkit.org/show_bug.cgi?id=27914
+fast/css/positioned-overflow-scroll.html
+fast/forms/select-popup-pagekeys.html
+fast/dom/prototype-inheritance-2.html
+
+# Missing DRT ability to override 'standard' preferences.
+fast/dom/Window/timer-resume-on-navigation-back.html
+fast/harness/override-preferences.html
+fast/harness/override-preferences-2.html
+fast/harness/override-zzz-reset.html
+fast/harness/use-page-cache.html
+loader/go-back-to-different-window-size.html
+
+# A test that failed because eventSender cannot send function-key events.
+fast/events/keydown-function-keys.html
+
+# This port doesn't support Geolocation.
+fast/dom/Geolocation
+
+# Started failing after http://trac.webkit.org/changeset/47229
+# https://bugs.webkit.org/show_bug.cgi?id=28288
+fast/css/getComputedStyle/computed-style-font-family-monospace.html
+fast/css/getComputedStyle/computed-style-font-family.html
+
+# Missing DRT ability to track worker thread counts
+fast/workers/dedicated-worker-lifecycle.html
+fast/workers/shared-worker-frame-lifecycle.html
+fast/workers/shared-worker-lifecycle.html
+fast/workers/worker-lifecycle.html
+
+# Missing DRT ability to set accept cookie policy
+http/tests/xmlhttprequest/cross-origin-cookie-storage.html
+
+# DOM exceptions don't seem to have a custom toString() handler
+# https://bugs.webkit.org/show_bug.cgi?id=28952
+fast/workers/worker-multi-port.html
+fast/workers/worker-context-multi-port.html
+
+# No User Scripts
+userscripts

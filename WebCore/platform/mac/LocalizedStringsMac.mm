@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003, 2006 Apple Computer, Inc.  All rights reserved.
+ * Copyright (C) 2003, 2006, 2009 Apple Computer, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -625,6 +625,14 @@ String AXDefinitionListDefinitionText()
     return String();
 }
     
+String AXARIAContentGroupText(const String& ariaType)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    return [[WebCoreViewFactory sharedFactory] AXARIAContentGroupText:ariaType];
+    END_BLOCK_OBJC_EXCEPTIONS;
+    return String();        
+}
+    
 String AXButtonActionVerb()
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
@@ -696,5 +704,46 @@ String imageTitle(const String& filename, const IntSize& size)
     END_BLOCK_OBJC_EXCEPTIONS;
     return String();
 }
+
+String mediaElementLoadingStateText()
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    return [[WebCoreViewFactory sharedFactory] mediaElementLoadingStateText];
+    END_BLOCK_OBJC_EXCEPTIONS;
+    return String();
+}
+
+String mediaElementLiveBroadcastStateText()
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    return [[WebCoreViewFactory sharedFactory] mediaElementLiveBroadcastStateText];
+    END_BLOCK_OBJC_EXCEPTIONS;
+    return String();
+}
+
+String localizedMediaControlElementString(const String& controlName)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    return [[WebCoreViewFactory sharedFactory] localizedMediaControlElementString:controlName];
+    END_BLOCK_OBJC_EXCEPTIONS;
+    return String();
+}
+
+String localizedMediaControlElementHelpText(const String& controlName)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    return [[WebCoreViewFactory sharedFactory] localizedMediaControlElementHelpText:controlName];
+    END_BLOCK_OBJC_EXCEPTIONS;
+    return String();
+}
+
+String localizedMediaTimeDescription(float time)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    return [[WebCoreViewFactory sharedFactory] localizedMediaTimeDescription:time];
+    END_BLOCK_OBJC_EXCEPTIONS;
+    return String();
+}
+
 
 }

@@ -9,6 +9,7 @@ outputdir = $OUTPUT_DIR/doc/html
 outputformats = HTML
 sources.fileextensions  = "*.cpp *.doc *.qdoc *.h"
 exampledirs = $SRCDIR/WebKit/qt/docs
+imagedirs = $SRCDIR/WebKit/qt/docs
 
 indexes = $QTDIR/doc/html/qt.index
 
@@ -146,7 +147,8 @@ Cpp.ignoretokens        = QAXFACTORY_EXPORT \
                           QT_END_NAMESPACE \
                           QT_END_INCLUDE_NAMESPACE \
                           PHONON_EXPORT \
-                          EXTENSIONSYSTEM_EXPORT
+                          EXTENSIONSYSTEM_EXPORT \
+                          QWEBKIT_EXPORT
 Cpp.ignoredirectives    = Q_DECLARE_HANDLE \
                           Q_DECLARE_INTERFACE \
                           Q_DECLARE_METATYPE \

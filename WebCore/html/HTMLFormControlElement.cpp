@@ -25,6 +25,7 @@
 #include "config.h"
 #include "HTMLFormControlElement.h"
 
+#include "ChromeClient.h"
 #include "Document.h"
 #include "EventHandler.h"
 #include "EventNames.h"
@@ -35,8 +36,10 @@
 #include "HTMLParser.h"
 #include "HTMLTokenizer.h"
 #include "MappedAttribute.h"
+#include "Page.h"
 #include "RenderBox.h"
 #include "RenderTheme.h"
+#include "ValidityState.h"
 
 namespace WebCore {
 
@@ -59,6 +62,24 @@ HTMLFormControlElement::~HTMLFormControlElement()
 {
     if (m_form)
         m_form->removeFormElement(this);
+}
+
+bool HTMLFormControlElement::formNoValidate() const
+{
+    return !getAttribute(formnovalidateAttr).isNull();
+}
+
+void HTMLFormControlElement::setFormNoValidate(bool formnovalidate)
+{
+    setAttribute(formnovalidateAttr, formnovalidate ? "" : 0);
+}
+
+ValidityState* HTMLFormControlElement::validity()
+{
+    if (!m_validityState)
+        m_validityState = ValidityState::create(this);
+
+    return m_validityState.get();
 }
 
 void HTMLFormControlElement::parseMappedAttribute(MappedAttribute *attr)
@@ -193,6 +214,16 @@ void HTMLFormControlElement::setAutofocus(bool b)
     setAttribute(autofocusAttr, b ? "autofocus" : 0);
 }
 
+bool HTMLFormControlElement::required() const
+{
+    return hasAttribute(requiredAttr);
+}
+
+void HTMLFormControlElement::setRequired(bool b)
+{
+    setAttribute(requiredAttr, b ? "required" : 0);
+}
+
 void HTMLFormControlElement::recalcStyle(StyleChange change)
 {
     HTMLElement::recalcStyle(change);
@@ -201,13 +232,19 @@ void HTMLFormControlElement::recalcStyle(StyleChange change)
         renderer()->updateFromElement();
 }
 
+bool HTMLFormControlElement::supportsFocus() const
+{
+    return !disabled();
+}
+
 bool HTMLFormControlElement::isFocusable() const
 {
-    if (disabled() || !renderer() || 
-        (renderer()->style() && renderer()->style()->visibility() != VISIBLE) || 
+    if (!renderer() || 
         !renderer()->isBox() || toRenderBox(renderer())->size().isEmpty())
         return false;
-    return true;
+    // HTMLElement::isFocusable handles visibility and calls suportsFocus which
+    // will cover the disabled case.
+    return HTMLElement::isFocusable();
 }
 
 bool HTMLFormControlElement::isKeyboardFocusable(KeyboardEvent* event) const
@@ -239,17 +276,53 @@ bool HTMLFormControlElement::willValidate() const
     //      The control does not have a repetition template as an ancestor.
     //      The control does not have a datalist element as an ancestor.
     //      The control is not an output element.
-    return form() && name().length() && !disabled() && !isReadOnlyFormControl();
+    return form() && !name().isEmpty() && !disabled() && !isReadOnlyFormControl();
+}
+
+bool HTMLFormControlElement::checkValidity()
+{
+    if (willValidate() && !isValidFormControlElement()) {
+        dispatchEvent(EventNames().invalidEvent, false, true);
+        return false;
+    }
+
+    return true;
+}
+
+void HTMLFormControlElement::setCustomValidity(const String& error)
+{
+    validity()->setCustomErrorMessage(error);
 }
     
-bool HTMLFormControlElement::supportsFocus() const
+void HTMLFormControlElement::dispatchFocusEvent()
 {
-    return isFocusable() || (!disabled() && !document()->haveStylesheetsLoaded());
+    if (document()->frame() && document()->frame()->page())
+        document()->frame()->page()->chrome()->client()->formDidFocus(this);
+
+    HTMLElement::dispatchFocusEvent();
+}
+
+void HTMLFormControlElement::dispatchBlurEvent()
+{
+    if (document()->frame() && document()->frame()->page())
+        document()->frame()->page()->chrome()->client()->formDidBlur(this);
+
+    HTMLElement::dispatchBlurEvent();
 }
 
 HTMLFormElement* HTMLFormControlElement::virtualForm() const
 {
     return m_form;
+}
+
+bool HTMLFormControlElement::isDefaultButtonForForm() const
+{
+    return isSuccessfulSubmitButton() && m_form && m_form->defaultButton() == this;
+}
+
+bool HTMLFormControlElement::isValidFormControlElement()
+{
+    return validity()->valid();
 }
 
 void HTMLFormControlElement::removeFromForm()

@@ -40,8 +40,7 @@ class QWebPage;
 class QWebViewPrivate;
 class QWebNetworkRequest;
 
-class QWEBKIT_EXPORT QWebView : public QWidget
-{
+class QWEBKIT_EXPORT QWebView : public QWidget {
     Q_OBJECT
     Q_PROPERTY(QString title READ title)
     Q_PROPERTY(QUrl url READ url WRITE setUrl)
@@ -51,30 +50,36 @@ class QWEBKIT_EXPORT QWebView : public QWidget
     //Q_PROPERTY(Qt::TextInteractionFlags textInteractionFlags READ textInteractionFlags WRITE setTextInteractionFlags)
     Q_PROPERTY(qreal textSizeMultiplier READ textSizeMultiplier WRITE setTextSizeMultiplier DESIGNABLE false)
     Q_PROPERTY(qreal zoomFactor READ zoomFactor WRITE setZoomFactor)
+
+// FIXME: temporary work around for elftran issue that it couldn't find the QPainter::staticMetaObject
+// symbol from Qt lib; it should be reverted after the right symbol is exported.  
+// See bug: http://qt.nokia.com/developer/task-tracker/index_html?method=entry&id=258893
+#if !defined(Q_OS_SYMBIAN)
     Q_PROPERTY(QPainter::RenderHints renderHints READ renderHints WRITE setRenderHints)
+#endif
     Q_FLAGS(QPainter::RenderHints)
 public:
-    explicit QWebView(QWidget *parent = 0);
+    explicit QWebView(QWidget* parent = 0);
     virtual ~QWebView();
 
-    QWebPage *page() const;
-    void setPage(QWebPage *page);
+    QWebPage* page() const;
+    void setPage(QWebPage* page);
 
-    static QUrl guessUrlFromString(const QString &string);
+    static QUrl guessUrlFromString(const QString& string);
 
-    void load(const QUrl &url);
+    void load(const QUrl& url);
 #if QT_VERSION < 0x040400 && !defined(qdoc)
-    void load(const QWebNetworkRequest &request);
+    void load(const QWebNetworkRequest& request);
 #else
-    void load(const QNetworkRequest &request,
+    void load(const QNetworkRequest& request,
               QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
               const QByteArray &body = QByteArray());
 #endif
-    void setHtml(const QString &html, const QUrl &baseUrl = QUrl());
-    void setContent(const QByteArray &data, const QString &mimeType = QString(), const QUrl &baseUrl = QUrl());
+    void setHtml(const QString& html, const QUrl& baseUrl = QUrl());
+    void setContent(const QByteArray& data, const QString& mimeType = QString(), const QUrl& baseUrl = QUrl());
 
-    QWebHistory *history() const;
-    QWebSettings *settings() const;
+    QWebHistory* history() const;
+    QWebSettings* settings() const;
 
     QString title() const;
     void setUrl(const QUrl &url);
@@ -83,7 +88,7 @@ public:
 
     QString selectedText() const;
 
-    QAction *pageAction(QWebPage::WebAction action) const;
+    QAction* pageAction(QWebPage::WebAction action) const;
     void triggerPageAction(QWebPage::WebAction action, bool checked = false);
 
     bool isModified() const;
@@ -106,11 +111,11 @@ public:
 
     QPainter::RenderHints renderHints() const;
     void setRenderHints(QPainter::RenderHints hints);
-    void setRenderHint(QPainter::RenderHint hint, bool enabled);
+    void setRenderHint(QPainter::RenderHint hint, bool enabled = true);
 
-    bool findText(const QString &subString, QWebPage::FindFlags options = 0);
+    bool findText(const QString& subString, QWebPage::FindFlags options = 0);
 
-    virtual bool event(QEvent *);
+    virtual bool event(QEvent*);
 
 public Q_SLOTS:
     void stop();
@@ -118,7 +123,7 @@ public Q_SLOTS:
     void forward();
     void reload();
 
-    void print(QPrinter *printer) const;
+    void print(QPrinter*) const;
 
 Q_SIGNALS:
     void loadStarted();
@@ -126,14 +131,14 @@ Q_SIGNALS:
     void loadFinished(bool);
     void titleChanged(const QString& title);
     void statusBarMessage(const QString& text);
-    void linkClicked(const QUrl &url);
+    void linkClicked(const QUrl&);
     void selectionChanged();
     void iconChanged();
-    void urlChanged(const QUrl &url);
+    void urlChanged(const QUrl&);
 
 protected:
-    void resizeEvent(QResizeEvent *e);
-    void paintEvent(QPaintEvent *ev);
+    void resizeEvent(QResizeEvent*);
+    void paintEvent(QPaintEvent*);
 
     virtual QWebView *createWindow(QWebPage::WebWindowType type);
 
@@ -150,10 +155,10 @@ protected:
 #endif
     virtual void keyPressEvent(QKeyEvent*);
     virtual void keyReleaseEvent(QKeyEvent*);
-    virtual void dragEnterEvent(QDragEnterEvent *);
-    virtual void dragLeaveEvent(QDragLeaveEvent *);
-    virtual void dragMoveEvent(QDragMoveEvent *);
-    virtual void dropEvent(QDropEvent *);
+    virtual void dragEnterEvent(QDragEnterEvent*);
+    virtual void dragLeaveEvent(QDragLeaveEvent*);
+    virtual void dragMoveEvent(QDragMoveEvent*);
+    virtual void dropEvent(QDropEvent*);
     virtual void focusInEvent(QFocusEvent*);
     virtual void focusOutEvent(QFocusEvent*);
     virtual void inputMethodEvent(QInputMethodEvent*);
@@ -162,7 +167,8 @@ protected:
 
 private:
     friend class QWebPage;
-    QWebViewPrivate *d;
+    QWebViewPrivate* d;
+    Q_PRIVATE_SLOT(d, void _q_pageDestroyed())
 };
 
 #endif // QWEBVIEW_H

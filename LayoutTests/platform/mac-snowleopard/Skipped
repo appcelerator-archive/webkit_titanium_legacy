@@ -1,19 +1,12 @@
 # <rdar://problem/6530010> NPN_SetException is not working
 plugins/netscape-throw-exception.html
 
-# <rdar://problem/6877291> media/video-size-intrinsic-scale.html test fails
-media/video-size-intrinsic-scale.html
-
-# <rdar://problem/6733642> Mistimed NPP_SetWindow log messages
-plugins/netscape-plugin-setwindow-size.html
-plugins/netscape-plugin-setwindow-size-2.html
-
-# <rdar://problem/6778137> post-goback-repost-policy.html is failing
-http/tests/navigation/post-goback-repost-policy.html
+# <rdar://problem/7091352> Two plug-in tests show missing NPP_Destroy call
+plugins/netscape-destroy-plugin-script-objects.html
+plugins/open-and-close-window-with-plugin.html
 
 # Radar bugs needed for these
 fast/canvas/set-colors.html
-platform/mac/fast/text/myanmar-shaping.html
 svg/W3C-SVG-1.1/coords-viewattr-01-b.svg
 svg/W3C-SVG-1.1/coords-viewattr-02-b.svg
 svg/W3C-SVG-1.1/render-elems-03-t.svg
@@ -24,3 +17,26 @@ svg/custom/preserve-aspect-ratio-syntax.svg
 svg/custom/stroke-width-click.svg
 svg/custom/viewbox-syntax.svg
 svg/hixie/perf/007.xml
+svg/transforms/text-with-pattern-inside-transformed-html.xhtml
+svg/transforms/text-with-pattern-with-svg-transform.svg
+
+# Disable media tests that depend on controller size/position until
+# <rdar://problem/6502936> Update run-webkit-tests to deal with new media controller look
+# has been fixed
+media/audio-delete-while-slider-thumb-clicked.html
+media/audio-delete-while-step-button-clicked.html
+media/controls-strict.html
+media/video-controls-rendering.html
+media/video-controls-transformed.html
+media/video-controls-visible-audio-only.html
+media/video-controls-zoomed.html
+media/video-display-toggle.html
+
+#<rdar://problem/7135864> - Intermittent failure
+fast/dom/frame-loading-via-document-write.html
+
+#<rdar://problem/7144385> - media/controls-drag-timebar.html fails
+media/controls-drag-timebar.html
+
+#<rdar://problem/7144583> - Intermittent failure
+svg/css/glyph-orientation-rounding-test.xhtml

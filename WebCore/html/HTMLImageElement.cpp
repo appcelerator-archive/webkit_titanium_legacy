@@ -110,7 +110,7 @@ void HTMLImageElement::parseMappedAttribute(MappedAttribute* attr)
         if (attr->value().string()[0] == '#')
             usemap = attr->value();
         else
-            usemap = document()->completeURL(parseURL(attr->value())).string();
+            usemap = document()->completeURL(deprecatedParseURL(attr->value())).string();
         setIsLink(!attr->isNull());
     } else if (attrName == ismapAttr)
         ismap = true;
@@ -279,44 +279,15 @@ bool HTMLImageElement::isURLAttribute(Attribute* attr) const
         || (attr->name() == usemapAttr && attr->value().string()[0] != '#');
 }
 
-String HTMLImageElement::name() const
-{
-    return getAttribute(nameAttr);
-}
-
-void HTMLImageElement::setName(const String& value)
-{
-    setAttribute(nameAttr, value);
-}
-
-String HTMLImageElement::align() const
-{
-    return getAttribute(alignAttr);
-}
-
-void HTMLImageElement::setAlign(const String& value)
-{
-    setAttribute(alignAttr, value);
-}
-
-String HTMLImageElement::alt() const
+const AtomicString& HTMLImageElement::alt() const
 {
     return getAttribute(altAttr);
 }
 
-void HTMLImageElement::setAlt(const String& value)
+bool HTMLImageElement::draggable() const
 {
-    setAttribute(altAttr, value);
-}
-
-String HTMLImageElement::border() const
-{
-    return getAttribute(borderAttr);
-}
-
-void HTMLImageElement::setBorder(const String& value)
-{
-    setAttribute(borderAttr, value);
+    // Image elements are draggable by default.
+    return !equalIgnoringCase(getAttribute(draggableAttr), "false");
 }
 
 void HTMLImageElement::setHeight(int value)
@@ -375,16 +346,6 @@ void HTMLImageElement::setSrc(const String& value)
     setAttribute(srcAttr, value);
 }
 
-String HTMLImageElement::useMap() const
-{
-    return getAttribute(usemapAttr);
-}
-
-void HTMLImageElement::setUseMap(const String& value)
-{
-    setAttribute(usemapAttr, value);
-}
-
 int HTMLImageElement::vspace() const
 {
     // ### return actual vspace
@@ -433,7 +394,8 @@ void HTMLImageElement::addSubresourceAttributeURLs(ListHashSet<KURL>& urls) cons
     HTMLElement::addSubresourceAttributeURLs(urls);
 
     addSubresourceURL(urls, src());
-    addSubresourceURL(urls, document()->completeURL(useMap()));
+    // FIXME: What about when the usemap attribute begins with "#"?
+    addSubresourceURL(urls, document()->completeURL(getAttribute(usemapAttr)));
 }
 
 }
