@@ -649,7 +649,7 @@ void FrameView::layout(bool allowSubtree)
 
 #if PLATFORM(MAC)
     if (AXObjectCache::accessibilityEnabled())
-        root->document()->axObjectCache()->postNotification(root, "AXLayoutComplete", true);
+        root->document()->axObjectCache()->postNotification(root, AXObjectCache::AXLayoutComplete, true);
 #endif
 #if ENABLE(DASHBOARD_SUPPORT)
     updateDashboardRegions();
@@ -1177,6 +1177,9 @@ void FrameView::scrollToAnchor()
     // Scroll nested layers and frames to reveal the anchor.
     // Align to the top and to the closest side (this matches other browsers).
     anchorNode->renderer()->enclosingLayer()->scrollRectToVisible(rect, true, ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignTopAlways);
+
+    if (AXObjectCache::accessibilityEnabled())
+        m_frame->document()->axObjectCache()->handleScrolledToAnchor(anchorNode.get());
 
     // scrollRectToVisible can call into scrollRectIntoViewRecursively(), which resets m_maintainScrollPositionAnchor.
     m_maintainScrollPositionAnchor = anchorNode;

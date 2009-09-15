@@ -27,6 +27,8 @@
 #include "qwebframe_p.h"
 #include "qwebhistory.h"
 #include "qwebhistory_p.h"
+#include "qwebinspector.h"
+#include "qwebinspector_p.h"
 #include "qwebsettings.h"
 #include "qwebkitversion.h"
 
@@ -255,6 +257,9 @@ static inline Qt::DropAction dragOpToDropAction(unsigned actions)
 QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
     : q(qq)
     , view(0)
+    , inspectorFrontend(0)
+    , inspector(0)
+    , inspectorIsInternalOnly(false)
     , viewportSize(QSize(0, 0))
 {
     WebCore::InitializeLoggingChannelsIfNecessary();
@@ -758,11 +763,11 @@ void QWebPagePrivate::mouseReleaseEvent(QMouseEvent *ev)
 }
 
 #ifndef QT_NO_CONTEXTMENU
-void QWebPagePrivate::contextMenuEvent(QContextMenuEvent *ev)
+void QWebPagePrivate::contextMenuEvent(const QPoint& globalPos)
 {
     QMenu *menu = q->createStandardContextMenu();
     if (menu) {
-        menu->exec(ev->globalPos());
+        menu->exec(globalPos);
         delete menu;
     }
 }
@@ -1229,6 +1234,54 @@ QVariant QWebPage::inputMethodQuery(Qt::InputMethodQuery property) const
 }
 
 /*!
+    \internal
+*/
+void QWebPagePrivate::setInspector(QWebInspector* insp)
+{
+    if (inspector)
+        inspector->d->setFrontend(0);
+
+    if (inspectorIsInternalOnly) {
+        QWebInspector* inspToDelete = inspector;
+        inspector = 0;
+        inspectorIsInternalOnly = false;
+        delete inspToDelete;    // Delete after to prevent infinite recursion
+    }
+
+    inspector = insp;
+
+    // Give inspector frontend web view if previously created
+    if (inspector && inspectorFrontend)
+        inspector->d->setFrontend(inspectorFrontend);
+}
+
+/*!
+    \internal
+    Returns the inspector and creates it if it wasn't created yet.
+    The instance created here will not be available through QWebPage's API.
+*/
+QWebInspector* QWebPagePrivate::getOrCreateInspector()
+{
+    if (!inspector) {
+        QWebInspector* insp = new QWebInspector;
+        insp->setPage(q);
+        insp->connect(q, SIGNAL(webInspectorTriggered(const QWebElement&)), SLOT(show()));
+        insp->show(); // The inspector is expected to be shown on inspection
+        inspectorIsInternalOnly = true;
+
+        Q_ASSERT(inspector); // Associated through QWebInspector::setPage(q)
+    }
+    return inspector;
+}
+
+/*! \internal */
+InspectorController* QWebPagePrivate::inspectorController()
+{
+    return page->inspectorController();
+}
+
+
+/*!
    \enum QWebPage::FindFlag
 
    This enum describes the options available to QWebPage's findText() function. The options
@@ -1366,6 +1419,8 @@ QVariant QWebPage::inputMethodQuery(Qt::InputMethodQuery property) const
     \since 4.4
     \brief The QWebPage class provides an object to view and edit web documents.
 
+    \inmodule QtWebKit
+
     QWebPage holds a main frame responsible for web content, settings, the history
     of navigated links and actions. This class can be used, together with QWebFrame,
     to provide functionality like QWebView in a widget-less environment.
@@ -1438,6 +1493,8 @@ QWebPage::~QWebPage()
     FrameLoader *loader = d->mainFrame->d->frame->loader();
     if (loader)
         loader->detachFromParent();
+    if (d->inspector)
+        d->inspector->setPage(0);
     delete d;
 }
 
@@ -1733,12 +1790,16 @@ void QWebPage::triggerAction(WebAction action, bool checked)
         case SetTextDirectionRightToLeft:
             editor->setBaseWritingDirection(RightToLeftWritingDirection);
             break;
-        case InspectElement:
-            if (!d->hitTestResult.isNull())
+        case InspectElement: {
+            QWebElement inspectedElement(QWebElement::enclosingElement(d->hitTestResult.d->innerNonSharedNode.get()));
+            emit webInspectorTriggered(inspectedElement);
+
+            if (!d->hitTestResult.isNull()) {
+                d->getOrCreateInspector(); // Make sure the inspector is created
                 d->page->inspectorController()->inspect(d->hitTestResult.d->innerNonSharedNode.get());
-            else
-                d->page->inspectorController()->show();
+            }
             break;
+        }
         default:
             command = QWebPagePrivate::editorCommandForWebActions(action);
             break;
@@ -2216,7 +2277,10 @@ bool QWebPage::event(QEvent *ev)
         break;
 #ifndef QT_NO_CONTEXTMENU
     case QEvent::ContextMenu:
-        d->contextMenuEvent(static_cast<QContextMenuEvent*>(ev));
+        d->contextMenuEvent(static_cast<QContextMenuEvent*>(ev)->globalPos());
+        break;
+    case QEvent::GraphicsSceneContextMenu:
+        d->contextMenuEvent(static_cast<QGraphicsSceneContextMenuEvent*>(ev)->screenPos());
         break;
 #endif
 #ifndef QT_NO_WHEELEVENT
@@ -2476,6 +2540,8 @@ void QWebPage::updatePositionDependentActions(const QPoint &pos)
     \since 4.4
     \brief The ExtensionOption class provides an extended input argument to QWebPage's extension support.
 
+    \inmodule QtWebKit
+
     \sa QWebPage::extension()
 */
 
@@ -2484,6 +2550,8 @@ void QWebPage::updatePositionDependentActions(const QPoint &pos)
     \since 4.5
     \brief The ChooseMultipleFilesExtensionOption class describes the option
     for the multiple files selection extension.
+
+    \inmodule QtWebKit
 
     The ChooseMultipleFilesExtensionOption class holds the frame originating the request
     and the suggested filenames which might be provided.
@@ -2496,6 +2564,8 @@ void QWebPage::updatePositionDependentActions(const QPoint &pos)
     \since 4.5
     \brief The ChooseMultipleFilesExtensionReturn describes the return value
     for the multiple files selection extension.
+
+    \inmodule QtWebKit
 
     The ChooseMultipleFilesExtensionReturn class holds the filenames selected by the user
     when the extension is invoked.
@@ -3074,6 +3144,24 @@ quint64 QWebPage::bytesReceived() const
     By default no links are delegated and are handled by QWebPage instead.
 
     \sa linkHovered()
+*/
+
+/*!
+    \fn void QWebPage::webInspectorTriggered(const QWebElement& inspectedElement);
+    \since 4.6
+
+    This signal is emitted when the user triggered an inspection through the
+    context menu. If a QWebInspector is associated to this page, it should be
+    visible to the user after this signal has been emitted.
+
+    If still no QWebInspector is associated to this QWebPage after the emission
+    of this signal, a privately owned inspector will be shown to the user.
+
+    \note \a inspectedElement contains the QWebElement under the context menu.
+    It is not garanteed to be the same as the focused element in the web
+    inspector.
+
+    \sa QWebInspector
 */
 
 /*!

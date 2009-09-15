@@ -56,7 +56,7 @@ public:
     \since 4.6
     \brief The QWebElement class provides convenient access to DOM elements in
     a QWebFrame.
-
+    \inmodule QtWebKit
 
     A QWebElement object allows easy access to the document model, represented
     by a tree-like structure of DOM elements. The root of the tree is called
@@ -219,7 +219,7 @@ QList<QWebElement> QWebElement::findAll(const QString &selectorQuery) const
     if (!nodes)
         return elements;
 
-    for (int i = 0; i < nodes->length(); ++i) {
+    for (unsigned i = 0; i < nodes->length(); ++i) {
         WebCore::Node* n = nodes->item(i);
         elements.append(QWebElement(static_cast<Element*>(n)));
     }
@@ -394,7 +394,7 @@ QString QWebElement::attribute(const QString &name, const QString &defaultValue)
     Returns the attribute with the given \a name in \a namespaceUri. If the
     attribute does not exist, \a defaultValue is returned.
 
-    \sa setAtributeNS(), setAttribute(), attribute()
+    \sa setAttributeNS(), setAttribute(), attribute()
 */
 QString QWebElement::attributeNS(const QString &namespaceUri, const QString &name, const QString &defaultValue) const
 {
@@ -977,7 +977,7 @@ QStringList QWebElement::scriptableProperties() const
 
 /*!
     Returns the value of the style with the given \a name. If a style with
-    \name does not exist, an empty string is returned.
+    \a name does not exist, an empty string is returned.
 
     If \a rule is IgnoreCascadingStyles, the value defined inside the element
     (inline in CSS terminology) is returned.
@@ -1100,7 +1100,7 @@ void QWebElement::setStyleProperty(const QString &name, const QString &value, St
 
 /*!
     Returns the computed value for style with the given \a name. If a style
-    with \name does not exist, an empty string is returned.
+    with \a name does not exist, an empty string is returned.
 */
 QString QWebElement::computedStyleProperty(const QString &name) const
 {
@@ -1659,6 +1659,23 @@ void QWebElement::replace(const QString &markup)
 
     appendOutside(markup);
     takeFromDocument();
+}
+
+/*!
+    \internal
+    Walk \a node's parents until a valid QWebElement is found.
+    For example, a WebCore::Text node is not a valid Html QWebElement, but its
+    enclosing p tag is.
+*/
+QWebElement QWebElement::enclosingElement(WebCore::Node* node)
+{
+    QWebElement element(node);
+
+    while (element.isNull() && node) {
+        node = node->parentNode();
+        element = QWebElement(node);
+    }
+    return element;
 }
 
 /*!

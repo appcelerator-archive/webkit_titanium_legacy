@@ -49,13 +49,14 @@ committers_unable_to_review = [
     Committer("Albert J. Wong", "ajwong@chromium.org"),
     Committer("Ben Murdoch", "benm@google.com"),
     Committer("Brent Fulgham", "bfulgham@webkit.org"),
+    Committer("Brian Weinstein", "bweinstein@apple.com"),
     Committer("Daniel Bates", "dbates@webkit.org"),
     Committer("Drew Wilson", "atwilson@chromium.org"),
     Committer("Dirk Schulze", "krit@webkit.org"),
-    Committer("Eric Carlson", "eric.carlson@apple.com"),
     Committer("Greg Bolsinga", "bolsinga@apple.com"),
     Committer("Jeremy Orlow", "jorlow@chromium.org"),
     Committer("Joseph Pecoraro", "joepeck@webkit.org"),
+    Committer("Kenneth Rohde Christiansen", "kenneth@webkit.org"),
     Committer("Laszlo Gombos", "laszlo.1.gombos@nokia.com"),
     Committer("Nate Chapin", "japhet@chromium.org"),
     Committer("Peter Kasting", "pkasting@google.com"),
@@ -84,6 +85,7 @@ reviewers_list = [
     Reviewer("David Kilzer", "ddkilzer@webkit.org"),
     Reviewer("David Levin", "levin@chromium.org"),
     Reviewer("Dimitri Glazkov", "dglazkov@chromium.org"),
+    Reviewer("Eric Carlson", "eric.carlson@apple.com"),
     Reviewer("Eric Seidel", "eric@webkit.org"),
     Reviewer("Gavin Barraclough", "barraclough@apple.com"),
     Reviewer("George Staikos", "staikos@kde.org"),
@@ -125,13 +127,10 @@ class CommitterList:
         return self._committers_by_email
 
     def committer_by_bugzilla_email(self, bugzilla_email):
-        committer = self._email_to_committer_map().get(bugzilla_email)
-        if not committer:
-            raise Exception("Unknown committer: %s" % bugzilla_email)
-        return committer
+        return self._email_to_committer_map().get(bugzilla_email)
 
     def reviewer_by_bugzilla_email(self, bugzilla_email):
         committer = self.committer_by_bugzilla_email(bugzilla_email)
-        if not committer.can_review:
-            raise Exception("Committer %s does not have review rights." % committer)
+        if committer and not committer.can_review:
+            return None
         return committer

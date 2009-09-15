@@ -274,6 +274,9 @@ void ResourceRequestBase::addHTTPHeaderField(const AtomicString& name, const Str
     pair<HTTPHeaderMap::iterator, bool> result = m_httpHeaderFields.add(name, value); 
     if (!result.second)
         result.first->second += "," + value;
+
+    if (url().protocolInHTTPFamily())
+        m_platformRequestUpdated = false;
 }
 
 void ResourceRequestBase::addHTTPHeaderFields(const HTTPHeaderMap& headerFields)
@@ -355,7 +358,7 @@ void ResourceRequestBase::updateResourceRequest() const
     m_resourceRequestUpdated = true;
 }
 
-#if !PLATFORM(MAC) && !USE(CFNETWORK)
+#if !PLATFORM(MAC) && !USE(CFNETWORK) && !USE(SOUP)
 unsigned initializeMaximumHTTPConnectionCountPerHost()
 {
     // This is used by the loader to control the number of issued parallel load requests. 

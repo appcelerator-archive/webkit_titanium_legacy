@@ -123,6 +123,7 @@ namespace JSC {
         virtual bool hasInstance(ExecState*, JSValue, JSValue prototypeProperty);
 
         virtual void getPropertyNames(ExecState*, PropertyNameArray&);
+        virtual void getOwnPropertyNames(ExecState*, PropertyNameArray&);
 
         virtual JSValue toPrimitive(ExecState*, PreferredPrimitiveType = NoPreference) const;
         virtual bool getPrimitiveNumber(ExecState*, double& number, JSValue& value);
@@ -205,7 +206,7 @@ namespace JSC {
 
         static PassRefPtr<Structure> createStructure(JSValue prototype)
         {
-            return Structure::create(prototype, TypeInfo(ObjectType, HasStandardGetOwnPropertySlot | HasDefaultMark));
+            return Structure::create(prototype, TypeInfo(ObjectType, HasStandardGetOwnPropertySlot | HasDefaultMark | HasDefaultGetPropertyNames));
         }
 
     private:

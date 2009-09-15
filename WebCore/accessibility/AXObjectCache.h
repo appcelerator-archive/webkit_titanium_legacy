@@ -76,13 +76,13 @@ namespace WebCore {
 
         void detachWrapper(AccessibilityObject*);
         void attachWrapper(AccessibilityObject*);
-        void postNotification(RenderObject*, const String&, bool postToElement);
-        void postPlatformNotification(AccessibilityObject*, const String&);
         void childrenChanged(RenderObject*);
         void selectedChildrenChanged(RenderObject*);
         void handleActiveDescendantChanged(RenderObject*);
         void handleAriaRoleChanged(RenderObject*);
         void handleFocusedUIElementChanged(RenderObject* oldFocusedRenderer, RenderObject* newFocusedRenderer);
+        void handleScrolledToAnchor(const Node* anchorNode);
+
         static void enableAccessibility() { gAccessibilityEnabled = true; }
         static void enableEnhancedUserInterfaceAccessibility() { gAccessibilityEnhancedUserInterfaceEnabled = true; }
         
@@ -98,6 +98,22 @@ namespace WebCore {
         static void textMarkerDataForVisiblePosition(TextMarkerData&, const VisiblePosition&);
         static VisiblePosition visiblePositionForTextMarkerData(TextMarkerData&);
 
+        enum AXNotification {
+            AXCheckedStateChanged,
+            AXFocusedUIElementChanged,
+            AXLayoutComplete,
+            AXLoadComplete,
+            AXSelectedChildrenChanged,
+            AXSelectedTextChanged,
+            AXValueChanged,
+            AXScrolledToAnchor,
+        };
+        
+        void postNotification(RenderObject*, AXNotification, bool postToElement);
+
+    protected:
+        void postPlatformNotification(AccessibilityObject*, AXNotification);
+
     private:
         HashMap<AXID, RefPtr<AccessibilityObject> > m_objects;
         HashMap<RenderObject*, AXID> m_renderObjectMapping;
@@ -107,7 +123,7 @@ namespace WebCore {
         HashSet<AXID> m_idsInUse;
         
         Timer<AXObjectCache> m_notificationPostTimer;
-        Vector<pair<RefPtr<AccessibilityObject>, const String> > m_notificationsToPost;
+        Vector<pair<RefPtr<AccessibilityObject>, AXNotification> > m_notificationsToPost;
         void notificationPostTimerFired(Timer<AXObjectCache>*);
         
         AXID getAXID(AccessibilityObject*);
@@ -120,9 +136,10 @@ namespace WebCore {
     inline void AXObjectCache::detachWrapper(AccessibilityObject*) { }
     inline void AXObjectCache::attachWrapper(AccessibilityObject*) { }
     inline void AXObjectCache::selectedChildrenChanged(RenderObject*) { }
-    inline void AXObjectCache::postNotification(RenderObject*, const String&, bool postToElement) { }
-    inline void AXObjectCache::postPlatformNotification(AccessibilityObject*, const String&) { }
+    inline void AXObjectCache::postNotification(RenderObject*, AXNotification, bool postToElement) { }
+    inline void AXObjectCache::postPlatformNotification(AccessibilityObject*, AXNotification) { }
     inline void AXObjectCache::handleFocusedUIElementChanged(RenderObject*, RenderObject*) { }
+    inline void AXObjectCache::handleScrolledToAnchor(const Node*) { }
 #endif
 
 }

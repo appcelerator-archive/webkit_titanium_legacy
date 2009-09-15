@@ -168,6 +168,10 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
     }
 }
 
+# Web Socket support.
+# FIXME: Enable once platform code is landed.
+# !contains(DEFINES, ENABLE_WEB_SOCKETS=.): DEFINES += ENABLE_WEB_SOCKETS=1
+
 DEFINES += WTF_USE_JAVASCRIPTCORE_BINDINGS=1 WTF_CHANGES=1
 
 # Used to compute defaults for the build-webkit script
@@ -224,6 +228,7 @@ INCLUDEPATH = \
     $$PWD/svg/animation \
     $$PWD/svg/graphics \
     $$PWD/svg/graphics/filters \
+    $$PWD/websockets \
     $$PWD/wml \
     $$PWD/workers \
     $$PWD/xml \
@@ -615,6 +620,7 @@ IDL_BINDINGS += \
     svg/SVGUnitTypes.idl \
     svg/SVGUseElement.idl \
     svg/SVGViewElement.idl \
+    websockets/WebSocket.idl \
     workers/AbstractWorker.idl \
     workers/DedicatedWorkerContext.idl \
     workers/SharedWorker.idl \
@@ -1113,7 +1119,6 @@ SOURCES += \
     page/Chrome.cpp \
     page/Console.cpp \
     page/ContextMenuController.cpp \
-    page/Coordinates.cpp \
     page/DOMSelection.cpp \
     page/DOMTimer.cpp \
     page/DOMWindow.cpp \
@@ -1127,7 +1132,6 @@ SOURCES += \
     page/FrameTree.cpp \
     page/FrameView.cpp \
     page/Geolocation.cpp \
-    page/Geoposition.cpp \
     page/History.cpp \
     page/Location.cpp \
     page/MouseEventWithHitTestResults.cpp \
@@ -2379,6 +2383,7 @@ SOURCES += \
     ../WebKit/qt/WebCoreSupport/FrameLoaderClientQt.cpp \
     ../WebKit/qt/WebCoreSupport/InspectorClientQt.cpp \
     ../WebKit/qt/Api/qwebframe.cpp \
+    ../WebKit/qt/Api/qwebgraphicsitem.cpp \
     ../WebKit/qt/Api/qwebpage.cpp \
     ../WebKit/qt/Api/qwebview.cpp \
     ../WebKit/qt/Api/qwebelement.cpp \
@@ -2389,6 +2394,7 @@ SOURCES += \
     ../WebKit/qt/Api/qwebpluginfactory.cpp \
     ../WebKit/qt/Api/qwebsecurityorigin.cpp \
     ../WebKit/qt/Api/qwebdatabase.cpp \
+    ../WebKit/qt/Api/qwebinspector.cpp \
     ../WebKit/qt/Api/qwebkitversion.cpp
 
 
@@ -2398,6 +2404,7 @@ SOURCES += \
         SOURCES += \
             platform/text/cf/StringCF.cpp \
             platform/text/cf/StringImplCF.cpp
+        LIBS_PRIVATE += -framework Carbon -framework AppKit
     }
 
     win32-* {

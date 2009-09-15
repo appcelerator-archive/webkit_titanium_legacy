@@ -64,6 +64,9 @@
 #endif
 #include "JSWebKitCSSMatrixConstructor.h"
 #include "JSWebKitPointConstructor.h"
+#if ENABLE(WEB_SOCKETS)
+#include "JSWebSocketConstructor.h"
+#endif
 #include "JSWorkerConstructor.h"
 #include "JSXMLHttpRequestConstructor.h"
 #include "JSXSLTProcessorConstructor.h"
@@ -469,6 +472,14 @@ void JSDOMWindow::getPropertyNames(ExecState* exec, PropertyNameArray& propertyN
     Base::getPropertyNames(exec, propertyNames);
 }
 
+void JSDOMWindow::getOwnPropertyNames(ExecState* exec, PropertyNameArray& propertyNames)
+{
+    // Only allow the window to enumerated by frames in the same origin.
+    if (!allowsAccessFrom(exec))
+        return;
+    Base::getOwnPropertyNames(exec, propertyNames);
+}
+
 bool JSDOMWindow::getPropertyAttributes(ExecState* exec, const Identifier& propertyName, unsigned& attributes) const
 {
     // Only allow getting property attributes properties by frames in the same origin.
@@ -695,6 +706,13 @@ JSValue JSDOMWindow::worker(ExecState* exec) const
 JSValue JSDOMWindow::sharedWorker(ExecState* exec) const
 {
     return getDOMConstructor<JSSharedWorkerConstructor>(exec, this);
+}
+#endif
+
+#if ENABLE(WEB_SOCKETS)
+JSValue JSDOMWindow::webSocket(ExecState* exec) const
+{
+    return getDOMConstructor<JSWebSocketConstructor>(exec, this);
 }
 #endif
 

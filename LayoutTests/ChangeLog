@@ -1,3 +1,501 @@
+2009-09-14  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Add a sample webgl test
+        https://bugs.webkit.org/show_bug.cgi?id=29254
+
+        * fast/canvas/webgl: Added.
+        * fast/canvas/webgl/gl-get-calls-expected.txt: Added.
+        * fast/canvas/webgl/gl-get-calls.html: Added.
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Rubberstamped by Alexey Proskuryakov.
+
+        <rdar://problem/7223068> - Tiger NSURLConnection sometimes doesn't send a credential you told it to.
+
+        * platform/mac-tiger/Skipped:
+
+2009-09-14  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        <rdar://problem/7047282> Safari crashes at WebCore::RenderMenuList::adjustInnerStyle() + 436
+
+        Test that changes the <select> from a popup to a list inside a mouse event handler.
+
+        * fast/forms/select-change-popup-to-listbox-in-event-handler-expected.txt: Added.
+        * fast/forms/select-change-popup-to-listbox-in-event-handler.html: Added.
+
+2009-09-11  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        DRT/test part of
+        <rdar://problem/7197644> WebKit should broadcast an MSAA event when
+        jumping to a named anchor
+
+        https://bugs.webkit.org/show_bug.cgi?id=28899
+
+        Reviewed by Adam Roben.
+
+        * platform/win/accessibility/scroll-to-anchor-expected.txt: Added.
+        * platform/win/accessibility/scroll-to-anchor.html:
+        Added. Turns on scrolling start event logging, then jumps to an
+        anchor at the bottom of the page.
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Safari 4 cannot be used to update firmware on Linksys routers.
+        <rdar://problem/7174050> and https://bugs.webkit.org/show_bug.cgi?id=29160
+
+        * http/tests/loading/basic-auth-resend-wrong-credentials-expected.txt: Added.
+        * http/tests/loading/basic-auth-resend-wrong-credentials.html: Added.
+        * http/tests/loading/basic-credentials-sent-automatically-expected.txt: Added.
+        * http/tests/loading/basic-credentials-sent-automatically.html: Added.
+        * http/tests/loading/resources/basic-auth-testing.php: Added.
+        * http/tests/loading/resources/othersubresources: Added.
+        * http/tests/loading/resources/othersubresources/protected-resource.php: Added.
+        * http/tests/loading/resources/protected-resource.php: Added.
+        * http/tests/loading/resources/subresources: Added.
+        * http/tests/loading/resources/subresources/protected-resource.php: Added.
+        * http/tests/loading/resources/test2: Added.
+        * http/tests/loading/resources/test2/basic-auth-testing.php: Added.
+        * http/tests/loading/resources/test2/protected-resource.php: Added.
+        * platform/gtk/Skipped:
+        * platform/qt/Skipped:
+
+2009-09-14  Zan Dobersek  <zandobersek@gmail.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Add some tests that fail to the skipped list and rebaseline two tests
+        to pass them.
+
+        * platform/gtk/Skipped: Populate with more failing tests.
+        * platform/gtk/fast/dom/Window/window-properties-expected.txt: Rebaseline.
+        * platform/gtk/fast/dom/prototype-inheritance-2-expected.txt: Ditto.
+
+2009-09-12  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Test for <rdar://problem/6954546> and <rdar://problem/7090444>.
+
+        * plugins/destroy-during-npp-new-expected.txt: Added.
+        * plugins/destroy-during-npp-new.html: Added.
+
+2009-09-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        [ES5] Implement Object.keys
+        https://bugs.webkit.org/show_bug.cgi?id=29170
+
+        Add tests for Object.keys(o), both standard usage and cross origin.
+
+        * fast/js/Object-keys-expected.txt: Added.
+        * fast/js/Object-keys.html: Added.
+        * fast/js/resources/Object-keys.js: Added.
+        * http/tests/security/cross-frame-access-enumeration-expected.txt:
+        * http/tests/security/cross-frame-access-enumeration.html:
+
+2009-09-12  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Anders Carlsson.
+
+        Test for https://bugs.webkit.org/show_bug.cgi?id=29219
+        Document.elementFromPoint() should take page scroll into consideration
+
+        * fast/dom/elementFromPoint-relative-to-viewport-expected.txt: Added.
+        * fast/dom/elementFromPoint-relative-to-viewport.html: Added.
+        * fast/events/offsetX-offsetY.html: Change to use clientX/Y instead of pageX/Y.
+        * fast/forms/slider-transformed.html: Ditto.
+        * fast/forms/slider-zoomed.html: Ditto.
+
+2009-09-12  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Test for https://bugs.webkit.org/show_bug.cgi?id=29217
+        Document.caretRangeFromPoint should take the scroll offset into account before hit testing
+
+        * fast/dom/Document/CaretRangeFromPoint/hittest-relative-to-viewport-expected.txt: Added.
+        * fast/dom/Document/CaretRangeFromPoint/hittest-relative-to-viewport.html: Added.
+
+2009-09-11  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        getPropertyNames caching is invalid when the prototype chain contains objects with custom getPropertyNames
+        https://bugs.webkit.org/show_bug.cgi?id=29214
+
+        Add test case for for-in caching.
+
+        * fast/js/for-in-cached-expected.txt:
+        * fast/js/resources/for-in-cached.js:
+        (forIn4):
+
+2009-09-10  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Darin Adler.
+
+        aria definition role spelled wrong "defintion"
+        https://bugs.webkit.org/show_bug.cgi?id=28840
+
+        * platform/mac/accessibility/aria-grouping-roles-expected.txt:
+        * platform/mac/accessibility/aria-grouping-roles.html:
+
+2009-09-11  Erik Arvidsson  <arv@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Fixes an assert in Node::isFocusable which was causing crashes in certain cases.
+        https://bugs.webkit.org/show_bug.cgi?id=29210
+
+        * fast/events/resources/tab-is-focusable-assert.js:
+        * fast/events/tab-is-focusable-assert-expected.txt: Added.
+
+2009-09-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Mark Rowe.
+
+        Add the http/tests/security/mixedContent to the Skipped list while
+        test failures are being investigated.
+
+        * platform/win/Skipped:
+
+2009-09-11  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r48229.
+        http://trac.webkit.org/changeset/48229
+
+        * fast/events/drag-dropeffect-expected.txt: Removed.
+        * fast/events/drag-dropeffect.html: Removed.
+
+2009-09-11  Michelangelo De Simone  <micdesim@gmail.com>
+
+        Reviewed by Antti Koivisto.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27456
+        Test case for url validation in ValidityState.
+
+        * fast/forms/ValidityState-typeMismatch-url-expected.txt: Added.
+        * fast/forms/ValidityState-typeMismatch-url.html: Added.
+        * fast/forms/resources/ValidityState-typeMismatch-url.js: Added.
+        (check):
+
+2009-09-11  Cameron McCormack  <cam@mcc.id.au>
+
+        Reviewed by Eric Seidel.
+
+        Make ElementTimeControl methods return void and not throw.
+        https://bugs.webkit.org/show_bug.cgi?id=28831
+
+        SVG 1.1 erratum:
+        http://www.w3.org/2003/01/REC-SVG11-20030114-errata#elementtimecontrol-interface
+
+        * svg/dom/smil-methods-expected.txt: Added.
+        * svg/dom/smil-methods.svg: Added.
+
+2009-09-11  Adam Roben  <aroben@apple.com>
+
+        Get user script/stylesheet tests running on Windows
+
+        Fixes <http://webkit.org/b/29181> User script/stylesheet tests are
+        skipped on Windows
+
+        Reviewed by John Sullivan.
+
+        * platform/win/Skipped: Removed the userscripts directory.
+
+2009-09-10  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Sam Weinig.
+
+        Detect mixed content
+        https://bugs.webkit.org/show_bug.cgi?id=29003
+
+        Add some tests for mixed content.  All but one of these tests pass
+        currently.  The one that fails is pretty tricky, but I wanted to get it
+        into the tree with a FIXME so we won't forget it.  I'll file a followup
+        bug about fixing it.
+
+        * http/tests/security/mixedContent/about-blank-iframe-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/about-blank-iframe-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/data-url-iframe-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/data-url-iframe-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/data-url-script-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/data-url-script-in-iframe.html: Added.
+        * http/tests/security/mixedContent/insecure-css-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-css-in-iframe.html: Added.
+        * http/tests/security/mixedContent/insecure-css-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-css-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/insecure-iframe-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-iframe-in-iframe.html: Added.
+        * http/tests/security/mixedContent/insecure-iframe-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-iframe-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/insecure-image-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-image-in-iframe.html: Added.
+        * http/tests/security/mixedContent/insecure-image-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-image-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/insecure-script-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/insecure-script-in-iframe.html: Added.
+        * http/tests/security/mixedContent/redirect-http-to-https-iframe-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/redirect-http-to-https-iframe-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/redirect-http-to-https-script-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/redirect-http-to-https-script-in-iframe.html: Added.
+        * http/tests/security/mixedContent/redirect-https-to-http-iframe-in-main-frame-expected.txt: Added.
+        * http/tests/security/mixedContent/redirect-https-to-http-iframe-in-main-frame.html: Added.
+        * http/tests/security/mixedContent/redirect-https-to-http-script-in-iframe-expected.txt: Added.
+        * http/tests/security/mixedContent/redirect-https-to-http-script-in-iframe.html: Added.
+        * http/tests/security/mixedContent/resources/boring.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-about-blank-frame.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-data-url-frame.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-data-url-script.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-insecure-css.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-insecure-frame.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-insecure-image.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-insecure-script.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-redirect-http-to-https-frame.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-redirect-http-to-https-script.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-redirect-https-to-http-frame.html: Added.
+        * http/tests/security/mixedContent/resources/frame-with-redirect-https-to-http-script.html: Added.
+        * http/tests/security/mixedContent/resources/script.js: Added.
+        * http/tests/security/mixedContent/resources/style.css: Added.
+
+2009-09-10  Xiaomei Ji  <xji@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Implement Range.expand().
+        https://bugs.webkit.org/show_bug.cgi?id=27632
+
+        * fast/dom/Range/range-expand-expected.txt: Added.
+        * fast/dom/Range/range-expand.html: Added.
+        * fast/dom/Window/window-properties-expected.txt:
+
+2009-09-10  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Add WebSocket API.
+        https://bugs.webkit.org/show_bug.cgi?id=28038
+        
+        WebSocket constructor is available in window object.
+
+        * fast/dom/Window/window-properties-expected.txt:
+        * fast/dom/prototype-inheritance-2-expected.txt:
+        * fast/dom/prototype-inheritance-expected.txt:
+        * fast/js/global-constructors-expected.txt:
+
+2009-09-10  Jian Li  <jianli@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        [V8] Make XMLHttpRequest.send handle File object.
+        https://bugs.webkit.org/show_bug.cgi?id=28924
+
+        Add a new layout test.
+
+        * http/tests/local/resources/file-for-drag-to-send.txt: Added.
+        * http/tests/local/resources/send-dragged-file.js: Added.
+        * http/tests/local/send-dragged-file-expected.txt: Added.
+        * http/tests/local/send-dragged-file.html: Added.
+
+2009-09-09  Steve Block  <steveblock@google.com>
+
+        Reviewed by Darin Adler.
+
+        Geolocation does not correctly handle reentrant calls from callbacks.
+        https://bugs.webkit.org/show_bug.cgi?id=29040
+
+        * fast/dom/Geolocation/resources/reentrant-error.js: Added. Tests that reentrant calls from the error callback are OK.
+        * fast/dom/Geolocation/reentrant-error.html: Added. Wrapper for above test.
+        * fast/dom/Geolocation/reentrant-error-expected.txt: Added. Expected result for above test.
+        * fast/dom/Geolocation/resources/reentrant-success.js: Added. Tests that reentrant calls from the success callback are OK.
+        * fast/dom/Geolocation/reentrant-success.html: Added. Wrapper for above test.
+        * fast/dom/Geolocation/reentrant-success-expected.txt: Added. Expected result for above test.
+        * platform/gtk/Skipped: Modified. Skips above tests.
+
+2009-09-10  Erik Arvidsson  <arv@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Fixes issue where focused elements did not get blur and focus events when the window was blurred and focused.
+        https://bugs.webkit.org/show_bug.cgi?id=27105
+
+        * fast/events/blur-focus-window-should-blur-focus-element-expected.txt: Added.
+        * fast/events/blur-focus-window-should-blur-focus-element.html: Added.
+        * fast/events/resources/blur-focus-window-should-blur-focus-element.js: Added.
+        (divElement.onfocus.divElement.onblur.window.onfocus.window.onblur.innerDiv.onfocus.innerDiv.onblur.iframe.onfocus.iframe.onblur):
+        (testNextEvent):
+        * fast/events/resources/tabindex-focus-blur-all.js:
+        (test):
+        * fast/events/tabindex-focus-blur-all-expected.txt:
+
+2009-09-10  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        https://bugs.webkit.org/show_bug.cgi?id=24205
+
+        Added a test case for inserting a new line character into the
+        request-uri.
+
+        * http/tests/xmlhttprequest/newline-in-request-uri-expected.txt: Added.
+        * http/tests/xmlhttprequest/newline-in-request-uri.html: Added.
+
+2009-09-09  Steve Block  <steveblock@google.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Geolocation Coordinates::toString() prints bogus values for unspecified properties.
+        https://bugs.webkit.org/show_bug.cgi?id=29080
+
+        * fast/dom/Geolocation/resources/position-string.js: Added. Tests output of position.toString().
+        * fast/dom/Geolocation/position-string.html: Added. Wrapper for above test.
+        * fast/dom/Geolocation/position-string-expected.txt: Added. Expected result for above test.
+        * platform/gtk/Skipped: Modified. Skips above test.
+
+2009-09-09  Steve Block  <steveblock@google.com>
+
+        Reviewed by Adam Barth.
+
+        Correctly applies the Geolocation timeout property.
+        https://bugs.webkit.org/show_bug.cgi?id=27256
+
+        * fast/dom/Geolocation/resources/timeout.js: Added. Tests that when a non-zero timeout is used, the success callback is invoked as expected.
+        * fast/dom/Geolocation/timeout.html: Added. Wrapper for above test.
+        * fast/dom/Geolocation/timeout-expected.txt: Added. Expected result for above test.
+        * fast/dom/Geolocation/resources/timeout-zero.js: Added. Tests that when a zero timeout is used, the error callback is invoked with code TIMEOUT.
+        * fast/dom/Geolocation/timeout-zero.html: Added. Wrapper for above test.
+        * fast/dom/Geolocation/timeout-zero-expected.txt: Added. Expected result for above test.
+        * platform/gtk/Skipped: Modified. Skips the above tests.
+
+2009-09-08  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Missing checkout for getSVGDocument()
+        https://bugs.webkit.org/show_bug.cgi?id=29064
+
+        Add tests that getSVGDocument() has the proper checks.
+
+        * http/tests/security/resources/flag.php: Added.
+        * http/tests/security/xss-DENIED-getSVGDocument-iframe-expected.txt: Added.
+        * http/tests/security/xss-DENIED-getSVGDocument-iframe.html: Added.
+        * http/tests/security/xss-DENIED-getSVGDocument-object-expected.txt: Added.
+        * http/tests/security/xss-DENIED-getSVGDocument-object.html: Added.
+
+2009-09-09  Cameron McCormack  <cam@mcc.id.au>
+
+        Reviewed by Eric Seidel.
+
+        Make SVGStyleElement inherit from SVGLangSpace
+        https://bugs.webkit.org/show_bug.cgi?id=29058
+
+        Required by SVG 1.1 Second Edition:
+        http://dev.w3.org/SVG/profiles/1.1F2/publish/styling.html#InterfaceSVGStyleElement
+
+        * svg/dom/SVGStyleElement: Added.
+        * svg/dom/SVGStyleElement/resources: Added.
+        * svg/dom/SVGStyleElement/resources/TEMPLATE.html: Copied from
+        LayoutTests/svg/dom/resources/TEMPLATE.html with some "../"s added.
+        * svg/dom/SVGStyleElement/resources/style-langspace.js: Added.
+        * svg/dom/SVGStyleElement/style-langspace-expected.txt: Added.
+        * svg/dom/SVGStyleElement/style-langspace.html: Added.
+
+2009-09-09  Alpha Lam  <hclam@chromium.org>
+
+        Reviewed by Eric Carlson.
+
+        Media layout tests should have a way to provide test files in different formats
+        https://bugs.webkit.org/show_bug.cgi?id=28327
+
+        Added media-file.js which has a findMediaFile(type, name) method
+        to find a proper media file to load according to supported codecs.
+
+        Also changed 10 layout tests to use above method to locate the test file.
+
+        * media/controls-strict.html: Use findMediaFile(type, name).
+        * media/controls-styling.html: ditto.
+        * media/media-file.js: Added. Provide findMediaFile(type, name).
+        * media/video-append-source.html: Use findMediaFile(type, name).
+        * media/video-aspect-ratio.html: ditto.
+        * media/video-autoplay.html: ditto.
+        * media/video-buffered.html: ditto.
+        * media/video-controls-rendering.html: ditto.
+        * media/video-layer-crash.html: ditto.
+        * media/video-transformed.html: Use findMediaFile(type, name).
+        * media/video-zoom-controls.html: ditto.
+
+2009-09-09  Jens Alfke  <snej@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Initialize DataTransfer's effectAllowed and dropEffect properties correctly
+        according to HTML5 spec (sec. 7.9.2-7.9.3).
+        https://bugs.webkit.org/show_bug.cgi?id=26700
+
+        * fast/events/drag-dropeffect-expected.txt: Added.
+        * fast/events/drag-dropeffect.html: Added.
+
+2009-09-09  Zan Dobersek  <zandobersek@gmail.com>
+
+        Reviewed by Gustavo Noronha.
+
+        [GTK] DumpRenderTree needs eventSender object and implementation
+        https://bugs.webkit.org/show_bug.cgi?id=25990
+
+        Enable plenty of tests that now pass thanks to (only) partial
+        EventSender implementation.
+
+        * platform/gtk/Skipped:
+
+2009-09-09  Dumitru Daniliuc  <dumi@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Adding a test for the database authorizer.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28918
+
+        * storage/test-authorizer-expected.txt: Added.
+        * storage/test-authorizer.html: Added.
+
+2009-09-09  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Adam Roben.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29102, add support for user stylesheet injection.  This is similar
+        to user script injection but allows for user stylesheets to be added.  The stylesheets are applied immediately
+        to all Frames in the PageGroup.
+
+        Added userscripts/simple-stylesheet.html test case.
+
+        * platform/mac/userscripts/simple-stylesheet-expected.checksum: Added.
+        * platform/mac/userscripts/simple-stylesheet-expected.png: Added.
+        * platform/mac/userscripts/simple-stylesheet-expected.txt: Added.
+        * userscripts/simple-stylesheet.html: Added.
+
+2009-09-09  Carol Szabo  <carol.szabo@nokia.com>
+
+        Reviewed by Ariya Hidayat.
+
+        [Qt] -webkit-box-shadow CSS Style is not rendered correctly on
+        Qt platform
+        https://bugs.webkit.org/show_bug.cgi?id=23291
+
+        * platform/qt/fast/box-shadow/basic-shadows-expected.checksum:
+        * platform/qt/fast/box-shadow/basic-shadows-expected.png:
+        * platform/qt/fast/box-shadow/inset-expected.checksum:
+        * platform/qt/fast/box-shadow/inset-expected.png:
+        * platform/qt/fast/box-shadow/spread-expected.checksum:
+        * platform/qt/fast/box-shadow/spread-expected.png:
+          Updated to show the new shadows.
+
 2009-09-09  Erik Arvidsson  <arv@chromium.org>
 
         Reviewed by David Levin.

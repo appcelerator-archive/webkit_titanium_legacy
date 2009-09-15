@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2009 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,13 +24,17 @@
  */
 
 #include "config.h"
-#include "Geoposition.h"
+#include "FileChooser.h"
+
+#include "NotImplemented.h"
 
 namespace WebCore {
 
-String Geoposition::toString() const
+String FileChooser::basenameForWidth(const Font&, int width) const
 {
-    return "position(" + m_coordinates->toString() + String::format(", %.lld)", m_timestamp);
+    notImplemented();
+    return String();
 }
 
-} // namespace WebCore
+}
+

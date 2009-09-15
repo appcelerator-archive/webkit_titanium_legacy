@@ -1,3 +1,73 @@
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Safari 4 cannot be used to update firmware on Linksys routers.
+        <rdar://problem/7174050> and https://bugs.webkit.org/show_bug.cgi?id=29160
+
+        Adopt the new WebCore::CredentialStorage in WebKit/Win.
+
+        * WebDownloadCFNet.cpp:
+        (WebDownload::didReceiveAuthenticationChallenge):
+
+2009-09-11  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Properly propagate preference from WebPreferences to WebCore::Settings.
+        https://bugs.webkit.org/show_bug.cgi?id=29192
+
+        * WebView.cpp:
+        (WebView::initWithFrame): Apply setting when creating a new WebView.
+        (WebView::notifyPreferencesChanged): Apply setting when preferences change.
+
+2009-09-11  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Allow WebKit clients to opt out of high resolution timers on Windows.
+        https://bugs.webkit.org/show_bug.cgi?id=29192
+
+        * Interfaces/IWebPreferencesPrivate.idl: Added getter/setter.
+        Put this just after last 4.0.3 method for future merging.
+        * Interfaces/WebKit.idl: Touched to force a rebuild.
+        * WebPreferenceKeysPrivate.h: Added prefs key for high res timers.
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings): Initialize high res timers to enabled.
+        (WebPreferences::setShouldUseHighResolutionTimers): Added.
+        (WebPreferences::shouldUseHighResolutionTimers): Added.
+        * WebPreferences.h: Added getter/setter.
+
+2009-09-11  Adam Roben  <aroben@apple.com>
+
+        Get user script/stylesheet tests running on Windows
+
+        Fixes <http://webkit.org/b/29181> User script/stylesheet tests are
+        skipped on Windows
+
+        Reviewed by John Sullivan.
+
+        * Interfaces/IWebViewPrivate.idl: Added addUserScriptToGroup,
+        addUserStyleSheetToGroup, removeUserContentFromGroup,
+        removeAllUserContentFromGropu to match the Mac SPI.
+
+        * WebView.cpp:
+        (WebView::addUserScriptToGroup):
+        (WebView::addUserStyleSheetToGroup):
+        (WebView::removeUserContentFromGroup):
+        (WebView::removeAllUserContentFromGroup):
+        * WebView.h:
+        Added. Implementation was based on similar methods in WebView.mm.
+
+2009-09-11  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        Fix crash on launch on Windows.
+
+        Rubber-stamped by Mark Rowe.
+
+        * WebKit.vcproj/WebKit.vcproj:
+        Define ENABLE_WEB_SOCKETS for all configurations.
+
 2009-09-07  Drew Wilson  <atwilson@google.com>
 
         Reviewed by David Levin.

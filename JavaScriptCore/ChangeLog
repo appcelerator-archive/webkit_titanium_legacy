@@ -1,3 +1,328 @@
+2009-09-14  Csaba Osztrogonac  <oszi@inf.u-szeged.hu>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Build fix for windows build.
+
+        * JavaScriptCore.pri: Correct a logic error.
+        * pcre/dftables: Add missing paranthesis for tmpdir function.
+
+2009-09-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Build fix).
+
+        Build fix for windows exports (again).
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-09-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Build fix).
+
+        Build fix for windows exports.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-09-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Build fix).
+
+        Correct fix for non-allinonefile builds
+
+        * runtime/ObjectConstructor.cpp:
+
+2009-09-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Build fix).
+
+        Fix non-allinonefile builds
+
+        * runtime/ObjectConstructor.cpp:
+
+2009-09-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        [ES5] Implement Object.keys
+        https://bugs.webkit.org/show_bug.cgi?id=29170
+
+        This patch basically requires two separate steps, the first is to split getPropertyNames
+        into two functions -- getOwnPropertyNames and getPropertyNames, basically making them behave
+        in the same way as getOwnPropertySlot and getPropertySlot.  In essence getOwnPropertyNames
+        produces the list of properties on an object excluding its prototype chain and getPropertyNames
+        just iterates the the object and its prototype chain calling getOwnPropertyNames at each level.
+
+        * API/JSCallbackObject.h:
+        * API/JSCallbackObjectFunctions.h:
+        (JSC::::getOwnPropertyNames):
+        * JavaScriptCore.exp:
+        * debugger/DebuggerActivation.cpp:
+        (JSC::DebuggerActivation::getOwnPropertyNames):
+        * debugger/DebuggerActivation.h:
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::getOwnPropertyNames):
+        * runtime/JSArray.h:
+        * runtime/JSByteArray.cpp:
+        (JSC::JSByteArray::getOwnPropertyNames):
+        * runtime/JSByteArray.h:
+        * runtime/JSNotAnObject.cpp:
+        (JSC::JSNotAnObject::getOwnPropertyNames):
+        * runtime/JSNotAnObject.h:
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::getOwnPropertyNames):
+        * runtime/JSObject.h:
+        * runtime/JSVariableObject.cpp:
+        (JSC::JSVariableObject::getOwnPropertyNames):
+        * runtime/JSVariableObject.h:
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructor::ObjectConstructor):
+        (JSC::objectConstructorKeys):
+        * runtime/RegExpMatchesArray.h:
+        (JSC::RegExpMatchesArray::getOwnPropertyNames):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::getOwnPropertyNames):
+        * runtime/StringObject.h:
+        * runtime/Structure.cpp:
+        (JSC::Structure::getOwnEnumerablePropertyNames):
+        (JSC::Structure::getEnumerablePropertyNames):
+        * runtime/Structure.h:
+
+2009-09-11  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        getPropertyNames caching is invalid when the prototype chain contains objects with custom getPropertyNames
+        https://bugs.webkit.org/show_bug.cgi?id=29214
+
+        Add a flag to TypeInfo to indicate whether a type overrides getPropertyNames.
+        This flag is used to make sure that caching of the property name data is safe.
+
+        * API/JSCallbackConstructor.h:
+        (JSC::JSCallbackConstructor::createStructure):
+        * debugger/DebuggerActivation.h:
+        (JSC::DebuggerActivation::createStructure):
+        * runtime/BooleanObject.h:
+        (JSC::BooleanObject::createStructure):
+        * runtime/DatePrototype.h:
+        (JSC::DatePrototype::createStructure):
+        * runtime/FunctionPrototype.h:
+        (JSC::FunctionPrototype::createStructure):
+        * runtime/JSONObject.h:
+        (JSC::JSONObject::createStructure):
+        * runtime/JSObject.h:
+        (JSC::JSObject::createStructure):
+        * runtime/JSTypeInfo.h:
+        (JSC::TypeInfo::hasDefaultGetPropertyNames):
+        * runtime/JSVariableObject.h:
+        (JSC::JSVariableObject::createStructure):
+        * runtime/JSWrapperObject.h:
+        (JSC::JSWrapperObject::createStructure):
+        * runtime/MathObject.h:
+        (JSC::MathObject::createStructure):
+        * runtime/NumberConstructor.h:
+        (JSC::NumberConstructor::createStructure):
+        * runtime/NumberObject.h:
+        (JSC::NumberObject::createStructure):
+        * runtime/RegExpConstructor.h:
+        (JSC::RegExpConstructor::createStructure):
+        * runtime/RegExpObject.h:
+        (JSC::RegExpObject::createStructure):
+        * runtime/StructureChain.cpp:
+        (JSC::StructureChain::isCacheable):
+
+2009-09-11  Alexey Proskuryakov  <ap@webkit.org>
+
+        Reviewed by Geoff Garen.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29207
+        Add checks for using WebCore JS context on secondary threads
+
+        * runtime/JSGlobalData.cpp: (JSC::JSGlobalData::JSGlobalData):
+        * runtime/JSGlobalData.h:
+        Added a new mainThreadOnly flag that WebCore would set.
+
+        * runtime/Collector.cpp: (JSC::Heap::registerThread): JSC API methods always call this,
+        so this is a good place to check that the API isn't used form a wrong thread.
+
+2009-09-11  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Compiling JavaScriptCore on sparc 64 with gcc fails.
+
+        ThreadSafeShared uses the atomic __gnu_cxx::__exchange_and_add with an int,
+        however on sparc 64 the _Atomic_word argument is typedefed to long (8 bytes).
+
+        The patch disables WTF_USE_LOCKFREE_THREADSAFESHARED in ThreadSafeShared to use
+        a mutex instead when compiling for sparc 64 with gcc.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29175
+
+        * wtf/Platform.h:
+        __sparc64__ is not defined on all OS.
+        Uses instead: __sparc__ && __arch64__ || __sparcv9
+        * wtf/Threading.h:
+
+2009-09-11  Prasanth Ullattil  <prasanth.ullattil@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Fix compile error on Windows7(64Bit) with latest SDK.
+
+        Added the missing include file.
+
+        * runtime/UString.cpp:
+
+2009-09-11  Joerg Bornemann  <joerg.bornemann@trolltech.com>
+
+        Reviewed by Simon Hausmann.
+
+        Qt/Windows CE compile fix, include the executable allocator and
+        markstack implementation in the windows build.
+
+        * JavaScriptCore.pri:
+
+2009-09-08  John Abd-El-Malek  <jam@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Remove unneeded define for ActiveX.
+        https://bugs.webkit.org/show_bug.cgi?id=29054
+
+        * wtf/Platform.h:
+
+2009-09-10  Mark Rowe  <mrowe@apple.com>
+
+        Rubber-stamped by Sam Weinig.
+
+        Update JavaScriptCore and WebKit's FeatureDefines.xcconfig so that they are in sync with WebCore as they need to be.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-09-10  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Export WTF::tryFastMalloc used in WebSocketChannel.
+        https://bugs.webkit.org/show_bug.cgi?id=28038
+
+        * JavaScriptCore.exp:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-09-10  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Build fix).
+
+        Make StructureTransitionTable use an enum for the PtrAndFlags member
+        used for the single transition slot optimisation.
+
+        * runtime/StructureTransitionTable.h:
+        (JSC::StructureTransitionTable::StructureTransitionTable):
+        (JSC::StructureTransitionTable::usingSingleTransitionSlot):
+        (JSC::StructureTransitionTable::):
+
+2009-09-10  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Geoff Garen.
+
+        Refactor StructureTransitionTable and Structure to unify handling of the single slot optimization
+        https://bugs.webkit.org/show_bug.cgi?id=29141
+
+        Make StructureTransitionTable encapsulate the single transition slot optimization.
+
+        * runtime/Structure.cpp:
+        (JSC::Structure::Structure):
+        (JSC::Structure::~Structure):
+        (JSC::Structure::addPropertyTransitionToExistingStructure):
+        (JSC::Structure::addPropertyTransition):
+        (JSC::Structure::addPropertyWithoutTransition):
+        (JSC::Structure::removePropertyWithoutTransition):
+        (JSC::Structure::hasTransition):
+        * runtime/Structure.h:
+        (JSC::StructureTransitionTable::contains):
+        (JSC::StructureTransitionTable::get):
+        (JSC::StructureTransitionTable::hasTransition):
+        (JSC::StructureTransitionTable::reifySingleTransition):
+        * runtime/StructureTransitionTable.h:
+        (JSC::StructureTransitionTable::StructureTransitionTable):
+        (JSC::StructureTransitionTable::~StructureTransitionTable):
+        (JSC::StructureTransitionTable::remove):
+        (JSC::StructureTransitionTable::add):
+        (JSC::StructureTransitionTable::table):
+        (JSC::StructureTransitionTable::singleTransition):
+        (JSC::StructureTransitionTable::usingSingleTransitionSlot):
+        (JSC::StructureTransitionTable::setSingleTransition):
+        (JSC::StructureTransitionTable::setTransitionTable):
+        (JSC::StructureTransitionTable::):
+        * wtf/PtrAndFlags.h:
+        (WTF::PtrAndFlags::PtrAndFlags):
+
+2009-09-10  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Implement fastDeleteSkippingDestructor for FastAllocBase and fastDeleteAllValues for HashSet
+        https://bugs.webkit.org/show_bug.cgi?id=25930
+
+        FastAllocBase has been extended with fastDeleteSkippingDestructor function which
+        releases memory without destructor call. fastDeleteAllValues has been implemented 
+        similar as deleteAllValues but it uses fastDelete function to release memory.
+
+        * wtf/FastAllocBase.h:
+        (WTF::fastDeleteSkippingDestructor):
+        * wtf/HashSet.h:
+        (WTF::fastDeleteAllValues):
+
+2009-09-10  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        ARM compiler does not understand GCC visibility attribute
+        https://bugs.webkit.org/show_bug.cgi?id=29079
+
+        * API/JSBase.h: Make the test more specific to hit only
+        the GCC compiler
+
+2009-09-10  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed revert of the previous change.  It broke the tests.
+
+        * wtf/dtoa.cpp:
+        (WTF::dtoa):
+
+2009-09-10  Ben Laurie  <benl@google.com>
+
+        Reviewed by Adam Barth.
+
+        <https://bugs.webkit.org/show_bug.cgi?id=26836>
+
+        If dtoa was given a small buffer and the number was either infinite or
+        NaN, then the buffer would be overflowed.
+
+        * wtf/dtoa.cpp:
+
+2009-09-09  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Change reinterpret_cast to static_cast in r48212.
+
+        * jit/ExecutableAllocator.h:
+        (JSC::ExecutableAllocator::cacheFlush):
+
+2009-09-09  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Remove WTF_PLATFORM_FORCE_PACK as it is no longer used
+        https://bugs.webkit.org/show_bug.cgi?id=29066
+
+        * wtf/Platform.h:
+
 2009-09-09  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
 
         Reviewed by Ariya Hidayat.

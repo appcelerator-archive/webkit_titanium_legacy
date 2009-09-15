@@ -1,3 +1,92 @@
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Safari 4 cannot be used to update firmware on Linksys routers.
+        <rdar://problem/7174050> and https://bugs.webkit.org/show_bug.cgi?id=29160
+
+        Adopt the new WebCore::CredentialStorage in WebKit/Mac.
+
+        * Misc/WebDownload.mm:
+        (-[WebDownloadInternal download:didReceiveAuthenticationChallenge:]):
+        * Plugins/WebBaseNetscapePluginView.mm:
+        (WebKit::getAuthenticationInfo):
+
+2009-09-12  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Anders Carlsson.
+
+        Fix <rdar://problem/7090444> Crashes in-[WebBaseNetscapePluginView stop] handling NSWindowWillCloseNotification.
+
+        It's not valid to call -addWindowObservers when the view is not in a window, but this can happen when -start
+        initializes a plug-in and the plug-in removes itself from the document during initialization.  -viewDidMoveToWindow
+        calls -start and then calls -addWindowObservers without ensuring that the view is still in a window.
+
+        If -[WebBaseNetscapePluginView addWindowObservers] is incorrectly called when the view is not in a window, it will
+        observe NSWindowWillCloseNotification on all windows.  This unexpected observer registration is not balanced by an
+        unregistration so the notification can be delivered after the view is deallocated, causing the crash seen in
+        <rdar://problem/7090444>.
+
+        * Plugins/WebBaseNetscapePluginView.mm:
+        (-[WebBaseNetscapePluginView start]): Only call -updateAndSetWindow if we still have a current window.
+        (-[WebBaseNetscapePluginView viewDidMoveToWindow]): Remove unnecessary calls to -restartTimers and -addWindowObservers
+        from -[WebBaseNetscapePluginView viewDidMoveToWindow].  They are already called from within -start with the extra benefit
+        of ensuring that the view is still in a window when they are called.
+
+2009-09-11  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Jon Honeycutt.
+
+        Fix <rdar://problem/7145242> Crashes inside WTF::HashTable below NetscapePluginInstanceProxy::disconnectStream
+
+        * Plugins/Hosted/HostedNetscapePluginStream.mm:
+        (WebKit::HostedNetscapePluginStream::cancelLoad): Canceling the load can result in calling through to disconnectStream.
+        If the plug-in instance holds the last reference to the plug-in stream this will result in the stream being deallocated.
+        This leads to HostedNetscapePluginStream::cancelLoad's call to disconnectStream being passed a deallocated stream object.
+        Since the stream was already disconnected by the call to cancel there's no need to call disconnectStream a second time.
+
+2009-09-11  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r48229.
+        http://trac.webkit.org/changeset/48229
+
+        * WebView/WebFrame.mm:
+        (-[WebFrame _dragSourceMovedTo:]):
+
+2009-09-10  Mark Rowe  <mrowe@apple.com>
+
+        Rubber-stamped by Sam Weinig.
+
+        Update JavaScriptCore and WebKit's FeatureDefines.xcconfig so that they are in sync with WebCore as they need to be.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-09-09  Jens Alfke  <snej@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Initialize DataTransfer's effectAllowed and dropEffect properties correctly
+        according to HTML5 spec (sec. 7.9.2-7.9.3).
+        https://bugs.webkit.org/show_bug.cgi?id=26700
+
+        * WebView/WebFrame.mm:
+        (-[WebFrame _dragSourceMovedTo:]):
+            Pass current drag operation (if known) to EventHandler::dragSourceMovedTo().
+
+2009-09-09  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Adam Roben.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29102, add support for user stylesheet injection.  This is similar
+        to user script injection but allows for user stylesheets to be added.  The stylesheets are applied immediately
+        to all Frames in the PageGroup.
+
+        Added userscripts/simple-stylesheet.html test case.
+
+        * WebView/WebView.mm:
+        (+[WebView _addUserStyleSheetToGroup:source:url:worldID:patterns:]):
+        * WebView/WebViewPrivate.h:
+
 2009-09-07  Steve Block  <steveblock@google.com>
 
         Reviewed by Adam Barth.

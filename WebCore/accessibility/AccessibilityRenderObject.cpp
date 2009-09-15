@@ -1138,22 +1138,10 @@ AccessibilityObject* AccessibilityRenderObject::internalLinkElement() const
     if (!linkedNode)
         return 0;
     
-    // the element we find may not be accessible, keep searching until we find a good one
-    AccessibilityObject* linkedAXElement = m_renderer->document()->axObjectCache()->getOrCreate(linkedNode->renderer());
-    while (linkedAXElement && linkedAXElement->accessibilityIsIgnored()) {
-        linkedNode = linkedNode->traverseNextNode();
-        
-        while (linkedNode && !linkedNode->renderer())
-            linkedNode = linkedNode->traverseNextSibling();
-        
-        if (!linkedNode)
-            return 0;
-        linkedAXElement = m_renderer->document()->axObjectCache()->getOrCreate(linkedNode->renderer());
-    }
-    
-    return linkedAXElement;
+    // The element we find may not be accessible, so find the first accessible object.
+    return firstAccessibleObjectFromNode(linkedNode);
 }
-    
+
 void AccessibilityRenderObject::addRadioButtonGroupMembers(AccessibilityChildrenVector& linkedUIElements) const
 {
     if (!m_renderer || roleValue() != RadioButtonRole)
@@ -2174,7 +2162,7 @@ void AccessibilityRenderObject::handleActiveDescendantChanged()
     AccessibilityRenderObject* activedescendant = static_cast<AccessibilityRenderObject*>(activeDescendant());
     
     if (activedescendant && shouldFocusActiveDescendant())
-        doc->axObjectCache()->postNotification(activedescendant->renderer(), "AXFocusedUIElementChanged", true);
+        doc->axObjectCache()->postNotification(activedescendant->renderer(), AXObjectCache::AXFocusedUIElementChanged, true);
 }
 
 
@@ -2208,7 +2196,7 @@ static const ARIARoleMap& createARIARoleMap()
         { "grid", TableRole },
         { "gridcell", CellRole },
         { "columnheader", ColumnHeaderRole },
-        { "defintion", DefinitionListDefinitionRole },
+        { "definition", DefinitionListDefinitionRole },
         { "document", DocumentRole },
         { "rowheader", RowHeaderRole },
         { "group", GroupRole },

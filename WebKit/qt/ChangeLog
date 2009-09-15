@@ -1,3 +1,240 @@
+2009-09-14  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] QWebGraphicsItem should check for null QWebPage.
+        https://bugs.webkit.org/show_bug.cgi?id=29185
+
+        Don't crash in QWebGraphicsItem when the page is still null, by
+        either checking if it's the case or constructing the default one.
+
+        * Api/qwebgraphicsitem.cpp:
+        (QWebGraphicsItem::icon):
+        (QWebGraphicsItem::setZoomFactor):
+        (QWebGraphicsItem::zoomFactor):
+        (QWebGraphicsItem::setGeometry):
+        (QWebGraphicsItem::load):
+        (QWebGraphicsItem::setHtml):
+        (QWebGraphicsItem::toHtml):
+        (QWebGraphicsItem::setContent):
+        (QWebGraphicsItem::history):
+        (QWebGraphicsItem::settings):
+
+2009-09-11  David Boddie  <dboddie@trolltech.com>
+
+        Reviewed by Simon Hausmann.
+
+        Doc: Note that Netscape plugins are only available on desktop platforms.
+
+        * docs/qtwebkit.qdoc:
+
+2009-09-11  Martin Smith  <msmith@trolltech.com>
+
+        Reviewed by Simon Hausmann.
+
+        Adjust the name of the contentspage for the documentation
+        to the new name used in Qt 4.6.
+
+        * docs/qtwebkit.qdoc:
+
+2009-09-11  Ariya Hidayat  <ariya.hidayat@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Changed URLs from qtsoftware.com to qt.nokia.com, as part of a general
+        renaming.
+
+        * Api/qwebpluginfactory.cpp:
+        * docs/webkitsnippets/simple/main.cpp:
+        (main):
+        * docs/webkitsnippets/webpage/main.cpp:
+        (main):
+
+2009-09-11  Volker Hilsheimer  <volker.hilsheimer@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Restructure the documentation, both on a file and on a content level.
+
+        * Api/qwebdatabase.cpp:
+        * Api/qwebelement.cpp:
+        * Api/qwebframe.cpp:
+        * Api/qwebhistory.cpp:
+        * Api/qwebhistoryinterface.cpp:
+        * Api/qwebpage.cpp:
+        * Api/qwebpluginfactory.cpp:
+        * Api/qwebsecurityorigin.cpp:
+        * Api/qwebsettings.cpp:
+        * Api/qwebview.cpp:
+        * docs/qtwebkit.qdoc:
+
+2009-09-11  Yongjun Zhang  <yongjun.zhang@nokia.com>
+
+        Reviewed by Simon Hausmann.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=29136
+        [Qt] emit microFocusChanged() signal when no QWidget-based view is present.
+
+        emit microFocusChange() signal regardless of view.
+
+        * WebCoreSupport/EditorClientQt.cpp:
+        (WebCore::EditorClientQt::setInputMethodState):
+
+2009-09-11  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28806
+
+        [Qt] Make the WebInspector available as a QWidget.
+
+        * Api/headers.pri:
+        * Api/qwebelement.cpp:
+        (QWebElement::enclosingElement):
+        * Api/qwebelement.h:
+        * Api/qwebinspector.cpp: Added.
+        * Api/qwebinspector.h: Added.
+        * Api/qwebinspector_p.h: Added.
+        * Api/qwebpage.cpp:
+        (QWebPagePrivate::QWebPagePrivate):
+        (QWebPagePrivate::setInspector):
+        (QWebPagePrivate::getOrCreateInspector):
+        (QWebPagePrivate::inspectorController):
+        (QWebPage::~QWebPage):
+        (QWebPage::triggerAction):
+        * Api/qwebpage.h:
+        * Api/qwebpage_p.h:
+        * Api/qwebsettings.cpp:
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow):
+        * WebCoreSupport/InspectorClientQt.cpp:
+        (WebCore::InspectorClientWebPage::InspectorClientWebPage):
+        (WebCore::InspectorClientWebPage::createWindow):
+        (WebCore::InspectorClientQt::createPage):
+        (WebCore::InspectorClientQt::showWindow):
+        (WebCore::InspectorClientQt::closeWindow):
+        (WebCore::InspectorClientQt::attachWindow):
+        (WebCore::InspectorClientQt::detachWindow):
+        (WebCore::InspectorClientQt::updateWindowTitle):
+        * WebCoreSupport/InspectorClientQt.h:
+        * docs/webkitsnippets/qtwebkit_qwebinspector_snippet.cpp: Added.
+
+2009-09-10  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] Fix comparison between signed and unsigned integer warnings
+        https://bugs.webkit.org/show_bug.cgi?id=29162
+
+        No functional change.
+
+        * Api/qwebelement.cpp:
+        (QWebElement::findAll):
+        * Api/qwebhistory.cpp:
+        (QWebHistory::items):
+        (QWebHistory::backItems):
+        (QWebHistory::forwardItems):
+        (QWebHistory::saveState):
+        * Api/qwebplugindatabase.cpp:
+        (QWebPluginDatabase::setSearchPaths):
+        * WebCoreSupport/ChromeClientQt.cpp:
+        (WebCore::ChromeClientQt::runOpenPanel):
+        * WebCoreSupport/FrameLoaderClientQt.cpp:
+        (WebCore::FrameLoaderClientQt::createPlugin):
+
+2009-09-10  Simon Hausmann  <hausmann@webkit.org>
+
+        Rubber-stamped by Ariya Hidayat.
+
+        Fix a bunch of qdoc warnings: Invalid references, non-standard
+        wording, etc.
+
+        * Api/qwebelement.cpp:
+        * Api/qwebgraphicsitem.cpp:
+        * Api/qwebsecurityorigin.cpp:
+
+2009-09-10  Simon Hausmann  <hausmann@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        Fix context menu event delivery with QWebGraphicsItem.
+
+        Re-implement the correct context menu virtual function using
+        a QGraphicsSceneContextMenuEvent and forward & handle it in
+        QWebPage.
+
+        * Api/qwebgraphicsitem.cpp:
+        (QWebGraphicsItem::contextMenuEvent):
+        * Api/qwebgraphicsitem.h:
+        * Api/qwebpage.cpp:
+        (QWebPagePrivate::contextMenuEvent):
+        (QWebPage::event):
+        * Api/qwebpage_p.h:
+
+2009-09-10  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Unreviewed.
+
+        Build fix for QtWebKit for Mac after r48219.
+
+        qevent and qstyleoption are QtGui interfaces.
+
+        * Api/qwebgraphicsitem.cpp:
+        * Api/qwebgraphicsitem.h:
+
+2009-09-09  Simon Hausmann  <hausmann@webkit.org>
+
+        Reviewed by Tor Arne Vestbø.
+
+        Call the right base class function QGraphicsWidget::event() instead
+        of skipping it and using QObject::event() instead.
+
+        * Api/qwebgraphicsitem.cpp:
+        (QWebGraphicsItem::event):
+
+2009-09-09  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Unreviewed.
+
+        Fix comment at Tor Arne Vestbø's request.
+
+        * Api/qwebgraphicsitem.cpp:
+        (QWebGraphicsItem::sceneEvent):
+        (QWebGraphicsItem::event):
+
+2009-09-09  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Reviewed by Tor Arne Vestbø.
+
+        Implement some virtual event methods so that we can fix
+        event-related bugs in Qt patch releases.
+
+        * Api/qwebgraphicsitem.cpp:
+        (QWebGraphicsItem::sceneEvent):
+        (QWebGraphicsItem::event):
+        * Api/qwebgraphicsitem.h:
+
+2009-09-09  Kenneth Rohde Christiansen  <kenneth@webkit.org>, Antonio Gomes  <antonio.gomes@openbossa.org>
+
+        Reviewed by Simon Hausmann.
+
+        Add a new QGraphicsWidget based version of the "QWebView"
+        under the name "QWebGraphicsItem".
+
+        https://bugs.webkit.org/show_bug.cgi?id=28862
+
+        Includes an alternative Qt launcher using the QGraphicsView.
+
+        * Api/headers.pri:
+        * Api/qwebgraphicsitem.cpp: Added.
+        * Api/qwebgraphicsitem.h: Added.
+        * Api/qwebpage.h:
+        * QGVLauncher/QGVLauncher.pro: Copied from WebKit/qt/QtLauncher/QtLauncher.pro.
+        * QGVLauncher/main.cpp: Added.
+        * WebCoreSupport/ChromeClientQt.cpp:
+        (WebCore::ChromeClientQt::repaint):
+        (WebCore::ChromeClientQt::scroll):
+
 2009-09-08  Kenneth Rohde Christiansen  <kenneth@webkit.org>
 
         Unreviewed build fix.
@@ -3499,7 +3736,7 @@
 
         Reviewed by Simon Hausmann.
 
-        http://www.qtsoftware.com/developer/task-tracker/index_html?id=238391&method=entry
+        http://qt.nokia.com/developer/task-tracker/index_html?id=238391&method=entry
 
         [Qt] If QPainter fails to start on a QPrinter instance, do not
         continue printing.
@@ -3692,7 +3929,7 @@
 
         Rubber-stamped by Simon Hausmann.
 
-        http://www.qtsoftware.com/developer/task-tracker/index_html?id=219344&method=entry
+        http://qt.nokia.com/developer/task-tracker/index_html?id=219344&method=entry
 
         [Qt] API documentation for QWebPage::WebAction enum.
 
@@ -3747,7 +3984,7 @@
 
         Reviewed by Simon Hausmann.
 
-        http://www.qtsoftware.com/developer/task-tracker/index_html?id=241144&method=entry
+        http://qt.nokia.com/developer/task-tracker/index_html?id=241144&method=entry
 
         [Qt] Create actions for text selection and editing for QWebPage.
         Also properly disable and enable them when contentEditable is toggled.

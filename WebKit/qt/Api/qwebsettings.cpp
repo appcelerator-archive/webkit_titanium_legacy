@@ -229,6 +229,8 @@ QWebSettings* QWebSettings::globalSettings()
     \brief The QWebSettings class provides an object to store the settings used
     by QWebPage and QWebFrame.
 
+    \inmodule QtWebKit
+
     Each QWebPage object has its own QWebSettings object, which configures the
     settings for that page. If a setting is not configured, then it is looked
     up in the global settings object, which can be accessed using
@@ -325,8 +327,9 @@ QWebSettings* QWebSettings::globalSettings()
     \value JavascriptCanAccessClipboard Specifies whether JavaScript programs
         can read or write to the clipboard.
     \value DeveloperExtrasEnabled Enables extra tools for Web developers.
-        Currently this enables the "Inspect" element in the context menu,
-    which shows the WebKit WebInspector for web site debugging.
+        Currently this enables the "Inspect" element in the context menu as
+        well as the use of QWebInspector which controls the WebKit WebInspector
+        for web site debugging.
     \value LinksIncludedInFocusChain Specifies whether hyperlinks should be
         included in the keyboard focus chain.
     \value ZoomTextOnly Specifies whether the zoom factor on a frame applies to

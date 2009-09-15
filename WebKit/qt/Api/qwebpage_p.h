@@ -43,6 +43,7 @@ namespace WebCore {
     class ContextMenu;
     class EditorClientQt;
     class Element;
+    class InspectorController;
     class Node;
     class Page;
     class Frame;
@@ -53,6 +54,8 @@ class QUndoStack;
 class QMenu;
 class QBitArray;
 QT_END_NAMESPACE
+
+class QWebInspector;
 
 class QWebPagePrivate {
 public:
@@ -84,7 +87,7 @@ public:
     void mouseReleaseEvent(QMouseEvent*);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent*);
 #ifndef QT_NO_CONTEXTMENU
-    void contextMenuEvent(QContextMenuEvent*);
+    void contextMenuEvent(const QPoint& globalPos);
 #endif
 #ifndef QT_NO_WHEELEVENT
     void wheelEvent(QWheelEvent*);
@@ -110,6 +113,10 @@ public:
     void leaveEvent(QEvent*);
     void handleClipboard(QEvent*, Qt::MouseButton);
     bool handleScrolling(QKeyEvent*, WebCore::Frame*);
+
+    void setInspector(QWebInspector*);
+    QWebInspector* getOrCreateInspector();
+    WebCore::InspectorController* inspectorController();
 
 #ifndef QT_NO_SHORTCUT
     static QWebPage::WebAction editorActionForKeyEvent(QKeyEvent* event);
@@ -167,6 +174,10 @@ public:
     QAction *actions[QWebPage::WebActionCount];
 
     QWebPluginFactory *pluginFactory;
+
+    QWidget* inspectorFrontend;
+    QWebInspector* inspector;
+    bool inspectorIsInternalOnly; // True if created through the Inspect context menu action
 
     static bool drtRun;
 };

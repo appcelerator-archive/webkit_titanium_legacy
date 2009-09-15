@@ -216,11 +216,6 @@ AtomicString v8NonStringValueToAtomicWebCoreString(v8::Handle<v8::Value> object)
     return AtomicString(v8NonStringValueToWebCoreString(object));
 }
 
-v8::Handle<v8::String> v8String(const String& string)
-{
-    return v8ExternalString(string);
-}
-
 static bool stringImplCacheEnabled = false;
 
 void enableStringImplCache()
@@ -269,7 +264,7 @@ v8::Local<v8::String> v8ExternalString(const String& string)
     StringCache& stringCache = getStringCache();
     v8::String* cachedV8String = stringCache.get(stringImpl);
     if (cachedV8String)
-        return v8::Local<v8::String>(cachedV8String);
+        return v8::Local<v8::String>::New(v8::Handle<v8::String>(cachedV8String));
 
     v8::Local<v8::String> newString = makeExternalString(string);
     if (newString.IsEmpty())

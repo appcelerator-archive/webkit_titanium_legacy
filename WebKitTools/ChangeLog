@@ -1,3 +1,482 @@
+2009-09-14  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Add LayoutTests infrastructure to enable and disable webgl tests.
+        https://bugs.webkit.org/show_bug.cgi?id=29254
+
+        * Scripts/run-webkit-tests:
+        * Scripts/webkitdirs.pm:
+
+2009-09-14  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Darin Adler.
+        
+        Add --iterations option to run-webkit-tests to repeat the tests N times
+        https://bugs.webkit.org/show_bug.cgi?id=29263
+
+        When run with --iterations N, run-webkit-tests will repeat the tests N times.
+
+        * Scripts/run-webkit-tests:
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Not reviewed, maybe should've been:
+
+        Cleaning up more Windows-specific fallout from the fix for:
+        <rdar://problem/7174050> and https://bugs.webkit.org/show_bug.cgi?id=29160
+
+        * DumpRenderTree/win/ResourceLoadDelegate.cpp:
+        (ResourceLoadDelegate::didReceiveAuthenticationChallenge):  Correct printf() formatter, 
+          and call the correct method to get the Sender.
+
+2009-09-14  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        GTK build fix.
+
+        Unreviewed.
+
+        * DumpRenderTree/gtk/AccessibilityControllerGtk.cpp:
+        (AccessibilityController::setLogScrollingStartEvents):
+
+2009-09-11  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        DRT/test part of
+        <rdar://problem/7197644> WebKit should broadcast an MSAA event when
+        jumping to a named anchor
+
+        https://bugs.webkit.org/show_bug.cgi?id=28899
+
+        Reviewed by Adam Roben.
+
+        * DumpRenderTree/AccessibilityController.cpp:
+        (logScrollingStartEventsCallback):
+        Turn on logging of scrolling start events.
+        (AccessibilityController::getJSClass):
+        Add a "logScrollingStartEvents" to the AccessibilityController's JS
+        class definition.
+        (AccessibilityController::resetToConsistentState):
+        Turn off logging of scrolling start events.
+
+        * DumpRenderTree/AccessibilityController.h:
+        Declare setLogScrollingStartEvents(). Add a member for the scrolling
+        start event hook.
+
+        * DumpRenderTree/mac/AccessibilityControllerMac.cpp:
+        (AccessibilityController::setLogScrollingStartEvents):
+        Stubbed.
+
+        * DumpRenderTree/win/AccessibilityControllerWin.cpp:
+        (AccessibilityController::AccessibilityController):
+        Initialize the handle to 0.
+        (logEventProc):
+        Renamed from logFocusEventProc; now logs scrolling start events, too.
+        Removed the assertion that the event is a focus event. Added a switch
+        to print a message for focus, scrolling start, and other, unknown
+        events.
+        (AccessibilityController::setLogFocusEvents):
+        Changed to use logEventProc.
+        (AccessibilityController::setLogScrollingStartEvents):
+        If turning logging off, unhook the scrolling start event hook, and clear
+        the member holding the handle. If turning on, query for the root
+        accessible, so that accessibility is enabled for the WebView, and call
+        SetWinEventHook to setup an event hook using logEventProc as the
+        callback function.
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Windows build fix.
+
+        * DumpRenderTree/LayoutTestController.cpp:
+        (setAuthenticationPasswordCallback):
+        (setAuthenticationUsernameCallback):
+        
+        * DumpRenderTree/win/ResourceLoadDelegate.cpp:
+        (ResourceLoadDelegate::didReceiveAuthenticationChallenge):
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Safari 4 cannot be used to update firmware on Linksys routers.
+        <rdar://problem/7174050> and https://bugs.webkit.org/show_bug.cgi?id=29160
+
+        Add the ability for DRT to handle authentication challenges.
+
+        * DumpRenderTree/LayoutTestController.cpp:
+        (setAuthenticationPasswordCallback):
+        (setAuthenticationUsernameCallback):
+        (setHandlesAuthenticationChallengesCallback):
+        (LayoutTestController::staticFunctions):
+
+        * DumpRenderTree/LayoutTestController.h:
+        (LayoutTestController::handlesAuthenticationChallenges):
+        (LayoutTestController::setHandlesAuthenticationChallenges):
+        (LayoutTestController::authenticationUsername):
+        (LayoutTestController::setAuthenticationUsername):
+        (LayoutTestController::authenticationPassword):
+        (LayoutTestController::setAuthenticationPassword):
+
+        * DumpRenderTree/mac/ResourceLoadDelegate.mm:
+        (-[ResourceLoadDelegate webView:resource:didReceiveAuthenticationChallenge:fromDataSource:]):
+
+        * DumpRenderTree/win/ResourceLoadDelegate.cpp:
+        (ResourceLoadDelegate::didReceiveAuthenticationChallenge):
+        * DumpRenderTree/win/ResourceLoadDelegate.h:
+
+2009-09-12  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Test for <rdar://problem/6954546> and <rdar://problem/7090444>.
+
+        Add a flag on the test plug-in that asks it to clear the document during the call to NPP_New.
+        This is the trigger for both <rdar://problem/6954546> and <rdar://problem/7090444>.
+
+        * DumpRenderTree/TestNetscapePlugIn.subproj/main.cpp:
+        (NPP_New):
+
+2009-09-14  Kevin Ollivier  <kevino@theolliviers.com>
+
+        wx build fix for non-wxPython builds and a fix for errors when updating swig.py.
+
+        * wx/build/build_utils.py:
+        * wx/build/settings.py:
+
+2009-09-14  Csaba Osztrogonac  <oszi@inf.u-szeged.hu>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Build fix for windows build.
+
+        * Scripts/bisect-builds: Add missing paranthesis for tmpdir function.
+
+2009-09-13  Kevin Ollivier  <kevino@theolliviers.com>
+
+        Fix typo accidently landed in last commit.
+
+        * wx/build/settings.py:
+
+2009-09-13  Kevin Ollivier  <kevino@theolliviers.com>
+
+        wx build fix, error out if using the wrong Python.
+
+        * wx/build/settings.py:
+
+2009-09-13  Xan Lopez  <xlopez@igalia.com>
+
+        Build fix for GTK+ < 2.14.
+
+        Do not use gtk_widget_get_window, access the window directly
+        through the struct.
+
+        * DumpRenderTree/gtk/EventSender.cpp:
+        (contextClickCallback):
+        (mouseDownCallback):
+        (mouseUpCallback):
+        (mouseMoveToCallback):
+        (keyDownCallback):
+
+2009-09-13  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Xan Lopez and Jan Alonzo.
+
+        [GTK] EventSender does not set 'window' property on synthesized GDK events
+        https://bugs.webkit.org/show_bug.cgi?id=29169
+
+        Set the window property on synthesized GDK events in the GTK+ EventSender.
+
+        * DumpRenderTree/gtk/EventSender.cpp:
+        (contextClickCallback):
+        (mouseDownCallback):
+        (mouseUpCallback):
+        (mouseMoveToCallback):
+        (keyDownCallback):
+
+2009-09-12  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by Mark Rowe.
+
+        run-webkit-tests has a timeout value that is too low
+        https://bugs.webkit.org/show_bug.cgi?id=29223
+
+        * Scripts/run-webkit-tests:
+        Changed timeout value to 20 seconds to avoid timing out too early.
+
+2009-09-11  Kevin Ollivier  <kevino@theolliviers.com>
+
+        wx build fix. Mark dependencies as mandatory and declare which MSVC versions and
+        architectures are supported for building wxWebKit.
+
+        * wx/build/settings.py:
+
+2009-09-11  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by David Levin.
+
+        bugzilla-tool rollout threw exception under svn
+        https://bugs.webkit.org/show_bug.cgi?id=29211
+
+        * Scripts/modules/scm.py: add missing return, and convert number arguments to strings.
+        * Scripts/modules/scm_unittest.py: add testing for this fix.
+
+2009-09-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Add myself to the committers list.
+
+        * Scripts/modules/committers.py:
+
+2009-09-11  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool land-patches should only fail-fast in --commit-queue mode
+        https://bugs.webkit.org/show_bug.cgi?id=29201
+
+        * Scripts/bugzilla-tool:
+
+2009-09-11  Adam Roben  <aroben@apple.com>
+
+        Make commit-log-editor move common prefixes to the top of the log
+
+        Fies <http://webkit.org/b/29190> commit-log-editor should move common
+        prefixes to the top of the commit log
+
+        Reviewed by Darin Adler.
+
+        * Scripts/commit-log-editor: Find and remove the longest common prefix
+        ending in a double newline from each ChangeLog entry, then put that
+        common prefix at the top of the commit log.
+        (removeLongestCommonPrefixEndingInDoubleNewline): Added. Finds,
+        removes, and returns the longest common prefix ending in a double
+        newline from a hash of strings
+
+2009-09-11  Eric Seidel  <eric@webkit.org>
+
+        Fix obvious typo in previous commit, no review.
+
+        bugzilla-tool should automate rollouts
+        https://bugs.webkit.org/show_bug.cgi?id=26715
+
+        * Scripts/bugzilla-tool: add back missing "scm" argument.
+
+2009-09-11  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool should automate rollouts
+        https://bugs.webkit.org/show_bug.cgi?id=26715
+
+        bugzilla-tool rollout will do the rollout locally and leave the diff for you to verify and commit.
+        The --complete-rollout option will automatically land and update the bug.
+        Eventually --complete-rollout will be default, but that will require more testing.
+
+        This first pass is good enough for others to try and file bugs about.
+
+        * Scripts/bugzilla-tool:
+         - Move modified_changelogs into scm.py.
+         - Move svn_revision_from_commit_text logic into scm.py.
+         - Add RolloutCommit command.
+        * Scripts/modules/bugzilla.py:
+         - Add reopen_bug command used by RolloutCommit.
+        * Scripts/modules/scm.py:
+         - Add functions to support RolloutCommit.
+         - Abstract find_uuid into value_from_svn_info so it can be re-used for _repository_url (needed by svn merge).
+         - Add a str() call so that svn_commit_log can take a numeric argument.
+         - Remove a bunch of very slow code from last_svn_commit_log and used the built-in 'BASE' alias instead.
+         - Made dry_run commits return something that svn_revision_from_commit_text can parse.
+        * Scripts/modules/scm_unittest.py:
+         - Add read_from_path for easy file reading.
+         - Put test4 on a new line to make reverts work w/o conflict.
+         - Add an "svn update" call so that the checkout revision matches the server revision.
+         - Add tests for svn_revision_from_commit_text.
+         - Add a simple test for apply_reverse_diff.
+         - Add a new self.scm member and use it in the new tests (eventually other tests can use it too).
+         - Add test for svn_commit_log to make sure my 'BASE' change above worked as expected.
+
+2009-09-11  Adam Roben  <aroben@apple.com>
+
+        Get user script/stylesheet tests running on Windows
+
+        Fixes <http://webkit.org/b/29181> User script/stylesheet tests are
+        skipped on Windows
+
+        Reviewed by John Sullivan.
+
+        * DumpRenderTree/win/DumpRenderTree.vcproj: Link all configurations
+        against comsuppw.lib so we can use _bstr_t.
+
+        * DumpRenderTree/win/LayoutTestControllerWin.cpp: Fixed #include
+        order, added #include of comutil.h for _bstr_t.
+
+        (bstrT): Helper function to convert a JSStringRef to a _bstr_t.
+        (LayoutTestController::addUserScript):
+        (LayoutTestController::addUserStyleSheet):
+        Implemented. Implementations were based on those in
+        LayoutTestControllerMac.mm.
+
+2009-09-10  David Kilzer  <ddkilzer@apple.com>
+
+        <http://webkit.org/b/29147> run-webkit-tests:  make -h show help 
+
+        Reviewed by Mark Rowe.
+
+        * Scripts/run-webkit-tests: Updated to make -h switch show help.
+
+2009-09-10  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Add WebCore/websockets directory in wx build system.
+        https://bugs.webkit.org/show_bug.cgi?id=28038
+
+        * wx/build/settings.py:
+
+2009-09-10  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        [GTK] EventSender does not properly convert some keyDown strings
+        https://bugs.webkit.org/show_bug.cgi?id=29119
+
+        Add more keyDown string to character code conversions for GTK+ EventSender.
+
+        * DumpRenderTree/gtk/EventSender.cpp:
+        (keyDownCallback):
+
+2009-09-09  Steve Block  <steveblock@google.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Geolocation Coordinates::toString() prints bogus values for unspecified properties.
+        https://bugs.webkit.org/show_bug.cgi?id=29080
+
+        * Scripts/make-script-test-wrappers: Modified. Adds asynchronous Geolocation tests to exclusion list.
+
+2009-09-09  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Eric Carlson.
+
+        reviewer/committer lookups are backwards
+        https://bugs.webkit.org/show_bug.cgi?id=29113
+
+        I also moved Eric Carlson from the committer list to the reviewer list now that he is one.
+
+        * Scripts/modules/bugzilla.py:
+        * Scripts/modules/committers.py:
+
+2009-09-09  Cameron McCormack  <cam@mcc.id.au>
+
+        Reviewed by Eric Seidel.
+
+        svn-unapply doesn't revert directories correctly
+        https://bugs.webkit.org/show_bug.cgi?id=29065
+
+        * Scripts/svn-unapply: Make svnStatus consistently return status
+        lines including a newline.
+        * Scripts/svn-apply: Keep svnStatus in sync with the one in
+        svn-unapply, in lieu of moving it to a common file.
+
+2009-09-09  Cameron McCormack  <cam@mcc.id.au>
+
+        Reviewed by Eric Seidel.
+
+        svn-apply doesn't handle changes to files copied to new directories properly
+        https://bugs.webkit.org/show_bug.cgi?id=29059
+
+        * Scripts/svn-apply: Don't treat "--- revision 0" patches as being
+        additions if we know that we've just copied a file to this name.
+
+2009-09-09  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by David Levin.
+
+        commit-queue hangs if a builder has never built
+        https://bugs.webkit.org/show_bug.cgi?id=29091
+
+        * Scripts/modules/buildbot.py:
+        * Scripts/modules/buildbot_unittest.py:
+
+2009-09-09  Zan Dobersek  <zandobersek@gmail.com>
+
+        Reviewed by Gustavo Noronha.
+
+        [GTK] DumpRenderTree needs eventSender object and implementation
+        https://bugs.webkit.org/show_bug.cgi?id=25990
+
+        Implements most of the EventSender object's functionality for
+        the DumpRenderTree tool. Implementation still lacks support
+        for drag and drop tests and forward leaps.
+
+        Based on work by Holger Hans Peter Freyther.
+
+        * DumpRenderTree/gtk/DumpRenderTree.cpp:
+        (runTest): Focus on the view before loading a new test.
+        (webViewWindowObjectCleared):
+        * DumpRenderTree/gtk/EventSender.cpp: Added.
+        (getDragModeCallback):
+        (setDragModeCallback):
+        (leapForwardCallback):
+        (contextClickCallback):
+        (updateClickCount):
+        (mouseDownCallback):
+        (mouseUpCallback):
+        (mouseMoveToCallback):
+        (beginDragWithFilesCallback):
+        (replaySavedEvents):
+        (keyDownCallback):
+        (textZoomInCallback):
+        (textZoomOutCallback):
+        (zoomPageInCallback):
+        (zoomPageOutCallback):
+        (getClass):
+        (makeEventSender):
+        * DumpRenderTree/gtk/EventSender.h: Added.
+        * GNUmakefile.am: Add build rules for EventSender.
+
+2009-09-09  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Roben.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=28953
+
+        Added pre- and post- build events so that on build failure, the file 
+        buildfailed is written to the directory $(WebKitOutputDir).
+
+        * WinLauncher/WinLauncher.vcproj:
+
+2009-09-09  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Unreviewed.
+
+        Add myself to list of committers.
+
+        * Scripts/modules/committers.py:
+
+2009-09-08  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by David Levin.
+
+        commit-queue gets stuck if a non-committer sets commit-queue+ or review+
+        https://bugs.webkit.org/show_bug.cgi?id=28605
+        https://bugs.webkit.org/show_bug.cgi?id=28916
+
+        * Scripts/bugzilla-tool:
+         - Fix comment and adjust reject_patch_from_commit_queue call to pass "manual commit"
+           comment now that it's used for rejecting patches for invalid committers too.
+         - Pass reject_invalid_patches=True for commit-queue calls, normally we just ignore patches with invalid reviewers, the commit-queue rejects them.
+         - Make the commit queue print patches count instead of bugs count, this also fixes https://bugs.webkit.org/show_bug.cgi?id=28916.
+        * Scripts/modules/bugzilla.py:
+         - Make _parse_attachment_element not validate reviewer/committer.
+         - Share flag parsing code in _parse_attachment_flag.
+         - Add _validate* methods for validating reviewers and committers and updating bugs when validation fails.
+         - Add reject_invalid_patches argument so the commit-queue can update bugs on failed validation and other "read only" commands will not.
+         - Add reject_patch_from_review_queue using a new _set_flag_on_attachment abstraction.
+        * Scripts/modules/bugzilla_unittest.py:
+         - Update this test to no longer expect committer/reviewer validation.
+        * Scripts/modules/committers.py:
+         - Return None on failed lookups instead of raising Exceptions.
+        * Scripts/modules/committers_unittest.py:
+         - Update tests to expect None returns instead of exceptions.
+
 2009-09-09  David Kilzer  <ddkilzer@apple.com>
 
         <http://webkit.org/b/29061> Fix obvious copy-paste error in AccessibilityUIElement::clickPointY()

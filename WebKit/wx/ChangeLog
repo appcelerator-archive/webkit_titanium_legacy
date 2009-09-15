@@ -1,3 +1,54 @@
+2009-09-13  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        Allow a way to set the cache policy via wx API.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=29200
+
+        * WebView.cpp:
+        (wxWebView::SetCachePolicy):
+        (wxWebView::GetCachePolicy):
+        * WebView.h:
+
+2009-09-13  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        Allow the user to query Frame::shouldClose via wx API.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=29199
+
+        * WebFrame.cpp:
+        (wxWebFrame::ShouldClose):
+        * WebFrame.h:
+        * WebView.cpp:
+        (wxWebView::ShouldClose):
+        * WebView.h:
+
+2009-09-13  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        Fix mouse handling when the mouse leaves the window during mouse down.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=29198
+
+        * WebView.cpp:
+        (wxWebView::OnMouseEvents):
+
+2009-09-13  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        Add support for console MessageLevel at wx API level.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=29197
+
+        * WebKitSupport/ChromeClientWx.cpp:
+        (WebCore::ChromeClientWx::addMessageToConsole):
+        * WebView.h:
+
 2009-09-03  Adam Barth  <abarth@webkit.org>
 
         Reviewed by eric@webkit.org.

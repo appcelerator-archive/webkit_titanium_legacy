@@ -234,9 +234,6 @@
 #elif !defined(__ARM_EABI__) && !defined(__EABI__) && !defined(__VFP_FP__)
 #define WTF_PLATFORM_MIDDLE_ENDIAN 1
 #endif
-#if !defined(__ARM_EABI__) && !defined(__EABI__)
-#define WTF_PLATFORM_FORCE_PACK 1
-#endif
 #define ARM_ARCH_VERSION 3
 #if defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__)
 #undef ARM_ARCH_VERSION
@@ -282,7 +279,7 @@
 #endif
 
 /* PLATFORM(SPARC64) */
-#if defined(__sparc64__)
+#if defined(__sparc__) && defined(__arch64__) || defined (__sparcv9)
 #define WTF_PLATFORM_SPARC64 1
 #define WTF_PLATFORM_BIG_ENDIAN 1
 #endif
@@ -723,10 +720,6 @@
 
 #if !defined(ENABLE_PAN_SCROLLING) && PLATFORM(WIN_OS)
 #define ENABLE_PAN_SCROLLING 1
-#endif
-
-#if !defined(ENABLE_ACTIVEX_TYPE_CONVERSION_WMPLAYER)
-#define ENABLE_ACTIVEX_TYPE_CONVERSION_WMPLAYER 1
 #endif
 
 /* Use the QtXmlStreamReader implementation for XMLTokenizer */

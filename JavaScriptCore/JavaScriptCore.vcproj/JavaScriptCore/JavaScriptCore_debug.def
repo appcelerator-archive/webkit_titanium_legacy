@@ -124,6 +124,9 @@ EXPORTS
     ?getOwnPropertyDescriptor@JSObject@JSC@@UAE_NPAVExecState@2@ABVIdentifier@2@AAVPropertyDescriptor@2@@Z
     ?getOwnPropertyDescriptor@JSString@JSC@@EAE_NPAVExecState@2@ABVIdentifier@2@AAVPropertyDescriptor@2@@Z
     ?getOwnPropertyDescriptor@StringObject@JSC@@UAE_NPAVExecState@2@ABVIdentifier@2@AAVPropertyDescriptor@2@@Z
+    ?getOwnPropertyNames@JSObject@JSC@@UAEXPAVExecState@2@AAVPropertyNameArray@2@@Z
+    ?getOwnPropertyNames@JSVariableObject@JSC@@UAEXPAVExecState@2@AAVPropertyNameArray@2@@Z
+    ?getOwnPropertyNames@StringObject@JSC@@UAEXPAVExecState@2@AAVPropertyNameArray@2@@Z
     ?getOwnPropertySlot@JSCell@JSC@@EAE_NPAVExecState@2@ABVIdentifier@2@AAVPropertySlot@2@@Z
     ?getOwnPropertySlot@JSCell@JSC@@EAE_NPAVExecState@2@IAAVPropertySlot@2@@Z
     ?getOwnPropertySlot@JSObject@JSC@@UAE_NPAVExecState@2@IAAVPropertySlot@2@@Z
@@ -138,8 +141,6 @@ EXPORTS
     ?getPropertyAttributes@JSVariableObject@JSC@@UBE_NPAVExecState@2@ABVIdentifier@2@AAI@Z
     ?getPropertyDescriptor@JSObject@JSC@@QAE_NPAVExecState@2@ABVIdentifier@2@AAVPropertyDescriptor@2@@Z
     ?getPropertyNames@JSObject@JSC@@UAEXPAVExecState@2@AAVPropertyNameArray@2@@Z
-    ?getPropertyNames@JSVariableObject@JSC@@UAEXPAVExecState@2@AAVPropertyNameArray@2@@Z
-    ?getPropertyNames@StringObject@JSC@@UAEXPAVExecState@2@AAVPropertyNameArray@2@@Z
     ?getSlice@ArgList@JSC@@QBEXHAAV12@@Z
     ?getString@JSCell@JSC@@QBE?AVUString@2@XZ
     ?getString@JSCell@JSC@@QBE_NAAVUString@2@@Z
@@ -270,6 +271,7 @@ EXPORTS
     ?toUInt32@UString@JSC@@QBEIPA_N_N@Z
     ?toUInt32SlowCase@JSC@@YAINAA_N@Z
     ?tryFastCalloc@WTF@@YA?AUTryMallocReturnValue@1@II@Z
+    ?tryFastMalloc@WTF@@YA?AUTryMallocReturnValue@1@I@Z
     ?tryLock@Mutex@WTF@@QAE_NXZ
     ?type@DebuggerCallFrame@JSC@@QBE?AW4Type@12@XZ
     ?unlock@JSLock@JSC@@SAXW4JSLockBehavior@2@@Z

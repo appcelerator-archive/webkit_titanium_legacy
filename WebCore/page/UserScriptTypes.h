@@ -36,8 +36,8 @@ enum UserScriptInjectionTime { InjectAtDocumentStart, InjectAtDocumentEnd };
 class UserScript;
 
 typedef Vector<OwnPtr<UserScript> > UserScriptVector;
-typedef HashMap<int, UserScriptVector*> UserScriptMap;
+typedef HashMap<unsigned, UserScriptVector*> UserScriptMap;
 
-} // namsepace WebCore
+} // namespace WebCore
  
 #endif // UserScriptTypes_h

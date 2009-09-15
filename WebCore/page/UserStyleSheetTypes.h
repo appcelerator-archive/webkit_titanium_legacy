@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2009 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -10,10 +10,10 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+ * THIS SOFTWARE IS PROVIDED BY APPLE COMPUTER, INC. ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE COMPUTER, INC. OR
  * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
  * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
@@ -22,17 +22,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
+ 
+#ifndef UserStyleSheetTypes_h
+#define UserStyleSheetTypes_h
 
-#include "config.h"
-#include "Coordinates.h"
+#include <wtf/HashMap.h>
+#include <wtf/Vector.h>
 
 namespace WebCore {
 
-String Coordinates::toString() const
-{
-    return String::format("coordinate(%.6lg, %.6lg, %.6lg, %.6lg, %.6lg, %.6lg, %.6lg)",
-                          m_latitude, m_longitude, m_altitude, m_accuracy,
-                          m_altitudeAccuracy, m_heading, m_speed);
-}
+class UserStyleSheet;
+
+typedef Vector<OwnPtr<UserStyleSheet> > UserStyleSheetVector;
+typedef HashMap<unsigned, UserStyleSheetVector*> UserStyleSheetMap;
 
 } // namespace WebCore
+ 
+#endif // UserStyleSheetTypes_h
