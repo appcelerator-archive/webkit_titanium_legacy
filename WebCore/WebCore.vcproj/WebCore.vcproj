@@ -31568,6 +31568,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\inspector\front-end\Popup.js"
+					>
+				</File>
+				<File
 					RelativePath="..\inspector\front-end\ProfileDataGridTree.js"
 					>
 				</File>

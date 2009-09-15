@@ -1,3 +1,71 @@
+2009-09-14  Andrew Richards  <randrew@gmail.com>
+
+        Reviewed by Sam Weinig.
+
+        Document.elementFromPoint() and Document.caretRangeFromPoint() returning null at points visible only after scrolling.
+        https://bugs.webkit.org/show_bug.cgi?id=29245
+
+        Extend tests to include hits in areas that are not in the initial containing block of the page.
+
+        * fast/dom/Document/CaretRangeFromPoint/hittest-relative-to-viewport-expected.txt:
+        * fast/dom/Document/CaretRangeFromPoint/hittest-relative-to-viewport.html:
+        * fast/dom/elementFromPoint-relative-to-viewport-expected.txt:
+        * fast/dom/elementFromPoint-relative-to-viewport.html:
+
+2009-09-15  Jungshik Shin  <jshin@chromium.org>
+
+        Reviewed by Eric Seidel
+
+        http://bugs.webkit.org/show_bug.cgi?id=26660
+
+        Chromium Windows: When rotated, the baseline for a span of complex
+        script is completely misaligned with that of the adjacent simple
+        script text.
+
+        * transforms/2d/hindi-rotated.html: Added.
+        * platform/mac/transforms/2d/hindi-rotated-expected.checksum: Added.
+        * platform/mac/transforms/2d/hindi-rotated-expected.png: Added.
+        * platform/mac/transforms/2d/hindi-rotated-expected.txt: Added.
+        * platform/win/transforms: Added.
+        * platform/win/transforms/2d: Added.
+        * platform/win/transforms/2d/hindi-rotated-expected.checksum: Added.
+        * platform/win/transforms/2d/hindi-rotated-expected.png: Added.
+        * platform/win/transforms/2d/hindi-rotated-expected.txt: Added.
+
+2009-09-15  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by Darin Adler.
+
+        MessageEvent should not be cancelable by default
+        https://bugs.webkit.org/show_bug.cgi?id=27846
+
+        * fast/events/message-port-expected.txt:
+        * fast/events/message-port.html:
+        Added test case to check state of MessageEvent.cancelable attribute.
+
+2009-09-15  Charles Wei  <charles.wei@torchmobile.com.cn>
+
+        Reviewed by George Staikos.
+
+        Add a new test case for SVG Path parsing with a default command and starts with dot '.'
+        https://bugs.webkit.org/show_bug.cgi?id=29123
+
+        * svg/dom/path-parser-expected.txt:
+        * svg/dom/resources/path-parser.js:
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Page cache should support pages with unload handlers as an experiment.
+        <rdar://problem/7196485> and https://bugs.webkit.org/show_bug.cgi?id=29021
+
+        Disable fast/loader/frames-with-unload-handlers-in-page-cache.html as it doesn't
+        make sense in the context of this experiment.
+
+        * platform/mac/Skipped: 
+        * platform/win/Skipped:
+
 2009-09-14  Chris Marrin  <cmarrin@apple.com>
 
         Reviewed by Oliver Hunt.

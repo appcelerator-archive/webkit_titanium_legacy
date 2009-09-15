@@ -1,3 +1,255 @@
+2009-09-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Removed the jsEventListeners set from JSDOMGlobalObject, to simplify
+        creation and destruction of JSDOMGlobalObject and event listeners.
+        
+        Added an abstract operator==() to EventListener, to replace the
+        jsEventListeners set's role in determining if two event listeners are
+        equal from the DOM's perspective.
+        
+        Added a type field to EventListener, and casting operations, to support
+        operator==() and other abstract operations.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSAbstractWorkerCustom.cpp:
+        (WebCore::JSAbstractWorker::addEventListener):
+        (WebCore::JSAbstractWorker::removeEventListener):
+        * bindings/js/JSDOMApplicationCacheCustom.cpp:
+        (WebCore::JSDOMApplicationCache::addEventListener):
+        (WebCore::JSDOMApplicationCache::removeEventListener):
+        * bindings/js/JSDOMGlobalObject.cpp:
+        * bindings/js/JSDOMGlobalObject.h:
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::addEventListener):
+        (WebCore::JSDOMWindow::removeEventListener):
+        * bindings/js/JSDesktopNotificationsCustom.cpp:
+        (WebCore::JSNotification::addEventListener):
+        (WebCore::):
+        * bindings/js/JSEventListener.cpp:
+        (WebCore::JSEventListener::JSEventListener):
+        (WebCore::JSEventListener::~JSEventListener):
+        (WebCore::JSEventListener::markJSFunction):
+        (WebCore::JSEventListener::handleEvent):
+        (WebCore::JSEventListener::reportError):
+        (WebCore::JSEventListener::operator==):
+        * bindings/js/JSEventListener.h:
+        (WebCore::JSEventListener::cast):
+        * bindings/js/JSEventSourceCustom.cpp:
+        (WebCore::JSEventSource::addEventListener):
+        (WebCore::JSEventSource::removeEventListener):
+        * bindings/js/JSMessagePortCustom.cpp:
+        (WebCore::JSMessagePort::addEventListener):
+        (WebCore::JSMessagePort::removeEventListener):
+        * bindings/js/JSNodeCustom.cpp:
+        (WebCore::JSNode::addEventListener):
+        (WebCore::JSNode::removeEventListener):
+        * bindings/js/JSSVGElementInstanceCustom.cpp:
+        (WebCore::JSSVGElementInstance::addEventListener):
+        (WebCore::JSSVGElementInstance::removeEventListener):
+        * bindings/js/JSWorkerContextCustom.cpp:
+        (WebCore::JSWorkerContext::addEventListener):
+        (WebCore::JSWorkerContext::removeEventListener):
+        * bindings/js/JSXMLHttpRequestCustom.cpp:
+        (WebCore::JSXMLHttpRequest::addEventListener):
+        (WebCore::JSXMLHttpRequest::removeEventListener):
+        * bindings/js/JSXMLHttpRequestUploadCustom.cpp:
+        (WebCore::JSXMLHttpRequestUpload::addEventListener):
+        (WebCore::JSXMLHttpRequestUpload::removeEventListener):
+        * bindings/objc/ObjCEventListener.h:
+        (WebCore::ObjCEventListener::cast):
+        * bindings/objc/ObjCEventListener.mm:
+        (WebCore::ObjCEventListener::ObjCEventListener):
+        (WebCore::ObjCEventListener::operator==):
+        * dom/EventListener.h:
+        (WebCore::EventListener::):
+        (WebCore::EventListener::type):
+        (WebCore::EventListener::EventListener):
+        * dom/MessagePort.cpp:
+        (WebCore::MessagePort::addEventListener):
+        (WebCore::MessagePort::removeEventListener):
+        * dom/Node.cpp:
+        (WebCore::Node::removeEventListener):
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::InspectorDOMAgent):
+        (WebCore::InspectorDOMAgent::mainFrameDocument):
+        (WebCore::InspectorDOMAgent::operator==):
+        * inspector/InspectorDOMAgent.h:
+        (WebCore::InspectorDOMAgent::cast):
+        * loader/ImageDocument.cpp:
+        (WebCore::ImageEventListener::cast):
+        (WebCore::ImageEventListener::ImageEventListener):
+        (WebCore::ImageEventListener::operator==):
+        * loader/appcache/DOMApplicationCache.cpp:
+        (WebCore::DOMApplicationCache::addEventListener):
+        (WebCore::DOMApplicationCache::removeEventListener):
+        * notifications/Notification.cpp:
+        (WebCore::Notification::removeEventListener):
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::removeEventListener):
+        * page/EventSource.cpp:
+        (WebCore::EventSource::addEventListener):
+        (WebCore::EventSource::removeEventListener):
+        * svg/animation/SVGSMILElement.cpp:
+        (WebCore::ConditionEventListener::cast):
+        (WebCore::ConditionEventListener::ConditionEventListener):
+        (WebCore::ConditionEventListener::operator==):
+        (WebCore::ConditionEventListener::handleEvent):
+        * workers/AbstractWorker.cpp:
+        (WebCore::AbstractWorker::addEventListener):
+        (WebCore::AbstractWorker::removeEventListener):
+        * workers/WorkerContext.cpp:
+        (WebCore::WorkerContext::addEventListener):
+        (WebCore::WorkerContext::removeEventListener):
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::addEventListener):
+        (WebCore::XMLHttpRequest::removeEventListener):
+        * xml/XMLHttpRequestUpload.cpp:
+        (WebCore::XMLHttpRequestUpload::addEventListener):
+        (WebCore::XMLHttpRequestUpload::removeEventListener):
+
+2009-09-15  Alex Milowski  <alex@milowski.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        Added ENABLE_MATHML to feature defines
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-09-14  Andrew Richards  <randrew@gmail.com>
+
+        Reviewed by Sam Weinig.
+
+        Document.elementFromPoint() and Document.caretRangeFromPoint() erroneously returning null at points visible only after scrolling.
+        https://bugs.webkit.org/show_bug.cgi?id=29245
+
+        Use visibleContentRect() instead of boundsRect() when checking hit point bounds on viewport.
+
+        * dom/Document.cpp:
+        (WebCore::Document::elementFromPoint):
+        (WebCore::Document::caretRangeFromPoint):
+
+2009-09-15  Jungshik Shin  <jshin@chromium.org>
+
+        Reviewed by Eric Seidel
+
+        http://bugs.webkit.org/show_bug.cgi?id=26660
+
+        Chromium Windows: When rotated, the baseline for a span of complex
+        script is completely misaligned with that of the adjacent 
+        simple script text. It's fixed by not applying the baseline offset for
+        the Skia code path.
+
+        Test: transforms/2d/hindi-rotated.html
+
+        * platform/graphics/chromium/UniscribeHelper.cpp:
+        (WebCore::UniscribeHelper::draw):
+
+2009-09-15  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Pass the PopupMenu pointer to CreateWindowEx and then get it from the LPCREATESTRUCT in
+        the WM_CREATE handler. This way we don't have to first create an zero size window and then size it.
+        
+        * platform/win/PopupMenuWin.cpp:
+        (WebCore::PopupMenu::show):
+        (WebCore::PopupMenu::PopupMenuWndProc):
+
+2009-09-15  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by Darin Adler.
+
+        MessageEvent should not be cancelable by default
+        https://bugs.webkit.org/show_bug.cgi?id=27846
+
+        * dom/MessageEvent.cpp:
+        (WebCore::MessageEvent::MessageEvent):
+        Changed constructor to set cancelable=false by default, per the HTML5 spec.
+
+2009-09-15  Charles Wei  <charles.wei@torchmobile.com.cn>
+
+        Reviewed by George Staikos.
+
+        Fix SVG path parsing error if a command starts with dot '.'
+        https://bugs.webkit.org/show_bug.cgi?id=29123
+
+        * svg/SVGParserUtilities.cpp:
+        (WebCore::SVGPathParser::parseSVG):
+
+2009-09-15  Alexander Pavlov  <apavlov@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Implement conditional breakpoints in the Web Inspector frontend.
+        https://bugs.webkit.org/show_bug.cgi?id=28908
+
+        * English.lproj/localizedStrings.js:
+        * WebCore.gypi:
+        * WebCore.vcproj/WebCore.vcproj:
+        * inspector/front-end/Breakpoint.js:
+        (WebInspector.Breakpoint.prototype.set condition):
+        * inspector/front-end/Popup.js: Added.
+        (WebInspector.Popup):
+        (WebInspector.Popup.prototype.show):
+        (WebInspector.Popup.prototype.hide):
+        (WebInspector.Popup.prototype.get visible):
+        (WebInspector.Popup.prototype.set element):
+        (WebInspector.Popup.prototype.get element):
+        (WebInspector.Popup.prototype.positionElement):
+        (WebInspector.Popup.prototype.set anchor):
+        (WebInspector.Popup.prototype.get anchor):
+        (WebInspector.Popup.prototype.set autoHide):
+        (WebInspector.Popup.prototype._checkNotVisible):
+        (WebInspector.Popup.prototype._keyEventHandler):
+        (WebInspector.Popup.prototype._mouseDownEventHandler):
+        * inspector/front-end/SourceFrame.js:
+        (WebInspector.SourceFrame.prototype.revealLine):
+        (WebInspector.SourceFrame.prototype._loaded):
+        (WebInspector.SourceFrame.prototype._documentContextMenu):
+        (WebInspector.SourceFrame.prototype._documentMouseDown):
+        (WebInspector.SourceFrame.prototype._editBreakpointCondition.committed):
+        (WebInspector.SourceFrame.prototype._editBreakpointCondition.dismissed):
+        (WebInspector.SourceFrame.prototype._editBreakpointCondition):
+        (WebInspector.SourceFrame.prototype._showBreakpointConditionPopup):
+        (WebInspector.SourceFrame.prototype._createPopupElement):
+        (WebInspector.SourceFrame.prototype._addBreakpointToSource):
+        (WebInspector.SourceFrame.prototype._removeBreakpointFromSource):
+        (WebInspector.SourceFrame.prototype._drawBreakpointImagesIfNeeded.drawBreakpoint):
+        (WebInspector.SourceFrame.prototype._drawBreakpointImagesIfNeeded):
+        * inspector/front-end/WebKit.qrc:
+        * inspector/front-end/inspector.html:
+        * inspector/front-end/inspector.js:
+        (WebInspector.set currentFocusElement):
+        (WebInspector.set currentPanel):
+        (WebInspector.loaded):
+        (WebInspector.contextMenu):
+        (WebInspector.elementDragStart):
+        (WebInspector.updateResource):
+        (WebInspector.drawLoadingPieChart):
+        (WebInspector.linkifyURLAsNode):
+        (WebInspector.startEditing.getContent):
+        (WebInspector.startEditing.editingCancelled):
+        (WebInspector.startEditing.editingCommitted):
+        * inspector/front-end/utilities.js:
+        (Element.prototype.positionAt):
+        (Element.prototype.offsetRelativeToWindow):
+
+2009-09-14  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Page cache should support pages with unload handlers as an experiment.
+        <rdar://problem/7196485> and https://bugs.webkit.org/show_bug.cgi?id=29021
+
+        For the experiment, only allow pages with unload handlers into the Page Cache on
+        Mac and Windows.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::canCachePageContainingThisFrame):
+        (WebCore::FrameLoader::logCanCacheFrameDecision):
+
 2009-09-14  Simon Fraser  <simon.fraser@apple.com>
 
         Fix the change in r48376 to do a null-check to fix a crashing test.

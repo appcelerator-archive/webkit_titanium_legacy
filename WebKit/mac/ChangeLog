@@ -1,3 +1,37 @@
+2009-09-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Fixed position elements flash when CSS transforms are applied on page > 2048px tall
+        https://bugs.webkit.org/show_bug.cgi?id=27272
+        
+        Update the previous workaround for misplaced compositing layers, which used a 4096px
+        threshold, to 2048px since that's the GPU max texture size on some older hardware.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView _updateLayerHostingViewPosition]):
+
+2009-09-15  Alex Milowski  <alex@milowski.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        Added the ENABLE_MATHML to the feaure defines
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-09-15  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Anders Carlsson.
+
+        <rdar://problem/7224378> REGRESSION(r48360): Dragging a tab with a plug-in out of a window, the plug-in gets slow and confused
+
+        In r48360, the fix for <rdar://problem/7090444>, I neglected to consider the case where the plug-in had already been started and
+        -start would do an early-return rather than calling -restartTimers and -addWindowObservers itself.
+
+        * Plugins/WebBaseNetscapePluginView.mm:
+        (-[WebBaseNetscapePluginView viewDidMoveToWindow]): Reinstate the call to -restartTimers and -addWindowObservers, but guard them
+        with a check that the view is still in the window.
+
 2009-09-14  Brady Eidson  <beidson@apple.com>
 
         Reviewed by Alexey Proskuryakov.
