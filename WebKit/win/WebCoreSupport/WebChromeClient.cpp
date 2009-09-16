@@ -223,7 +223,7 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
     if (features.dialog) {
         if (FAILED(delegate->createModalDialog(m_webView, request.get(), &newWebView)))
             return 0;
-    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request, windowFeatures.get(), &webView)))
+    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request.get(), windowFeatures.get(), &newWebView)))
         return 0;
 
     return newWebView ? core(newWebView.get()) : 0;

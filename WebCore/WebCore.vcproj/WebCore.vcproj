@@ -6524,6 +6524,14 @@
 				>
 			</File>
 			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorBackend.cpp"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorBackend.h"
+				>
+			</File>
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorController.cpp"
 				>
 				<FileConfiguration
@@ -6566,14 +6574,6 @@
 						Name="VCCLCompilerTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorBackend.cpp"
-				>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSInspectorBackend.h"
-				>
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSJavaScriptCallFrame.cpp"
@@ -10084,6 +10084,14 @@
 				>
 			</File>
 			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementInstanceList.h"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
+				>
+			</File>
+			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
 				>
 				<FileConfiguration
@@ -10126,14 +10134,6 @@
 						Name="VCCLCompilerTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementInstanceList.h"
-				>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
-				>
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.h"
@@ -15708,54 +15708,6 @@
 				>
 			</File>
 			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSWheelEvent.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug_Internal|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug_Cairo|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release_Cairo|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSWheelEvent.h"
-				>
-			</File>
-			<File
 				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSWebSocket.cpp"
 				>
 				<FileConfiguration
@@ -15801,6 +15753,54 @@
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\WebCore\DerivedSources\JSWebSocket.h"
+				>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSWheelEvent.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSWheelEvent.h"
 				>
 			</File>
 			<File
@@ -17117,19 +17117,19 @@
 				RelativePath="..\page\Settings.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="..\page\UserScript.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="..\page\UserScriptTypes.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="..\page\UserStyleSheet.h"
 				>
 			</File>
-                        <File
+			<File
 				RelativePath="..\page\UserStyleSheetTypes.h"
 				>
 			</File>
@@ -20872,6 +20872,18 @@
 							/>
 						</FileConfiguration>
 					</File>
+					<File
+						RelativePath="..\platform\network\curl\SocketStreamError.h"
+						>
+					</File>
+					<File
+						RelativePath="..\platform\network\curl\SocketStreamHandle.h"
+						>
+					</File>
+					<File
+						RelativePath="..\platform\network\curl\SocketStreamHandleCurl.cpp"
+						>
+					</File>
 				</Filter>
 			</Filter>
 			<Filter
@@ -21916,18 +21928,18 @@
 					>
 				</File>
 			</Filter>
- 			<Filter
- 				Name="mock"
- 				>
- 				<File
- 					RelativePath="..\platform\mock\GeolocationServiceMock.cpp"
- 					>
- 				</File>
- 				<File
- 					RelativePath="..\platform\mock\GeolocationServiceMock.h"
- 					>
- 				</File>
- 			</Filter>
+			<Filter
+				Name="mock"
+				>
+				<File
+					RelativePath="..\platform\mock\GeolocationServiceMock.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\platform\mock\GeolocationServiceMock.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="css"
@@ -25201,6 +25213,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\html\DataGridColumn.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridColumn.h"
+				>
+			</File>
+			<File
 				RelativePath="..\html\DataGridColumn.h"
 				>
 			</File>
@@ -25209,7 +25229,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\html\DataGridColumnList.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\html\DataGridColumnList.h"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridColumnList.h"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DataGridDataSource.h"
 				>
 			</File>
 			<File
@@ -25222,26 +25254,6 @@
 			</File>
 			<File
 				RelativePath="..\html\DOMDataGridDataSource.h"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridColumn.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridColumn.h"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridColumnList.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridColumnList.h"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridDataSource.h"
 				>
 			</File>
 			<File
@@ -28920,11 +28932,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSCanvasRenderingContextCustom.cpp"
+					RelativePath="..\bindings\js\JSCanvasRenderingContext2DCustom.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSCanvasRenderingContext2DCustom.cpp"
+					RelativePath="..\bindings\js\JSCanvasRenderingContextCustom.cpp"
 					>
 				</File>
 				<File
@@ -31093,11 +31105,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\storage\SQLTransactionClient.h"
+				RelativePath="..\storage\SQLTransactionClient.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\storage\SQLTransactionClient.cpp"
+				RelativePath="..\storage\SQLTransactionClient.h"
 				>
 			</File>
 			<File

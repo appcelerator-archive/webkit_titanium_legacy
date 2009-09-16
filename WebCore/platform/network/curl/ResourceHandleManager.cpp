@@ -200,7 +200,7 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
         KURL titaniumURL = KURL(KURL(), d->m_titaniumURL);
         KURL normalized(TitaniumProtocols::NormalizeURL(titaniumURL));
 
-        if (equalIgnoringRef(normalized, titaniumURL)) {
+        if (equalIgnoringFragmentIdentifier(normalized, titaniumURL)) {
             d->m_response.setURL(titaniumURL);
             d->m_response.setHTTPStatusCode(200);
             d->m_response.setHTTPStatusText("OK");
