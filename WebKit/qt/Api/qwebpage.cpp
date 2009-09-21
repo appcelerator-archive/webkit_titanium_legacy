@@ -432,13 +432,13 @@ void QWebPagePrivate::_q_webActionTriggered(bool checked)
     q->triggerAction(action, checked);
 }
 
-#ifndef NDEBUG
 void QWebPagePrivate::_q_cleanupLeakMessages()
 {
+#ifndef NDEBUG
     // Need this to make leak messages accurate.
     cache()->setCapacities(0, 0, 0);
-}
 #endif
+}
 
 void QWebPagePrivate::updateAction(QWebPage::WebAction action)
 {
@@ -2908,6 +2908,9 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
             break;
         case QSysInfo::WV_VISTA:
             ver = "Windows NT 6.0";
+            break;
+        case QSysInfo::WV_WINDOWS7:
+            ver = "Windows NT 6.1";
             break;
         case QSysInfo::WV_CE:
             ver = "Windows CE";

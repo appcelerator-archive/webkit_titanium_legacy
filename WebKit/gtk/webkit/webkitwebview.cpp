@@ -62,11 +62,13 @@
 #include "InspectorClientGtk.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
+#include "MouseEventWithHitTestResults.h"
 #include "PasteboardHelper.h"
 #include "PlatformKeyboardEvent.h"
 #include "PlatformWheelEvent.h"
 #include "ProgressTracker.h"
 #include "ResourceHandle.h"
+#include "RenderView.h"
 #include "ScriptValue.h"
 #include "Scrollbar.h"
 #include <wtf/GOwnPtr.h>
@@ -274,7 +276,7 @@ static gboolean webkit_web_view_popup_menu_handler(GtkWidget* widget)
     }
 
     int x, y;
-    gdk_window_get_origin(GTK_WIDGET(view->hostWindow()->platformWindow())->window, &x, &y);
+    gdk_window_get_origin(GTK_WIDGET(view->hostWindow()->platformPageClient())->window, &x, &y);
 
     // FIXME: The IntSize(0, -1) is a hack to get the hit-testing to result in the selected element.
     // Ideally we'd have the position of a context menu event be separate from its target node.
@@ -3022,6 +3024,12 @@ void webkit_web_view_load_request(WebKitWebView* webView, WebKitNetworkRequest* 
     webkit_web_frame_load_request(frame, request);
 }
 
+/**
+ * webkit_web_view_stop_loading:
+ * @webView: a #WebKitWebView
+ * 
+ * Stops any ongoing load in the @webView.
+ **/
 void webkit_web_view_stop_loading(WebKitWebView* webView)
 {
     g_return_if_fail(WEBKIT_IS_WEB_VIEW(webView));
@@ -3029,7 +3037,7 @@ void webkit_web_view_stop_loading(WebKitWebView* webView)
     Frame* frame = core(webView)->mainFrame();
 
     if (FrameLoader* loader = frame->loader())
-        loader->stopAllLoaders();
+        loader->stopForUserCancel();
 }
 
 /**
@@ -3913,4 +3921,40 @@ GList* webkit_web_view_get_subresources(WebKitWebView* webView)
     WebKitWebViewPrivate* priv = webView->priv;
     GList* subResources = g_hash_table_get_values(priv->subResources);
     return g_list_remove(subResources, priv->mainResource);
+}
+
+/* From EventHandler.cpp */
+static IntPoint documentPointForWindowPoint(Frame* frame, const IntPoint& windowPoint)
+{
+    FrameView* view = frame->view();
+    // FIXME: Is it really OK to use the wrong coordinates here when view is 0?
+    // Historically the code would just crash; this is clearly no worse than that.
+    return view ? view->windowToContents(windowPoint) : windowPoint;
+}
+
+/**
+ * webkit_web_view_get_hit_test_result:
+ * @webView: a #WebKitWebView
+ * @event: a #GdkEventButton
+ * 
+ * Does a 'hit test' in the coordinates specified by @event to figure
+ * out context information about that position in the @webView.
+ * 
+ * Returns: a newly created #WebKitHitTestResult with the context of the
+ * specified position.
+ *
+ * Since: 1.1.15
+ **/
+WebKitHitTestResult* webkit_web_view_get_hit_test_result(WebKitWebView* webView, GdkEventButton* event)
+{
+    g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), NULL);
+    g_return_val_if_fail(event, NULL);
+
+    PlatformMouseEvent mouseEvent = PlatformMouseEvent(event);
+    Frame* frame = core(webView)->mainFrame();
+    HitTestRequest request(HitTestRequest::Active);
+    IntPoint documentPoint = documentPointForWindowPoint(frame, mouseEvent.pos());
+    MouseEventWithHitTestResults mev = frame->document()->prepareMouseEvent(request, documentPoint, mouseEvent);
+
+    return kit(mev.hitTestResult());
 }

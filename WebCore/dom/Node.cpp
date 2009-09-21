@@ -452,9 +452,6 @@ Node::~Node()
     liveNodeSet.remove(this);
 #endif
 
-    if (!eventListeners().isEmpty() && !inDocument())
-        document()->unregisterDisconnectedNodeWithEventListeners(this);
-
     if (!hasRareData())
         ASSERT(!NodeRareData::rareDataMap().contains(this));
     else {
@@ -2357,34 +2354,22 @@ const RegisteredEventListenerVector& Node::eventListeners() const
 
 void Node::insertedIntoDocument()
 {
-    if (!eventListeners().isEmpty())
-        document()->unregisterDisconnectedNodeWithEventListeners(this);
-
     setInDocument(true);
 }
 
 void Node::removedFromDocument()
 {
-    if (!eventListeners().isEmpty())
-        document()->registerDisconnectedNodeWithEventListeners(this);
-
     setInDocument(false);
 }
 
 void Node::willMoveToNewOwnerDocument()
 {
-    if (!eventListeners().isEmpty())
-        document()->unregisterDisconnectedNodeWithEventListeners(this);
-
     ASSERT(!willMoveToNewOwnerDocumentWasCalled);
     setWillMoveToNewOwnerDocumentWasCalled(true);
 }
 
 void Node::didMoveToNewOwnerDocument()
 {
-    if (!eventListeners().isEmpty())
-        document()->registerDisconnectedNodeWithEventListeners(this);
-
     ASSERT(!didMoveToNewOwnerDocumentWasCalled);
     setDidMoveToNewOwnerDocumentWasCalled(true);
 }
@@ -2416,21 +2401,14 @@ static inline void updateSVGElementInstancesAfterEventListenerChange(Node* refer
 
 void Node::addEventListener(const AtomicString& eventType, PassRefPtr<EventListener> listener, bool useCapture)
 {
-    Document* document = this->document();
-    if (!document->attached())
-        return;
-
-    document->addListenerTypeIfNeeded(eventType);
+    if (Document* document = this->document())
+        document->addListenerTypeIfNeeded(eventType);
 
     RegisteredEventListenerVector& listeners = ensureRareData()->ensureListeners();
 
     // Remove existing identical listener set with identical arguments.
     // The DOM2 spec says that "duplicate instances are discarded" in this case.
     removeEventListener(eventType, listener.get(), useCapture);
-
-    // adding the first one
-    if (listeners.isEmpty() && !inDocument())
-        document->registerDisconnectedNodeWithEventListeners(this);
 
     listeners.append(RegisteredEventListener::create(eventType, listener, useCapture));
     updateSVGElementInstancesAfterEventListenerChange(this);
@@ -2451,10 +2429,6 @@ void Node::removeEventListener(const AtomicString& eventType, EventListener* lis
         if (r.eventType() == eventType && r.useCapture() == useCapture && *r.listener() == *listener) {
             r.setRemoved(true);
             listeners->remove(i);
-
-            // removed last
-            if (listeners->isEmpty() && !inDocument())
-                document()->unregisterDisconnectedNodeWithEventListeners(this);
 
             updateSVGElementInstancesAfterEventListenerChange(this);
             return;
@@ -2551,9 +2525,11 @@ bool Node::dispatchGenericEvent(PassRefPtr<Event> prpEvent)
     ASSERT(event->target());
     ASSERT(!event->type().isNull()); // JavaScript code can create an event with an empty name, but not null.
 
+#if ENABLE(INSPECTOR)
     InspectorTimelineAgent* timelineAgent = document()->inspectorTimelineAgent();
     if (timelineAgent)
         timelineAgent->willDispatchDOMEvent(*event);
+#endif
 
     // Make a vector of ancestors to send the event to.
     // If the node is not in a document just send the event to it.
@@ -2666,8 +2642,10 @@ doneDispatching:
     }
 
 doneWithDefault:
+#if ENABLE(INSPECTOR)
     if (timelineAgent)
         timelineAgent->didDispatchDOMEvent();
+#endif
 
     Document::updateStyleForAllDocuments();
 
@@ -2952,10 +2930,6 @@ void Node::clearAttributeEventListener(const AtomicString& eventType)
         r.setRemoved(true);
         listeners->remove(i);
 
-        // removed last
-        if (listeners->isEmpty() && !inDocument())
-            document()->unregisterDisconnectedNodeWithEventListeners(this);
-
         updateSVGElementInstancesAfterEventListenerChange(this);
         return;
     }
@@ -2997,10 +2971,12 @@ void Node::defaultEventHandler(Event* event)
     } else if (eventType == eventNames().clickEvent) {
         int detail = event->isUIEvent() ? static_cast<UIEvent*>(event)->detail() : 0;
         dispatchUIEvent(eventNames().DOMActivateEvent, detail, event);
+#if ENABLE(CONTEXT_MENUS)
     } else if (eventType == eventNames().contextmenuEvent) {
         if (Frame* frame = document()->frame())
             if (Page* page = frame->page())
                 page->contextMenuController()->handleContextMenuEvent(event);
+#endif
     } else if (eventType == eventNames().textInputEvent) {
         if (event->isTextEvent())
             if (Frame* frame = document()->frame())

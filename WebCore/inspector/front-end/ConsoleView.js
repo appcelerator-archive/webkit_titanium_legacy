@@ -61,6 +61,14 @@ WebInspector.ConsoleView = function(drawer)
     // Will hold the list of filter elements
     this.filterBarElement = document.getElementById("console-filter");
     
+    function createDividerElement() {
+        var dividerElement = document.createElement("div");
+        
+        dividerElement.addStyleClass("divider");
+        
+        this.filterBarElement.appendChild(dividerElement);
+    }
+    
     function createFilterElement(category) {
         var categoryElement = document.createElement("li");
         categoryElement.category = category;
@@ -77,6 +85,9 @@ WebInspector.ConsoleView = function(drawer)
     }
     
     this.allElement = createFilterElement.call(this, "All");
+    
+    createDividerElement.call(this);
+    
     this.errorElement = createFilterElement.call(this, "Errors");
     this.warningElement = createFilterElement.call(this, "Warnings");
     this.logElement = createFilterElement.call(this, "Logs");
@@ -291,24 +302,8 @@ WebInspector.ConsoleView.prototype = {
             }
         }
 
-        function parsingCallback(result, isException)
-        {
-            if (!isException)
-                result = JSON.parse(result);
-            reportCompletions(result, isException);
-        }
-
-        this._evalInInspectedWindow(
-            "(function() {" +
-                "var props = {};" +
-                "for (var prop in (" + expressionString + ")) props[prop] = true;" +
-                ((!dotNotation && !bracketNotation) ?
-                "for (var prop in window._inspectorCommandLineAPI)" +
-                    "if (prop.charAt(0) !== '_') props[prop] = true;"
-                : "") +
-                "return JSON.stringify(props);" +
-            "})()",
-            parsingCallback);
+        var includeInspectorCommandLineAPI = (!dotNotation && !bracketNotation);
+        InjectedScriptAccess.getCompletions(expressionString, includeInspectorCommandLineAPI, reportCompletions);
     },
 
     _reportCompletions: function(bestMatchOnly, completionsReadyCallback, dotNotation, bracketNotation, prefix, result, isException) {
@@ -394,7 +389,7 @@ WebInspector.ConsoleView.prototype = {
         this.prompt.handleKeyEvent(event);
     },
 
-    _evalInInspectedWindow: function(expression, callback)
+    evalInInspectedWindow: function(expression, callback)
     {
         if (WebInspector.panels.scripts && WebInspector.panels.scripts.paused) {
             WebInspector.panels.scripts.evaluateInSelectedCallFrame(expression, false, callback);
@@ -442,7 +437,7 @@ WebInspector.ConsoleView.prototype = {
             self.prompt.text = "";
             self.addMessage(new WebInspector.ConsoleCommandResult(result, exception, commandMessage));
         }
-        this._evalInInspectedWindow(str, printResult);
+        this.evalInInspectedWindow(str, printResult);
     },
 
     _format: function(output, forceObjectFormat)
@@ -644,7 +639,7 @@ WebInspector.ConsoleMessage.prototype = {
             return WebInspector.console._format(obj, true);
         }
 
-        if (typeof parameters[0] === "string") {
+        if (Object.proxyType(parameters[0]) === "string") {
             var formatters = {}
             for (var i in String.standardFormatters)
                 formatters[i] = String.standardFormatters[i];
@@ -665,7 +660,7 @@ WebInspector.ConsoleMessage.prototype = {
                 return a;
             }
 
-            var result = String.format(parameters[0], parameters.slice(1), formatters, formattedResult, append);
+            var result = String.format(parameters[0].description, parameters.slice(1), formatters, formattedResult, append);
             formattedResult = result.formattedResult;
             parameters = result.unusedSubstitutions;
             if (parameters.length)

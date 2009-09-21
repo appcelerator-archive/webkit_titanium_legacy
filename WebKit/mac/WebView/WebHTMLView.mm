@@ -213,6 +213,9 @@ extern NSString *NSTextInputReplacementRangeAttributeName;
 - (void)_setDrawsOwnDescendants:(BOOL)drawsOwnDescendants;
 - (void)_propagateDirtyRectsToOpaqueAncestors;
 - (void)_windowChangedKeyState;
+#if USE(ACCELERATED_COMPOSITING) && defined(BUILDING_ON_LEOPARD)
+- (void)_updateLayerGeometryFromView;
+#endif
 @end
 
 @interface NSApplication (WebNSApplicationDetails)
@@ -1148,8 +1151,11 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
 {
     NSPoint origin = [[self superview] bounds].origin;
     if (!NSEqualPoints(_private->lastScrollPosition, origin)) {
-        if (Frame* coreFrame = core([self _frame]))
-            coreFrame->eventHandler()->sendScrollEvent();
+        if (Frame* coreFrame = core([self _frame])) {
+            if (FrameView* coreView = coreFrame->view())
+                coreView->scrollPositionChanged();
+        }
+    
         [_private->completionController endRevertingChange:NO moveLeft:NO];
         
         WebView *webView = [self _webView];
@@ -5480,7 +5486,8 @@ static CGPoint coreGraphicsScreenPointForAppKitScreenPoint(NSPoint point)
         CGFloat bottomOffset = documentHeight - layerViewFrame.size.height - topOffset;
         [[_private->layerHostingView layer] setSublayerTransform:CATransform3DMakeTranslation(0, -bottomOffset, 0)];
     }
-        
+
+    [_private->layerHostingView _updateLayerGeometryFromView];  // Workaround for <rdar://problem/7071636>
     [_private->layerHostingView setFrame:layerViewFrame];
 }
 #endif // defined(BUILDING_ON_LEOPARD)

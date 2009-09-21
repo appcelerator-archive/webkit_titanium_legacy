@@ -719,7 +719,7 @@ String XMLHttpRequest::getRequestHeader(const AtomicString& name) const
 
 String XMLHttpRequest::getAllResponseHeaders(ExceptionCode& ec) const
 {
-    if (m_state < LOADING) {
+    if (m_state < HEADERS_RECEIVED) {
         ec = INVALID_STATE_ERR;
         return "";
     }
@@ -753,7 +753,7 @@ String XMLHttpRequest::getAllResponseHeaders(ExceptionCode& ec) const
 
 String XMLHttpRequest::getResponseHeader(const AtomicString& name, ExceptionCode& ec) const
 {
-    if (m_state < LOADING) {
+    if (m_state < HEADERS_RECEIVED) {
         ec = INVALID_STATE_ERR;
         return "";
     }
@@ -865,7 +865,9 @@ void XMLHttpRequest::didFinishLoading(unsigned long identifier)
         m_responseText += m_decoder->flush();
 
     scriptExecutionContext()->resourceRetrievedByXMLHttpRequest(identifier, m_responseText);
+#if ENABLE(INSPECTOR)
     scriptExecutionContext()->addMessage(InspectorControllerDestination, JSMessageSource, LogMessageType, LogMessageLevel, "XHR finished loading: \"" + m_url + "\".", m_lastSendLineNumber, m_lastSendURL);
+#endif
 
     bool hadLoader = m_loader;
     m_loader = 0;

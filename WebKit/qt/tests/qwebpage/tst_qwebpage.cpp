@@ -114,6 +114,8 @@ private slots:
     void testOptionalJSObjects();
     void testEnablePersistentStorage();
 
+    void consoleOutput();
+
 private:
 
 
@@ -241,6 +243,31 @@ void tst_QWebPage::loadFinished()
     QCOMPARE(spyLoadFinished.count(), 1);
 }
 
+class ConsolePage : public QWebPage
+{
+public:
+    ConsolePage(QObject* parent = 0) : QWebPage(parent) {}
+
+    virtual void javaScriptConsoleMessage(const QString& message, int lineNumber, const QString& sourceID)
+    {
+        messages.append(message);
+        lineNumbers.append(lineNumber);
+        sourceIDs.append(sourceID);
+    }
+
+    QStringList messages;
+    QList<int> lineNumbers;
+    QStringList sourceIDs;
+};
+
+void tst_QWebPage::consoleOutput()
+{
+    ConsolePage page;
+    page.mainFrame()->evaluateJavaScript("this is not valid JavaScript");
+    QCOMPARE(page.messages.count(), 1);
+    QCOMPARE(page.lineNumbers.at(0), 1);
+}
+
 class TestPage : public QWebPage
 {
 public:
@@ -319,13 +346,13 @@ void tst_QWebPage::userStyleSheet()
     m_page->setNetworkAccessManager(networkManager);
     networkManager->requestedUrls.clear();
 
-    m_page->settings()->setUserStyleSheetUrl(QUrl("data:text/css,p { background-image: url('http://does.not/exist.png');}"));
+    m_page->settings()->setUserStyleSheetUrl(QUrl("data:text/css;charset=utf-8;base64,"
+            + QByteArray("p { background-image: url('http://does.not/exist.png');}").toBase64()));
     m_view->setHtml("<p>hello world</p>");
     QVERIFY(::waitForSignal(m_view, SIGNAL(loadFinished(bool))));
 
-    QVERIFY(networkManager->requestedUrls.count() >= 2);
-    QCOMPARE(networkManager->requestedUrls.at(0), QUrl("data:text/css,p { background-image: url('http://does.not/exist.png');}"));
-    QCOMPARE(networkManager->requestedUrls.at(1), QUrl("http://does.not/exist.png"));
+    QVERIFY(networkManager->requestedUrls.count() >= 1);
+    QCOMPARE(networkManager->requestedUrls.at(0), QUrl("http://does.not/exist.png"));
 }
 
 void tst_QWebPage::modified()

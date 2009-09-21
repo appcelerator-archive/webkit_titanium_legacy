@@ -1,3 +1,101 @@
+2009-09-17  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        Make PlatformWindow return something else than PlatformWidget
+        https://bugs.webkit.org/show_bug.cgi?id=29085
+
+        Reflect the rename of platformWindow and it's return type.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::get_accParent):
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::platformPageClient):
+        * WebCoreSupport/WebChromeClient.h:
+
+2009-09-17  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Remove assertions that were being hit by calls to
+        m_verticalScrollbar->invalidate(). These assertions were valid,
+        but they were causing tests to fail, so replacing with a FIXME 
+        until we can find out the real cause/solution that is being tracked 
+        by http://webkit.org/b/29350.
+
+        * WebView.cpp:
+        (WebView::addToDirtyRegion):
+        (WebView::paintIntoBackingStore):
+
+2009-09-17  Ada Chan  <adachan@apple.com>
+
+        Post WebViewDidChangeSelectionNotification when the text selection changes.
+
+        Fixes <http://webkit.org/b/29321>
+
+        Reviewed by Adam Roben.
+
+        * Interfaces/IWebView.idl:
+        * WebCoreSupport/WebEditorClient.cpp:
+        (WebEditorClient::respondToChangedSelection):
+
+2009-09-17  Adam Roben  <aroben@apple.com>
+
+        Fix a crash when a WebView's HWND is destroyed before IWebView::close
+        is called
+
+        WebView's HWND was being sent a WM_TIMER message after the WebView was
+        destroyed. This normally isn't possible (we call DestroyWindow inside
+        WebView's destructor to ensure the HWND doesn't outlive the WebView),
+        but r48060 changed WebView to call SetParent(m_viewWindow,
+        HWND_MESSAGE) while handling WM_DESTROY, and apparently this puts the
+        HWND into some weird half-destroyed state where it can still receive
+        WM_TIMER messages.
+
+        Fixes <http://webkit.org/b/29337> <rdar://problem/7209897> REGRESSION
+        (r48060): unrepro but frequent crash in WebViewWndProc
+
+        Reviewed by Steve Falkenburg.
+
+        * WebView.cpp:
+        (WebViewWndProc): When handling WM_DESTROY, call setIsBeingDestroyed()
+        before calling close(). This allows setHostWindow to detect that we're
+        handling WM_DESTROY. No other code in close() cared whether
+        isBeingDestroyed() was true or not.
+        (WebView::setHostWindow): If our host window is being set to 0 and
+        we're being destroyed, don't become a message-only window. Doing this
+        while handling WM_DESTROY seems to lead to crashes.
+
+2009-09-16  Adam Roben  <aroben@apple.com>
+
+        Add a UI delegate callback to let the delegate draw a WebView's
+        background
+
+        Fixes <http://webkit.org/b/29315>.
+
+        Reviewed by Dave Hyatt.
+
+        * Interfaces/IWebUIDelegatePrivate.idl: Added
+        IWebUIDelegatePrivate2::drawBackground.
+
+        * WebView.cpp:
+        (WebView::paintIntoBackingStore): After clearing or filling with
+        white, let the delegate draw whatever background it wants. Also added
+        an assertion that the dirty rect is within our bounds.
+
+2009-09-16  Adam Roben  <aroben@apple.com>
+
+        Prevent WebView from painting over sibling windows
+
+        Fixes <http://webkit.org/b/29300> <rdar://problem/7227960> WebView can
+        paint over sibling windows
+
+        Reviewed by Darin Adler.
+
+        * WebView.cpp:
+        (WebView::initWithFrame): Create the WebView's HWND with the
+        WS_CLIPSIBLINGS style.
+
 2009-09-14  Brady Eidson  <beidson@apple.com>
 
         Reviewed by Alexey Proskuryakov.

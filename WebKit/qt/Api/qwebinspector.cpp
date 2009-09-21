@@ -28,14 +28,12 @@
 
 #include <QResizeEvent>
 
-// TODO: handle the "Always enable" commands with QWebSettings
-
 /*!
     \class QWebInspector
     \since 4.6
     \brief The QWebInspector class allows the placement and control of a
     QWebPage's inspector.
-    An inspector allows you to see a page current hierarchy and loading
+    The inspector allows you to see a page current hierarchy and loading
     statistics.
 
     The QWebPage to be inspected is determined with the setPage() method.
@@ -43,6 +41,14 @@
     A typical use of QWebInspector follows:
 
     \snippet webkitsnippets/qtwebkit_qwebinspector_snippet.cpp 0
+
+    \note A QWebInspector will display a blank widget if either:
+    \list
+        \o page() is null
+        \o QWebSettings::DeveloperExtrasEnabled is false
+    \endlist
+
+    \section1 Resources
 
     Most of the resources needed by the inspector are owned by the associated
     QWebPage and are allocated the first time that:
@@ -56,13 +62,16 @@
     the first emission of QWebPage::webInspectorTriggered() to save additional
     resources.
 
-    \note A QWebInspector will display a blank widget if either:
-    \list
-        \o page() is null
-        \o QWebSettings::DeveloperExtrasEnabled is false
-    \endlist
+    \section1 Inspector configuration persistence
 
-    \sa QWebPage::webInspectorTriggered()
+    The inspector allows the user to configure some options through its
+    interface (e.g. the resource tracking "Always enable" option).
+    These settings are persisted automatically by QtWebKit using QSettings.
+
+    However since the QSettings object is instantiated using the empty
+    constructor, QCoreApplication::setOrganizationName() and
+    QCoreApplication::setApplicationName() must be called within your
+    application to enable the persistence of these options.
 */
 
 /*!

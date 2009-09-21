@@ -1,3 +1,390 @@
+2009-09-19  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Implement ES5 Object.create function
+        https://bugs.webkit.org/show_bug.cgi?id=29524
+
+        Implement Object.create.  Very simple patch, effectively Object.defineProperties
+        only creating the target object itself.
+
+        * runtime/CommonIdentifiers.h:
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructor::ObjectConstructor):
+        (JSC::objectConstructorCreate):
+
+2009-09-19  Dan Bernstein  <mitz@apple.com>
+
+        Fix clean debug builds.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-09-19  Joerg Bornemann  <joerg.bornemann@nokia.com>
+
+        Reviewed by George Staikos.
+
+        QtWebKit Windows CE compile fix
+
+        https://bugs.webkit.org/show_bug.cgi?id=29379
+
+        There is no _aligned_alloc or _aligned_free on Windows CE.
+        We just use the Windows code that was there before and use VirtualAlloc.
+        But that also means that the BLOCK_SIZE must be 64K as this function
+        allocates on 64K boundaries.
+
+        * runtime/Collector.cpp:
+        (JSC::Heap::allocateBlock):
+        (JSC::Heap::freeBlock):
+        * runtime/Collector.h:
+
+2009-09-19  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Implement ES5 Object.defineProperties function
+        https://bugs.webkit.org/show_bug.cgi?id=29522
+
+        Implement Object.defineProperties.  Fairly simple patch, simply makes use of
+        existing functionality used for defineProperty.
+
+        * runtime/CommonIdentifiers.h:
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructor::ObjectConstructor):
+        (JSC::defineProperties):
+        (JSC::objectConstructorDefineProperties):
+
+2009-09-19  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Build fix).
+
+        Windows build fix part2
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-09-19  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (Buildfix).
+
+        Windows build fix part 1.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-09-18  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Geoff Garen.
+
+        Implement ES5 Object.defineProperty function
+        https://bugs.webkit.org/show_bug.cgi?id=29503
+
+        Implement Object.defineProperty.  This requires adding the API to
+        ObjectConstructor, along with a helper function that implements the
+        ES5 internal [[ToPropertyDescriptor]] function.  It then adds
+        JSObject::defineOwnProperty that implements the appropriate ES5 semantics.
+        Currently defineOwnProperty uses a delete followed by a put to redefine
+        attributes of a property, clearly this is less efficient than it could be
+        but we can improve this if it needs to be possible in future.
+
+        * JavaScriptCore.exp:
+        * debugger/DebuggerActivation.cpp:
+        (JSC::DebuggerActivation::defineGetter):
+        (JSC::DebuggerActivation::defineSetter):
+        * debugger/DebuggerActivation.h:
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::privateExecute):
+        * jit/JITStubs.cpp:
+          Update defineGetter/Setter calls
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::getOwnPropertySlot):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::defineGetter):
+        (JSC::JSGlobalObject::defineSetter):
+        * runtime/JSGlobalObject.h:
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::defineGetter):
+        (JSC::JSObject::defineSetter):
+        (JSC::putDescriptor):
+        (JSC::JSObject::defineOwnProperty):
+        * runtime/JSObject.h:
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructor::ObjectConstructor):
+        (JSC::objectConstructorGetOwnPropertyDescriptor):
+        (JSC::toPropertyDescriptor):
+        (JSC::objectConstructorDefineProperty):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncDefineGetter):
+        (JSC::objectProtoFuncDefineSetter):
+        * runtime/PropertyDescriptor.cpp:
+        (JSC::PropertyDescriptor::writable):
+        (JSC::PropertyDescriptor::enumerable):
+        (JSC::PropertyDescriptor::configurable):
+        (JSC::PropertyDescriptor::isDataDescriptor):
+        (JSC::PropertyDescriptor::isGenericDescriptor):
+        (JSC::PropertyDescriptor::isAccessorDescriptor):
+        (JSC::PropertyDescriptor::getter):
+        (JSC::PropertyDescriptor::setter):
+        (JSC::PropertyDescriptor::setDescriptor):
+        (JSC::PropertyDescriptor::setAccessorDescriptor):
+        (JSC::PropertyDescriptor::setWritable):
+        (JSC::PropertyDescriptor::setEnumerable):
+        (JSC::PropertyDescriptor::setConfigurable):
+        (JSC::PropertyDescriptor::setSetter):
+        (JSC::PropertyDescriptor::setGetter):
+        (JSC::PropertyDescriptor::equalTo):
+        (JSC::PropertyDescriptor::attributesEqual):
+        (JSC::PropertyDescriptor::attributesWithOverride):
+        * runtime/PropertyDescriptor.h:
+        (JSC::PropertyDescriptor::PropertyDescriptor):
+        (JSC::PropertyDescriptor::value):
+        (JSC::PropertyDescriptor::setValue):
+        (JSC::PropertyDescriptor::isEmpty):
+        (JSC::PropertyDescriptor::writablePresent):
+        (JSC::PropertyDescriptor::enumerablePresent):
+        (JSC::PropertyDescriptor::configurablePresent):
+        (JSC::PropertyDescriptor::setterPresent):
+        (JSC::PropertyDescriptor::getterPresent):
+        (JSC::PropertyDescriptor::operator==):
+        (JSC::PropertyDescriptor::):
+
+2009-09-18  Gabor Loki  <loki@inf.u-szeged.hu>
+
+        Reviewed by Gavin Barraclough.
+
+        Build fix to enable ARM_THUMB2 on Linux
+        https://bugs.webkit.org/show_bug.cgi?id=
+
+        * jit/ExecutableAllocator.h:
+        (JSC::ExecutableAllocator::cacheFlush):
+        * jit/JITStubs.cpp:
+        * wtf/Platform.h:
+
+2009-09-18  Gabor Loki  <loki@inf.u-szeged.hu>
+
+        Reviewed by Gavin Barraclough.
+
+        Defines two pseudo-platforms for ARM and Thumb-2 instruction set.
+        https://bugs.webkit.org/show_bug.cgi?id=29122
+
+        Introduces WTF_PLATFORM_ARM_TRADITIONAL and WTF_PLATFORM_ARM_THUMB2
+        macros on ARM platforms. The PLATFORM(ARM_THUMB2) should be used
+        when Thumb-2 instruction set is the required target. The
+        PLATFORM(ARM_TRADITIONAL) is for generic ARM instruction set. In
+        case where the code is common the PLATFORM(ARM) have to be used.
+
+        * assembler/ARMAssembler.cpp:
+        * assembler/ARMAssembler.h:
+        * assembler/ARMv7Assembler.h:
+        * assembler/MacroAssembler.h:
+        * assembler/MacroAssemblerARM.cpp:
+        * assembler/MacroAssemblerARM.h:
+        * assembler/MacroAssemblerCodeRef.h:
+        (JSC::MacroAssemblerCodePtr::MacroAssemblerCodePtr):
+        * jit/ExecutableAllocator.h:
+        * jit/JIT.h:
+        * jit/JITInlineMethods.h:
+        (JSC::JIT::beginUninterruptedSequence):
+        (JSC::JIT::preserveReturnAddressAfterCall):
+        (JSC::JIT::restoreReturnAddressBeforeReturn):
+        (JSC::JIT::restoreArgumentReference):
+        (JSC::JIT::restoreArgumentReferenceForTrampoline):
+        * jit/JITOpcodes.cpp:
+        * jit/JITStubs.cpp:
+        (JSC::JITThunks::JITThunks):
+        * jit/JITStubs.h:
+        * wtf/Platform.h:
+        * yarr/RegexJIT.cpp:
+        (JSC::Yarr::RegexGenerator::generateEnter):
+
+2009-09-18  Joerg Bornemann  <joerg.bornemann@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Fix the Qt/Windows CE build.
+
+        * JavaScriptCore.pri: Build the ce_time.cpp functions from
+        within Qt externally.
+        * wtf/DateMath.cpp: Removed unnecessary Qt #ifdef, for the
+        Qt build these functions are no external, too.
+
+2009-09-17  Janne Koskinen  <janne.p.koskinen@digia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Symbian/WINSCW build fox.
+
+        Repeat Q_OS_WIN wchar_t hack for WINSCW, similar to
+        revision 24774.
+
+        WINSCW defines wchar_t, thus UChar has to be wchar_t
+
+        * wtf/unicode/qt4/UnicodeQt4.h:
+
+2009-09-17  Janne Koskinen  <janne.p.koskinen@digia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Symbian/WINSCW build fix.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29186
+
+        WINSCW Template specialisation name in declaration must the be the same as in implementation.
+
+        * runtime/LiteralParser.h:
+
+2009-09-15  Norbert Leser  <norbert.leser@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27060
+
+        Symbian compiler for emulator target (WINSCW) fails with
+        "illegal operand" for m_attributesInPrevious in structure.ccp
+        (when calling make_pair functions).
+        This error is apparently due to the compiler not properly
+        resolving the unsigned type of the declared bitfield.
+
+        Initial patch explicitly casted m_attributesInPrevious
+        to unsigned, but since bitfield optimization is not critical for
+        the emulator target, this conditional change in header file
+        appears to be least intrusive.
+
+        * runtime/Structure.h:
+
+2009-09-16  Gabor Loki  <loki@inf.u-szeged.hu>
+
+        Reviewed by Darin Adler.
+
+        Fix GCC warnings on ARM_THUMB2 platform
+
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMThumbImmediate::countLeadingZerosPartial):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::branchTruncateDoubleToInt32):
+        (JSC::MacroAssemblerARMv7::moveFixedWidthEncoding):
+
+2009-09-16  Greg Bolsinga  <bolsinga@apple.com>
+
+        Add ENABLE(INSPECTOR)
+        https://bugs.webkit.org/show_bug.cgi?id=29260
+
+        Reviewed by David Kilzer.
+
+        * wtf/Platform.h:
+
+2009-09-16  Greg Bolsinga  <bolsinga@apple.com>
+
+        Add ENABLE(CONTEXT_MENUS)
+        https://bugs.webkit.org/show_bug.cgi?id=29225
+
+        Reviewed by David Kilzer.
+
+        * wtf/Platform.h:
+
+2009-09-16  Benjamin C Meyer  <benjamin.meyer@torchmobile.com>
+
+        Reviewed by Eric Seidel.
+
+        The webkit stdint and stdbool headers exists because
+        the compiler MSVC doesn't include them.  The check
+        should not check for PLATFORM(WIN_OS) but for MSVC.
+
+        * os-win32/stdbool.h:
+        * os-win32/stdint.h:
+
+2009-09-16  Greg Bolsinga  <bolsinga@apple.com>
+
+        Add ENABLE(DRAG_SUPPORT)
+        https://bugs.webkit.org/show_bug.cgi?id=29233
+
+        Reviewed by David Kilzer.
+
+        * wtf/Platform.h:
+
+2009-09-16  Kevin Ollivier  <kevino@theolliviers.com>
+
+        waf build fix after flag was moved to correct place.
+
+        * wscript:
+
+2009-09-16  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Build fix for 64-bit Qt on Mac OS X
+
+        * wtf/Platform.h: Use JSVALUE64 on DARWIN, not only on MAC
+
+2009-09-16  Zoltan Herczeg  <zherczeg@inf.u-szeged.hu>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Fix wtf/ThreadSpecific.h under Qt to free thread local objects.
+        https://bugs.webkit.org/show_bug.cgi?id=29295
+
+        This is an important fix when JavaScript workers are in use, since
+        unfreed ThreadGlobalDatas leak a big amount of memory (50-100k each).
+        QThreadStorage calls the destructor of a given object, which is the
+        ThreadSpecific::Data. Unlike pthread, Qt is object oriented, and does
+        not support the calling of a static utility function when the thread
+        is about to close. In this patch we call the ThreadSpecific::destroy()
+        utility function from the destructor of ThreadSpecific::Data. Moreover,
+        since Qt resets all thread local values to 0 before the calling of the
+        appropriate destructors, we set back the pointer to its original value.
+        This is necessary because the get() method of the ThreadSpecific
+        object may be called during the exuction of the destructor.
+
+        * wtf/ThreadSpecific.h:
+        (WTF::ThreadSpecific::Data::~Data):
+        (WTF::::~ThreadSpecific):
+        (WTF::::set):
+        (WTF::::destroy):
+
+2009-09-10  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Geoff Garen.
+
+        Allow anonymous storage inside JSObject
+        https://bugs.webkit.org/show_bug.cgi?id=29168
+
+        Add the concept of anonymous slots to Structures so that it is
+        possible to store references to values that need marking in the
+        standard JSObject storage buffer.  This allows us to reduce the
+        malloc overhead of some objects (by allowing them to store JS
+        values in the inline storage of the object) and reduce the 
+        dependence of custom mark functions (if all an objects children
+        are in the standard object property storage there's no need to
+        mark them manually).
+
+        * JavaScriptCore.exp:
+        * runtime/JSObject.h:
+        (JSC::JSObject::putAnonymousValue):
+        (JSC::JSObject::getAnonymousValue):
+        (JSC::JSObject::addAnonymousSlots):
+        * runtime/JSWrapperObject.h:
+        (JSC::JSWrapperObject::createStructure):
+        (JSC::JSWrapperObject::JSWrapperObject):
+        (JSC::JSWrapperObject::setInternalValue):
+        * runtime/PropertyMapHashTable.h:
+        * runtime/Structure.cpp:
+        (JSC::Structure::~Structure):
+        (JSC::Structure::materializePropertyMap):
+        (JSC::Structure::addAnonymousSlotsTransition):
+        (JSC::Structure::copyPropertyTable):
+        (JSC::Structure::put):
+        (JSC::Structure::rehashPropertyMapHashTable):
+        * runtime/Structure.h:
+        (JSC::Structure::propertyStorageSize):
+        (JSC::StructureTransitionTable::reifySingleTransition):
+        * runtime/StructureTransitionTable.h:
+        (JSC::StructureTransitionTable::TransitionTable::addSlotTransition):
+        (JSC::StructureTransitionTable::TransitionTable::removeSlotTransition):
+        (JSC::StructureTransitionTable::TransitionTable::getSlotTransition):
+        (JSC::StructureTransitionTable::getAnonymousSlotTransition):
+        (JSC::StructureTransitionTable::addAnonymousSlotTransition):
+        (JSC::StructureTransitionTable::removeAnonymousSlotTransition):
+
 2009-09-15  Alex Milowski  <alex@milowski.com>
 
         Reviewed by Tor Arne Vestbø.

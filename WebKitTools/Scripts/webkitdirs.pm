@@ -548,6 +548,25 @@ sub libraryContainsSymbol
     return $foundSymbol;
 }
 
+sub hasMathMLSupport
+{
+    my $path = shift;
+
+    return libraryContainsSymbol($path, "MathMLElement");
+}
+
+sub checkWebCoreMathMLSupport
+{
+    my $required = shift;
+    my $framework = "WebCore";
+    my $path = builtDylibPathForName($framework);
+    my $hasMathML = hasMathMLSupport($path);
+    if ($required && !$hasMathML) {
+        die "$framework at \"$path\" does not include MathML Support, please run build-webkit --mathml\n";
+    }
+    return $hasMathML;
+}
+
 sub hasSVGSupport
 {
     my $path = shift;
@@ -1127,6 +1146,9 @@ sub buildWafProject
     print "Building $project\n";
 
     my $wafCommand = "$sourceDir/WebKitTools/wx/waf";
+    if ($ENV{'WXWEBKIT_WAF'}) {
+        $wafCommand = $ENV{'WXWEBKIT_WAF'};
+    }
     if (isCygwin()) {
         $wafCommand = `cygpath --windows "$wafCommand"`;
         chomp($wafCommand);

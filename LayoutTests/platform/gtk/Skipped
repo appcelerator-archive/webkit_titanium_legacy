@@ -76,6 +76,7 @@ accessibility/aria-tables.html
 accessibility/image-map1.html
 accessibility/image-map2.html
 accessibility/internal-link-anchors2.html
+accessibility/label-for-control-hittest.html
 accessibility/legend.html
 accessibility/lists.html
 accessibility/plugin.html
@@ -5675,6 +5676,8 @@ http/tests/security/isolatedWorld/image-properties.html
 http/tests/security/isolatedWorld/image-prototype.html
 http/tests/security/isolatedWorld/location-properties.html
 http/tests/security/isolatedWorld/location-prototype.html
+http/tests/security/isolatedWorld/window-setTimeout-function.html
+http/tests/security/isolatedWorld/window-setTimeout-string.html
 http/tests/security/isolatedWorld/storage-properties.html
 http/tests/security/isolatedWorld/storage-prototype.html
 http/tests/security/isolatedWorld/number-prototype.html

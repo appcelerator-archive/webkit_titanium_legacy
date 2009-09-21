@@ -293,7 +293,7 @@ private:
         viewMenu->addSeparator();
         viewMenu->addAction("Dump HTML", this, SLOT(dumpHtml()));
 
-        QMenu *formatMenu = new QMenu("F&ormat");
+        QMenu *formatMenu = new QMenu("F&ormat", this);
         formatMenuAction = menuBar()->addMenu(formatMenu);
         formatMenuAction->setVisible(false);
         formatMenu->addAction(view->pageAction(QWebPage::ToggleBold));
@@ -452,6 +452,10 @@ int main(int argc, char **argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::PluginsEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
     QWebSettings::enablePersistentStorage();
+
+    // To allow QWebInspector's configuration persistence
+    QCoreApplication::setOrganizationName("Nokia");
+    QCoreApplication::setApplicationName("QtLauncher");
 
     const QStringList args = app.arguments();
 

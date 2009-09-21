@@ -390,7 +390,6 @@ DOM_CLASSES = \
     TreeWalker \
     UIEvent \
     ValidityState \
-    VoidCallback \
     WebKitAnimationEvent \
     WebKitCSSKeyframeRule \
     WebKitCSSKeyframesRule \
@@ -442,6 +441,8 @@ all : \
     UserAgentStyleSheets.h \
     XLinkNames.cpp \
     XMLNames.cpp \
+    MathMLElementFactory.cpp \
+    MathMLNames.cpp \
     XPathGrammar.cpp \
     tokenizer.cpp \
 #
@@ -462,6 +463,24 @@ else
 
 ENABLE_DASHBOARD_SUPPORT = 0
 
+endif
+
+ifeq ($(shell gcc -E -P -dM -F $(BUILT_PRODUCTS_DIR) $(FRAMEWORK_FLAGS) WebCore/ForwardingHeaders/wtf/Platform.h | grep ENABLE_CONTEXT_MENUS | cut -d' ' -f3), 1)
+    ENABLE_CONTEXT_MENUS = 1
+else
+    ENABLE_CONTEXT_MENUS = 0
+endif
+
+ifeq ($(shell gcc -E -P -dM -F $(BUILT_PRODUCTS_DIR) $(FRAMEWORK_FLAGS) WebCore/ForwardingHeaders/wtf/Platform.h | grep ENABLE_DRAG_SUPPORT | cut -d' ' -f3), 1)
+    ENABLE_DRAG_SUPPORT = 1
+else
+    ENABLE_DRAG_SUPPORT = 0
+endif
+
+ifeq ($(shell gcc -E -P -dM -F $(BUILT_PRODUCTS_DIR) $(FRAMEWORK_FLAGS) WebCore/ForwardingHeaders/wtf/Platform.h | grep ENABLE_INSPECTOR | cut -d' ' -f3), 1)
+    ENABLE_INSPECTOR = 1
+else
+    ENABLE_INSPECTOR = 0
 endif
 
 # CSS property names and value keywords
@@ -563,6 +582,10 @@ endif
 
 ifeq ($(findstring ENABLE_WML,$(FEATURE_DEFINES)), ENABLE_WML)
     USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/wml.css
+endif
+
+ifeq ($(findstring ENABLE_MATHML,$(FEATURE_DEFINES)), ENABLE_MATHML)
+    USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/mathml.css
 endif
 
 ifeq ($(findstring ENABLE_VIDEO,$(FEATURE_DEFINES)), ENABLE_VIDEO)
@@ -706,6 +729,26 @@ WMLNames.cpp :
 
 endif
 
+# --------
+ 
+# MathML tag and attribute names, and element factory
+
+ifeq ($(findstring ENABLE_MATHML,$(FEATURE_DEFINES)), ENABLE_MATHML)
+
+MathMLElementFactory.cpp MathMLNames.cpp : dom/make_names.pl mathml/mathtags.in
+	perl -I $(WebCore)/bindings/scripts $< --tags $(WebCore)/mathml/mathtags.in --factory --wrapperFactory
+
+else
+
+MathMLElementFactory.cpp :
+	echo > $@
+
+MathMLNames.cpp :
+	echo > $@
+
+endif
+
+
 
 # --------
 
@@ -758,8 +801,20 @@ ifeq ($(shell gcc -E -P -dM -F $(BUILT_PRODUCTS_DIR) $(FRAMEWORK_FLAGS) WebCore/
     WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.NPAPI.exp
 endif
 
+ifeq ($(ENABLE_CONTEXT_MENUS), 1)
+    WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.ContextMenus.exp
+endif
+
 ifeq ($(ENABLE_DASHBOARD_SUPPORT), 1)
     WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.DashboardSupport.exp
+endif
+
+ifeq ($(ENABLE_DRAG_SUPPORT), 1)
+    WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.DragSupport.exp
+endif
+
+ifeq ($(ENABLE_INSPECTOR), 1)
+    WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.Inspector.exp
 endif
 
 ifeq ($(findstring 10.4,$(MACOSX_DEPLOYMENT_TARGET)), 10.4)

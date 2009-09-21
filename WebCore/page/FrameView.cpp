@@ -492,9 +492,11 @@ void FrameView::layout(bool allowSubtree)
     if (isPainting())
         return;
 
+#if ENABLE(INSPECTOR)
     InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent();
     if (timelineAgent)
         timelineAgent->willLayout();
+#endif
 
     if (!allowSubtree && m_layoutRoot) {
         m_layoutRoot->markContainingBlocksForLayout(false);
@@ -680,8 +682,10 @@ void FrameView::layout(bool allowSubtree)
         ASSERT(m_enqueueEvents);
     }
 
+#if ENABLE(INSPECTOR)
     if (timelineAgent)
         timelineAgent->didLayout();
+#endif
 
     m_nestedLayoutCount--;
 }
@@ -799,6 +803,22 @@ void FrameView::setScrollPosition(const IntPoint& scrollPoint)
     m_inProgrammaticScroll = wasInProgrammaticScroll;
 }
 
+void FrameView::scrollPositionChanged()
+{
+    frame()->eventHandler()->sendScrollEvent();
+
+#if USE(ACCELERATED_COMPOSITING)
+    // We need to update layer positions after scrolling to account for position:fixed layers.
+    Document* document = m_frame->document();
+    if (!document)
+        return;
+
+    RenderLayer* layer = document->renderer() ? document->renderer()->enclosingLayer() : 0;
+    if (layer)
+        layer->updateLayerPositions(RenderLayer::UpdateCompositingLayers);
+#endif
+}
+
 HostWindow* FrameView::hostWindow() const
 {
     Page* page = frame() ? frame()->page() : 0;
@@ -827,9 +847,9 @@ void FrameView::repaintContentRectangle(const IntRect& r, bool immediate)
             m_repaintRects.append(unionedRect);
         }
         if (m_repaintCount < cRepaintRectUnionThreshold)
-            m_repaintRects.append(r);
+            m_repaintRects.append(visibleContent);
         else
-            m_repaintRects[0].unite(r);
+            m_repaintRects[0].unite(visibleContent);
         m_repaintCount++;
     
         if (!m_deferringRepaints && !m_deferredRepaintTimer.isActive())
@@ -967,7 +987,8 @@ void FrameView::layoutTimerFired(Timer<FrameView>*)
 
 void FrameView::scheduleRelayout()
 {
-    ASSERT(!m_frame->document()->inPageCache());
+    // FIXME: We should assert the page is not in the page cache, but that is causing
+    // too many false assertions.  See <rdar://problem/7218118>.
     ASSERT(m_frame->view() == this);
 
     if (m_layoutRoot) {
@@ -1509,9 +1530,11 @@ void FrameView::paintContents(GraphicsContext* p, const IntRect& rect)
     if (!frame())
         return;
 
+#if ENABLE(INSPECTOR)
     InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent();
     if (timelineAgent)
         timelineAgent->willPaint();
+#endif
 
     Document* document = frame()->document();
 
@@ -1577,8 +1600,10 @@ void FrameView::paintContents(GraphicsContext* p, const IntRect& rect)
     if (isTopLevelPainter)
         sCurrentPaintTimeStamp = 0;
 
+#if ENABLE(INSPECTOR)
     if (timelineAgent)
         timelineAgent->didPaint();
+#endif
 }
 
 void FrameView::setPaintRestriction(PaintRestriction pr)

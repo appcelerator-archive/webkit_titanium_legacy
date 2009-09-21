@@ -431,11 +431,11 @@ void RenderLayerCompositor::computeCompositingRequirements(RenderLayer* layer, O
 
     bool haveComputedBounds = false;
     IntRect absBounds;
-    if (overlapMap && mustOverlapCompositedLayers) {
+    if (overlapMap && !overlapMap->isEmpty()) {
         // If we're testing for overlap, we only need to composite if we overlap something that is already composited.
         absBounds = layer->renderer()->localToAbsoluteQuad(FloatRect(layer->localBoundingBox())).enclosingBoundingBox();
         haveComputedBounds = true;
-        mustOverlapCompositedLayers &= overlapsCompositedLayers(*overlapMap, absBounds);
+        mustOverlapCompositedLayers = overlapsCompositedLayers(*overlapMap, absBounds);
     }
     
     layer->setMustOverlapCompositedLayers(mustOverlapCompositedLayers);
@@ -594,8 +594,7 @@ void RenderLayerCompositor::rebuildCompositingLayerTree(RenderLayer* layer, stru
     if (layerBacking) {
         // The compositing state of all our children has been updated already, so now
         // we can compute and cache the composited bounds for this layer.
-        layerBacking->setCompositedBounds(calculateCompositedBounds(layer, layer));
-
+        layerBacking->updateCompositedBounds();
         layerBacking->updateGraphicsLayerConfiguration();
         layerBacking->updateGraphicsLayerGeometry();
 
@@ -675,7 +674,7 @@ void RenderLayerCompositor::updateCompositingDescendantGeometry(RenderLayer* com
 {
     if (layer != compositingAncestor) {
         if (RenderLayerBacking* layerBacking = layer->backing()) {
-            layerBacking->setCompositedBounds(calculateCompositedBounds(layer, layer));
+            layerBacking->updateCompositedBounds();
             layerBacking->updateGraphicsLayerGeometry();
             if (updateDepth == RenderLayerBacking::CompositingChildren)
                 return;

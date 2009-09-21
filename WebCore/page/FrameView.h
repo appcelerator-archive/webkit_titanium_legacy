@@ -131,6 +131,7 @@ public:
 
     virtual void scrollRectIntoViewRecursively(const IntRect&);
     virtual void setScrollPosition(const IntPoint&);
+    void scrollPositionChanged();
 
     String mediaType() const;
     void setMediaType(const String&);
@@ -236,7 +237,9 @@ private:
     bool updateWidgets();
     void scrollToAnchor();
 
+#if ENABLE(INSPECTOR)
     InspectorTimelineAgent* inspectorTimelineAgent() const;
+#endif
     
     bool hasCustomScrollbars() const;
 
@@ -314,10 +317,12 @@ private:
     RenderScrollbarPart* m_scrollCorner;
 };
 
+#if ENABLE(INSPECTOR)
 inline InspectorTimelineAgent* FrameView::inspectorTimelineAgent() const
 {
     return m_frame->page() ? m_frame->page()->inspectorTimelineAgent() : 0;
 }
+#endif
 
 } // namespace WebCore
 

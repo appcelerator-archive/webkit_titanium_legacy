@@ -377,7 +377,9 @@ public:
     Frame* frame() const { return m_frame; } // can be NULL
     Page* page() const; // can be NULL
     Settings* settings() const; // can be NULL
+#if ENABLE(INSPECTOR)
     InspectorTimelineAgent* inspectorTimelineAgent() const; // can be NULL
+#endif
 
     PassRefPtr<Range> createRange();
 
@@ -812,9 +814,6 @@ public:
 
     void removeAllEventListeners();
 
-    void registerDisconnectedNodeWithEventListeners(Node*);
-    void unregisterDisconnectedNodeWithEventListeners(Node*);
-    
     CheckedRadioButtons& checkedRadioButtons() { return m_checkedRadioButtons; }
     
 #if ENABLE(SVG)
@@ -884,7 +883,6 @@ private:
     void executeScriptSoonTimerFired(Timer<Document>*);
 
     void updateTitle();
-    void removeAllDisconnectedNodeEventListeners();
     void updateFocusAppearanceTimerFired(Timer<Document>*);
     void updateBaseURL();
 
@@ -1026,8 +1024,6 @@ private:
     typedef HashMap<AtomicStringImpl*, HTMLMapElement*> ImageMapsByName;
     ImageMapsByName m_imageMapsByName;
 
-    HashSet<Node*> m_disconnectedNodesWithEventListeners;
-
     int m_docID; // A unique document identifier used for things like document-specific mapped attributes.
 
     String m_xmlEncoding;
@@ -1120,9 +1116,11 @@ inline bool Node::isDocumentNode() const
     return this == m_document;
 }
 
+#if ENABLE(INSPECTOR)
 inline InspectorTimelineAgent* Document::inspectorTimelineAgent() const {
     return page() ? page()->inspectorTimelineAgent() : 0;
 }
+#endif
 
 } // namespace WebCore
 

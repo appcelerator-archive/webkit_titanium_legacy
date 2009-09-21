@@ -120,7 +120,7 @@ public:
     virtual void scroll(const IntSize&, const IntRect&, const IntRect&) { }
     virtual IntPoint screenToWindow(const IntPoint& p) const { return p; }
     virtual IntRect windowToScreen(const IntRect& r) const { return r; }
-    virtual PlatformWidget platformWindow() const { return 0; }
+    virtual PlatformPageClient platformPageClient() const { return 0; }
     virtual void contentsSizeChanged(Frame*, const IntSize&) const { }
 
     virtual void scrollbarsModeDidChange() const { }
@@ -415,6 +415,7 @@ public:
 
 };
 
+#if ENABLE(CONTEXT_MENUS)
 class EmptyContextMenuClient : public ContextMenuClient {
 public:
     virtual ~EmptyContextMenuClient() {  }
@@ -435,7 +436,9 @@ public:
     virtual void searchWithSpotlight() { }
 #endif
 };
+#endif // ENABLE(CONTEXT_MENUS)
 
+#if ENABLE(DRAG_SUPPORT)
 class EmptyDragClient : public DragClient {
 public:
     virtual ~EmptyDragClient() {}
@@ -447,6 +450,7 @@ public:
     virtual DragImageRef createDragImageForLink(KURL&, const String&, Frame*) { return 0; }
     virtual void dragControllerDestroyed() { }
 };
+#endif // ENABLE(DRAG_SUPPORT)
 
 class EmptyInspectorClient : public InspectorClient {
 public:

@@ -723,6 +723,10 @@ bool WebView::ensureBackingStore()
 
 void WebView::addToDirtyRegion(const IntRect& dirtyRect)
 {
+    // FIXME: We want an assert here saying that the dirtyRect is inside the clienRect,
+    // but it was being hit during our layout tests, and is being investigated in
+    // http://webkit.org/b/29350.
+
     HRGN newRegion = ::CreateRectRgn(dirtyRect.x(), dirtyRect.y(),
                                      dirtyRect.right(), dirtyRect.bottom());
     addToDirtyRegion(newRegion);
@@ -949,6 +953,10 @@ void WebView::paintIntoBackingStore(FrameView* frameView, HDC bitmapDC, const In
 {
     LOCAL_GDI_COUNTER(0, __FUNCTION__);
 
+    // FIXME: We want an assert here saying that the dirtyRect is inside the clienRect,
+    // but it was being hit during our layout tests, and is being investigated in
+    // http://webkit.org/b/29350.
+
     RECT rect = dirtyRect;
 
 #if FLASH_BACKING_STORE_REDRAW
@@ -968,6 +976,11 @@ void WebView::paintIntoBackingStore(FrameView* frameView, HDC bitmapDC, const In
         gc.clearRect(dirtyRect);
     else
         FillRect(bitmapDC, &rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+    COMPtr<IWebUIDelegatePrivate2> uiPrivate(Query, m_uiDelegate);
+    if (uiPrivate)
+        uiPrivate->drawBackground(this, reinterpret_cast<OLE_HANDLE>(bitmapDC), &rect);
+
     if (frameView && frameView->frame() && frameView->frame()->contentRenderer()) {
         gc.clip(dirtyRect);
         frameView->paint(&gc, dirtyRect);
@@ -1867,8 +1880,8 @@ static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, L
             webView->paint((HDC)wParam, lParam);
             break;
         case WM_DESTROY:
-            webView->close();
             webView->setIsBeingDestroyed();
+            webView->close();
             webView->revokeDragDrop();
             break;
         case WM_GESTURENOTIFY:
@@ -2314,7 +2327,7 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
 
     registerWebViewWindowClass();
 
-    m_viewWindow = CreateWindowEx(0, kWebViewWindowClassName, 0, WS_CHILD | WS_CLIPCHILDREN,
+    m_viewWindow = CreateWindowEx(0, kWebViewWindowClassName, 0, WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
         frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top, m_hostWindow ? m_hostWindow : HWND_MESSAGE, 0, gInstance, 0);
     ASSERT(::IsWindow(m_viewWindow));
 
@@ -2994,8 +3007,17 @@ HRESULT STDMETHODCALLTYPE WebView::setHostWindow(
     /* [in] */ OLE_HANDLE oleWindow)
 {
     HWND window = (HWND)(ULONG64)oleWindow;
-    if (m_viewWindow)
-        SetParent(m_viewWindow, window ? window : HWND_MESSAGE);
+    if (m_viewWindow) {
+        if (window)
+            SetParent(m_viewWindow, window);
+        else if (!isBeingDestroyed()) {
+            // Turn the WebView into a message-only window so it will no longer be a child of the
+            // old host window and will be hidden from screen. We only do this when
+            // isBeingDestroyed() is false because doing this while handling WM_DESTROY can leave
+            // m_viewWindow in a weird state (see <http://webkit.org/b/29337>).
+            SetParent(m_viewWindow, HWND_MESSAGE);
+        }
+    }
 
     m_hostWindow = window;
 

@@ -174,6 +174,12 @@
 #include "WMLNames.h"
 #endif
 
+#if ENABLE(MATHML)
+#include "MathMLElement.h"
+#include "MathMLElementFactory.h"
+#include "MathMLNames.h"
+#endif
+
 #if ENABLE(XHTMLMP)
 #include "HTMLNoScriptElement.h"
 #endif
@@ -803,6 +809,10 @@ PassRefPtr<Element> Document::createElement(const QualifiedName& qName, bool cre
     else if (isWMLDocument())
         e = WMLElementFactory::createWMLElement(QualifiedName(nullAtom, qName.localName(), WMLNames::wmlNamespaceURI), this, createdByParser);
 #endif
+#if ENABLE(MATHML)
+    else if (qName.namespaceURI() == MathMLNames::mathmlNamespaceURI)
+        e = MathMLElementFactory::createMathMLElement(qName, this, createdByParser);
+#endif
     
     if (!e)
         e = Element::create(qName, document());
@@ -1214,9 +1224,11 @@ void Document::recalcStyle(StyleChange change)
     if (m_inStyleRecalc)
         return; // Guard against re-entrancy. -dwh
 
+#if ENABLE(INSPECTOR)
     InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent();
     if (timelineAgent)
         timelineAgent->willRecalculateStyle();
+#endif
 
     m_inStyleRecalc = true;
     suspendPostAttachCallbacks();
@@ -1291,8 +1303,10 @@ bail_out:
         implicitClose();
     }
 
+#if ENABLE(INSPECTOR)
     if (timelineAgent)
         timelineAgent->didRecalculateStyle();
+#endif
 }
 
 void Document::updateStyleIfNeeded()
@@ -1458,27 +1472,8 @@ void Document::removeAllEventListeners()
 {
     if (DOMWindow* domWindow = this->domWindow())
         domWindow->removeAllEventListeners();
-    removeAllDisconnectedNodeEventListeners();
     for (Node* node = this; node; node = node->traverseNextNode())
         node->removeAllEventListeners();
-}
-
-void Document::registerDisconnectedNodeWithEventListeners(Node* node)
-{
-    m_disconnectedNodesWithEventListeners.add(node);
-}
-
-void Document::unregisterDisconnectedNodeWithEventListeners(Node* node)
-{
-    m_disconnectedNodesWithEventListeners.remove(node);
-}
-
-void Document::removeAllDisconnectedNodeEventListeners()
-{
-    HashSet<Node*>::iterator end = m_disconnectedNodesWithEventListeners.end();
-    for (HashSet<Node*>::iterator i = m_disconnectedNodesWithEventListeners.begin(); i != end; ++i)
-        (*i)->removeAllEventListeners();
-    m_disconnectedNodesWithEventListeners.clear();
 }
 
 RenderView* Document::renderView() const
@@ -4493,10 +4488,12 @@ void Document::reportException(const String& errorMessage, int lineNumber, const
 void Document::addMessage(MessageDestination destination, MessageSource source, MessageType type, MessageLevel level, const String& message, unsigned lineNumber, const String& sourceURL)
 {
     switch (destination) {
+#if ENABLE(INSPECTOR)
     case InspectorControllerDestination:
         if (page())
             page()->inspectorController()->addMessageToConsole(source, type, level, message, lineNumber, sourceURL);
         return;
+#endif
     case ConsoleDestination:
         if (DOMWindow* window = domWindow())
             window->console()->addMessage(source, type, level, message, lineNumber, sourceURL);
@@ -4507,8 +4504,10 @@ void Document::addMessage(MessageDestination destination, MessageSource source, 
 
 void Document::resourceRetrievedByXMLHttpRequest(unsigned long identifier, const ScriptString& sourceString)
 {
+#if ENABLE(INSPECTOR)
     if (page())
         page()->inspectorController()->resourceRetrievedByXMLHttpRequest(identifier, sourceString);
+#endif
     Frame* frame = this->frame();
     if (frame) {
         FrameLoader* frameLoader = frame->loader();
@@ -4518,8 +4517,13 @@ void Document::resourceRetrievedByXMLHttpRequest(unsigned long identifier, const
 
 void Document::scriptImported(unsigned long identifier, const String& sourceString)
 {
+#if ENABLE(INSPECTOR)
     if (page())
         page()->inspectorController()->scriptImported(identifier, sourceString);
+#else
+    UNUSED_PARAM(identifier);
+    UNUSED_PARAM(sourceString);
+#endif
 }
 
 class ScriptExecutionContextTaskTimer : public TimerBase {

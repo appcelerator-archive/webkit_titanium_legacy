@@ -186,10 +186,11 @@ namespace JSC {
 
         void fillGetterPropertySlot(PropertySlot&, JSValue* location);
 
-        virtual void defineGetter(ExecState*, const Identifier& propertyName, JSObject* getterFunction);
-        virtual void defineSetter(ExecState*, const Identifier& propertyName, JSObject* setterFunction);
+        virtual void defineGetter(ExecState*, const Identifier& propertyName, JSObject* getterFunction, unsigned attributes = 0);
+        virtual void defineSetter(ExecState*, const Identifier& propertyName, JSObject* setterFunction, unsigned attributes = 0);
         virtual JSValue lookupGetter(ExecState*, const Identifier& propertyName);
         virtual JSValue lookupSetter(ExecState*, const Identifier& propertyName);
+        virtual bool defineOwnProperty(ExecState*, const Identifier& propertyName, PropertyDescriptor&, bool shouldThrow);
 
         virtual bool isGlobalObject() const { return false; }
         virtual bool isVariableObject() const { return false; }
@@ -207,6 +208,17 @@ namespace JSC {
         static PassRefPtr<Structure> createStructure(JSValue prototype)
         {
             return Structure::create(prototype, TypeInfo(ObjectType, HasStandardGetOwnPropertySlot | HasDefaultMark | HasDefaultGetPropertyNames));
+        }
+
+    protected:
+        void addAnonymousSlots(unsigned count);
+        void putAnonymousValue(unsigned index, JSValue value)
+        {
+            *locationForOffset(index) = value;
+        }
+        JSValue getAnonymousValue(unsigned index)
+        {
+            return *locationForOffset(index);
         }
 
     private:
@@ -511,6 +523,17 @@ inline void JSObject::putDirectInternal(JSGlobalData& globalData, const Identifi
 {
     PutPropertySlot slot;
     putDirectInternal(propertyName, value, attributes, false, slot, getJSFunction(globalData, value));
+}
+
+inline void JSObject::addAnonymousSlots(unsigned count)
+{
+    size_t currentCapacity = m_structure->propertyStorageCapacity();
+    RefPtr<Structure> structure = Structure::addAnonymousSlotsTransition(m_structure, count);
+
+    if (currentCapacity != structure->propertyStorageCapacity())
+        allocatePropertyStorage(currentCapacity, structure->propertyStorageCapacity());
+
+    setStructure(structure.release());
 }
 
 inline void JSObject::putDirect(const Identifier& propertyName, JSValue value, unsigned attributes, bool checkReadOnly, PutPropertySlot& slot)

@@ -69,6 +69,12 @@ namespace JSC {
 #define SYMBOL_STRING(name) #name
 #endif
 
+#if PLATFORM(IPHONE)
+#define THUMB_FUNC_PARAM(name) SYMBOL_STRING(name)
+#else
+#define THUMB_FUNC_PARAM(name)
+#endif
+
 #if USE(JSVALUE32_64)
 
 #if COMPILER(GCC) && PLATFORM(X86)
@@ -193,7 +199,7 @@ SYMBOL_STRING(ctiOpThrowNotCaught) ":" "\n"
     "ret" "\n"
 );
 
-#elif COMPILER(GCC) && PLATFORM_ARM_ARCH(7)
+#elif COMPILER(GCC) && PLATFORM(ARM_THUMB2)
 
 #if USE(JIT_STUB_ARGUMENT_VA_LIST)
 #error "JIT_STUB_ARGUMENT_VA_LIST not supported on ARMv7."
@@ -204,7 +210,7 @@ asm volatile (
 ".align 2" "\n"
 ".globl " SYMBOL_STRING(ctiTrampoline) "\n"
 ".thumb" "\n"
-".thumb_func " SYMBOL_STRING(ctiTrampoline) "\n"
+".thumb_func " THUMB_FUNC_PARAM(ctiTrampoline) "\n"
 SYMBOL_STRING(ctiTrampoline) ":" "\n"
     "sub sp, sp, #0x3c" "\n"
     "str lr, [sp, #0x20]" "\n"
@@ -230,7 +236,7 @@ asm volatile (
 ".align 2" "\n"
 ".globl " SYMBOL_STRING(ctiVMThrowTrampoline) "\n"
 ".thumb" "\n"
-".thumb_func " SYMBOL_STRING(ctiVMThrowTrampoline) "\n"
+".thumb_func " THUMB_FUNC_PARAM(ctiVMThrowTrampoline) "\n"
 SYMBOL_STRING(ctiVMThrowTrampoline) ":" "\n"
     "cpy r0, sp" "\n"
     "bl " SYMBOL_STRING(cti_vm_throw) "\n"
@@ -247,7 +253,7 @@ asm volatile (
 ".align 2" "\n"
 ".globl " SYMBOL_STRING(ctiOpThrowNotCaught) "\n"
 ".thumb" "\n"
-".thumb_func " SYMBOL_STRING(ctiOpThrowNotCaught) "\n"
+".thumb_func " THUMB_FUNC_PARAM(ctiOpThrowNotCaught) "\n"
 SYMBOL_STRING(ctiOpThrowNotCaught) ":" "\n"
     "ldr r6, [sp, #0x2c]" "\n"
     "ldr r5, [sp, #0x28]" "\n"
@@ -452,7 +458,7 @@ SYMBOL_STRING(ctiOpThrowNotCaught) ":" "\n"
     "ret" "\n"
 );
 
-#elif COMPILER(GCC) && PLATFORM_ARM_ARCH(7)
+#elif COMPILER(GCC) && PLATFORM(ARM_THUMB2)
 
 #if USE(JIT_STUB_ARGUMENT_VA_LIST)
 #error "JIT_STUB_ARGUMENT_VA_LIST not supported on ARMv7."
@@ -463,7 +469,7 @@ asm volatile (
 ".align 2" "\n"
 ".globl " SYMBOL_STRING(ctiTrampoline) "\n"
 ".thumb" "\n"
-".thumb_func " SYMBOL_STRING(ctiTrampoline) "\n"
+".thumb_func " THUMB_FUNC_PARAM(ctiTrampoline) "\n"
 SYMBOL_STRING(ctiTrampoline) ":" "\n"
     "sub sp, sp, #0x3c" "\n"
     "str lr, [sp, #0x20]" "\n"
@@ -489,7 +495,7 @@ asm volatile (
 ".align 2" "\n"
 ".globl " SYMBOL_STRING(ctiVMThrowTrampoline) "\n"
 ".thumb" "\n"
-".thumb_func " SYMBOL_STRING(ctiVMThrowTrampoline) "\n"
+".thumb_func " THUMB_FUNC_PARAM(ctiVMThrowTrampoline) "\n"
 SYMBOL_STRING(ctiVMThrowTrampoline) ":" "\n"
     "cpy r0, sp" "\n"
     "bl " SYMBOL_STRING(cti_vm_throw) "\n"
@@ -506,7 +512,7 @@ asm volatile (
 ".align 2" "\n"
 ".globl " SYMBOL_STRING(ctiOpThrowNotCaught) "\n"
 ".thumb" "\n"
-".thumb_func " SYMBOL_STRING(ctiOpThrowNotCaught) "\n"
+".thumb_func " THUMB_FUNC_PARAM(ctiOpThrowNotCaught) "\n"
 SYMBOL_STRING(ctiOpThrowNotCaught) ":" "\n"
     "ldr r6, [sp, #0x2c]" "\n"
     "ldr r5, [sp, #0x28]" "\n"
@@ -516,7 +522,7 @@ SYMBOL_STRING(ctiOpThrowNotCaught) ":" "\n"
     "bx lr" "\n"
 );
 
-#elif COMPILER(GCC) && PLATFORM(ARM)
+#elif COMPILER(GCC) && PLATFORM(ARM_TRADITIONAL)
 
 asm volatile (
 ".globl " SYMBOL_STRING(ctiTrampoline) "\n"
@@ -636,7 +642,7 @@ JITThunks::JITThunks(JSGlobalData* globalData)
 {
     JIT::compileCTIMachineTrampolines(globalData, &m_executablePool, &m_ctiStringLengthTrampoline, &m_ctiVirtualCallLink, &m_ctiVirtualCall, &m_ctiNativeCallThunk);
 
-#if PLATFORM_ARM_ARCH(7)
+#if PLATFORM(ARM_THUMB2)
     // Unfortunate the arm compiler does not like the use of offsetof on JITStackFrame (since it contains non POD types),
     // and the OBJECT_OFFSETOF macro does not appear constantish enough for it to be happy with its use in COMPILE_ASSERT
     // macros.
@@ -876,7 +882,7 @@ static NEVER_INLINE void throwStackOverflowError(CallFrame* callFrame, JSGlobalD
         } \
     } while (0)
 
-#if PLATFORM_ARM_ARCH(7)
+#if PLATFORM(ARM_THUMB2)
 
 #define DEFINE_STUB_FUNCTION(rtype, op) \
     extern "C" { \
@@ -887,7 +893,7 @@ static NEVER_INLINE void throwStackOverflowError(CallFrame* callFrame, JSGlobalD
         ".align 2" "\n" \
         ".globl " SYMBOL_STRING(cti_##op) "\n" \
         ".thumb" "\n" \
-        ".thumb_func " SYMBOL_STRING(cti_##op) "\n" \
+        ".thumb_func " THUMB_FUNC_PARAM(cti_##op) "\n" \
         SYMBOL_STRING(cti_##op) ":" "\n" \
         "str lr, [sp, #0x1c]" "\n" \
         "bl " SYMBOL_STRING(JITStubThunked_##op) "\n" \

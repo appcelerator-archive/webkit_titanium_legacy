@@ -26,6 +26,8 @@
 #include "config.h"
 #include "ContextMenuController.h"
 
+#if ENABLE(CONTEXT_MENUS)
+
 #include "Chrome.h"
 #include "ContextMenu.h"
 #include "ContextMenuClient.h"
@@ -95,8 +97,10 @@ void ContextMenuController::handleContextMenuEvent(Event* event)
 
     m_contextMenu.set(new ContextMenu(result));
     m_contextMenu->populate();
+#if ENABLE(INSPECTOR)
     if (m_page->inspectorController()->enabled())
         m_contextMenu->addInspectElementItem();
+#endif
 
     PlatformMenuDescription customMenu = m_client->getCustomMenuFromDefaultItems(m_contextMenu.get());
     m_contextMenu->setPlatformDescription(customMenu);
@@ -325,13 +329,17 @@ void ContextMenuController::contextMenuItemSelected(ContextMenuItem* item)
         frame->editor()->changeBackToReplacedString(result.replacedString());
         break;
 #endif
+#if ENABLE(INSPECTOR)
     case ContextMenuItemTagInspectElement:
         if (Page* page = frame->page())
             page->inspectorController()->inspect(result.innerNonSharedNode());
         break;
+#endif
     default:
         break;
     }
 }
 
 } // namespace WebCore
+
+#endif // ENABLE(CONTEXT_MENUS)

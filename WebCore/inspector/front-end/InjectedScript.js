@@ -112,6 +112,10 @@ InjectedScript.applyStyleText = function(styleId, styleText, propertyName)
             style.removeProperty(propertyName);
     }
 
+    // Notify caller that the property was successfully deleted.
+    if (!styleTextLength)
+        return [null, [propertyName]];
+
     if (!tempStyle.length)
         return false;
 
@@ -417,7 +421,7 @@ InjectedScript.getPrototypes = function(nodeId)
 
     var result = [];
     for (var prototype = node; prototype; prototype = prototype.__proto__) {
-        var title = Object.describe(prototype);
+        var title = Object.describe(prototype, true);
         if (title.match(/Prototype$/)) {
             title = title.replace(/Prototype$/, "");
         }
@@ -494,21 +498,29 @@ InjectedScript.setPropertyValue = function(objectProxy, propertyName, expression
     }
 }
 
-InjectedScript.evaluate = function(expression)
+
+InjectedScript.getCompletions = function(expression, includeInspectorCommandLineAPI)
 {
-    return InjectedScript._evaluateOn(InjectedScript._window().eval, InjectedScript._window(), expression);
+    var props = {};
+    try {
+        var expressionResult = InjectedScript._evaluateOn(InjectedScript._window().eval, InjectedScript._window(), expression);
+        for (var prop in expressionResult)
+            props[prop] = true;
+        if (includeInspectorCommandLineAPI)
+            for (var prop in InjectedScript._window()._inspectorCommandLineAPI)
+                if (prop.charAt(0) !== '_')
+                    props[prop] = true;
+    } catch(e) {
+    }
+    return props;
 }
 
-InjectedScript._evaluateOn = function(evalFunction, object, expression)
-{
-    InjectedScript._ensureCommandLineAPIInstalled();
-    // Surround the expression in with statements to inject our command line API so that
-    // the window object properties still take more precedent than our API functions.
-    expression = "with (window._inspectorCommandLineAPI) { with (window) { " + expression + " } }";
 
+InjectedScript.evaluate = function(expression)
+{
     var result = {};
     try {
-        var value = evalFunction.call(object, expression);
+        var value = InjectedScript._evaluateOn(InjectedScript._window().eval, InjectedScript._window(), expression);
         if (value === null)
             return { value: null };
         if (Object.type(value) === "error") {
@@ -529,6 +541,15 @@ InjectedScript._evaluateOn = function(evalFunction, object, expression)
         result.isException = true;
     }
     return result;
+}
+
+InjectedScript._evaluateOn = function(evalFunction, object, expression)
+{
+    InjectedScript._ensureCommandLineAPIInstalled();
+    // Surround the expression in with statements to inject our command line API so that
+    // the window object properties still take more precedent than our API functions.
+    expression = "with (window._inspectorCommandLineAPI) { with (window) { " + expression + " } }";
+    return evalFunction.call(object, expression);
 }
 
 InjectedScript.addInspectedNode = function(nodeId)
@@ -946,7 +967,7 @@ InjectedScript.createProxyObject = function(object, objectId, abbreviate)
     result.type = Object.type(object);
 
     var type = typeof object;
-    if (type === "object" || type === "function") {
+    if ((type === "object" && object !== null) || type === "function") {
         for (var subPropertyName in object) {
             result.hasChildren = true;
             break;
@@ -978,11 +999,11 @@ InjectedScript.CallFrameProxy.prototype = {
         var scopeChainProxy = [];
         for (var i = 0; i < scopeChain.length; ++i) {
             var scopeObject = scopeChain[i];
-            var scopeObjectProxy = InjectedScript.createProxyObject(scopeObject, { callFrame: this.id, chainIndex: i });
+            var scopeObjectProxy = InjectedScript.createProxyObject(scopeObject, { callFrame: this.id, chainIndex: i }, true);
 
             if (Object.prototype.toString.call(scopeObject) === "[object JSActivation]") {
                 if (!foundLocalScope)
-                    scopeObjectProxy.thisObject = InjectedScript.createProxyObject(callFrame.thisObject, { callFrame: this.id, thisObject: true });
+                    scopeObjectProxy.thisObject = InjectedScript.createProxyObject(callFrame.thisObject, { callFrame: this.id, thisObject: true }, true);
                 else
                     scopeObjectProxy.isClosure = true;
                 foundLocalScope = true;
@@ -1056,6 +1077,8 @@ Object.describe = function(obj, abbreviated)
     case "array":
         return "[" + obj.toString() + "]";
     case "string":
+        if (!abbreviated)
+            return obj;
         if (obj.length > 100)
             return "\"" + obj.substring(0, 100) + "\u2026\"";
         return "\"" + obj + "\"";
@@ -1068,6 +1091,10 @@ Object.describe = function(obj, abbreviated)
         return objectText;
     case "regexp":
         return String(obj).replace(/([\\\/])/g, "\\$1").replace(/\\(\/[gim]*)$/, "$1").substring(1);
+    case "boolean":
+    case "number":
+    case "null":
+        return obj;
     default:
         return String(obj);
     }

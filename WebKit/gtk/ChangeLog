@@ -1,3 +1,100 @@
+2009-09-20  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Small documentation fix.
+
+        * webkit/webkithittestresult.cpp:
+
+2009-09-18  Xan Lopez  <xlopez@igalia.com>
+
+        Build fix.
+
+        Add missing file to the repository.
+
+        * tests/testhittestresult.c: Added.
+        (test_info_new):
+        (test_info_destroy):
+        (hit_test_result_fixture_setup):
+        (hit_test_result_fixture_teardown):
+        (load_status_cb):
+        (test_webkit_hit_test_result):
+        (main):
+
+2009-09-18  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        [Gtk] Unreviewed build fix.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::platformPageClient):
+
+2009-09-17  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        Make PlatformWindow return something else than PlatformWidget
+        https://bugs.webkit.org/show_bug.cgi?id=29085
+
+        Reflect the rename of platformWindow and it's return type.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::platformPageClient):
+        (WebKit::ChromeClient::runOpenPanel):
+        * WebCoreSupport/ChromeClientGtk.h:
+        * webkit/webkitprivate.cpp:
+        (currentToplevelCallback):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_popup_menu_handler):
+
+2009-09-18  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Jan Alonzo.
+
+        Document webkit_web_view_stop_loading.
+
+        * webkit/webkitwebview.cpp:
+
+2009-09-18  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha and Jan Alonzo.
+
+        [GTK] context menu overriding API is very limited
+        https://bugs.webkit.org/show_bug.cgi?id=27546
+
+        Add webkit_web_view_get_hit_test_result, a function to get a hit
+        test result from a GdkEventButton. Useful to let applications
+        decide between several actions on button press depending on what
+        is being pressed.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_stop_loading):
+        (documentPointForWindowPoint):
+        (webkit_web_view_get_hit_test_result):
+        * webkit/webkitwebview.h:
+
+2009-09-18  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha and Jan Alonzo.
+
+        [GTK] context menu overriding API is very limited
+        https://bugs.webkit.org/show_bug.cgi?id=27546
+
+        Add WebKitHitTestResult, a wrapper over HitTestResult. It contains
+        context information about a point in the web page.
+
+        * webkit/webkit.h:
+        * webkit/webkitdefines.h:
+        * webkit/webkithittestresult.cpp: Added.
+        (webkit_hit_test_result_finalize):
+        (webkit_hit_test_result_get_property):
+        (webkit_hit_test_result_set_property):
+        (webkit_hit_test_result_class_init):
+        (webkit_hit_test_result_init):
+        * webkit/webkithittestresult.h: Added.
+        * webkit/webkitprivate.cpp:
+        (WebKit::kit):
+        * webkit/webkitprivate.h:
+
 2009-09-14  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
 
         Reviewed by Xan Lopez and Jan Alonzo.

@@ -169,8 +169,7 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 }
 
 # Web Socket support.
-# FIXME: Enable once platform code is landed.
-# !contains(DEFINES, ENABLE_WEB_SOCKETS=.): DEFINES += ENABLE_WEB_SOCKETS=1
+!contains(DEFINES, ENABLE_WEB_SOCKETS=.): DEFINES += ENABLE_WEB_SOCKETS=1
 
 DEFINES += WTF_USE_JAVASCRIPTCORE_BINDINGS=1 WTF_CHANGES=1
 
@@ -714,7 +713,6 @@ SOURCES += \
     bindings/js/JSInspectorCallbackWrapper.cpp \
     bindings/js/JSLocationCustom.cpp \
     bindings/js/JSNamedNodeMapCustom.cpp \
-    bindings/js/JSNamedNodesCollection.cpp  \
     bindings/js/JSNavigatorCustom.cpp  \
     bindings/js/JSNodeCustom.cpp \
     bindings/js/JSNodeFilterCondition.cpp \
@@ -1392,7 +1390,6 @@ HEADERS += \
     bindings/js/JSLazyEventListener.h \
     bindings/js/JSLocationCustom.h \
     bindings/js/JSMessageChannelConstructor.h \
-    bindings/js/JSNamedNodesCollection.h \
     bindings/js/JSNodeFilterCondition.h \
     bindings/js/JSOptionConstructor.h \
     bindings/js/JSPluginElementFunctions.h \
@@ -3104,6 +3101,20 @@ SOURCES += \
     loader/appcache/DOMApplicationCache.cpp \
     loader/appcache/ManifestParser.cpp \
     bindings/js/JSDOMApplicationCacheCustom.cpp
+}
+
+contains(DEFINES, ENABLE_WEB_SOCKETS=1) {
+    FEATURE_DEFINES_JAVASCRIPT += ENABLE_WEB_SOCKETS=1
+
+SOURCES += \
+    websockets/WebSocket.cpp \
+    websockets/WebSocketChannel.cpp \
+    websockets/WebSocketHandshake.cpp \
+    platform/network/SocketStreamErrorBase.cpp \
+    platform/network/SocketStreamHandleBase.cpp \
+    platform/network/qt/SocketStreamHandleSoup.cpp \
+    bindings/js/JSWebSocketCustom.cpp \
+    bindings/js/JSWebSocketConstructor.cpp
 }
 
 # GENERATOR 1: IDL compiler

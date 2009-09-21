@@ -67,7 +67,8 @@ namespace JSC {
         static PassRefPtr<Structure> addPropertyTransitionToExistingStructure(Structure*, const Identifier& propertyName, unsigned attributes, JSCell* specificValue, size_t& offset);
         static PassRefPtr<Structure> removePropertyTransition(Structure*, const Identifier& propertyName, size_t& offset);
         static PassRefPtr<Structure> changePrototypeTransition(Structure*, JSValue prototype);
-        static PassRefPtr<Structure> despecifyFunctionTransition(Structure*, const Identifier&);        
+        static PassRefPtr<Structure> despecifyFunctionTransition(Structure*, const Identifier&);
+        static PassRefPtr<Structure> addAnonymousSlotsTransition(Structure*, unsigned count);
         static PassRefPtr<Structure> getterSetterTransition(Structure*);
         static PassRefPtr<Structure> toDictionaryTransition(Structure*);
         static PassRefPtr<Structure> fromDictionaryTransition(Structure*);
@@ -93,7 +94,7 @@ namespace JSC {
 
         void growPropertyStorageCapacity();
         size_t propertyStorageCapacity() const { return m_propertyStorageCapacity; }
-        size_t propertyStorageSize() const { return m_propertyTable ? m_propertyTable->keyCount + (m_propertyTable->deletedOffsets ? m_propertyTable->deletedOffsets->size() : 0) : m_offset + 1; }
+        size_t propertyStorageSize() const { return m_propertyTable ? m_propertyTable->keyCount + m_propertyTable->anonymousSlotCount + (m_propertyTable->deletedOffsets ? m_propertyTable->deletedOffsets->size() : 0) : m_offset + 1; }
         bool isUsingInlineStorage() const;
 
         size_t get(const Identifier& propertyName);
@@ -129,6 +130,7 @@ namespace JSC {
 
         size_t put(const Identifier& propertyName, unsigned attributes, JSCell* specificValue);
         size_t remove(const Identifier& propertyName);
+        void addAnonymousSlots(unsigned slotCount);
         void getEnumerableNamesFromPropertyTable(PropertyNameArray&);
         void getEnumerableNamesFromClassInfoTable(ExecState*, const ClassInfo*, PropertyNameArray&);
 
@@ -188,7 +190,15 @@ namespace JSC {
         bool m_isDictionary : 1;
         bool m_isPinnedPropertyTable : 1;
         bool m_hasGetterSetterProperties : 1;
+#if COMPILER(WINSCW)
+        // Workaround for Symbian WINSCW compiler that cannot resolve unsigned type of the declared 
+        // bitfield, when used as argument in make_pair() function calls in structure.ccp.
+        // This bitfield optimization is insignificant for the Symbian emulator target.
+        unsigned m_attributesInPrevious;
+#else
         unsigned m_attributesInPrevious : 7;
+#endif
+        unsigned m_anonymousSlotsInPrevious : 6;
     };
 
     inline size_t Structure::get(const Identifier& propertyName)
@@ -282,10 +292,10 @@ namespace JSC {
     {
         ASSERT(usingSingleTransitionSlot());
         Structure* existingTransition = singleTransition();
-        ASSERT(existingTransition);
         TransitionTable* transitionTable = new TransitionTable;
         setTransitionTable(transitionTable);
-        add(make_pair(existingTransition->m_nameInPrevious.get(), existingTransition->m_attributesInPrevious), existingTransition, existingTransition->m_specificValueInPrevious);
+        if (existingTransition)
+            add(make_pair(existingTransition->m_nameInPrevious.get(), existingTransition->m_attributesInPrevious), existingTransition, existingTransition->m_specificValueInPrevious);
     }
 } // namespace JSC
 

@@ -1,3 +1,1786 @@
+2009-09-20  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Crash when clicking link in unload handler
+        https://bugs.webkit.org/show_bug.cgi?id=29525
+
+        Test that the first navigation always wins when the page tries to start
+        a new navigation in an unload handler.
+
+        * fast/loader/resources/fail-and-notify-done.html: Added.
+        * fast/loader/resources/pass-and-notify-done.html: Added.
+        * fast/loader/unload-form-about-blank-expected.txt: Added.
+        * fast/loader/unload-form-about-blank.html: Added.
+        * fast/loader/unload-form-expected.txt: Added.
+        * fast/loader/unload-form-post-about-blank-expected.txt: Added.
+        * fast/loader/unload-form-post-about-blank.html: Added.
+        * fast/loader/unload-form-post-expected.txt: Added.
+        * fast/loader/unload-form-post.html: Added.
+        * fast/loader/unload-form.html: Added.
+        * fast/loader/unload-hyperlink-expected.txt: Added.
+        * fast/loader/unload-hyperlink.html: Added.
+        * fast/loader/unload-javascript-url-expected.txt: Added.
+        * fast/loader/unload-javascript-url.html: Added.
+        * fast/loader/unload-reload-expected.txt: Added.
+        * fast/loader/unload-reload.html: Added.
+        * fast/loader/unload-window-location-expected.txt: Added.
+        * fast/loader/unload-window-location.html: Added.
+
+2009-09-19  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Implement ES5 Object.create function
+        https://bugs.webkit.org/show_bug.cgi?id=29524
+
+        Add tests for Object.create API
+
+        * fast/js/Object-create-expected.txt: Added.
+        * fast/js/Object-create.html: Added.
+        * fast/js/resources/Object-create.js: Added.
+
+2009-09-19  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Oliver Hunt.
+
+        Update tests for https://bugs.webkit.org/show_bug.cgi?id=29519
+        Remove JSNameNodeCollection and just use StaticNodeList
+
+        * fast/dom/HTMLSelectElement/named-options-expected.txt:
+        * fast/dom/HTMLSelectElement/script-tests/named-options.js:
+        * fast/dom/prototype-inheritance-2-expected.txt:
+
+2009-09-19  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Implement ES5 Object.defineProperties function
+        https://bugs.webkit.org/show_bug.cgi?id=29522
+
+        Add tests for Object.defineProperties API.
+
+        * fast/js/Object-defineProperties-expected.txt: Added.
+        * fast/js/Object-defineProperties.html: Added.
+        * fast/js/resources/Object-defineProperties.js: Added.
+
+2009-09-19  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29511
+        
+        Tests that scripts that contain non-ASCII characters do not bypass the XSSAuditor.
+
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char-expected.txt: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char.html: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char-default-encoding-expected: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char-default-encoding.html: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char2-default-encoding-expected.txt: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char2-default-encoding.html: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char2-expected.txt: Added.
+        * http/tests/security/xssAuditor/img-onerror-non-ASCII-char2.html: Added.
+
+2009-09-19  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Incorrect animation with scale(0) transform (singular matrix)
+        https://bugs.webkit.org/show_bug.cgi?id=29465
+        
+        Testcase for an accelerated transform animation that starts with a scale(0),
+        which gives a singular matrix.
+
+        * compositing/transitions/singular-scale-transition.html: Added.
+        * platform/mac/compositing/transitions/singular-scale-transition-expected.checksum: Added.
+        * platform/mac/compositing/transitions/singular-scale-transition-expected.png: Added.
+        * platform/mac/compositing/transitions/singular-scale-transition-expected.txt: Added.
+
+2009-09-19  Alex Milowski  <alex@milowski.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Basic tests for msub, msup, and mtable/mtr/mtd
+
+        * mathml: Added.
+        * mathml/presentation: Added.
+        * mathml/presentation/sub.xhtml: Added.
+        * mathml/presentation/sup.xhtml: Added.
+        * mathml/presentation/tables.xhtml: Added.
+        * platform/mac/mathml: Added.
+        * platform/mac/mathml/presentation: Added.
+        * platform/mac/mathml/presentation/sub-expected.txt: Added.
+        * platform/mac/mathml/presentation/sup-expected.txt: Added.
+        * platform/mac/mathml/presentation/tables-expected.txt: Added.
+
+2009-09-19  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Oliver Hunt.
+
+        Canvas drawn with data URL image raises SECURITY_ERR when toDataUrl() called.
+        https://bugs.webkit.org/show_bug.cgi?id=29305
+
+        Test that drawing a data URL image onto a canvas behaves as expected.
+        Note the tricky case involving a data URL SVG image with an embedded
+        remote image.
+        
+        Also, test that document.domain state doesn't affect canvas taint
+        state.
+
+        * http/tests/security/canvas-remote-read-data-url-image-expected.txt: Added.
+        * http/tests/security/canvas-remote-read-data-url-image.html: Added.
+        * http/tests/security/canvas-remote-read-data-url-svg-image-expected.txt: Added.
+        * http/tests/security/canvas-remote-read-data-url-svg-image.html: Added.
+        * http/tests/security/canvas-remote-read-remote-image-document-domain-expected.txt: Added.
+        * http/tests/security/canvas-remote-read-remote-image-document-domain.html: Added.
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Migration for svg directory.
+
+        * svg/custom/SVGException.html:
+        * svg/custom/getSubStringLength.html:
+        * svg/custom/immutable-properties.html:
+        * svg/custom/resources/SVGException.js: Removed.
+        * svg/custom/resources/TEMPLATE.html: Removed.
+        * svg/custom/resources/getSubStringLength.js: Removed.
+        * svg/custom/resources/immutable-properties.js: Removed.
+        * svg/custom/resources/selectSubString.js: Removed.
+        * svg/custom/resources/svg-fonts-in-text-controls.js: Removed.
+        * svg/custom/resources/svg-modify-currentTranslate.js: Removed.
+        * svg/custom/resources/svg-xml-dom-sync.js: Removed.
+        * svg/custom/resources/tearoffs-with-tearoffs.js: Removed.
+        * svg/custom/script-tests: Added.
+        * svg/custom/script-tests/SVGException.js: Copied from LayoutTests/svg/custom/resources/SVGException.js.
+        * svg/custom/script-tests/TEMPLATE.html: Copied from LayoutTests/svg/custom/resources/TEMPLATE.html.
+        * svg/custom/script-tests/getSubStringLength.js: Copied from LayoutTests/svg/custom/resources/getSubStringLength.js.
+        * svg/custom/script-tests/immutable-properties.js: Copied from LayoutTests/svg/custom/resources/immutable-properties.js.
+        * svg/custom/script-tests/selectSubString.js: Copied from LayoutTests/svg/custom/resources/selectSubString.js.
+        * svg/custom/script-tests/svg-fonts-in-text-controls.js: Copied from LayoutTests/svg/custom/resources/svg-fonts-in-text-controls.js.
+        * svg/custom/script-tests/svg-modify-currentTranslate.js: Copied from LayoutTests/svg/custom/resources/svg-modify-currentTranslate.js.
+        * svg/custom/script-tests/svg-xml-dom-sync.js: Copied from LayoutTests/svg/custom/resources/svg-xml-dom-sync.js.
+        * svg/custom/script-tests/tearoffs-with-tearoffs.js: Copied from LayoutTests/svg/custom/resources/tearoffs-with-tearoffs.js.
+        * svg/custom/selectSubString.html:
+        * svg/custom/svg-fonts-in-text-controls.html:
+        * svg/custom/svg-modify-currentTranslate.html:
+        * svg/custom/svg-xml-dom-sync.html:
+        * svg/custom/tearoffs-with-tearoffs.html:
+        * svg/dom/SVGStyleElement/resources/TEMPLATE.html: Removed.
+        * svg/dom/SVGStyleElement/resources/style-langspace.js: Removed.
+        * svg/dom/SVGStyleElement/script-tests: Added.
+        * svg/dom/SVGStyleElement/script-tests/TEMPLATE.html: Copied from LayoutTests/svg/dom/SVGStyleElement/resources/TEMPLATE.html.
+        * svg/dom/SVGStyleElement/script-tests/style-langspace.js: Copied from LayoutTests/svg/dom/SVGStyleElement/resources/style-langspace.js.
+        * svg/dom/SVGStyleElement/style-langspace.html:
+        * svg/dom/path-parser.html:
+        * svg/dom/path-segments.html:
+        * svg/dom/resources/TEMPLATE.html: Removed.
+        * svg/dom/resources/path-parser.js: Removed.
+        * svg/dom/resources/path-segments.js: Removed.
+        * svg/dom/resources/style-reflect.js: Removed.
+        * svg/dom/resources/text-rotate-live.js: Removed.
+        * svg/dom/script-tests: Added.
+        * svg/dom/script-tests/TEMPLATE.html: Copied from LayoutTests/svg/dom/resources/TEMPLATE.html.
+        * svg/dom/script-tests/path-parser.js: Copied from LayoutTests/svg/dom/resources/path-parser.js.
+        * svg/dom/script-tests/path-segments.js: Copied from LayoutTests/svg/dom/resources/path-segments.js.
+        * svg/dom/script-tests/style-reflect.js: Copied from LayoutTests/svg/dom/resources/style-reflect.js.
+        * svg/dom/script-tests/text-rotate-live.js: Copied from LayoutTests/svg/dom/resources/text-rotate-live.js.
+        * svg/dom/style-reflect.html:
+        * svg/dom/text-rotate-live.html:
+        * svg/dynamic-updates/SVGAElement-dom-href-attr.html:
+        * svg/dynamic-updates/SVGAElement-dom-target-attr.html:
+        * svg/dynamic-updates/SVGAElement-svgdom-href-prop.html:
+        * svg/dynamic-updates/SVGAElement-svgdom-target-prop.html:
+        * svg/dynamic-updates/SVGCircleElement-dom-cx-attr.html:
+        * svg/dynamic-updates/SVGCircleElement-dom-cy-attr.html:
+        * svg/dynamic-updates/SVGCircleElement-dom-r-attr.html:
+        * svg/dynamic-updates/SVGCircleElement-svgdom-cx-prop.html:
+        * svg/dynamic-updates/SVGCircleElement-svgdom-cy-prop.html:
+        * svg/dynamic-updates/SVGCircleElement-svgdom-r-prop.html:
+        * svg/dynamic-updates/SVGClipPathElement-dom-clipPathUnits-attr.html:
+        * svg/dynamic-updates/SVGClipPathElement-svgdom-clipPathUnits-prop.html:
+        * svg/dynamic-updates/SVGCursorElement-dom-x-attr.html:
+        * svg/dynamic-updates/SVGCursorElement-dom-y-attr.html:
+        * svg/dynamic-updates/SVGCursorElement-svgdom-x-prop.html:
+        * svg/dynamic-updates/SVGCursorElement-svgdom-y-prop.html:
+        * svg/dynamic-updates/SVGEllipseElement-dom-cx-attr.html:
+        * svg/dynamic-updates/SVGEllipseElement-dom-cy-attr.html:
+        * svg/dynamic-updates/SVGEllipseElement-dom-rx-attr.html:
+        * svg/dynamic-updates/SVGEllipseElement-dom-ry-attr.html:
+        * svg/dynamic-updates/SVGEllipseElement-svgdom-cx-prop.html:
+        * svg/dynamic-updates/SVGEllipseElement-svgdom-cy-prop.html:
+        * svg/dynamic-updates/SVGEllipseElement-svgdom-rx-prop.html:
+        * svg/dynamic-updates/SVGEllipseElement-svgdom-ry-prop.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-dom-height-attr.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-dom-width-attr.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-dom-x-attr.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-dom-y-attr.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-svgdom-height-prop.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-svgdom-width-prop.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-svgdom-x-prop.html:
+        * svg/dynamic-updates/SVGForeignObjectElement-svgdom-y-prop.html:
+        * svg/dynamic-updates/SVGImageElement-dom-height-attr.html:
+        * svg/dynamic-updates/SVGImageElement-dom-preserveAspectRatio-attr.html:
+        * svg/dynamic-updates/SVGImageElement-dom-width-attr.html:
+        * svg/dynamic-updates/SVGImageElement-dom-x-attr.html:
+        * svg/dynamic-updates/SVGImageElement-dom-y-attr.html:
+        * svg/dynamic-updates/SVGImageElement-svgdom-height-prop.html:
+        * svg/dynamic-updates/SVGImageElement-svgdom-preserveAspectRatio-prop.html:
+        * svg/dynamic-updates/SVGImageElement-svgdom-width-prop.html:
+        * svg/dynamic-updates/SVGImageElement-svgdom-x-prop.html:
+        * svg/dynamic-updates/SVGImageElement-svgdom-y-prop.html:
+        * svg/dynamic-updates/SVGLineElement-dom-x1-attr.html:
+        * svg/dynamic-updates/SVGLineElement-dom-x2-attr.html:
+        * svg/dynamic-updates/SVGLineElement-dom-y1-attr.html:
+        * svg/dynamic-updates/SVGLineElement-dom-y2-attr.html:
+        * svg/dynamic-updates/SVGLineElement-svgdom-x1-prop.html:
+        * svg/dynamic-updates/SVGLineElement-svgdom-x2-prop.html:
+        * svg/dynamic-updates/SVGLineElement-svgdom-y1-prop.html:
+        * svg/dynamic-updates/SVGLineElement-svgdom-y2-prop.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-dom-gradientTransform-attr.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-dom-gradientUnits-attr.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-dom-x1-attr.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-dom-x2-attr.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-dom-y1-attr.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-dom-y2-attr.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-svgdom-gradientTransform-prop.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-svgdom-gradientUnits-prop.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-svgdom-x1-prop.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-svgdom-x2-prop.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-svgdom-y1-prop.html:
+        * svg/dynamic-updates/SVGLinearGradientElement-svgdom-y2-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-dom-markerHeight-attr.html:
+        * svg/dynamic-updates/SVGMarkerElement-dom-markerUnits-attr.html:
+        * svg/dynamic-updates/SVGMarkerElement-dom-markerWidth-attr.html:
+        * svg/dynamic-updates/SVGMarkerElement-dom-orient-attr.html:
+        * svg/dynamic-updates/SVGMarkerElement-dom-refX-attr.html:
+        * svg/dynamic-updates/SVGMarkerElement-dom-refY-attr.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-markerHeight-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-markerUnits-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-markerWidth-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-orientAngle-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-orientType-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-refX-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-refY-prop.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-setOrientToAngle-call.html:
+        * svg/dynamic-updates/SVGMarkerElement-svgdom-setOrientToAuto-call.html:
+        * svg/dynamic-updates/SVGMaskElement-dom-height-attr.html:
+        * svg/dynamic-updates/SVGMaskElement-dom-maskContentUnits-attr.html:
+        * svg/dynamic-updates/SVGMaskElement-dom-maskUnits-attr.html:
+        * svg/dynamic-updates/SVGMaskElement-dom-width-attr.html:
+        * svg/dynamic-updates/SVGMaskElement-dom-x-attr.html:
+        * svg/dynamic-updates/SVGMaskElement-dom-y-attr.html:
+        * svg/dynamic-updates/SVGMaskElement-svgdom-height-prop.html:
+        * svg/dynamic-updates/SVGMaskElement-svgdom-maskContentUnits-prop.html:
+        * svg/dynamic-updates/SVGMaskElement-svgdom-maskUnits-prop.html:
+        * svg/dynamic-updates/SVGMaskElement-svgdom-width-prop.html:
+        * svg/dynamic-updates/SVGMaskElement-svgdom-x-prop.html:
+        * svg/dynamic-updates/SVGMaskElement-svgdom-y-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-height-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-patternContentUnits-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-patternTransform-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-patternUnits-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-width-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-x-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-dom-y-attr.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-height-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-patternContentUnits-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-patternTransform-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-patternUnits-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-width-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-x-prop.html:
+        * svg/dynamic-updates/SVGPatternElement-svgdom-y-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-cx-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-cy-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-fx-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-fy-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-gradientTransform-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-gradientUnits-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-dom-r-attr.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-cx-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-cy-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-fx-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-fy-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-gradientTransform-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-gradientUnits-prop.html:
+        * svg/dynamic-updates/SVGRadialGradientElement-svgdom-r-prop.html:
+        * svg/dynamic-updates/SVGRectElement-dom-height-attr.html:
+        * svg/dynamic-updates/SVGRectElement-dom-width-attr.html:
+        * svg/dynamic-updates/SVGRectElement-dom-x-attr.html:
+        * svg/dynamic-updates/SVGRectElement-dom-y-attr.html:
+        * svg/dynamic-updates/SVGRectElement-svgdom-height-prop.html:
+        * svg/dynamic-updates/SVGRectElement-svgdom-width-prop.html:
+        * svg/dynamic-updates/SVGRectElement-svgdom-x-prop.html:
+        * svg/dynamic-updates/SVGRectElement-svgdom-y-prop.html:
+        * svg/dynamic-updates/resources/SVGAElement-dom-href-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGAElement-dom-target-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGAElement-svgdom-href-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGAElement-svgdom-target-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGCircleElement-dom-cx-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGCircleElement-dom-cy-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGCircleElement-dom-r-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGCircleElement-svgdom-cx-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGCircleElement-svgdom-cy-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGCircleElement-svgdom-r-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGClipPathElement-dom-clipPathUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGClipPathElement-svgdom-clipPathUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGCursorElement-dom-x-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGCursorElement-dom-y-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGCursorElement-svgdom-x-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGCursorElement-svgdom-y-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-dom-cx-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-dom-cy-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-dom-rx-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-dom-ry-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-svgdom-cx-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-svgdom-cy-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-svgdom-rx-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGEllipseElement-svgdom-ry-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-dom-height-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-dom-width-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-dom-x-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-dom-y-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-height-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-width-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-x-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-y-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-dom-height-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-dom-preserveAspectRatio-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-dom-width-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-dom-x-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-dom-y-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-svgdom-height-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-svgdom-preserveAspectRatio-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-svgdom-width-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-svgdom-x-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGImageElement-svgdom-y-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-dom-x1-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-dom-x2-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-dom-y1-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-dom-y2-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-svgdom-x1-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-svgdom-x2-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-svgdom-y1-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLineElement-svgdom-y2-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-dom-gradientTransform-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-dom-gradientUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-dom-x1-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-dom-x2-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-dom-y1-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-dom-y2-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-gradientTransform-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-gradientUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-x1-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-x2-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-y1-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-y2-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-dom-markerHeight-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-dom-markerUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-dom-markerWidth-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-dom-orient-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-dom-refX-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-dom-refY-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-markerHeight-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-markerUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-markerWidth-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-orientAngle-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-orientType-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-refX-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-refY-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-setOrientToAngle-call.js: Removed.
+        * svg/dynamic-updates/resources/SVGMarkerElement-svgdom-setOrientToAuto-call.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-dom-height-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-dom-maskContentUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-dom-maskUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-dom-width-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-dom-x-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-dom-y-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-svgdom-height-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-svgdom-maskContentUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-svgdom-maskUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-svgdom-width-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-svgdom-x-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGMaskElement-svgdom-y-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-height-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-patternContentUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-patternTransform-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-patternUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-width-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-x-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-dom-y-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-height-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-patternContentUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-patternTransform-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-patternUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-width-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-x-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGPatternElement-svgdom-y-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-cx-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-cy-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-fx-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-fy-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-gradientTransform-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-gradientUnits-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-dom-r-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-cx-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-cy-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-fx-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-fy-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-gradientTransform-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-gradientUnits-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-r-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-dom-height-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-dom-width-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-dom-x-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-dom-y-attr.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-svgdom-height-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-svgdom-width-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-svgdom-x-prop.js: Removed.
+        * svg/dynamic-updates/resources/SVGRectElement-svgdom-y-prop.js: Removed.
+        * svg/dynamic-updates/resources/TEMPLATE.html: Removed.
+        * svg/dynamic-updates/script-tests: Added.
+        * svg/dynamic-updates/script-tests/SVGAElement-dom-href-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGAElement-dom-href-attr.js.
+        * svg/dynamic-updates/script-tests/SVGAElement-dom-target-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGAElement-dom-target-attr.js.
+        * svg/dynamic-updates/script-tests/SVGAElement-svgdom-href-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGAElement-svgdom-href-prop.js.
+        * svg/dynamic-updates/script-tests/SVGAElement-svgdom-target-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGAElement-svgdom-target-prop.js.
+        * svg/dynamic-updates/script-tests/SVGCircleElement-dom-cx-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCircleElement-dom-cx-attr.js.
+        * svg/dynamic-updates/script-tests/SVGCircleElement-dom-cy-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCircleElement-dom-cy-attr.js.
+        * svg/dynamic-updates/script-tests/SVGCircleElement-dom-r-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCircleElement-dom-r-attr.js.
+        * svg/dynamic-updates/script-tests/SVGCircleElement-svgdom-cx-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCircleElement-svgdom-cx-prop.js.
+        * svg/dynamic-updates/script-tests/SVGCircleElement-svgdom-cy-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCircleElement-svgdom-cy-prop.js.
+        * svg/dynamic-updates/script-tests/SVGCircleElement-svgdom-r-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCircleElement-svgdom-r-prop.js.
+        * svg/dynamic-updates/script-tests/SVGClipPathElement-dom-clipPathUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGClipPathElement-dom-clipPathUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGClipPathElement-svgdom-clipPathUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGClipPathElement-svgdom-clipPathUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGCursorElement-dom-x-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCursorElement-dom-x-attr.js.
+        * svg/dynamic-updates/script-tests/SVGCursorElement-dom-y-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCursorElement-dom-y-attr.js.
+        * svg/dynamic-updates/script-tests/SVGCursorElement-svgdom-x-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCursorElement-svgdom-x-prop.js.
+        * svg/dynamic-updates/script-tests/SVGCursorElement-svgdom-y-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGCursorElement-svgdom-y-prop.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-dom-cx-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-dom-cx-attr.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-dom-cy-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-dom-cy-attr.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-dom-rx-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-dom-rx-attr.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-dom-ry-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-dom-ry-attr.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-svgdom-cx-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-svgdom-cx-prop.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-svgdom-cy-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-svgdom-cy-prop.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-svgdom-rx-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-svgdom-rx-prop.js.
+        * svg/dynamic-updates/script-tests/SVGEllipseElement-svgdom-ry-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGEllipseElement-svgdom-ry-prop.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-dom-height-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-dom-height-attr.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-dom-width-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-dom-width-attr.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-dom-x-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-dom-x-attr.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-dom-y-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-dom-y-attr.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-svgdom-height-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-height-prop.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-svgdom-width-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-width-prop.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-svgdom-x-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-x-prop.js.
+        * svg/dynamic-updates/script-tests/SVGForeignObjectElement-svgdom-y-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGForeignObjectElement-svgdom-y-prop.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-dom-height-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-dom-height-attr.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-dom-preserveAspectRatio-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-dom-preserveAspectRatio-attr.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-dom-width-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-dom-width-attr.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-dom-x-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-dom-x-attr.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-dom-y-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-dom-y-attr.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-svgdom-height-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-svgdom-height-prop.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-svgdom-preserveAspectRatio-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-svgdom-preserveAspectRatio-prop.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-svgdom-width-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-svgdom-width-prop.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-svgdom-x-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-svgdom-x-prop.js.
+        * svg/dynamic-updates/script-tests/SVGImageElement-svgdom-y-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGImageElement-svgdom-y-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-dom-x1-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-dom-x1-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-dom-x2-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-dom-x2-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-dom-y1-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-dom-y1-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-dom-y2-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-dom-y2-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-svgdom-x1-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-svgdom-x1-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-svgdom-x2-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-svgdom-x2-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-svgdom-y1-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-svgdom-y1-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLineElement-svgdom-y2-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLineElement-svgdom-y2-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-dom-gradientTransform-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-dom-gradientTransform-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-dom-gradientUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-dom-gradientUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-dom-x1-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-dom-x1-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-dom-x2-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-dom-x2-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-dom-y1-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-dom-y1-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-dom-y2-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-dom-y2-attr.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-svgdom-gradientTransform-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-gradientTransform-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-svgdom-gradientUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-gradientUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-svgdom-x1-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-x1-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-svgdom-x2-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-x2-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-svgdom-y1-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-y1-prop.js.
+        * svg/dynamic-updates/script-tests/SVGLinearGradientElement-svgdom-y2-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGLinearGradientElement-svgdom-y2-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-dom-markerHeight-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-dom-markerHeight-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-dom-markerUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-dom-markerUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-dom-markerWidth-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-dom-markerWidth-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-dom-orient-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-dom-orient-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-dom-refX-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-dom-refX-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-dom-refY-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-dom-refY-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-markerHeight-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-markerHeight-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-markerUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-markerUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-markerWidth-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-markerWidth-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-orientAngle-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-orientAngle-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-orientType-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-orientType-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-refX-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-refX-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-refY-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-refY-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-setOrientToAngle-call.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-setOrientToAngle-call.js.
+        * svg/dynamic-updates/script-tests/SVGMarkerElement-svgdom-setOrientToAuto-call.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMarkerElement-svgdom-setOrientToAuto-call.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-dom-height-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-dom-height-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-dom-maskContentUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-dom-maskContentUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-dom-maskUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-dom-maskUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-dom-width-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-dom-width-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-dom-x-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-dom-x-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-dom-y-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-dom-y-attr.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-svgdom-height-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-svgdom-height-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-svgdom-maskContentUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-svgdom-maskContentUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-svgdom-maskUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-svgdom-maskUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-svgdom-width-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-svgdom-width-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-svgdom-x-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-svgdom-x-prop.js.
+        * svg/dynamic-updates/script-tests/SVGMaskElement-svgdom-y-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGMaskElement-svgdom-y-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-height-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-height-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-patternContentUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-patternContentUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-patternTransform-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-patternTransform-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-patternUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-patternUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-width-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-width-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-x-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-x-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-dom-y-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-dom-y-attr.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-height-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-height-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-patternContentUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-patternContentUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-patternTransform-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-patternTransform-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-patternUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-patternUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-width-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-width-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-x-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-x-prop.js.
+        * svg/dynamic-updates/script-tests/SVGPatternElement-svgdom-y-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGPatternElement-svgdom-y-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-cx-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-cx-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-cy-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-cy-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-fx-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-fx-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-fy-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-fy-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-gradientTransform-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-gradientTransform-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-gradientUnits-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-gradientUnits-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-dom-r-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-dom-r-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-cx-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-cx-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-cy-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-cy-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-fx-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-fx-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-fy-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-fy-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-gradientTransform-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-gradientTransform-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-gradientUnits-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-gradientUnits-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRadialGradientElement-svgdom-r-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRadialGradientElement-svgdom-r-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-dom-height-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-dom-height-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-dom-width-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-dom-width-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-dom-x-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-dom-x-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-dom-y-attr.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-dom-y-attr.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-svgdom-height-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-svgdom-height-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-svgdom-width-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-svgdom-width-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-svgdom-x-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-svgdom-x-prop.js.
+        * svg/dynamic-updates/script-tests/SVGRectElement-svgdom-y-prop.js: Copied from LayoutTests/svg/dynamic-updates/resources/SVGRectElement-svgdom-y-prop.js.
+        * svg/dynamic-updates/script-tests/TEMPLATE.html: Copied from LayoutTests/svg/dynamic-updates/resources/TEMPLATE.html.
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Migration for http, platform, plugins, traversal, and wml directories.
+
+        * http/tests/cookies/double-quoted-value-with-semi-colon.html:
+        * http/tests/cookies/multiple-cookies.html:
+        * http/tests/cookies/resources/TEMPLATE.html: Removed.
+        * http/tests/cookies/resources/double-quoted-value-with-semi-colon.js: Removed.
+        * http/tests/cookies/resources/multiple-cookies.js: Removed.
+        * http/tests/cookies/resources/simple-cookies-expired.js: Removed.
+        * http/tests/cookies/resources/simple-cookies-max-age.js: Removed.
+        * http/tests/cookies/script-tests: Added.
+        * http/tests/cookies/script-tests/TEMPLATE.html: Copied from LayoutTests/http/tests/cookies/resources/TEMPLATE.html.
+        * http/tests/cookies/script-tests/double-quoted-value-with-semi-colon.js: Copied from LayoutTests/http/tests/cookies/resources/double-quoted-value-with-semi-colon.js.
+        * http/tests/cookies/script-tests/multiple-cookies.js: Copied from LayoutTests/http/tests/cookies/resources/multiple-cookies.js.
+        * http/tests/cookies/script-tests/simple-cookies-expired.js: Copied from LayoutTests/http/tests/cookies/resources/simple-cookies-expired.js.
+        * http/tests/cookies/script-tests/simple-cookies-max-age.js: Copied from LayoutTests/http/tests/cookies/resources/simple-cookies-max-age.js.
+        * http/tests/cookies/simple-cookies-expired.html:
+        * http/tests/cookies/simple-cookies-max-age.html:
+        * http/tests/security/clipboard/clipboard-file-access.html:
+        * http/tests/security/clipboard/resources/TEMPLATE.html: Removed.
+        * http/tests/security/clipboard/resources/clipboard-file-access.js: Removed.
+        * http/tests/security/clipboard/script-tests: Added.
+        * http/tests/security/clipboard/script-tests/TEMPLATE.html: Copied from LayoutTests/http/tests/security/clipboard/resources/TEMPLATE.html.
+        * http/tests/security/clipboard/script-tests/clipboard-file-access.js: Copied from LayoutTests/http/tests/security/clipboard/resources/clipboard-file-access.js.
+        * http/tests/wml/access-target-domain-deny.html:
+        * http/tests/wml/access-target-path-deny.html:
+        * http/tests/wml/access-target.html:
+        * http/tests/wml/go-task-get-method-accept-charset.html:
+        * http/tests/wml/go-task-get-method.html:
+        * http/tests/wml/go-task-post-method-accept-charset.html:
+        * http/tests/wml/go-task-post-method.html:
+        * http/tests/wml/post-data-to-server.html:
+        * http/tests/wml/resources/TEMPLATE.html: Removed.
+        * http/tests/wml/resources/access-target-domain-deny.js: Removed.
+        * http/tests/wml/resources/access-target-path-deny.js: Removed.
+        * http/tests/wml/resources/access-target.js: Removed.
+        * http/tests/wml/resources/go-task-get-method-accept-charset.js: Removed.
+        * http/tests/wml/resources/go-task-get-method.js: Removed.
+        * http/tests/wml/resources/go-task-post-method-accept-charset.js: Removed.
+        * http/tests/wml/resources/go-task-post-method.js: Removed.
+        * http/tests/wml/resources/post-data-to-server.js: Removed.
+        * http/tests/wml/script-tests: Added.
+        * http/tests/wml/script-tests/TEMPLATE.html: Copied from LayoutTests/http/tests/wml/resources/TEMPLATE.html.
+        * http/tests/wml/script-tests/access-target-domain-deny.js: Copied from LayoutTests/http/tests/wml/resources/access-target-domain-deny.js.
+        * http/tests/wml/script-tests/access-target-path-deny.js: Copied from LayoutTests/http/tests/wml/resources/access-target-path-deny.js.
+        * http/tests/wml/script-tests/access-target.js: Copied from LayoutTests/http/tests/wml/resources/access-target.js.
+        * http/tests/wml/script-tests/go-task-get-method-accept-charset.js: Copied from LayoutTests/http/tests/wml/resources/go-task-get-method-accept-charset.js.
+        * http/tests/wml/script-tests/go-task-get-method.js: Copied from LayoutTests/http/tests/wml/resources/go-task-get-method.js.
+        * http/tests/wml/script-tests/go-task-post-method-accept-charset.js: Copied from LayoutTests/http/tests/wml/resources/go-task-post-method-accept-charset.js.
+        * http/tests/wml/script-tests/go-task-post-method.js: Copied from LayoutTests/http/tests/wml/resources/go-task-post-method.js.
+        * http/tests/wml/script-tests/post-data-to-server.js: Copied from LayoutTests/http/tests/wml/resources/post-data-to-server.js.
+        * platform/gtk/editing/pasteboard/resources/TEMPLATE.html: Removed.
+        * platform/gtk/editing/pasteboard/resources/middle-click-onpaste.js: Removed.
+        * platform/gtk/editing/pasteboard/script-tests: Added.
+        * platform/gtk/editing/pasteboard/script-tests/TEMPLATE.html: Copied from LayoutTests/platform/gtk/editing/pasteboard/resources/TEMPLATE.html.
+        * platform/gtk/editing/pasteboard/script-tests/middle-click-onpaste.js: Copied from LayoutTests/platform/gtk/editing/pasteboard/resources/middle-click-onpaste.js.
+        * platform/win/fast/events/context-click-events.html:
+        * platform/win/fast/events/resources/TEMPLATE.html: Removed.
+        * platform/win/fast/events/resources/context-click-events.js: Removed.
+        * platform/win/fast/events/script-tests: Added.
+        * platform/win/fast/events/script-tests/TEMPLATE.html: Copied from LayoutTests/platform/win/fast/events/resources/TEMPLATE.html.
+        * platform/win/fast/events/script-tests/context-click-events.js: Copied from LayoutTests/platform/win/fast/events/resources/context-click-events.js.
+        * plugins/netscape-identifier-conversion.html:
+        * plugins/resources/TEMPLATE.html: Removed.
+        * plugins/resources/netscape-identifier-conversion.js: Removed.
+        * plugins/script-tests: Added.
+        * plugins/script-tests/TEMPLATE.html: Copied from LayoutTests/plugins/resources/TEMPLATE.html.
+        * plugins/script-tests/netscape-identifier-conversion.js: Copied from LayoutTests/plugins/resources/netscape-identifier-conversion.js.
+        * traversal/acid3-test-2.html:
+        * traversal/exception-forwarding.html:
+        * traversal/resources/TEMPLATE.html: Removed.
+        * traversal/resources/acid3-test-2.js: Removed.
+        * traversal/resources/exception-forwarding.js: Removed.
+        * traversal/script-tests: Added.
+        * traversal/script-tests/TEMPLATE.html: Copied from LayoutTests/traversal/resources/TEMPLATE.html.
+        * traversal/script-tests/acid3-test-2.js: Copied from LayoutTests/traversal/resources/acid3-test-2.js.
+        * traversal/script-tests/exception-forwarding.js: Copied from LayoutTests/traversal/resources/exception-forwarding.js.
+        * wml/access-target-deny.html:
+        * wml/access-target.html:
+        * wml/enter-card-with-events.html:
+        * wml/enter-first-card-with-events.html:
+        * wml/go-task-get-method-external-deck-with-href.html:
+        * wml/go-task-get-method-external-deck.html:
+        * wml/go-task-get-method-same-deck.html:
+        * wml/input-format.html:
+        * wml/newcontext-same-deck.html:
+        * wml/onenterforward-event.html:
+        * wml/onenterforward-inline-event.html:
+        * wml/ontimer-event.html:
+        * wml/ontimer-inline-event.html:
+        * wml/option-element-onpick-recursion.html:
+        * wml/option-element-onpick.html:
+        * wml/resources/TEMPLATE.html: Removed.
+        * wml/resources/access-target-deny.js: Removed.
+        * wml/resources/access-target.js: Removed.
+        * wml/resources/enter-card-with-events.js: Removed.
+        * wml/resources/enter-first-card-with-events.js: Removed.
+        * wml/resources/go-task-get-method-external-deck-with-href.js: Removed.
+        * wml/resources/go-task-get-method-external-deck.js: Removed.
+        * wml/resources/go-task-get-method-same-deck.js: Removed.
+        * wml/resources/input-format.js: Removed.
+        * wml/resources/newcontext-same-deck.js: Removed.
+        * wml/resources/onenterforward-event.js: Removed.
+        * wml/resources/onenterforward-inline-event.js: Removed.
+        * wml/resources/ontimer-event.js: Removed.
+        * wml/resources/ontimer-inline-event.js: Removed.
+        * wml/resources/option-element-onpick-recursion.js: Removed.
+        * wml/resources/option-element-onpick.js: Removed.
+        * wml/resources/select-element-variables.js: Removed.
+        * wml/resources/variable-reference-invalid-character.js: Removed.
+        * wml/resources/variable-reference-valid.js: Removed.
+        * wml/script-tests: Added.
+        * wml/script-tests/TEMPLATE.html: Copied from LayoutTests/wml/resources/TEMPLATE.html.
+        * wml/script-tests/access-target-deny.js: Copied from LayoutTests/wml/resources/access-target-deny.js.
+        * wml/script-tests/access-target.js: Copied from LayoutTests/wml/resources/access-target.js.
+        * wml/script-tests/enter-card-with-events.js: Copied from LayoutTests/wml/resources/enter-card-with-events.js.
+        * wml/script-tests/enter-first-card-with-events.js: Copied from LayoutTests/wml/resources/enter-first-card-with-events.js.
+        * wml/script-tests/go-task-get-method-external-deck-with-href.js: Copied from LayoutTests/wml/resources/go-task-get-method-external-deck-with-href.js.
+        * wml/script-tests/go-task-get-method-external-deck.js: Copied from LayoutTests/wml/resources/go-task-get-method-external-deck.js.
+        * wml/script-tests/go-task-get-method-same-deck.js: Copied from LayoutTests/wml/resources/go-task-get-method-same-deck.js.
+        * wml/script-tests/input-format.js: Copied from LayoutTests/wml/resources/input-format.js.
+        * wml/script-tests/newcontext-same-deck.js: Copied from LayoutTests/wml/resources/newcontext-same-deck.js.
+        * wml/script-tests/onenterforward-event.js: Copied from LayoutTests/wml/resources/onenterforward-event.js.
+        * wml/script-tests/onenterforward-inline-event.js: Copied from LayoutTests/wml/resources/onenterforward-inline-event.js.
+        * wml/script-tests/ontimer-event.js: Copied from LayoutTests/wml/resources/ontimer-event.js.
+        * wml/script-tests/ontimer-inline-event.js: Copied from LayoutTests/wml/resources/ontimer-inline-event.js.
+        * wml/script-tests/option-element-onpick-recursion.js: Copied from LayoutTests/wml/resources/option-element-onpick-recursion.js.
+        * wml/script-tests/option-element-onpick.js: Copied from LayoutTests/wml/resources/option-element-onpick.js.
+        * wml/script-tests/select-element-variables.js: Copied from LayoutTests/wml/resources/select-element-variables.js.
+        * wml/script-tests/variable-reference-invalid-character.js: Copied from LayoutTests/wml/resources/variable-reference-invalid-character.js.
+        * wml/script-tests/variable-reference-valid.js: Copied from LayoutTests/wml/resources/variable-reference-valid.js.
+        * wml/select-element-variables.html:
+        * wml/variable-reference-invalid-character.html:
+        * wml/variable-reference-valid.html:
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Migration for fast/* directories except fast js directory.
+
+        * fast/events/blur-focus-window-should-blur-focus-element.html:
+        * fast/events/create-document-crash-on-attach-event.html:
+        * fast/events/event-function-toString.html:
+        * fast/events/event-instanceof.html:
+        * fast/events/event-listener-sharing.html:
+        * fast/events/init-events.html:
+        * fast/events/mouse-click-events.html:
+        * fast/events/resources/TEMPLATE.html: Removed.
+        * fast/events/resources/blur-focus-window-should-blur-focus-element.js: Removed.
+        * fast/events/resources/create-document-crash-on-attach-event.js: Removed.
+        * fast/events/resources/event-function-toString.js: Removed.
+        * fast/events/resources/event-instanceof.js: Removed.
+        * fast/events/resources/event-listener-sharing.js: Removed.
+        * fast/events/resources/init-events.js: Removed.
+        * fast/events/resources/mouse-click-events.js: Removed.
+        * fast/events/resources/tab-is-focusable-assert.js: Removed.
+        * fast/events/script-tests: Added.
+        * fast/events/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/events/resources/TEMPLATE.html.
+        * fast/events/script-tests/blur-focus-window-should-blur-focus-element.js: Copied from LayoutTests/fast/events/resources/blur-focus-window-should-blur-focus-element.js.
+        * fast/events/script-tests/create-document-crash-on-attach-event.js: Copied from LayoutTests/fast/events/resources/create-document-crash-on-attach-event.js.
+        * fast/events/script-tests/event-function-toString.js: Copied from LayoutTests/fast/events/resources/event-function-toString.js.
+        * fast/events/script-tests/event-instanceof.js: Copied from LayoutTests/fast/events/resources/event-instanceof.js.
+        * fast/events/script-tests/event-listener-sharing.js: Copied from LayoutTests/fast/events/resources/event-listener-sharing.js.
+        * fast/events/script-tests/init-events.js: Copied from LayoutTests/fast/events/resources/init-events.js.
+        * fast/events/script-tests/mouse-click-events.js: Copied from LayoutTests/fast/events/resources/mouse-click-events.js.
+        * fast/events/script-tests/tab-is-focusable-assert.js: Copied from LayoutTests/fast/events/resources/tab-is-focusable-assert.js.
+        * fast/events/tab-is-focusable-assert.html:
+        * fast/forms/ValidityState-patternMismatch-unsupported.html:
+        * fast/forms/ValidityState-typeMismatch-color.html:
+        * fast/forms/ValidityState-typeMismatch-number.html:
+        * fast/forms/ValidityState-typeMismatch-url.html:
+        * fast/forms/formnovalidate-attribute.html:
+        * fast/forms/input-maxlength-ime-completed.html:
+        * fast/forms/input-maxlength-ime-preedit.html:
+        * fast/forms/novalidate-attribute.html:
+        * fast/forms/placeholder-dom-property.html:
+        * fast/forms/resources/TEMPLATE.html: Removed.
+        * fast/forms/resources/ValidityState-patternMismatch-unsupported.js: Removed.
+        * fast/forms/resources/ValidityState-typeMismatch-color.js: Removed.
+        * fast/forms/resources/ValidityState-typeMismatch-number.js: Removed.
+        * fast/forms/resources/ValidityState-typeMismatch-url.js: Removed.
+        * fast/forms/resources/formnovalidate-attribute.js: Removed.
+        * fast/forms/resources/input-maxlength-ime-completed.js: Removed.
+        * fast/forms/resources/input-maxlength-ime-preedit.js: Removed.
+        * fast/forms/resources/novalidate-attribute.js: Removed.
+        * fast/forms/resources/placeholder-dom-property.js: Removed.
+        * fast/forms/resources/shadow-tree-exposure.js: Removed.
+        * fast/forms/resources/text-control-intrinsic-widths.js: Removed.
+        * fast/forms/resources/textarea-metrics.js: Removed.
+        * fast/forms/resources/textarea-placeholder-dom-property.js: Removed.
+        * fast/forms/resources/textarea-textlength.js: Removed.
+        * fast/forms/script-tests: Added.
+        * fast/forms/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/forms/resources/TEMPLATE.html.
+        * fast/forms/script-tests/ValidityState-patternMismatch-unsupported.js: Copied from LayoutTests/fast/forms/resources/ValidityState-patternMismatch-unsupported.js.
+        * fast/forms/script-tests/ValidityState-typeMismatch-color.js: Copied from LayoutTests/fast/forms/resources/ValidityState-typeMismatch-color.js.
+        * fast/forms/script-tests/ValidityState-typeMismatch-number.js: Copied from LayoutTests/fast/forms/resources/ValidityState-typeMismatch-number.js.
+        * fast/forms/script-tests/ValidityState-typeMismatch-url.js: Copied from LayoutTests/fast/forms/resources/ValidityState-typeMismatch-url.js.
+        * fast/forms/script-tests/formnovalidate-attribute.js: Copied from LayoutTests/fast/forms/resources/formnovalidate-attribute.js.
+        * fast/forms/script-tests/input-maxlength-ime-completed.js: Copied from LayoutTests/fast/forms/resources/input-maxlength-ime-completed.js.
+        * fast/forms/script-tests/input-maxlength-ime-preedit.js: Copied from LayoutTests/fast/forms/resources/input-maxlength-ime-preedit.js.
+        * fast/forms/script-tests/novalidate-attribute.js: Copied from LayoutTests/fast/forms/resources/novalidate-attribute.js.
+        * fast/forms/script-tests/placeholder-dom-property.js: Copied from LayoutTests/fast/forms/resources/placeholder-dom-property.js.
+        * fast/forms/script-tests/shadow-tree-exposure.js: Copied from LayoutTests/fast/forms/resources/shadow-tree-exposure.js.
+        * fast/forms/script-tests/text-control-intrinsic-widths.js: Copied from LayoutTests/fast/forms/resources/text-control-intrinsic-widths.js.
+        * fast/forms/script-tests/textarea-metrics.js: Copied from LayoutTests/fast/forms/resources/textarea-metrics.js.
+        * fast/forms/script-tests/textarea-placeholder-dom-property.js: Copied from LayoutTests/fast/forms/resources/textarea-placeholder-dom-property.js.
+        * fast/forms/script-tests/textarea-textlength.js: Copied from LayoutTests/fast/forms/resources/textarea-textlength.js.
+        * fast/forms/shadow-tree-exposure.html:
+        * fast/forms/text-control-intrinsic-widths.html:
+        * fast/forms/textarea-metrics.html:
+        * fast/forms/textarea-placeholder-dom-property.html:
+        * fast/forms/textarea-textlength.html:
+        * fast/images/border.html:
+        * fast/images/resources/TEMPLATE.html: Removed.
+        * fast/images/resources/border.js: Removed.
+        * fast/images/script-tests: Added.
+        * fast/images/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/images/resources/TEMPLATE.html.
+        * fast/images/script-tests/border.js: Copied from LayoutTests/fast/images/resources/border.js.
+        * fast/parser/block-nesting-cap.html:
+        * fast/parser/pre-first-line-break.html:
+        * fast/parser/resources/TEMPLATE.html: Removed.
+        * fast/parser/resources/block-nesting-cap.js: Removed.
+        * fast/parser/resources/pre-first-line-break.js: Removed.
+        * fast/parser/script-tests: Added.
+        * fast/parser/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/parser/resources/TEMPLATE.html.
+        * fast/parser/script-tests/block-nesting-cap.js: Copied from LayoutTests/fast/parser/resources/block-nesting-cap.js.
+        * fast/parser/script-tests/pre-first-line-break.js: Copied from LayoutTests/fast/parser/resources/pre-first-line-break.js.
+        * fast/regex/alternative-length-miscalculation.html:
+        * fast/regex/cross-frame-callable.html:
+        * fast/regex/early-acid3-86.html:
+        * fast/regex/malformed-escapes.html:
+        * fast/regex/non-capturing-backtracking.html:
+        * fast/regex/non-pattern-characters.html:
+        * fast/regex/quantified-assertions.html:
+        * fast/regex/resources/TEMPLATE.html: Removed.
+        * fast/regex/resources/alternative-length-miscalculation.js: Removed.
+        * fast/regex/resources/cross-frame-callable.js: Removed.
+        * fast/regex/resources/early-acid3-86.js: Removed.
+        * fast/regex/resources/malformed-escapes.js: Removed.
+        * fast/regex/resources/non-capturing-backtracking.js: Removed.
+        * fast/regex/resources/non-pattern-characters.js: Removed.
+        * fast/regex/resources/quantified-assertions.js: Removed.
+        * fast/regex/resources/slow.js: Removed.
+        * fast/regex/script-tests: Added.
+        * fast/regex/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/regex/resources/TEMPLATE.html.
+        * fast/regex/script-tests/alternative-length-miscalculation.js: Copied from LayoutTests/fast/regex/resources/alternative-length-miscalculation.js.
+        * fast/regex/script-tests/cross-frame-callable.js: Copied from LayoutTests/fast/regex/resources/cross-frame-callable.js.
+        * fast/regex/script-tests/early-acid3-86.js: Copied from LayoutTests/fast/regex/resources/early-acid3-86.js.
+        * fast/regex/script-tests/malformed-escapes.js: Copied from LayoutTests/fast/regex/resources/malformed-escapes.js.
+        * fast/regex/script-tests/non-capturing-backtracking.js: Copied from LayoutTests/fast/regex/resources/non-capturing-backtracking.js.
+        * fast/regex/script-tests/non-pattern-characters.js: Copied from LayoutTests/fast/regex/resources/non-pattern-characters.js.
+        * fast/regex/script-tests/quantified-assertions.js: Copied from LayoutTests/fast/regex/resources/quantified-assertions.js.
+        * fast/regex/script-tests/slow.js: Copied from LayoutTests/fast/regex/resources/slow.js.
+        * fast/regex/slow.html:
+        * fast/table/border-changes.html:
+        * fast/table/resources/TEMPLATE.html: Removed.
+        * fast/table/resources/border-changes.js: Removed.
+        * fast/table/script-tests: Added.
+        * fast/table/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/table/resources/TEMPLATE.html.
+        * fast/table/script-tests/border-changes.js: Copied from LayoutTests/fast/table/resources/border-changes.js.
+        * fast/text/find-backwards.html:
+        * fast/text/resources/TEMPLATE.html: Removed.
+        * fast/text/resources/find-backwards.js: Removed.
+        * fast/text/script-tests: Added.
+        * fast/text/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/text/resources/TEMPLATE.html.
+        * fast/text/script-tests/find-backwards.js: Copied from LayoutTests/fast/text/resources/find-backwards.js.
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Migration for fast/dom directories.
+
+        * fast/dom/CSSStyleDeclaration/css-properties-case-sensitive.html:
+        * fast/dom/CSSStyleDeclaration/resources/TEMPLATE.html: Removed.
+        * fast/dom/CSSStyleDeclaration/resources/css-properties-case-sensitive.js: Removed.
+        * fast/dom/CSSStyleDeclaration/resources/transition-property-names.js: Removed.
+        * fast/dom/CSSStyleDeclaration/script-tests: Added.
+        * fast/dom/CSSStyleDeclaration/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/CSSStyleDeclaration/resources/TEMPLATE.html.
+        * fast/dom/CSSStyleDeclaration/script-tests/css-properties-case-sensitive.js: Copied from LayoutTests/fast/dom/CSSStyleDeclaration/resources/css-properties-case-sensitive.js.
+        * fast/dom/CSSStyleDeclaration/script-tests/transition-property-names.js: Copied from LayoutTests/fast/dom/CSSStyleDeclaration/resources/transition-property-names.js.
+        * fast/dom/CSSStyleDeclaration/transition-property-names.html:
+        * fast/dom/DOMImplementation/createDocument-namespace-err.html:
+        * fast/dom/DOMImplementation/createDocumentType-err.html:
+        * fast/dom/DOMImplementation/resources/TEMPLATE.html: Removed.
+        * fast/dom/DOMImplementation/resources/createDocument-namespace-err.js: Removed.
+        * fast/dom/DOMImplementation/resources/createDocumentType-err.js: Removed.
+        * fast/dom/DOMImplementation/script-tests: Added.
+        * fast/dom/DOMImplementation/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/DOMImplementation/resources/TEMPLATE.html.
+        * fast/dom/DOMImplementation/script-tests/createDocument-namespace-err.js: Copied from LayoutTests/fast/dom/DOMImplementation/resources/createDocument-namespace-err.js.
+        * fast/dom/DOMImplementation/script-tests/createDocumentType-err.js: Copied from LayoutTests/fast/dom/DOMImplementation/resources/createDocumentType-err.js.
+        * fast/dom/Document/createAttributeNS-namespace-err.html:
+        * fast/dom/Document/createElementNS-namespace-err.html:
+        * fast/dom/Document/document-write-doctype.html:
+        * fast/dom/Document/replaceChild-null-oldChild.html:
+        * fast/dom/Document/resources/TEMPLATE.html: Removed.
+        * fast/dom/Document/resources/createAttributeNS-namespace-err.js: Removed.
+        * fast/dom/Document/resources/createElementNS-namespace-err.js: Removed.
+        * fast/dom/Document/resources/document-write-doctype.js: Removed.
+        * fast/dom/Document/resources/replaceChild-null-oldChild.js: Removed.
+        * fast/dom/Document/script-tests: Added.
+        * fast/dom/Document/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Document/resources/TEMPLATE.html.
+        * fast/dom/Document/script-tests/createAttributeNS-namespace-err.js: Copied from LayoutTests/fast/dom/Document/resources/createAttributeNS-namespace-err.js.
+        * fast/dom/Document/script-tests/createElementNS-namespace-err.js: Copied from LayoutTests/fast/dom/Document/resources/createElementNS-namespace-err.js.
+        * fast/dom/Document/script-tests/document-write-doctype.js: Copied from LayoutTests/fast/dom/Document/resources/document-write-doctype.js.
+        * fast/dom/Document/script-tests/replaceChild-null-oldChild.js: Copied from LayoutTests/fast/dom/Document/resources/replaceChild-null-oldChild.js.
+        * fast/dom/Element/attr-param-typechecking.html:
+        * fast/dom/Element/contains-method.html:
+        * fast/dom/Element/dimension-properties-unrendered.html:
+        * fast/dom/Element/element-traversal.html:
+        * fast/dom/Element/getAttribute-check-case-sensitivity.html:
+        * fast/dom/Element/resources/TEMPLATE.html: Removed.
+        * fast/dom/Element/resources/attr-param-typechecking.js: Removed.
+        * fast/dom/Element/resources/contains-method.js: Removed.
+        * fast/dom/Element/resources/dimension-properties-unrendered.js: Removed.
+        * fast/dom/Element/resources/element-traversal.js: Removed.
+        * fast/dom/Element/resources/getAttribute-check-case-sensitivity.js: Removed.
+        * fast/dom/Element/script-tests: Added.
+        * fast/dom/Element/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Element/resources/TEMPLATE.html.
+        * fast/dom/Element/script-tests/attr-param-typechecking.js: Copied from LayoutTests/fast/dom/Element/resources/attr-param-typechecking.js.
+        * fast/dom/Element/script-tests/contains-method.js: Copied from LayoutTests/fast/dom/Element/resources/contains-method.js.
+        * fast/dom/Element/script-tests/dimension-properties-unrendered.js: Copied from LayoutTests/fast/dom/Element/resources/dimension-properties-unrendered.js.
+        * fast/dom/Element/script-tests/element-traversal.js: Copied from LayoutTests/fast/dom/Element/resources/element-traversal.js.
+        * fast/dom/Element/script-tests/getAttribute-check-case-sensitivity.js: Copied from LayoutTests/fast/dom/Element/resources/getAttribute-check-case-sensitivity.js.
+        * fast/dom/EntityReference/readonly-exceptions.html:
+        * fast/dom/EntityReference/resources/TEMPLATE.html: Removed.
+        * fast/dom/EntityReference/resources/readonly-exceptions.js: Removed.
+        * fast/dom/EntityReference/script-tests: Added.
+        * fast/dom/EntityReference/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/EntityReference/resources/TEMPLATE.html.
+        * fast/dom/EntityReference/script-tests/readonly-exceptions.js: Copied from LayoutTests/fast/dom/EntityReference/resources/readonly-exceptions.js.
+        * fast/dom/HTMLFontElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLFontElement/resources/size-attribute.js: Removed.
+        * fast/dom/HTMLFontElement/script-tests: Added.
+        * fast/dom/HTMLFontElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLFontElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLFontElement/script-tests/size-attribute.js: Copied from LayoutTests/fast/dom/HTMLFontElement/resources/size-attribute.js.
+        * fast/dom/HTMLFontElement/size-attribute.html:
+        * fast/dom/HTMLFormElement/elements-not-in-document.html:
+        * fast/dom/HTMLFormElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLFormElement/resources/elements-not-in-document.js: Removed.
+        * fast/dom/HTMLFormElement/script-tests: Added.
+        * fast/dom/HTMLFormElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLFormElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLFormElement/script-tests/elements-not-in-document.js: Copied from LayoutTests/fast/dom/HTMLFormElement/resources/elements-not-in-document.js.
+        * fast/dom/HTMLInputElement/checked-pseudo-selector.html:
+        * fast/dom/HTMLInputElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLInputElement/resources/checked-pseudo-selector.js: Removed.
+        * fast/dom/HTMLInputElement/resources/size-attribute.js: Removed.
+        * fast/dom/HTMLInputElement/script-tests: Added.
+        * fast/dom/HTMLInputElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLInputElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLInputElement/script-tests/checked-pseudo-selector.js: Copied from LayoutTests/fast/dom/HTMLInputElement/resources/checked-pseudo-selector.js.
+        * fast/dom/HTMLInputElement/script-tests/size-attribute.js: Copied from LayoutTests/fast/dom/HTMLInputElement/resources/size-attribute.js.
+        * fast/dom/HTMLInputElement/size-attribute.html:
+        * fast/dom/HTMLSelectElement/named-options.html:
+        * fast/dom/HTMLSelectElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLSelectElement/resources/named-options.js: Removed.
+        * fast/dom/HTMLSelectElement/script-tests: Added.
+        * fast/dom/HTMLSelectElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLSelectElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLSelectElement/script-tests/named-options.js: Copied from LayoutTests/fast/dom/HTMLSelectElement/resources/named-options.js.
+        * fast/dom/HTMLTableElement/cellpadding-attribute.html:
+        * fast/dom/HTMLTableElement/early-acid3-65-excerpt.html:
+        * fast/dom/HTMLTableElement/early-acid3-66-excerpt.html:
+        * fast/dom/HTMLTableElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLTableElement/resources/cellpadding-attribute.js: Removed.
+        * fast/dom/HTMLTableElement/resources/early-acid3-65-excerpt.js: Removed.
+        * fast/dom/HTMLTableElement/resources/early-acid3-66-excerpt.js: Removed.
+        * fast/dom/HTMLTableElement/resources/rows.js: Removed.
+        * fast/dom/HTMLTableElement/resources/tBodies.js: Removed.
+        * fast/dom/HTMLTableElement/rows.html:
+        * fast/dom/HTMLTableElement/script-tests: Added.
+        * fast/dom/HTMLTableElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLTableElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLTableElement/script-tests/cellpadding-attribute.js: Copied from LayoutTests/fast/dom/HTMLTableElement/resources/cellpadding-attribute.js.
+        * fast/dom/HTMLTableElement/script-tests/early-acid3-65-excerpt.js: Copied from LayoutTests/fast/dom/HTMLTableElement/resources/early-acid3-65-excerpt.js.
+        * fast/dom/HTMLTableElement/script-tests/early-acid3-66-excerpt.js: Copied from LayoutTests/fast/dom/HTMLTableElement/resources/early-acid3-66-excerpt.js.
+        * fast/dom/HTMLTableElement/script-tests/rows.js: Copied from LayoutTests/fast/dom/HTMLTableElement/resources/rows.js.
+        * fast/dom/HTMLTableElement/script-tests/tBodies.js: Copied from LayoutTests/fast/dom/HTMLTableElement/resources/tBodies.js.
+        * fast/dom/HTMLTableElement/tBodies.html:
+        * fast/dom/HTMLTableRowElement/cells.html:
+        * fast/dom/HTMLTableRowElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLTableRowElement/resources/cells.js: Removed.
+        * fast/dom/HTMLTableRowElement/script-tests: Added.
+        * fast/dom/HTMLTableRowElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLTableRowElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLTableRowElement/script-tests/cells.js: Copied from LayoutTests/fast/dom/HTMLTableRowElement/resources/cells.js.
+        * fast/dom/HTMLTableSectionElement/resources/TEMPLATE.html: Removed.
+        * fast/dom/HTMLTableSectionElement/resources/rows.js: Removed.
+        * fast/dom/HTMLTableSectionElement/rows.html:
+        * fast/dom/HTMLTableSectionElement/script-tests: Added.
+        * fast/dom/HTMLTableSectionElement/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/HTMLTableSectionElement/resources/TEMPLATE.html.
+        * fast/dom/HTMLTableSectionElement/script-tests/rows.js: Copied from LayoutTests/fast/dom/HTMLTableSectionElement/resources/rows.js.
+        * fast/dom/Node/DOMNodeRemovedEvent.html:
+        * fast/dom/Node/initial-values.html:
+        * fast/dom/Node/resources/DOMNodeRemovedEvent.js: Removed.
+        * fast/dom/Node/resources/TEMPLATE.html: Removed.
+        * fast/dom/Node/resources/initial-values.js: Removed.
+        * fast/dom/Node/script-tests: Added.
+        * fast/dom/Node/script-tests/DOMNodeRemovedEvent.js: Copied from LayoutTests/fast/dom/Node/resources/DOMNodeRemovedEvent.js.
+        * fast/dom/Node/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Node/resources/TEMPLATE.html.
+        * fast/dom/Node/script-tests/initial-values.js: Copied from LayoutTests/fast/dom/Node/resources/initial-values.js.
+        * fast/dom/Range/mutation.html:
+        * fast/dom/Range/range-clone-empty.html:
+        * fast/dom/Range/range-exceptions.html:
+        * fast/dom/Range/range-insertNode-separate-endContainer.html:
+        * fast/dom/Range/range-insertNode-splittext.html:
+        * fast/dom/Range/range-modifycontents.html:
+        * fast/dom/Range/resources/TEMPLATE.html: Removed.
+        * fast/dom/Range/resources/mutation.js: Removed.
+        * fast/dom/Range/resources/range-clone-empty.js: Removed.
+        * fast/dom/Range/resources/range-exceptions.js: Removed.
+        * fast/dom/Range/resources/range-insertNode-separate-endContainer.js: Removed.
+        * fast/dom/Range/resources/range-insertNode-splittext.js: Removed.
+        * fast/dom/Range/resources/range-modifycontents.js: Removed.
+        * fast/dom/Range/script-tests: Added.
+        * fast/dom/Range/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Range/resources/TEMPLATE.html.
+        * fast/dom/Range/script-tests/mutation.js: Copied from LayoutTests/fast/dom/Range/resources/mutation.js.
+        * fast/dom/Range/script-tests/range-clone-empty.js: Copied from LayoutTests/fast/dom/Range/resources/range-clone-empty.js.
+        * fast/dom/Range/script-tests/range-exceptions.js: Copied from LayoutTests/fast/dom/Range/resources/range-exceptions.js.
+        * fast/dom/Range/script-tests/range-insertNode-separate-endContainer.js: Copied from LayoutTests/fast/dom/Range/resources/range-insertNode-separate-endContainer.js.
+        * fast/dom/Range/script-tests/range-insertNode-splittext.js: Copied from LayoutTests/fast/dom/Range/resources/range-insertNode-splittext.js.
+        * fast/dom/Range/script-tests/range-modifycontents.js: Copied from LayoutTests/fast/dom/Range/resources/range-modifycontents.js.
+        * fast/dom/Selection/getRangeAt.html:
+        * fast/dom/Selection/resources/TEMPLATE.html: Removed.
+        * fast/dom/Selection/resources/getRangeAt.js: Removed.
+        * fast/dom/Selection/script-tests: Added.
+        * fast/dom/Selection/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Selection/resources/TEMPLATE.html.
+        * fast/dom/Selection/script-tests/getRangeAt.js: Copied from LayoutTests/fast/dom/Selection/resources/getRangeAt.js.
+        * fast/dom/SelectorAPI/detached-element.html:
+        * fast/dom/SelectorAPI/elementRoot.html:
+        * fast/dom/SelectorAPI/id-fastpath.html:
+        * fast/dom/SelectorAPI/resources/TEMPLATE.html: Removed.
+        * fast/dom/SelectorAPI/resources/detached-element.js: Removed.
+        * fast/dom/SelectorAPI/resources/elementRoot.js: Removed.
+        * fast/dom/SelectorAPI/resources/id-fastpath.js: Removed.
+        * fast/dom/SelectorAPI/resources/undefined-null-stringify.js: Removed.
+        * fast/dom/SelectorAPI/resources/viewless-document.js: Removed.
+        * fast/dom/SelectorAPI/script-tests: Added.
+        * fast/dom/SelectorAPI/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/SelectorAPI/resources/TEMPLATE.html.
+        * fast/dom/SelectorAPI/script-tests/detached-element.js: Copied from LayoutTests/fast/dom/SelectorAPI/resources/detached-element.js.
+        * fast/dom/SelectorAPI/script-tests/elementRoot.js: Copied from LayoutTests/fast/dom/SelectorAPI/resources/elementRoot.js.
+        * fast/dom/SelectorAPI/script-tests/id-fastpath.js: Copied from LayoutTests/fast/dom/SelectorAPI/resources/id-fastpath.js.
+        * fast/dom/SelectorAPI/script-tests/undefined-null-stringify.js: Copied from LayoutTests/fast/dom/SelectorAPI/resources/undefined-null-stringify.js.
+        * fast/dom/SelectorAPI/script-tests/viewless-document.js: Copied from LayoutTests/fast/dom/SelectorAPI/resources/viewless-document.js.
+        * fast/dom/SelectorAPI/undefined-null-stringify.html:
+        * fast/dom/SelectorAPI/viewless-document.html:
+        * fast/dom/Text/replaceWholeText.html:
+        * fast/dom/Text/resources/TEMPLATE.html: Removed.
+        * fast/dom/Text/resources/replaceWholeText.js: Removed.
+        * fast/dom/Text/script-tests: Added.
+        * fast/dom/Text/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Text/resources/TEMPLATE.html.
+        * fast/dom/Text/script-tests/replaceWholeText.js: Copied from LayoutTests/fast/dom/Text/resources/replaceWholeText.js.
+        * fast/dom/Window/HTMLBodyElement-window-eventListener-attributes.html:
+        * fast/dom/Window/HTMLFrameSetElement-window-eventListener-attributes.html:
+        * fast/dom/Window/dispatchEvent.html:
+        * fast/dom/Window/resources/HTMLBodyElement-window-eventListener-attributes.js: Removed.
+        * fast/dom/Window/resources/HTMLFrameSetElement-window-eventListener-attributes.js: Removed.
+        * fast/dom/Window/resources/TEMPLATE.html: Removed.
+        * fast/dom/Window/resources/dispatchEvent.js: Removed.
+        * fast/dom/Window/resources/window-custom-prototype.js: Removed.
+        * fast/dom/Window/script-tests: Added.
+        * fast/dom/Window/script-tests/HTMLBodyElement-window-eventListener-attributes.js: Copied from LayoutTests/fast/dom/Window/resources/HTMLBodyElement-window-eventListener-attributes.js.
+        * fast/dom/Window/script-tests/HTMLFrameSetElement-window-eventListener-attributes.js: Copied from LayoutTests/fast/dom/Window/resources/HTMLFrameSetElement-window-eventListener-attributes.js.
+        * fast/dom/Window/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/Window/resources/TEMPLATE.html.
+        * fast/dom/Window/script-tests/dispatchEvent.js: Copied from LayoutTests/fast/dom/Window/resources/dispatchEvent.js.
+        * fast/dom/Window/script-tests/window-custom-prototype.js: Copied from LayoutTests/fast/dom/Window/resources/window-custom-prototype.js.
+        * fast/dom/Window/window-custom-prototype.html:
+        * fast/dom/constructed-objects-prototypes.html:
+        * fast/dom/constructors-cached.html:
+        * fast/dom/css-RGBValue.html:
+        * fast/dom/domListEnumeration.html:
+        * fast/dom/event-attribute-availability.html:
+        * fast/dom/javascript-url-exception-isolation.html:
+        * fast/dom/location-new-window-no-crash.html:
+        * fast/dom/non-numeric-values-numeric-parameters.html:
+        * fast/dom/prototype-inheritance-2.html:
+        * fast/dom/prototype-inheritance.html:
+        * fast/dom/resources/TEMPLATE.html: Removed.
+        * fast/dom/resources/constructed-objects-prototypes.js: Removed.
+        * fast/dom/resources/constructors-cached.js: Removed.
+        * fast/dom/resources/css-RGBValue.js: Removed.
+        * fast/dom/resources/domListEnumeration.js: Removed.
+        * fast/dom/resources/event-attribute-availability.js: Removed.
+        * fast/dom/resources/javascript-url-exception-isolation.js: Removed.
+        * fast/dom/resources/location-new-window-no-crash.js: Removed.
+        * fast/dom/resources/non-numeric-values-numeric-parameters.js: Removed.
+        * fast/dom/resources/prototype-inheritance-2.js: Removed.
+        * fast/dom/resources/prototype-inheritance.js: Removed.
+        * fast/dom/script-tests: Added.
+        * fast/dom/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/dom/resources/TEMPLATE.html.
+        * fast/dom/script-tests/constructed-objects-prototypes.js: Copied from LayoutTests/fast/dom/resources/constructed-objects-prototypes.js.
+        * fast/dom/script-tests/constructors-cached.js: Copied from LayoutTests/fast/dom/resources/constructors-cached.js.
+        * fast/dom/script-tests/css-RGBValue.js: Copied from LayoutTests/fast/dom/resources/css-RGBValue.js.
+        * fast/dom/script-tests/domListEnumeration.js: Copied from LayoutTests/fast/dom/resources/domListEnumeration.js.
+        * fast/dom/script-tests/event-attribute-availability.js: Copied from LayoutTests/fast/dom/resources/event-attribute-availability.js.
+        * fast/dom/script-tests/javascript-url-exception-isolation.js: Copied from LayoutTests/fast/dom/resources/javascript-url-exception-isolation.js.
+        * fast/dom/script-tests/location-new-window-no-crash.js: Copied from LayoutTests/fast/dom/resources/location-new-window-no-crash.js.
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js: Copied from LayoutTests/fast/dom/resources/non-numeric-values-numeric-parameters.js.
+        * fast/dom/script-tests/prototype-inheritance-2.js: Copied from LayoutTests/fast/dom/resources/prototype-inheritance-2.js.
+        * fast/dom/script-tests/prototype-inheritance.js: Copied from LayoutTests/fast/dom/resources/prototype-inheritance.js.
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Migration for fast/canvas and fast/css directories.
+
+        * fast/canvas/canvas-copyPixels.html:
+        * fast/canvas/canvas-gradient-addStop-error.html:
+        * fast/canvas/canvas-gradient-without-path.html:
+        * fast/canvas/canvas-modify-emptyPath.html:
+        * fast/canvas/canvas-set-properties-with-non-invertible-ctm.html:
+        * fast/canvas/canvas-setTransform.html:
+        * fast/canvas/canvas-strokeRect.html:
+        * fast/canvas/canvas-transparency-and-composite.html:
+        * fast/canvas/gradient-addColorStop-with-invalid-color.html:
+        * fast/canvas/gradient-with-clip.html:
+        * fast/canvas/linearGradient-infinite-values.html:
+        * fast/canvas/pattern-with-transform.html:
+        * fast/canvas/radialGradient-infinite-values.html:
+        * fast/canvas/resources/TEMPLATE.html: Removed.
+        * fast/canvas/resources/canvas-copyPixels.js: Removed.
+        * fast/canvas/resources/canvas-gradient-addStop-error.js: Removed.
+        * fast/canvas/resources/canvas-gradient-without-path.js: Removed.
+        * fast/canvas/resources/canvas-modify-emptyPath.js: Removed.
+        * fast/canvas/resources/canvas-set-properties-with-non-invertible-ctm.js: Removed.
+        * fast/canvas/resources/canvas-setTransform.js: Removed.
+        * fast/canvas/resources/canvas-strokeRect.js: Removed.
+        * fast/canvas/resources/canvas-transparency-and-composite.js: Removed.
+        * fast/canvas/resources/gradient-addColorStop-with-invalid-color.js: Removed.
+        * fast/canvas/resources/gradient-with-clip.js: Removed.
+        * fast/canvas/resources/linearGradient-infinite-values.js: Removed.
+        * fast/canvas/resources/pattern-with-transform.js: Removed.
+        * fast/canvas/resources/radialGradient-infinite-values.js: Removed.
+        * fast/canvas/resources/set-colors.js: Removed.
+        * fast/canvas/resources/translate-text.js: Removed.
+        * fast/canvas/script-tests: Added.
+        * fast/canvas/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/canvas/resources/TEMPLATE.html.
+        * fast/canvas/script-tests/canvas-copyPixels.js: Copied from LayoutTests/fast/canvas/resources/canvas-copyPixels.js.
+        * fast/canvas/script-tests/canvas-gradient-addStop-error.js: Copied from LayoutTests/fast/canvas/resources/canvas-gradient-addStop-error.js.
+        * fast/canvas/script-tests/canvas-gradient-without-path.js: Copied from LayoutTests/fast/canvas/resources/canvas-gradient-without-path.js.
+        * fast/canvas/script-tests/canvas-modify-emptyPath.js: Copied from LayoutTests/fast/canvas/resources/canvas-modify-emptyPath.js.
+        * fast/canvas/script-tests/canvas-set-properties-with-non-invertible-ctm.js: Copied from LayoutTests/fast/canvas/resources/canvas-set-properties-with-non-invertible-ctm.js.
+        * fast/canvas/script-tests/canvas-setTransform.js: Copied from LayoutTests/fast/canvas/resources/canvas-setTransform.js.
+        * fast/canvas/script-tests/canvas-strokeRect.js: Copied from LayoutTests/fast/canvas/resources/canvas-strokeRect.js.
+        * fast/canvas/script-tests/canvas-transparency-and-composite.js: Copied from LayoutTests/fast/canvas/resources/canvas-transparency-and-composite.js.
+        * fast/canvas/script-tests/gradient-addColorStop-with-invalid-color.js: Copied from LayoutTests/fast/canvas/resources/gradient-addColorStop-with-invalid-color.js.
+        * fast/canvas/script-tests/gradient-with-clip.js: Copied from LayoutTests/fast/canvas/resources/gradient-with-clip.js.
+        * fast/canvas/script-tests/linearGradient-infinite-values.js: Copied from LayoutTests/fast/canvas/resources/linearGradient-infinite-values.js.
+        * fast/canvas/script-tests/pattern-with-transform.js: Copied from LayoutTests/fast/canvas/resources/pattern-with-transform.js.
+        * fast/canvas/script-tests/radialGradient-infinite-values.js: Copied from LayoutTests/fast/canvas/resources/radialGradient-infinite-values.js.
+        * fast/canvas/script-tests/set-colors.js: Copied from LayoutTests/fast/canvas/resources/set-colors.js.
+        * fast/canvas/script-tests/translate-text.js: Copied from LayoutTests/fast/canvas/resources/translate-text.js.
+        * fast/canvas/set-colors.html:
+        * fast/canvas/translate-text.html:
+        * fast/css/getComputedStyle/computed-style-font-family-monospace.html:
+        * fast/css/getComputedStyle/font-family-fallback-reset.html:
+        * fast/css/getComputedStyle/getComputedStyle-text-decoration.html:
+        * fast/css/getComputedStyle/resources/TEMPLATE.html: Removed.
+        * fast/css/getComputedStyle/resources/computed-style-font-family-monospace.js: Removed.
+        * fast/css/getComputedStyle/resources/font-family-fallback-reset.js: Removed.
+        * fast/css/getComputedStyle/resources/getComputedStyle-text-decoration.js: Removed.
+        * fast/css/getComputedStyle/script-tests: Added.
+        * fast/css/getComputedStyle/script-tests/TEMPLATE.html: Copied from LayoutTests/fast/css/getComputedStyle/resources/TEMPLATE.html.
+        * fast/css/getComputedStyle/script-tests/computed-style-font-family-monospace.js: Copied from LayoutTests/fast/css/getComputedStyle/resources/computed-style-font-family-monospace.js.
+        * fast/css/getComputedStyle/script-tests/font-family-fallback-reset.js: Copied from LayoutTests/fast/css/getComputedStyle/resources/font-family-fallback-reset.js.
+        * fast/css/getComputedStyle/script-tests/getComputedStyle-text-decoration.js: Copied from LayoutTests/fast/css/getComputedStyle/resources/getComputedStyle-text-decoration.js.
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Migration for editing directory.
+
+        * editing/inserting/font-size-clears-from-typing-style.html:
+        * editing/inserting/resources/TEMPLATE.html: Removed.
+        * editing/inserting/resources/font-size-clears-from-typing-style.js: Removed.
+        * editing/inserting/script-tests: Added.
+        * editing/inserting/script-tests/TEMPLATE.html: Copied from LayoutTests/editing/inserting/resources/TEMPLATE.html.
+        * editing/inserting/script-tests/font-size-clears-from-typing-style.js: Copied from LayoutTests/editing/inserting/resources/font-size-clears-from-typing-style.js.
+        * editing/pasteboard/file-input-files-access.html:
+        * editing/pasteboard/files-during-page-drags.html:
+        * editing/pasteboard/get-data-text-plain-paste.html:
+        * editing/pasteboard/resources/TEMPLATE.html: Removed.
+        * editing/pasteboard/resources/file-input-files-access.js: Removed.
+        * editing/pasteboard/resources/files-during-page-drags.js: Removed.
+        * editing/pasteboard/resources/get-data-text-plain-paste.js: Removed.
+        * editing/pasteboard/script-tests: Added.
+        * editing/pasteboard/script-tests/TEMPLATE.html: Copied from LayoutTests/editing/pasteboard/resources/TEMPLATE.html.
+        * editing/pasteboard/script-tests/file-input-files-access.js: Copied from LayoutTests/editing/pasteboard/resources/file-input-files-access.js.
+        * editing/pasteboard/script-tests/files-during-page-drags.js: Copied from LayoutTests/editing/pasteboard/resources/files-during-page-drags.js.
+        * editing/pasteboard/script-tests/get-data-text-plain-paste.js: Copied from LayoutTests/editing/pasteboard/resources/get-data-text-plain-paste.js.
+        * editing/selection/click-in-margins-inside-editable-div.html:
+        * editing/selection/click-in-padding-with-multiple-line-boxes.html:
+        * editing/selection/click-outside-editable-div.html:
+        * editing/selection/resources/TEMPLATE.html: Removed.
+        * editing/selection/resources/click-in-margins-inside-editable-div.js: Removed.
+        * editing/selection/resources/click-in-padding-with-multiple-line-boxes.js: Removed.
+        * editing/selection/resources/click-outside-editable-div.js: Removed.
+        * editing/selection/script-tests: Added.
+        * editing/selection/script-tests/TEMPLATE.html: Copied from LayoutTests/editing/selection/resources/TEMPLATE.html.
+        * editing/selection/script-tests/click-in-margins-inside-editable-div.js: Copied from LayoutTests/editing/selection/resources/click-in-margins-inside-editable-div.js.
+        * editing/selection/script-tests/click-in-padding-with-multiple-line-boxes.js: Copied from LayoutTests/editing/selection/resources/click-in-padding-with-multiple-line-boxes.js.
+        * editing/selection/script-tests/click-outside-editable-div.js: Copied from LayoutTests/editing/selection/resources/click-outside-editable-div.js.
+        * editing/style/resources/TEMPLATE.html: Removed.
+        * editing/style/resources/text-decoration-state.js: Removed.
+        * editing/style/script-tests: Added.
+        * editing/style/script-tests/TEMPLATE.html: Copied from LayoutTests/editing/style/resources/TEMPLATE.html.
+        * editing/style/script-tests/text-decoration-state.js: Copied from LayoutTests/editing/style/resources/text-decoration-state.js.
+        * editing/style/text-decoration-state.html:
+        * editing/text-iterator/basic-iteration.html:
+        * editing/text-iterator/resources/TEMPLATE.html: Removed.
+        * editing/text-iterator/resources/basic-iteration.js: Removed.
+        * editing/text-iterator/script-tests: Added.
+        * editing/text-iterator/script-tests/TEMPLATE.html: Copied from LayoutTests/editing/text-iterator/resources/TEMPLATE.html.
+        * editing/text-iterator/script-tests/basic-iteration.js: Copied from LayoutTests/editing/text-iterator/resources/basic-iteration.js.
+
+2009-09-19  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        js tests should move into jstests subdirectory instead of resources/
+        https://bugs.webkit.org/show_bug.cgi?id=25880
+
+        Attempt to split the huge patch as I failed to commit it...
+
+        * editing/execCommand/break-out-of-empty-list-item.html:
+        * editing/execCommand/convert-style-elements-to-spans.html:
+        * editing/execCommand/empty-span-removal.html:
+        * editing/execCommand/enabling-and-selection-2.html:
+        * editing/execCommand/enabling-and-selection.html:
+        * editing/execCommand/inline-style-after-indentoutdent.html:
+        * editing/execCommand/resources/TEMPLATE.html: Removed.
+        * editing/execCommand/resources/break-out-of-empty-list-item.js: Removed.
+        * editing/execCommand/resources/convert-style-elements-to-spans.js: Removed.
+        * editing/execCommand/resources/empty-span-removal.js: Removed.
+        * editing/execCommand/resources/enabling-and-selection-2.js: Removed.
+        * editing/execCommand/resources/enabling-and-selection.js: Removed.
+        * editing/execCommand/resources/inline-style-after-indentoutdent.js: Removed.
+        * editing/execCommand/resources/toggle-compound-styles.js: Removed.
+        * editing/execCommand/resources/toggle-style-2.js: Removed.
+        * editing/execCommand/resources/toggle-styles.js: Removed.
+        * editing/execCommand/resources/toggle-text-decorations.js: Removed.
+        * editing/execCommand/script-tests: Added.
+        * editing/execCommand/script-tests/TEMPLATE.html: Copied from LayoutTests/editing/execCommand/resources/TEMPLATE.html.
+        * editing/execCommand/script-tests/break-out-of-empty-list-item.js: Copied from LayoutTests/editing/execCommand/resources/break-out-of-empty-list-item.js.
+        * editing/execCommand/script-tests/convert-style-elements-to-spans.js: Copied from LayoutTests/editing/execCommand/resources/convert-style-elements-to-spans.js.
+        * editing/execCommand/script-tests/empty-span-removal.js: Copied from LayoutTests/editing/execCommand/resources/empty-span-removal.js.
+        * editing/execCommand/script-tests/enabling-and-selection-2.js: Copied from LayoutTests/editing/execCommand/resources/enabling-and-selection-2.js.
+        * editing/execCommand/script-tests/enabling-and-selection.js: Copied from LayoutTests/editing/execCommand/resources/enabling-and-selection.js.
+        * editing/execCommand/script-tests/inline-style-after-indentoutdent.js: Copied from LayoutTests/editing/execCommand/resources/inline-style-after-indentoutdent.js.
+        * editing/execCommand/script-tests/toggle-compound-styles.js: Copied from LayoutTests/editing/execCommand/resources/toggle-compound-styles.js.
+        * editing/execCommand/script-tests/toggle-style-2.js: Copied from LayoutTests/editing/execCommand/resources/toggle-style-2.js.
+        * editing/execCommand/script-tests/toggle-styles.js: Copied from LayoutTests/editing/execCommand/resources/toggle-styles.js.
+        * editing/execCommand/script-tests/toggle-text-decorations.js: Copied from LayoutTests/editing/execCommand/resources/toggle-text-decorations.js.
+        * editing/execCommand/toggle-compound-styles.html:
+        * editing/execCommand/toggle-style-2.html:
+        * editing/execCommand/toggle-styles.html:
+        * editing/execCommand/toggle-text-decorations.html:
+
+2009-09-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Element is misplaced during opacity transition with certain configuration of transform-origin and clipping
+        https://bugs.webkit.org/show_bug.cgi?id=29495
+        
+        Testcase that has a transform-origin on a layer with zero size.
+
+        * compositing/geometry/transfrom-origin-on-zero-size-layer.html: Added.
+        * platform/mac/compositing/geometry/transfrom-origin-on-zero-size-layer-expected.checksum: Added.
+        * platform/mac/compositing/geometry/transfrom-origin-on-zero-size-layer-expected.png: Added.
+        * platform/mac/compositing/geometry/transfrom-origin-on-zero-size-layer-expected.txt: Added.
+
+2009-09-18  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by Eric Seidel.
+
+        REGRESSION: fast/workers/worker-cloneport.html failing intermttently on leopard bot
+        https://bugs.webkit.org/show_bug.cgi?id=29341
+
+        * fast/workers/worker-cloneport-expected.txt:
+        Updated to reflect new output (lower clone count threshold).
+        * fast/workers/worker-cloneport.html:
+        Updated test to have a more lenient performance requirement and timeout, to address flakiness on Leopard and Chromium.
+
+2009-09-18  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Geoff Garen.
+
+        Implement ES5 Object.defineProperty function
+        https://bugs.webkit.org/show_bug.cgi?id=29503
+
+        Add testcases for Object.defineProperty.
+
+        * fast/js/Object-defineProperty-expected.txt: Added.
+        * fast/js/Object-defineProperty.html: Added.
+        * fast/js/resources/Object-defineProperty.js: Added.
+        * http/tests/security/resources/xss-DENIED-defineProperty-attacker.html: Added.
+        * http/tests/security/xss-DENIED-defineProperty-expected.txt: Added.
+        * http/tests/security/xss-DENIED-defineProperty.html: Added.
+
+2009-09-18  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Speculative fix for:
+        https://bugs.webkit.org/show_bug.cgi?id=29322
+        and
+        https://bugs.webkit.org/show_bug.cgi?id=29505
+
+        Adding a "Connection: close" header might make the tests work more reliably, 
+        and doesn't seem to make anything worse: They all continue to pass on my machine!
+
+        * http/tests/loading/resources/basic-auth-testing.php:
+        * http/tests/loading/resources/othersubresources/protected-resource.php:
+        * http/tests/loading/resources/protected-resource.php:
+        * http/tests/loading/resources/subresources/protected-resource.php:
+        * http/tests/xmlhttprequest/resources/cross-origin-authorization.php:
+        * http/tests/xmlhttprequest/resources/cross-origin-check-cookies.php:
+        * http/tests/xmlhttprequest/resources/cross-origin-no-authorization.php:
+
+2009-09-18  Alpha Lam  <hclam@chromium.org>
+
+        Reviewed by Eric Carlson.
+
+        Media layout tests should have a way to provide test files in different formats
+        https://bugs.webkit.org/show_bug.cgi?id=28327
+
+        Updating 25 media layout tests to use media files based on supported codecs.
+
+        * media/progress-event-at-least-one.html: Use findMediaFile() to locate a supported media file.
+        * media/video-pause-empty-events.html: ditto.
+        * media/video-play-empty-events.html: ditto.
+        * media/video-play-pause-events.html: ditto.
+        * media/video-played-collapse.html: ditto.
+        * media/video-played-ranges-1.html: ditto.
+        * media/video-played-reset.html: ditto.
+        * media/video-played.js: ditto.
+        (videoPlayedMain):
+        * media/video-seek-past-end-paused.html: ditto.
+        * media/video-seek-past-end-playing.html: ditto.
+        * media/video-seekable.html: ditto.
+        * media/video-seeking.html: ditto.
+        * media/video-size.html: ditto.
+        * media/video-source-error.html: ditto.
+        * media/video-source-type-params.html: ditto.
+        * media/video-source-type.html: ditto.
+        * media/video-source.html: ditto.
+        * media/video-src-change.html: ditto.
+        * media/video-src-invalid-remove.html: ditto.
+        * media/video-src-remove.html: ditto. Use counting.mp4 instead of silence.mpg.
+        * media/video-src-remove-expected.txt: Updated results.
+        * media/video-src-set.html: ditto.
+        * media/video-src-source.html: ditto.
+        * media/video-src.html: ditto.
+        * media/video-timeupdate-during-playback.html: ditto.
+        * media/video-volume.html: ditto.
+        * media/video-zoom.html: ditto.
+
+2009-09-18  Anders Carlsson  <andersca@apple.com>
+
+        Add failing tests to the skipped list.
+        
+        * platform/mac-snowleopard/Skipped:
+
+2009-09-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Compositing layers are incorrectly positioned after scrolling with position:fixed
+        https://bugs.webkit.org/show_bug.cgi?id=29262
+        
+        Add testcase for scrolling a page with position:fixed composited content.
+
+        * compositing/geometry/fixed-position.html: Added.
+        * platform/mac/compositing/geometry/fixed-position-expected.checksum: Added.
+        * platform/mac/compositing/geometry/fixed-position-expected.png: Added.
+        * platform/mac/compositing/geometry/fixed-position-expected.txt: Added.
+
+2009-09-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Transformed elements inside position:fixed container are clipped incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=29346
+        
+        Testcase for clipping a transformed element inside a position:fixed parent.
+
+        * fast/overflow/position-fixed-transform-clipping.html: Added.
+        * platform/mac/fast/overflow/position-fixed-transform-clipping-expected.checksum: Added.
+        * platform/mac/fast/overflow/position-fixed-transform-clipping-expected.png: Added.
+        * platform/mac/fast/overflow/position-fixed-transform-clipping-expected.txt: Added.
+
+2009-09-18  Dan Bernstein  <mitz@apple.com>
+
+        Updated test result for <rdar://problem/7050773>
+
+        * platform/mac/accessibility/document-attributes-expected.txt:
+
+2009-09-18  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Test for <rdar://problem/7050773> REGRESSION (r40098) Crash at
+        WebCore::RenderBlock::layoutBlock()
+        https://bugs.webkit.org/show_bug.cgi?id=29498
+
+        * accessibility/nested-layout-crash-expected.txt: Added.
+        * accessibility/nested-layout-crash.html: Added.
+
+2009-09-18  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Adele Peterson.
+
+        Test for https://bugs.webkit.org/show_bug.cgi?id=29276
+        REGRESSION(r48334): WebKit crashes on file select by drag
+
+        * fast/events/drag-file-crash-expected.txt: Added.
+        * fast/events/drag-file-crash.html: Added.
+
+2009-09-18  Steve Block  <steveblock@google.com>
+
+        Reviewed by Dimitri Glazkov.
+
+        Geolocation does not correctly handle Infinity for PositionOptions properties.
+        https://bugs.webkit.org/show_bug.cgi?id=29099
+
+        * fast/dom/Geolocation/resources/argument-types.js: Modified. Test passing positive and negative Infinity to Geolocation methods.
+        * fast/dom/Geolocation/argument-types-expected.txt: Modified. Expected result for above test.
+
+2009-09-17  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Steve Falkenburg.
+
+        Add failing test on both Windows Debug and Release to the
+        Windows Skipped List.
+        
+        http/tests/xmlhttprequest/xmlhttprequest-missing-file-exception.html is
+        being tracked by <https://bugs.webkit.org/show_bug.cgi?id=29353>.
+
+        * platform/win/Skipped:
+
+2009-09-17  Alpha Lam  <hclam@chromium.org>
+
+        Reviewed by Eric Carlson.
+
+        Media layout tests should have a way to provide test files in different formats
+        https://bugs.webkit.org/show_bug.cgi?id=28327
+
+        Updating 19 media layout tests to use media files based on supported codecs.
+
+        * media/media-file.js: Prefer .wav over other formats as this is used the most in tests for mac port.
+        Most of audio tests use media/content/test.wav as test file for mac, so this change would make sure
+        findMediaFile() will return test.wav but not test.mp3 or other formats.
+        (setSrcById): Fixing bug in code.
+        * media/video-canvas-source.html: Use findMediaFile() to locate a media file based on supported types.
+        * media/video-click-dblckick-standalone.html: ditto.
+        * media/video-controls-transformed.html: ditto.
+        * media/video-controls-visible-audio-only.html: ditto.
+        * media/video-controls-zoomed.html: ditto.
+        * media/video-controls.html: ditto.
+        * media/video-currentTime-set.html: ditto.
+        * media/video-currentTime-set2.html: ditto.
+        * media/video-currentTime.html: ditto.
+        * media/video-display-none-crash.html: ditto.
+        * media/video-display-toggle.html: ditto.
+        * media/video-dom-autoplay.html: ditto.
+        * media/video-dom-src.html: ditto.
+        * media/video-error-abort.html: ditto.
+        * media/video-load-networkState.html: ditto.
+        * media/video-load-readyState.html: ditto.
+        * media/video-loop.html: ditto.
+        * media/video-muted.html: ditto.
+        * media/video-no-autoplay.html: ditto.
+
+2009-09-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Hardware-accelerated opacity transition on inline asserts
+        https://bugs.webkit.org/show_bug.cgi?id=29342
+
+        Test that runs a hardware-accelerated opacity transition on an inline element.
+        
+        * compositing/transitions/opacity-on-inline-expected.txt: Added.
+        * compositing/transitions/opacity-on-inline.html: Added.
+
+2009-09-17  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Brady Eidson.
+
+        Tiger fails test http/tests/loading/redirect-with-no-location-crash.html added in r48413
+        https://bugs.webkit.org/show_bug.cgi?id=29329
+
+        Skip test that fails on Tiger because of a bug in its version of
+        CFNetwork.
+
+        * platform/mac-tiger/Skipped:
+
+2009-09-17  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Simon Fraser.
+
+        REGRESSION: media/video-size-intrinsic-scale.html (and other media tests?) crashing/timing-out intermittently
+        https://bugs.webkit.org/show_bug.cgi?id=28845
+
+        Skip media/video-size-intrinsic-scale.html in hopes of stopping the crashers.
+        I ran the media tests with --iterations 30 w/o seeing a crash.
+        I also re-enabled media/video-source-add-src.html now that we know it is not at fault.
+
+        * media/video-source-add-src.html: Renamed from LayoutTests/media/video-source-add-src.html-disabled.
+        * platform/mac-leopard/Skipped:
+
+2009-09-17  Anton Muhin  <antonm@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Add layout tests to verify there is no security leaks if someone sets a prototype of top
+        window to its child window.
+        https://bugs.webkit.org/show_bug.cgi?id=29334
+
+        * http/tests/security/resources/iframe-with-element.html: Added.
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto-expected.txt: Added.
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto.html: Added.
+        * http/tests/security/xss-DENIED-method-with-iframe-proto-expected.txt: Added.
+        * http/tests/security/xss-DENIED-method-with-iframe-proto.html: Added.
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto-expected.txt: Added.
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto.html: Added.
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto-expected.txt: Added.
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto.html: Added.
+
+2009-09-17  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Beth Dakin.
+
+        AX: labels of checkboxes should, when hit-tested, return the checkbox
+        https://bugs.webkit.org/show_bug.cgi?id=29335
+
+        * accessibility/label-for-control-hittest-expected.txt: Added.
+        * accessibility/label-for-control-hittest.html: Added.
+        * platform/gtk/Skipped:
+        * platform/win/Skipped:
+
+2009-09-17  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Adam Roben.
+
+        Add a newline to the end of the expected file, should fix results.
+
+        * platform/win/transforms/2d/hindi-rotated-expected.txt:
+
+2009-09-17  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Adam Roben.
+
+        Updated Windows results on three failing tests, adding font-smoothing to computed-style,
+        and udpated the hindi-rotated-expected to what it has been getting on the bots.
+
+        * platform/win/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/win/transforms/2d/hindi-rotated-expected.txt:
+
+2009-09-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Elements appear behind <video> when they should be in front sometimes
+        https://bugs.webkit.org/show_bug.cgi?id=29314
+        
+        Testcase for a div layered on top of a video element, with a particular configuration
+        of position and opacity.
+
+        * compositing/geometry/video-opacity-overlay.html: Added.
+        * platform/mac/compositing/geometry/video-opacity-overlay-expected.checksum: Added.
+        * platform/mac/compositing/geometry/video-opacity-overlay-expected.png: Added.
+        * platform/mac/compositing/geometry/video-opacity-overlay-expected.txt: Added.
+
+2009-09-17  Andras Becsi  <becsi.andras@stud.u-szeged.hu>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Add expected file for passing font-smoothing test and update computed style tests since font smoothing is auto by default.
+
+        * platform/qt/fast/css/font-smoothing-expected.txt: Added.
+        * platform/qt/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/qt/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+
+2009-09-17  Andras Becsi  <becsi.andras@stud.u-szeged.hu>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Skip failing tests for now to prepare default font size reconciliation.
+
+        * platform/qt/Skipped:
+
+2009-09-16  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29306
+        
+        Tests that scripts with accented characters do not bypass the XSSAuditor.
+
+        * http/tests/security/xssAuditor/img-onerror-accented-char-expected.txt: Added.
+        * http/tests/security/xssAuditor/img-onerror-accented-char.html: Added.
+
+2009-09-16  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed.  Added new isolated world test to the skipped list.
+
+        * platform/gtk/Skipped:
+        * platform/mac/Skipped:
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+
+2009-09-16  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        [V8] Teach ScheduledAction::execute about isolated worlds
+        https://bugs.webkit.org/show_bug.cgi?id=27703
+
+        Add test coverage for the interaction between setTimeout and isolated
+        worlds.
+
+        * http/tests/security/isolatedWorld/window-setTimeout-function-expected.txt: Added.
+        * http/tests/security/isolatedWorld/window-setTimeout-function.html: Added.
+        * http/tests/security/isolatedWorld/window-setTimeout-string-expected.txt: Added.
+        * http/tests/security/isolatedWorld/window-setTimeout-string.html: Added.
+
+2009-09-15  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        <input maxlength=> should restrict only values specified by users.
+        https://bugs.webkit.org/show_bug.cgi?id=21271
+
+        * fast/forms/input-appearance-maxlength-expected.txt:
+        * fast/forms/input-appearance-maxlength.html:
+        * fast/forms/input-maxlength-expected.txt:
+        * fast/forms/input-maxlength.html:
+        * fast/forms/input-text-maxlength-expected.txt: Added.
+        * fast/forms/input-text-maxlength.html:
+        * fast/forms/input-text-paste-maxlength-expected.txt: Added.
+        * fast/forms/input-text-paste-maxlength.html:
+        * platform/mac-leopard/fast/forms/input-text-maxlength-expected.checksum: Removed.
+        * platform/mac-leopard/fast/forms/input-text-maxlength-expected.png: Removed.
+        * platform/mac-leopard/fast/forms/input-text-maxlength-expected.txt: Removed.
+        * platform/mac-leopard/fast/forms/input-text-paste-maxlength-expected.checksum: Removed.
+        * platform/mac-leopard/fast/forms/input-text-paste-maxlength-expected.png: Removed.
+        * platform/mac-leopard/fast/forms/input-text-paste-maxlength-expected.txt: Removed.
+        * platform/mac/fast/forms/input-text-maxlength-expected.txt: Removed.
+        * platform/mac/fast/forms/input-text-paste-maxlength-expected.txt: Removed.
+        * platform/qt/fast/forms/input-text-maxlength-expected.txt: Removed.
+        * platform/qt/fast/forms/input-text-paste-maxlength-expected.txt: Removed.
+        * platform/win/fast/forms/input-text-maxlength-expected.txt: Removed.
+        * platform/win/fast/forms/input-text-paste-maxlength-expected.txt: Removed.
+
+2009-09-16  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Added a test for a potential crash when adding an event listener to a
+        doctype node.
+
+        * fast/dom/doctype-event-listener-crash-expected.txt: Added.
+        * fast/dom/doctype-event-listener-crash.html: Added.
+
+2009-09-16  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Tests for <rdar://problem/7083741> Implement a CSS extension to 
+        adjust sub-pixel anti-aliasing for text
+
+        New tests:
+        * fast/css/font-smoothing.html: Added.
+        * fast/css/parsing-webkit-font-smoothing-expected.txt: Added.
+        * fast/css/parsing-webkit-font-smoothing.html: Added.
+        * fast/css/resources/parsing-webkit-font-smoothing.js: Added.
+        (test):
+        * platform/mac/fast/css/font-smoothing-expected.checksum: Added.
+        * platform/mac/fast/css/font-smoothing-expected.png: Added.
+        * platform/mac/fast/css/font-smoothing-expected.txt: Added.
+
+        These tests have updated results now that -webkit-font-smoothing is 
+        reported with computed style.
+        * platform/mac/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/mac/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2009-09-16  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Added a test that checks that margin property shorthand has correct value
+        when there is background-repeat property in the style declaration. 
+
+        https://bugs.webkit.org/show_bug.cgi?id=28973
+
+        * fast/backgrounds/repeat/margin-shorthand-expected.txt: Added.
+        * fast/backgrounds/repeat/margin-shorthand.html: Added.
+        * fast/backgrounds/repeat/resources/TEMPLATE.html: Added.
+        * fast/backgrounds/repeat/resources/margin-shorthand.css: Added.
+        * fast/backgrounds/repeat/resources/margin-shorthand.js: Added.
+        (iconMarginValue):
+
+2009-09-16  Carol Szabo  <carol.szabo@nokia.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Incorrect behavior of XMLHttpRequest::getAllResponseHeaders and XMLHttpRequest::getResponseHeader in the
+        HEADERS_RECEIVED readyState.
+        https://bugs.webkit.org/show_bug.cgi?id=29121
+
+        * http/tests/xmlhttprequest/getAllResponseHeaders-expected.txt: Copied from LayoutTests/http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getAllRequestHeaders-expected.txt.
+        * http/tests/xmlhttprequest/getAllResponseHeaders.html: Copied from LayoutTests/http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getAllRequestHeaders.html.
+        * http/tests/xmlhttprequest/getResponseHeader-expected.txt: Copied from LayoutTests/http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getRequestHeader-expected.txt.
+        * http/tests/xmlhttprequest/getResponseHeader.html: Copied from LayoutTests/http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getRequestHeader.html.
+        * http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getAllRequestHeaders-expected.txt: Removed.
+        * http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getAllRequestHeaders.html: Removed.
+        * http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getRequestHeader-expected.txt: Removed.
+        * http/tests/xmlhttprequest/xmlhttprequest-InvalidStateException-getRequestHeader.html: Removed.
+        Modified xmlhttprequest-InvalidStateException-getAllRequestHeaders and xmlhttprequest-InvalidStateException-getRequestHeader to match the current spec and code behavior.
+        Extended the first test to cover other aspects of the getAllResponseHeaders method and planning the same extension for the second test.
+        The extension for the second test is to be submitted with the patch for bug 29140.
+        Renamed the 2 tests to a shorter more accurate name, given their new intended scope.
+
+2009-09-16  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        One more try at rebaselining the tests for those who dump frame
+        loader delegates.
+
+        * http/tests/loading/redirect-with-no-location-crash-expected.txt:
+
+2009-09-16  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Rebaseline for those who support dumping of frame
+        loader delegates, add specific expected result to GTK+
+
+        * http/tests/loading/redirect-with-no-location-crash-expected.txt:
+        * platform/gtk/http/tests/loading/redirect-with-no-location-crash-expected.txt: Copied from LayoutTests/http/tests/loading/redirect-with-no-location-crash-expected.txt.
+
+2009-09-16  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] Crash when visiting http://flipper.googlelabs.com/
+        https://bugs.webkit.org/show_bug.cgi?id=29293
+
+        * http/tests/loading/redirect-with-no-location-crash.html: Added.
+        * http/tests/loading/redirect-with-no-location-crash-expected.html: Added.
+        * http/tests/loading/resources/redirect-with-no-location-crash.php: Added.
+
+2009-09-15  Chris Fleizach  <cfleizach@apple.com>
+
+        WAI-ARIA: add support for ranges, including the progressbar, slider, and spinbutton roles
+        https://bugs.webkit.org/show_bug.cgi?id=28841
+
+        Layout test fix redux. 
+        The paths to the fast/js resources needed to be updated.
+
+        * platform/mac/accessibility/aria-slider-value-change.html:
+
+2009-09-15  Chris Fleizach  <cfleizach@apple.com>
+
+        Layout test fix. 
+        This test should only be for Mac, since the other platforms don't support the necessary features.
+
+        WAI-ARIA: add support for ranges, including the progressbar, slider, and spinbutton roles
+        https://bugs.webkit.org/show_bug.cgi?id=28841
+
+        * accessibility/aria-slider-value-change-expected.txt: Removed.
+        * accessibility/aria-slider-value-change.html: Removed.
+        * platform/mac/accessibility/aria-slider-value-change-expected.txt: Copied from LayoutTests/accessibility/aria-slider-value-change-expected.txt.
+        * platform/mac/accessibility/aria-slider-value-change.html: Copied from LayoutTests/accessibility/aria-slider-value-change.html.
+
+2009-09-15  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Beth Dakin.
+
+        WAI-ARIA: add support for ranges, including the progressbar, slider, and spinbutton roles
+        https://bugs.webkit.org/show_bug.cgi?id=28841
+
+        * accessibility/aria-slider-value-change-expected.txt: Added.
+        * accessibility/aria-slider-value-change.html: Added.
+
+2009-09-15  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Steve Falkenburg.
+
+        Add four currently failing tests to the Skipped list so we can figure out what's wrong
+        with them and try to get the bot closer to green. Bugs have been filed for each test.
+
+        * platform/win/Skipped:
+
 2009-09-14  Andrew Richards  <randrew@gmail.com>
 
         Reviewed by Sam Weinig.
