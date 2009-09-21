@@ -398,14 +398,12 @@ exit:
 ClipboardWin::ClipboardWin(bool isForDragging, IDataObject* dataObject, ClipboardAccessPolicy policy)
     : Clipboard(policy, isForDragging)
     , m_dataObject(dataObject)
-    , m_writableDataObject(0)
 {
 }
 
 ClipboardWin::ClipboardWin(bool isForDragging, WCDataObject* dataObject, ClipboardAccessPolicy policy)
     : Clipboard(policy, isForDragging)
     , m_dataObject(dataObject)
-    , m_writableDataObject(dataObject)
 {
 }
 
@@ -413,7 +411,7 @@ ClipboardWin::~ClipboardWin()
 {
 }
 
-static bool writeURL(WCDataObject *data, const KURL& url, String title, bool withPlainText, bool withHTML)
+static bool writeURL(IDataObject *data, const KURL& url, String title, bool withPlainText, bool withHTML)
 {
     ASSERT(data);
 
@@ -457,22 +455,42 @@ static bool writeURL(WCDataObject *data, const KURL& url, String title, bool wit
     return success;
 }
 
+static void clearData(COMPtr<IDataObject> dataObject, CLIPFORMAT format)
+{
+    IEnumFORMATETC *dataEnum;
+    if (SUCCEEDED(dataObject->EnumFormatEtc(DATADIR_GET, &dataEnum)))
+    {
+        ULONG fetched;
+        FORMATETC formatEtc;
+        while (dataEnum->Next(1, &formatEtc, &fetched) != S_FALSE)
+        {
+            if (format == formatEtc.cfFormat)
+            {
+                STGMEDIUM storageMedium = {0};
+                storageMedium.tymed = TYMED_NULL;
+                dataObject->SetData(&formatEtc, &storageMedium, FALSE);
+                break;
+            }
+        }
+    }
+}
+
 void ClipboardWin::clearData(const String& type)
 {
     //FIXME: Need to be able to write to the system clipboard <rdar://problem/5015941>
     ASSERT(isForDragging());
-    if (policy() != ClipboardWritable || !m_writableDataObject)
+    if (policy() != ClipboardWritable)
         return;
 
     ClipboardDataType dataType = clipboardTypeFromMIMEType(type);
 
     if (dataType == ClipboardDataTypeURL) {
-        m_writableDataObject->clearData(urlWFormat()->cfFormat);
-        m_writableDataObject->clearData(urlFormat()->cfFormat);
+        WebCore::clearData(m_dataObject, urlWFormat()->cfFormat);
+        WebCore::clearData(m_dataObject, urlFormat()->cfFormat);
     }
     if (dataType == ClipboardDataTypeText) {
-        m_writableDataObject->clearData(plainTextFormat()->cfFormat);
-        m_writableDataObject->clearData(plainTextWFormat()->cfFormat);
+        WebCore::clearData(m_dataObject, plainTextWFormat()->cfFormat);
+        WebCore::clearData(m_dataObject, plainTextFormat()->cfFormat);
     }
 
 }
@@ -484,9 +502,9 @@ void ClipboardWin::clearAllData()
     if (policy() != ClipboardWritable)
         return;
     
-    m_writableDataObject = 0;
-    WCDataObject::createInstance(&m_writableDataObject);
-    m_dataObject = m_writableDataObject;
+    //m_writableDataObject = 0;
+    //WCDataObject::createInstance(&m_writableDataObject);
+    //m_dataObject = m_writableDataObject;
 }
 
 String ClipboardWin::getData(const String& type, bool& success) const
@@ -509,13 +527,13 @@ bool ClipboardWin::setData(const String& type, const String& data)
 {
     // FIXME: Need to be able to write to the system clipboard <rdar://problem/5015941>
     ASSERT(isForDragging());
-    if (policy() != ClipboardWritable || !m_writableDataObject)
+    if (policy() != ClipboardWritable)
         return false;
 
     ClipboardDataType winType = clipboardTypeFromMIMEType(type);
 
     if (winType == ClipboardDataTypeURL)
-        return WebCore::writeURL(m_writableDataObject.get(), KURL(ParsedURLString, data), String(), false, true);
+        return WebCore::writeURL(m_dataObject.get(), KURL(ParsedURLString, data), String(), false, true);
 
     if (winType == ClipboardDataTypeText) {
         STGMEDIUM medium = {0};
@@ -524,7 +542,7 @@ bool ClipboardWin::setData(const String& type, const String& data)
         if (!medium.hGlobal)
             return false;
 
-        if (FAILED(m_writableDataObject->SetData(plainTextWFormat(), &medium, TRUE))) {
+        if (FAILED(m_dataObject->SetData(plainTextWFormat(), &medium, TRUE))) {
             ::GlobalFree(medium.hGlobal);
             return false;
         }
@@ -560,7 +578,7 @@ HashSet<String> ClipboardWin::types() const
 
     COMPtr<IEnumFORMATETC> itr;
 
-    if (FAILED(m_dataObject->EnumFormatEtc(0, &itr)))
+    if (FAILED(m_dataObject->EnumFormatEtc(DATADIR_GET, &itr)))
         return results;
 
     if (!itr)
@@ -568,7 +586,7 @@ HashSet<String> ClipboardWin::types() const
 
     FORMATETC data;
 
-    while (SUCCEEDED(itr->Next(1, &data, 0))) {
+    while (itr->Next(1, &data, 0) != S_FALSE) {
         addMimeTypesForFormat(results, data);
     }
 
@@ -677,11 +695,11 @@ static void writeImageToDataObject(IDataObject* dataObject, Element* element, co
 void ClipboardWin::declareAndWriteDragImage(Element* element, const KURL& url, const String& title, Frame* frame)
 {
     // Order is important here for Explorer's sake
-    if (!m_writableDataObject)
-         return;
-    WebCore::writeURL(m_writableDataObject.get(), url, title, true, false);
+    //if (!m_writableDataObject)
+    //     return;
+    WebCore::writeURL(m_dataObject.get(), url, title, true, false);
 
-    writeImageToDataObject(m_writableDataObject.get(), element, url);
+    writeImageToDataObject(m_dataObject.get(), element, url);
 
     AtomicString imageURL = element->getAttribute(srcAttr);
     if (imageURL.isEmpty()) 
@@ -698,15 +716,15 @@ void ClipboardWin::declareAndWriteDragImage(Element* element, const KURL& url, c
     Vector<char> data;
     markupToCF_HTML(imageToMarkup(fullURL), "", data);
     medium.hGlobal = createGlobalData(data);
-    if (medium.hGlobal && FAILED(m_writableDataObject->SetData(htmlFormat(), &medium, TRUE)))
+    if (medium.hGlobal && FAILED(m_dataObject->SetData(htmlFormat(), &medium, TRUE)))
         ::GlobalFree(medium.hGlobal);
 }
 
 void ClipboardWin::writeURL(const KURL& kurl, const String& titleStr, Frame*)
 {
-    if (!m_writableDataObject)
-         return;
-    WebCore::writeURL(m_writableDataObject.get(), kurl, titleStr, true, true);
+    //if (!m_writableDataObject)
+    //     return;
+    WebCore::writeURL(m_dataObject.get(), kurl, titleStr, true, true);
 
     int estimatedSize = 0;
     String url = kurl.string();
@@ -719,14 +737,14 @@ void ClipboardWin::writeURL(const KURL& kurl, const String& titleStr, Frame*)
         GlobalFree(urlFileDescriptor);
         return;
     }
-    writeFileToDataObject(m_writableDataObject.get(), urlFileDescriptor, urlFileContent, 0);
+    writeFileToDataObject(m_dataObject.get(), urlFileDescriptor, urlFileContent, 0);
 }
 
 void ClipboardWin::writeRange(Range* selectedRange, Frame* frame)
 {
     ASSERT(selectedRange);
-    if (!m_writableDataObject)
-         return;
+    //if (!m_writableDataObject)
+    //     return;
 
     STGMEDIUM medium = {0};
     medium.tymed = TYMED_HGLOBAL;
@@ -736,19 +754,19 @@ void ClipboardWin::writeRange(Range* selectedRange, Frame* frame)
     markupToCF_HTML(createMarkup(selectedRange, 0, AnnotateForInterchange),
         selectedRange->startContainer(ec)->document()->url().string(), data);
     medium.hGlobal = createGlobalData(data);
-    if (medium.hGlobal && FAILED(m_writableDataObject->SetData(htmlFormat(), &medium, TRUE)))
+    if (medium.hGlobal && FAILED(m_dataObject->SetData(htmlFormat(), &medium, TRUE)))
         ::GlobalFree(medium.hGlobal);
 
     String str = frame->selectedText();
     replaceNewlinesWithWindowsStyleNewlines(str);
     replaceNBSPWithSpace(str);
     medium.hGlobal = createGlobalData(str);
-    if (medium.hGlobal && FAILED(m_writableDataObject->SetData(plainTextWFormat(), &medium, TRUE)))
+    if (medium.hGlobal && FAILED(m_dataObject->SetData(plainTextWFormat(), &medium, TRUE)))
         ::GlobalFree(medium.hGlobal);
 
     medium.hGlobal = 0;
     if (frame->editor()->canSmartCopyOrDelete())
-        m_writableDataObject->SetData(smartPasteFormat(), &medium, TRUE);
+        m_dataObject->SetData(smartPasteFormat(), &medium, TRUE);
 }
 
 bool ClipboardWin::hasData()
@@ -757,7 +775,7 @@ bool ClipboardWin::hasData()
         return false;
 
     COMPtr<IEnumFORMATETC> itr;
-    if (FAILED(m_dataObject->EnumFormatEtc(0, &itr)))
+    if (FAILED(m_dataObject->EnumFormatEtc(DATADIR_GET, &itr)))
         return false;
 
     if (!itr)
@@ -765,7 +783,7 @@ bool ClipboardWin::hasData()
 
     FORMATETC data;
 
-    if (SUCCEEDED(itr->Next(1, &data, 0))) {
+    if (itr->Next(1, &data, 0) != S_FALSE) {
         // There is at least one item in the IDataObject
         return true;
     }
@@ -777,7 +795,7 @@ void ClipboardWin::setExternalDataObject(IDataObject *dataObject)
 {
     ASSERT(isForDragging());
 
-    m_writableDataObject = 0;
+    //m_writableDataObject = 0;
     m_dataObject = dataObject;
 }
 
