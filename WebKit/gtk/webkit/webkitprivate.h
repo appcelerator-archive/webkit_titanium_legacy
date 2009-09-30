@@ -60,6 +60,7 @@
 #include "ResourceResponse.h"
 #include "WindowFeatures.h"
 #include "SecurityOrigin.h"
+#include "DataObjectGtk.h"
 
 #include <atk/atk.h>
 #include <glib.h>
@@ -129,9 +130,6 @@ extern "C" {
         bool editable;
         GtkIMContext* imContext;
 
-        GtkTargetList* copy_target_list;
-        GtkTargetList* paste_target_list;
-
         gboolean transparent;
 
         GtkAdjustment* horizontalAdjustment;
@@ -143,13 +141,15 @@ extern "C" {
         char* customEncoding;
 
         gboolean disposing;
-        gboolean usePrimaryForPaste;
 
         // These are hosted here because the DataSource object is
         // created too late in the frame loading process.
         WebKitWebResource* mainResource;
         char* mainResourceIdentifier;
         GHashTable* subResources;
+
+        RefPtr<WebCore::DataObjectGtk> draggingDataObject;
+        RefPtr<WebCore::DataObjectGtk> droppingDataObject;
     };
 
     #define WEBKIT_WEB_FRAME_GET_PRIVATE(obj)    (G_TYPE_INSTANCE_GET_PRIVATE((obj), WEBKIT_TYPE_WEB_FRAME, WebKitWebFramePrivate))
@@ -314,9 +314,6 @@ extern "C" {
 
     GSList*
     webkit_web_settings_get_spell_languages(WebKitWebView* web_view);
-
-    bool
-    webkit_web_view_use_primary_for_paste(WebKitWebView* web_view);
 
     GHashTable*
     webkit_history_items(void);

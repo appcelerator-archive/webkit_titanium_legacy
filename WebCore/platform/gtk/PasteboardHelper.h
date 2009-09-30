@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2007 Luca Bruno <lethalman88@gmail.com>
  * Copyright (C) 2009 Holger Hans Peter Freyther
+ * Copyright (C) 2009 Martin Robinson
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -23,27 +24,37 @@
 #ifndef PasteboardHelper_h
 #define PasteboardHelper_h
 
-/*
- * FIXME: this is for WebCore support and must be removed once
- * a better solution is found
- */
-
 #include "Frame.h"
 
+#include "DataObjectGtk.h"
 #include <gtk/gtk.h>
 
 namespace WebCore {
 
+// This singleton is necessary because WebKit knows about per-widget clipboards
+// and the info identifier for clipboard and drag-and-drop selection data. WebCore
+// doesn't have the information, so it must ask WebKit. Can this be in WebCore?
 class PasteboardHelper {
 public:
     virtual ~PasteboardHelper() {};
 
-    virtual GtkClipboard* getCurrentTarget(Frame*) const = 0;
-    virtual GtkClipboard* getClipboard(Frame*) const = 0;
-    virtual GtkClipboard* getPrimary(Frame*) const = 0;
-    virtual GtkTargetList* getCopyTargetList(Frame*) const = 0;
-    virtual GtkTargetList* getPasteTargetList(Frame*) const = 0;
-    virtual gint getWebViewTargetInfoHtml() const = 0;
+    virtual GtkClipboard* defaultClipboard() = 0;
+    virtual GtkClipboard* defaultClipboardForFrame(Frame*) = 0;
+    virtual GtkClipboard* primaryClipboard() = 0;
+    virtual GtkClipboard* primaryClipboardForFrame(Frame*) = 0;
+    virtual void getClipboardContents(GtkClipboard*) = 0;
+    virtual void writeClipboardContents(GtkClipboard*) = 0;
+    virtual void fillSelectionData(GtkSelectionData*, guint, DataObjectGtk*) = 0;
+    virtual void fillDataObject(GtkSelectionData*, guint, DataObjectGtk*) = 0;
+    virtual GtkTargetList* fullTargetList() = 0;
+    virtual GtkTargetList* targetListForDataObject(DataObjectGtk* dataObject) = 0;
+    virtual GtkTargetList* targetListForDragContext(GdkDragContext* context) = 0;
+    static bool usePrimaryClipboard();
+    static void setUsePrimaryClipboard(bool);
+    static void setHelper(PasteboardHelper*);
+    static GtkClipboard* clipboard();
+    static GtkClipboard* clipboardForFrame(Frame*);
+    static PasteboardHelper* helper();
 };
 
 }

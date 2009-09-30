@@ -23,11 +23,6 @@
 #ifndef PasteboardHelperGtk_h
 #define PasteboardHelperGtk_h
 
-/*
- * FIXME: this is for WebCore support and must be removed once
- * a better solution is found
- */
-
 #include "Frame.h"
 #include "PasteboardHelper.h"
 
@@ -40,12 +35,17 @@ namespace WebKit {
 class PasteboardHelperGtk : public PasteboardHelper {
 public:
     PasteboardHelperGtk() { }
-    virtual GtkClipboard* getCurrentTarget(Frame*) const;
-    virtual GtkClipboard* getClipboard(Frame*) const;
-    virtual GtkClipboard* getPrimary(Frame*) const;
-    virtual GtkTargetList* getCopyTargetList(Frame*) const;
-    virtual GtkTargetList* getPasteTargetList(Frame*) const;
-    virtual gint getWebViewTargetInfoHtml() const;
+    virtual GtkClipboard* defaultClipboard();
+    virtual GtkClipboard* defaultClipboardForFrame(Frame*);
+    virtual GtkClipboard* primaryClipboard();
+    virtual GtkClipboard* primaryClipboardForFrame(Frame*);
+    virtual void getClipboardContents(GtkClipboard*);
+    virtual void writeClipboardContents(GtkClipboard*);
+    virtual void fillSelectionData(GtkSelectionData*, guint, DataObjectGtk*);
+    virtual void fillDataObject(GtkSelectionData*, guint, DataObjectGtk*);
+    virtual GtkTargetList* fullTargetList();
+    virtual GtkTargetList* targetListForDataObject(DataObjectGtk* dataObject);
+    virtual GtkTargetList* targetListForDragContext(GdkDragContext* context);
 };
 
 }
