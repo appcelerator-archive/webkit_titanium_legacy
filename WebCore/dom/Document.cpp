@@ -116,8 +116,10 @@
 #include "TextIterator.h"
 #include "TextResourceDecoder.h"
 #include "Timer.h"
+#include "TransformSource.h"
 #include "TreeWalker.h"
 #include "UIEvent.h"
+#include "UserContentURLPattern.h"
 #include "WebKitAnimationEvent.h"
 #include "WebKitTransitionEvent.h"
 #include "WheelEvent.h"
@@ -321,9 +323,6 @@ Document::Document(Frame* frame, bool isXHTML)
     , m_titleSetExplicitly(false)
     , m_updateFocusAppearanceTimer(this, &Document::updateFocusAppearanceTimerFired)
     , m_executeScriptSoonTimer(this, &Document::executeScriptSoonTimerFired)
-#if ENABLE(XSLT)
-    , m_transformSource(0)
-#endif
     , m_xmlVersion("1.0")
     , m_xmlStandalone(false)
 #if ENABLE(XBL)
@@ -486,10 +485,6 @@ Document::~Document()
         delete m_renderArena;
         m_renderArena = 0;
     }
-
-#if ENABLE(XSLT)
-    xmlFreeDoc((xmlDocPtr)m_transformSource);
-#endif
 
 #if ENABLE(XBL)
     delete m_bindingManager;
@@ -1470,9 +1465,11 @@ void Document::detach()
 
 void Document::removeAllEventListeners()
 {
+    EventTarget::removeAllEventListeners();
+
     if (DOMWindow* domWindow = this->domWindow())
         domWindow->removeAllEventListeners();
-    for (Node* node = this; node; node = node->traverseNextNode())
+    for (Node* node = firstChild(); node; node = node->traverseNextNode())
         node->removeAllEventListeners();
 }
 
@@ -1715,8 +1712,8 @@ void Document::implicitClose()
         f->animation()->resumeAnimations(this);
 
     ImageLoader::dispatchPendingLoadEvents();
-    dispatchLoadEvent();
-    dispatchPageTransitionEvent(EventNames().pageshowEvent, false);
+    dispatchWindowLoadEvent();
+    dispatchWindowEvent(PageTransitionEvent::create(eventNames().pageshowEvent, false), this);
     if (f)
         f->loader()->handledOnloadEvents();
 #ifdef INSTRUMENT_LAYOUT_SCHEDULING
@@ -1939,7 +1936,8 @@ CSSStyleSheet* Document::pageUserSheet()
         return 0;
     
     // Parse the sheet and cache it.
-    m_pageUserSheet = CSSStyleSheet::create(this);
+    m_pageUserSheet = CSSStyleSheet::create(this, settings()->userStyleSheetLocation());
+    m_pageUserSheet->setIsUserStyleSheet(true);
     m_pageUserSheet->parseString(userSheetText, !inCompatMode());
     return m_pageUserSheet.get();
 }
@@ -1971,7 +1969,10 @@ const Vector<RefPtr<CSSStyleSheet> >* Document::pageGroupUserSheets() const
         const UserStyleSheetVector* sheets = it->second;
         for (unsigned i = 0; i < sheets->size(); ++i) {
             const UserStyleSheet* sheet = sheets->at(i).get();
-            RefPtr<CSSStyleSheet> parsedSheet = CSSStyleSheet::create(const_cast<Document*>(this));
+            if (!UserContentURLPattern::matchesPatterns(url(), sheet->patterns()))
+                continue;
+            RefPtr<CSSStyleSheet> parsedSheet = CSSStyleSheet::create(const_cast<Document*>(this), sheet->url());
+            parsedSheet->setIsUserStyleSheet(true);
             parsedSheet->parseString(sheet->source(), !inCompatMode());
             if (!m_pageGroupUserSheets)
                 m_pageGroupUserSheets.set(new Vector<RefPtr<CSSStyleSheet> >);
@@ -2173,7 +2174,7 @@ void Document::processHttpEquiv(const String& equiv, const String& content)
         FrameLoader* frameLoader = frame->loader();
         if (frameLoader->shouldInterruptLoadForXFrameOptions(content, url())) {
             frameLoader->stopAllLoaders();
-            frameLoader->scheduleHTTPRedirection(0, blankURL());
+            frameLoader->scheduleLocationChange(blankURL(), String());
         }
     }
 }
@@ -2646,7 +2647,7 @@ bool Document::setFocusedNode(PassRefPtr<Node> newFocusedNode)
         // Dispatch a change event for text fields or textareas that have been edited
         RenderObject* r = oldFocusedNode->renderer();
         if (r && r->isTextControl() && toRenderTextControl(r)->isEdited()) {
-            oldFocusedNode->dispatchEvent(eventNames().changeEvent, true, false);
+            oldFocusedNode->dispatchEvent(Event::create(eventNames().changeEvent, true, false));
             r = oldFocusedNode->renderer();
             if (r && r->isTextControl())
                 toRenderTextControl(r)->setEdited(false);
@@ -2873,41 +2874,22 @@ EventListener* Document::getWindowAttributeEventListener(const AtomicString& eve
     return domWindow->getAttributeEventListener(eventType);
 }
 
-void Document::dispatchWindowEvent(PassRefPtr<Event> event)
+void Document::dispatchWindowEvent(PassRefPtr<Event> event,  PassRefPtr<EventTarget> target)
 {
     ASSERT(!eventDispatchForbidden());
     DOMWindow* domWindow = this->domWindow();
     if (!domWindow)
         return;
-    ExceptionCode ec;
-    domWindow->dispatchEvent(event, ec);
+    domWindow->dispatchEvent(event, target);
 }
 
-void Document::dispatchWindowEvent(const AtomicString& eventType, bool canBubbleArg, bool cancelableArg)
-{
-    ASSERT(!eventDispatchForbidden());
-    DOMWindow* domWindow = this->domWindow();
-    if (!domWindow)
-        return;
-    domWindow->dispatchEvent(eventType, canBubbleArg, cancelableArg);
-}
-
-void Document::dispatchLoadEvent()
+void Document::dispatchWindowLoadEvent()
 {
     ASSERT(!eventDispatchForbidden());
     DOMWindow* domWindow = this->domWindow();
     if (!domWindow)
         return;
     domWindow->dispatchLoadEvent();
-}
-
-void Document::dispatchPageTransitionEvent(const AtomicString& eventType, bool persisted)
-{
-    ASSERT(!eventDispatchForbidden());
-    DOMWindow* domWindow = this->domWindow();
-    if (!domWindow)
-        return;
-    domWindow->dispatchPageTransitionEvent(eventType, persisted);
 }
 
 PassRefPtr<Event> Document::createEvent(const String& eventType, ExceptionCode& ec)
@@ -3028,7 +3010,7 @@ String Document::domain() const
     return securityOrigin()->domain();
 }
 
-void Document::setDomain(const String& newDomain)
+void Document::setDomain(const String& newDomain, ExceptionCode& ec)
 {
     // Both NS and IE specify that changing the domain is only allowed when
     // the new domain is a suffix of the old domain.
@@ -3051,19 +3033,25 @@ void Document::setDomain(const String& newDomain)
     int oldLength = domain().length();
     int newLength = newDomain.length();
     // e.g. newDomain = webkit.org (10) and domain() = www.webkit.org (14)
-    if (newLength >= oldLength)
+    if (newLength >= oldLength) {
+        ec = SECURITY_ERR;
         return;
+    }
 
     String test = domain();
     // Check that it's a subdomain, not e.g. "ebkit.org"
-    if (test[oldLength - newLength - 1] != '.')
+    if (test[oldLength - newLength - 1] != '.') {
+        ec = SECURITY_ERR;
         return;
+    }
 
     // Now test is "webkit.org" from domain()
     // and we check that it's the same thing as newDomain
     test.remove(0, oldLength - newLength);
-    if (test != newDomain)
+    if (test != newDomain) {
+        ec = SECURITY_ERR;
         return;
+    }
 
     securityOrigin()->setDomainFromDOM(newDomain);
     if (m_frame)
@@ -3859,13 +3847,11 @@ void Document::applyXSLTransform(ProcessingInstruction* pi)
     processor->createDocumentFromSource(newSource, resultEncoding, resultMIMEType, this, frame());
 }
 
-void Document::setTransformSource(void* doc)
+void Document::setTransformSource(PassOwnPtr<TransformSource> source)
 {
-    if (doc == m_transformSource)
+    if (m_transformSource == source)
         return;
-
-    xmlFreeDoc((xmlDocPtr)m_transformSource);
-    m_transformSource = doc;
+    m_transformSource = source;
 }
 
 #endif
@@ -4029,10 +4015,7 @@ CollectionCache* Document::nameCollectionInfo(CollectionType type, const AtomicS
 void Document::finishedParsing()
 {
     setParsing(false);
-
-    ExceptionCode ec = 0;
-    dispatchEvent(Event::create(eventNames().DOMContentLoadedEvent, true, false), ec);
-
+    dispatchEvent(Event::create(eventNames().DOMContentLoadedEvent, true, false));
     if (Frame* f = frame())
         f->loader()->finishedParsing();
 }

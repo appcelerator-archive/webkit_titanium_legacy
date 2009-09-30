@@ -237,25 +237,30 @@
 #define WTF_PLATFORM_MIDDLE_ENDIAN 1
 #endif
 #define ARM_ARCH_VERSION 3
-#if defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__)
+#if defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__) || defined(__MARM_ARMV4__) \
+    || defined(_ARMV4I_)
 #undef ARM_ARCH_VERSION
 #define ARM_ARCH_VERSION 4
 #endif
 #if defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_5T__) \
         || defined(__ARM_ARCH_5E__) || defined(__ARM_ARCH_5TE__) \
-        || defined(__ARM_ARCH_5TEJ__)
+        || defined(__ARM_ARCH_5TEJ__) || defined(__MARM_ARMV5__)
 #undef ARM_ARCH_VERSION
 #define ARM_ARCH_VERSION 5
 #endif
 #if defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
      || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6Z__) \
-     || defined(__ARM_ARCH_6ZK__)
+     || defined(__ARM_ARCH_6ZK__) || defined(__ARMV6__)
 #undef ARM_ARCH_VERSION
 #define ARM_ARCH_VERSION 6
 #endif
 #if defined(__ARM_ARCH_7A__)
 #undef ARM_ARCH_VERSION
 #define ARM_ARCH_VERSION 7
+#endif
+/* On ARMv5 and below the natural alignment is required. */
+#if !defined(ARM_REQUIRE_NATURAL_ALIGNMENT) && ARM_ARCH_VERSION <= 5
+#define ARM_REQUIRE_NATURAL_ALIGNMENT 1
 #endif
 /* Defines two pseudo-platforms for ARM and Thumb-2 instruction set. */
 #if !defined(WTF_PLATFORM_ARM_TRADITIONAL) && !defined(WTF_PLATFORM_ARM_THUMB2)
@@ -407,6 +412,9 @@
 #if PLATFORM(MAC) && !PLATFORM(IPHONE)
 #define WTF_PLATFORM_CF 1
 #define WTF_USE_PTHREADS 1
+#if !defined(BUILDING_ON_LEOPARD) && !defined(BUILDING_ON_TIGER) && defined(__x86_64__)
+#define WTF_USE_PLUGIN_HOST_PROCESS 1
+#endif
 #if !defined(ENABLE_MAC_JAVA_BRIDGE)
 #define ENABLE_MAC_JAVA_BRIDGE 1
 #endif
@@ -415,7 +423,7 @@
 #endif
 #define HAVE_READLINE 1
 #define HAVE_RUNLOOP_TIMER 1
-#endif
+#endif /* PLATFORM(MAC) && !PLATFORM(IPHONE) */
 
 #if PLATFORM(CHROMIUM) && PLATFORM(DARWIN)
 #define WTF_PLATFORM_CF 1
@@ -423,18 +431,19 @@
 #endif
 
 #if PLATFORM(IPHONE)
-#define WTF_PLATFORM_CF 1
-#define WTF_USE_PTHREADS 1
 #define ENABLE_CONTEXT_MENUS 0
 #define ENABLE_DRAG_SUPPORT 0
 #define ENABLE_FTPDIR 1
+#define ENABLE_GEOLOCATION 1
+#define ENABLE_ICONDATABASE 0
 #define ENABLE_INSPECTOR 0
 #define ENABLE_MAC_JAVA_BRIDGE 0
-#define ENABLE_ICONDATABASE 0
-#define ENABLE_GEOLOCATION 1
 #define ENABLE_NETSCAPE_PLUGIN_API 0
-#define HAVE_READLINE 1
+#define ENABLE_ORIENTATION_EVENTS 1
 #define ENABLE_REPAINT_THROTTLING 1
+#define HAVE_READLINE 1
+#define WTF_PLATFORM_CF 1
+#define WTF_USE_PTHREADS 1
 #endif
 
 #if PLATFORM(WIN)
@@ -491,6 +500,7 @@
 #if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD) && !PLATFORM(IPHONE)
 #define HAVE_MADV_FREE_REUSE 1
 #define HAVE_MADV_FREE 1
+#define HAVE_PTHREAD_SETNAME_NP 1
 #endif
 
 #if PLATFORM(IPHONE)
@@ -592,6 +602,14 @@
 
 #if !defined(ENABLE_NETSCAPE_PLUGIN_API)
 #define ENABLE_NETSCAPE_PLUGIN_API 1
+#endif
+
+#if !defined(WTF_USE_PLUGIN_HOST_PROCESS)
+#define WTF_USE_PLUGIN_HOST_PROCESS 0
+#endif
+
+#if !defined(ENABLE_ORIENTATION_EVENTS)
+#define ENABLE_ORIENTATION_EVENTS 0
 #endif
 
 #if !defined(ENABLE_OPCODE_STATS)
@@ -759,11 +777,11 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #define ENABLE_PAN_SCROLLING 1
 #endif
 
-/* Use the QtXmlStreamReader implementation for XMLTokenizer */
+/* Use the QXmlStreamReader implementation for XMLTokenizer */
+/* Use the QXmlQuery implementation for XSLTProcessor */
 #if PLATFORM(QT)
-#if !ENABLE(XSLT)
 #define WTF_USE_QXMLSTREAM 1
-#endif
+#define WTF_USE_QXMLQUERY 1
 #endif
 
 #if !PLATFORM(QT)

@@ -1,6 +1,7 @@
 /*
     Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
                   2004, 2005, 2006, 2007 Rob Buis <buis@kde.org>
+    Copyright (C) Research In Motion Limited 2009. All rights reserved.
 
     This file is part of the KDE project
 
@@ -158,6 +159,9 @@ void SVGUseElement::childrenChanged(bool changedByParser, Node* beforeChange, No
  
 static bool shadowTreeContainsChangedNodes(SVGElementInstance* target)
 {
+    if (!target)      // when use is referencing an non-existing element, there will be no Instance tree built
+        return false;
+
     if (target->needsUpdate())
         return true;
 
@@ -768,18 +772,18 @@ void SVGUseElement::transferEventListenersToShadowTree(SVGElementInstance* targe
     ASSERT(originalElement);
 
     if (SVGElement* shadowTreeElement = target->shadowTreeElement()) {
-        const RegisteredEventListenerVector& listeners = originalElement->eventListeners();
-        size_t size = listeners.size();
-        for (size_t i = 0; i < size; ++i) {
-            const RegisteredEventListener& r = *listeners[i];
-            EventListener* listener = r.listener();
-            ASSERT(listener);
-
-            // Event listeners created from markup have already been transfered to the shadow tree during cloning!
-            if (listener->wasCreatedFromMarkup())
-                continue;
-
-            shadowTreeElement->addEventListener(r.eventType(), listener, r.useCapture());
+        if (EventTargetData* d = originalElement->eventTargetData()) {
+            EventListenerMap& map = d->eventListenerMap;
+            EventListenerMap::iterator end = map.end();
+            for (EventListenerMap::iterator it = map.begin(); it != end; ++it) {
+                EventListenerVector& entry = it->second;
+                for (size_t i = 0; i < entry.size(); ++i) {
+                    // Event listeners created from markup have already been transfered to the shadow tree during cloning.
+                    if (entry[i].listener->wasCreatedFromMarkup())
+                        continue;
+                    shadowTreeElement->addEventListener(it->first, entry[i].listener, entry[i].useCapture);
+                }
+            }
         }
     }
 

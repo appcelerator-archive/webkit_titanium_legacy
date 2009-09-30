@@ -73,6 +73,11 @@ ScriptObject InspectorFrontend::newScriptObject()
     return ScriptObject::createNew(m_scriptState);
 }
 
+void InspectorFrontend::didCommitLoad()
+{
+    callSimpleFunction("didCommitLoad");
+}
+
 void InspectorFrontend::addMessageToConsole(const ScriptObject& messageObj, const Vector<ScriptString>& frames, const Vector<ScriptValue> wrappedArguments, const String& message)
 {
     OwnPtr<ScriptFunctionCall> function(newFunctionCall("addMessageToConsole"));
@@ -368,6 +373,15 @@ void InspectorFrontend::didApplyDomChange(int callId, bool success)
     function->call();
 }
 
+void InspectorFrontend::didGetEventListenersForNode(int callId, int nodeId, ScriptArray& listenersArray)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didGetEventListenersForNode"));
+    function->appendArgument(callId);
+    function->appendArgument(nodeId);
+    function->appendArgument(listenersArray);
+    function->call();
+}
+
 void InspectorFrontend::didGetCookies(int callId, const ScriptArray& cookies, const String& cookiesString)
 {
     OwnPtr<ScriptFunctionCall> function(newFunctionCall("didGetCookies"));
@@ -399,13 +413,41 @@ void InspectorFrontend::selectDatabase(Database* database)
 #endif
 
 #if ENABLE(DOM_STORAGE)
-void InspectorFrontend::selectDOMStorage(Storage* storage)
+void InspectorFrontend::selectDOMStorage(int storageId)
 {
     OwnPtr<ScriptFunctionCall> function(newFunctionCall("selectDOMStorage"));
-    ScriptObject quarantinedObject;
-    if (!getQuarantinedScriptObject(storage, quarantinedObject))
-        return;
-    function->appendArgument(quarantinedObject);
+    function->appendArgument(storageId);
+    function->call();
+}
+
+void InspectorFrontend::didGetDOMStorageEntries(int callId, const ScriptArray& entries)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didGetDOMStorageEntries"));
+    function->appendArgument(callId);
+    function->appendArgument(entries);
+    function->call();
+}
+
+void InspectorFrontend::didSetDOMStorageItem(int callId, bool success)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didSetDOMStorageItem"));
+    function->appendArgument(callId);
+    function->appendArgument(success);
+    function->call();
+}
+
+void InspectorFrontend::didRemoveDOMStorageItem(int callId, bool success)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didRemoveDOMStorageItem"));
+    function->appendArgument(callId);
+    function->appendArgument(success);
+    function->call();
+}
+
+void InspectorFrontend::updateDOMStorage(int storageId)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("updateDOMStorage"));
+    function->appendArgument(storageId);
     function->call();
 }
 #endif

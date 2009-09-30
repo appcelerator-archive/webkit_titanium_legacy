@@ -1494,10 +1494,6 @@
 					>
 				</File>
 				<File
-					RelativePath="$(WebKitOutputDir)\obj\WebKit\DerivedSources\GEN_DOMEventListener.cpp"
-					>
-				</File>
-				<File
 					RelativePath="$(WebKitOutputDir)\obj\WebKit\DerivedSources\GEN_DOMEventListener.h"
 					>
 				</File>
@@ -2136,6 +2132,14 @@
 			</File>
 			<File
 				RelativePath="..\WebCoreSupport\WebInspectorDelegate.h"
+				>
+			</File>
+			<File
+				RelativePath="..\WebCoreSupport\WebPluginHalterClient.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\WebCoreSupport\WebPluginHalterClient.h"
 				>
 			</File>
 		</Filter>

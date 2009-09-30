@@ -180,6 +180,15 @@ G_DEFINE_TYPE(WebKitWebView, webkit_web_view, GTK_TYPE_CONTAINER)
 static void webkit_web_view_settings_notify(WebKitWebSettings* webSettings, GParamSpec* pspec, WebKitWebView* webView);
 static void webkit_web_view_set_window_features(WebKitWebView* webView, WebKitWebWindowFeatures* webWindowFeatures);
 
+static void destroy_menu_cb(GtkObject* object, gpointer data)
+{
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(data);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+
+    g_object_unref(priv->currentMenu);
+    priv->currentMenu = NULL;
+}
+
 static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webView, const PlatformMouseEvent& event)
 {
     Page* page = core(webView);
@@ -211,8 +220,14 @@ static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webVie
         return FALSE;
 
     WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    priv->currentMenu = GTK_MENU(g_object_ref(menu));
     priv->lastPopupXPosition = event.globalX();
     priv->lastPopupYPosition = event.globalY();
+
+    g_signal_connect(menu, "destroy",
+                     G_CALLBACK(destroy_menu_cb),
+                     NULL);
+
     gtk_menu_popup(menu, NULL, NULL,
                    NULL,
                    priv, event.button() + 1, gtk_get_current_event_time());
@@ -698,8 +713,6 @@ static void webkit_web_view_container_add(GtkContainer* container, GtkWidget* wi
     WebKitWebViewPrivate* priv = webView->priv;
 
     priv->children.add(widget);
-    if (GTK_WIDGET_REALIZED(container))
-        gtk_widget_set_parent_window(widget, GTK_WIDGET(webView)->window);
     gtk_widget_set_parent(widget, GTK_WIDGET(container));
 }
 
@@ -2536,7 +2549,7 @@ static void webkit_web_view_init(WebKitWebView* webView)
     priv->imContext = gtk_im_multicontext_new();
 
     WebKit::InspectorClient* inspectorClient = new WebKit::InspectorClient(webView);
-    priv->corePage = new Page(new WebKit::ChromeClient(webView), new WebKit::ContextMenuClient(webView), new WebKit::EditorClient(webView), new WebKit::DragClient(webView), inspectorClient);
+    priv->corePage = new Page(new WebKit::ChromeClient(webView), new WebKit::ContextMenuClient(webView), new WebKit::EditorClient(webView), new WebKit::DragClient(webView), inspectorClient, 0);
 
     // We also add a simple wrapper class to provide the public
     // interface for the Web Inspector.
@@ -3951,7 +3964,7 @@ WebKitHitTestResult* webkit_web_view_get_hit_test_result(WebKitWebView* webView,
     g_return_val_if_fail(event, NULL);
 
     PlatformMouseEvent mouseEvent = PlatformMouseEvent(event);
-    Frame* frame = core(webView)->mainFrame();
+    Frame* frame = core(webView)->focusController()->focusedOrMainFrame();
     HitTestRequest request(HitTestRequest::Active);
     IntPoint documentPoint = documentPointForWindowPoint(frame, mouseEvent.pos());
     MouseEventWithHitTestResults mev = frame->document()->prepareMouseEvent(request, documentPoint, mouseEvent);

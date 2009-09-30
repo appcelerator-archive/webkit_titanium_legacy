@@ -16942,6 +16942,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\page\HaltablePlugin.h"
+				>
+			</File>
+			<File
 				RelativePath="..\page\History.cpp"
 				>
 			</File>
@@ -17030,6 +17034,18 @@
 				>
 			</File>
 			<File
+				RelativePath="..\page\PluginHalter.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\page\PluginHalter.h"
+				>
+			</File>
+			<File
+				RelativePath="..\page\PluginHalterClient.h"
+				>
+			</File>
+			<File
 				RelativePath="..\page\PositionCallback.h"
 				>
 			</File>
@@ -17067,6 +17083,14 @@
 			</File>
 			<File
 				RelativePath="..\page\Settings.h"
+				>
+			</File>
+			<File
+				RelativePath="..\page\UserContentURLPattern.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\page\UserContentURLPattern.h"
 				>
 			</File>
 			<File
@@ -20829,16 +20853,32 @@
 						</FileConfiguration>
 					</File>
 					<File
-						RelativePath="..\platform\network\curl\SocketStreamError.h"
-						>
-					</File>
-					<File
-						RelativePath="..\platform\network\curl\SocketStreamHandle.h"
-						>
-					</File>
-					<File
 						RelativePath="..\platform\network\curl\SocketStreamHandleCurl.cpp"
 						>
+						<FileConfiguration
+							Name="Debug|Win32"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Debug_Internal|Win32"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
 					</File>
 				</Filter>
 			</Filter>
@@ -23793,7 +23833,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\xml\XSLStyleSheet.cpp"
+				RelativePath="..\xml\XSLStyleSheetLibxslt.cpp"
 				>
 			</File>
 			<File
@@ -23810,6 +23850,10 @@
 			</File>
 			<File
 				RelativePath="..\xml\XSLTProcessor.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\xml\XSLTProcessorLibxslt.cpp"
 				>
 			</File>
 			<File
@@ -24454,6 +24498,14 @@
 			</File>
 			<File
 				RelativePath="..\dom\Tokenizer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dom\TransformSourceLibxslt.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\dom\TransformSource.h"
 				>
 			</File>
 			<File
@@ -29328,10 +29380,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSSharedWorkerContextCustom.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\bindings\js\JSSharedWorkerCustom.cpp"
 					>
 				</File>
@@ -31436,10 +31484,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\DatabasesPanel.js"
-					>
-				</File>
-				<File
 					RelativePath="..\inspector\front-end\DatabaseTableView.js"
 					>
 				</File>
@@ -31469,6 +31513,14 @@
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\ElementsPanel.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\ElementsTreeOutline.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\EventListenersSidebarPane.js"
 					>
 				</File>
 				<File
@@ -31589,6 +31641,10 @@
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\StatusBarButton.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\StoragePanel.js"
 					>
 				</File>
 				<File

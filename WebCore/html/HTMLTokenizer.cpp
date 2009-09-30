@@ -33,6 +33,7 @@
 #include "CachedScript.h"
 #include "DocLoader.h"
 #include "DocumentFragment.h"
+#include "Event.h"
 #include "EventNames.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -2042,7 +2043,7 @@ void HTMLTokenizer::notifyFinished(CachedResource*)
 #endif
 
         if (errorOccurred)
-            n->dispatchEvent(eventNames().errorEvent, true, false);
+            n->dispatchEvent(Event::create(eventNames().errorEvent, true, false));
         else {
             HTMLScriptElement *el = static_cast<HTMLScriptElement*>(n.get());
 
@@ -2060,7 +2061,7 @@ void HTMLTokenizer::notifyFinished(CachedResource*)
             else
                 m_doc->setShouldProcessNoscriptElement(true);
 #endif
-            n->dispatchEvent(eventNames().loadEvent, false, false);
+            n->dispatchEvent(Event::create(eventNames().loadEvent, false, false));
         }
 
         // The state of m_pendingScripts.isEmpty() can change inside the scriptExecution()

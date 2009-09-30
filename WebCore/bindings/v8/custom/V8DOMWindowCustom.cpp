@@ -65,6 +65,32 @@ v8::Handle<v8::Value> V8Custom::WindowSetTimeoutImpl(const v8::Arguments& args, 
     if (argumentCount < 1)
         return v8::Undefined();
 
+    v8::Handle<v8::Value> function = args[0];
+
+    WebCore::String functionString;
+    if (!function->IsFunction()) {
+        if (function->IsString())
+            functionString = toWebCoreString(function);
+        else {
+            v8::Handle<v8::Value> v8String = function->ToString();
+
+            // Bail out if string conversion failed. 
+            if (v8String.IsEmpty()) 
+                return v8::Undefined(); 
+
+            functionString = toWebCoreString(v8String);
+        }
+
+        // Don't allow setting timeouts to run empty functions!
+        // (Bug 1009597)
+        if (functionString.length() == 0)
+            return v8::Undefined();
+    }
+
+    int32_t timeout = 0;
+    if (argumentCount >= 2)
+        timeout = args[1]->Int32Value();
+
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, args.Holder());
 
     if (!V8Proxy::canAccessFrame(imp->frame(), true))
@@ -74,12 +100,6 @@ v8::Handle<v8::Value> V8Custom::WindowSetTimeoutImpl(const v8::Arguments& args, 
 
     if (!scriptContext)
         return v8::Undefined();
-
-    v8::Handle<v8::Value> function = args[0];
-
-    int32_t timeout = 0;
-    if (argumentCount >= 2)
-        timeout = args[1]->Int32Value();
 
     int id;
     if (function->IsFunction()) {
@@ -99,20 +119,6 @@ v8::Handle<v8::Value> V8Custom::WindowSetTimeoutImpl(const v8::Arguments& args, 
 
         id = DOMTimer::install(scriptContext, action, timeout, singleShot);
     } else {
-        if (!function->IsString()) {
-            function = function->ToString();
-            // Bail out if string conversion failed.
-            if (function.IsEmpty())
-                return v8::Undefined();
-        }
-
-        WebCore::String functionString = toWebCoreString(function);
-
-        // Don't allow setting timeouts to run empty functions!
-        // (Bug 1009597)
-        if (functionString.length() == 0)
-            return v8::Undefined();
-
         id = DOMTimer::install(scriptContext, new ScheduledAction(V8Proxy::context(imp->frame()), functionString), timeout, singleShot);
     }
 
@@ -227,6 +233,10 @@ ACCESSOR_SETTER(DOMWindowOpener)
 CALLBACK_FUNC_DECL(DOMWindowAddEventListener)
 {
     INC_STATS("DOM.DOMWindow.addEventListener()");
+
+    String eventType = toWebCoreString(args[0]);
+    bool useCapture = args[2]->BooleanValue();
+
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, args.Holder());
 
     if (!V8Proxy::canAccessFrame(imp->frame(), true))
@@ -244,11 +254,8 @@ CALLBACK_FUNC_DECL(DOMWindowAddEventListener)
 
     RefPtr<EventListener> listener = proxy->eventListeners()->findOrCreateWrapper<V8EventListener>(proxy->frame(), args[1], false);
 
-    if (listener) {
-        String eventType = toWebCoreString(args[0]);
-        bool useCapture = args[2]->BooleanValue();
+    if (listener)
         imp->addEventListener(eventType, listener, useCapture);
-    }
 
     return v8::Undefined();
 }
@@ -257,6 +264,10 @@ CALLBACK_FUNC_DECL(DOMWindowAddEventListener)
 CALLBACK_FUNC_DECL(DOMWindowRemoveEventListener)
 {
     INC_STATS("DOM.DOMWindow.removeEventListener()");
+
+    String eventType = toWebCoreString(args[0]);
+    bool useCapture = args[2]->BooleanValue();
+
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, args.Holder());
 
     if (!V8Proxy::canAccessFrame(imp->frame(), true))
@@ -273,11 +284,8 @@ CALLBACK_FUNC_DECL(DOMWindowRemoveEventListener)
 
     RefPtr<EventListener> listener = proxy->eventListeners()->findWrapper(args[1], false);
 
-    if (listener) {
-        String eventType = toWebCoreString(args[0]);
-        bool useCapture = args[2]->BooleanValue();
+    if (listener)
         imp->removeEventListener(eventType, listener.get(), useCapture);
-    }
 
     return v8::Undefined();
 }
@@ -318,6 +326,11 @@ CALLBACK_FUNC_DECL(DOMWindowPostMessage)
 CALLBACK_FUNC_DECL(DOMWindowAtob)
 {
     INC_STATS("DOM.DOMWindow.atob()");
+
+    if (args[0]->IsNull())
+        return v8String("");
+    String str = toWebCoreString(args[0]);
+
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, args.Holder());
 
     if (!V8Proxy::canAccessFrame(imp->frame(), true))
@@ -326,16 +339,17 @@ CALLBACK_FUNC_DECL(DOMWindowAtob)
     if (args.Length() < 1)
         return throwError("Not enough arguments", V8Proxy::SyntaxError);
 
-    if (args[0]->IsNull())
-        return v8String("");
-
-    String str = toWebCoreString(args[0]);
     return convertBase64(str, false);
 }
 
 CALLBACK_FUNC_DECL(DOMWindowBtoa)
 {
     INC_STATS("DOM.DOMWindow.btoa()");
+
+    if (args[0]->IsNull())
+        return v8String("");
+    String str = toWebCoreString(args[0]);
+
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, args.Holder());
 
     if (!V8Proxy::canAccessFrame(imp->frame(), true))
@@ -344,10 +358,6 @@ CALLBACK_FUNC_DECL(DOMWindowBtoa)
     if (args.Length() < 1)
         return throwError("Not enough arguments", V8Proxy::SyntaxError);
 
-    if (args[0]->IsNull())
-        return v8String("");
-
-    String str = toWebCoreString(args[0]);
     return convertBase64(str, true);
 }
 
@@ -358,7 +368,10 @@ CALLBACK_FUNC_DECL(DOMWindowBtoa)
 CALLBACK_FUNC_DECL(DOMWindowToString)
 {
     INC_STATS("DOM.DOMWindow.toString()");
-    return args.This()->ObjectProtoToString();
+    v8::Handle<v8::Object> domWrapper = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, args.This());
+    if (domWrapper.IsEmpty())
+        return args.This()->ObjectProtoToString();
+    return domWrapper->ObjectProtoToString();
 }
 
 CALLBACK_FUNC_DECL(DOMWindowNOP)
@@ -563,6 +576,11 @@ static Frame* createWindow(Frame* callingFrame,
 CALLBACK_FUNC_DECL(DOMWindowShowModalDialog)
 {
     INC_STATS("DOM.DOMWindow.showModalDialog()");
+
+    String url = toWebCoreStringWithNullOrUndefinedCheck(args[0]);
+    v8::Local<v8::Value> dialogArgs = args[1];
+    String featureArgs = toWebCoreStringWithNullOrUndefinedCheck(args[2]);
+
     DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(
         V8ClassIndex::DOMWINDOW, args.Holder());
     Frame* frame = window->frame();
@@ -580,10 +598,6 @@ CALLBACK_FUNC_DECL(DOMWindowShowModalDialog)
 
     if (!canShowModalDialogNow(frame) || !allowPopUp())
         return v8::Undefined();
-
-    String url = toWebCoreStringWithNullOrUndefinedCheck(args[0]);
-    v8::Local<v8::Value> dialogArgs = args[1];
-    String featureArgs = toWebCoreStringWithNullOrUndefinedCheck(args[2]);
 
     const HashMap<String, String> features = parseModalDialogFeatures(featureArgs);
 
@@ -652,6 +666,10 @@ CALLBACK_FUNC_DECL(DOMWindowShowModalDialog)
 CALLBACK_FUNC_DECL(DOMWindowOpen)
 {
     INC_STATS("DOM.DOMWindow.open()");
+
+    String urlString = toWebCoreStringWithNullOrUndefinedCheck(args[0]);
+    AtomicString frameName = (args[1]->IsUndefined() || args[1]->IsNull()) ? "_blank" : AtomicString(toWebCoreString(args[1]));
+
     DOMWindow* parent = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, args.Holder());
     Frame* frame = parent->frame();
 
@@ -669,9 +687,6 @@ CALLBACK_FUNC_DECL(DOMWindowOpen)
     Page* page = frame->page();
     if (!page)
         return v8::Undefined();
-
-    String urlString = toWebCoreStringWithNullOrUndefinedCheck(args[0]);
-    AtomicString frameName = (args[1]->IsUndefined() || args[1]->IsNull()) ? "_blank" : AtomicString(toWebCoreString(args[1]));
 
     // Because FrameTree::find() returns true for empty strings, we must check
     // for empty framenames. Otherwise, illegitimate window.open() calls with
@@ -848,11 +863,11 @@ void V8Custom::WindowSetLocation(DOMWindow* window, const String& relativeURL)
     if (!frame)
         return;
 
-    if (!shouldAllowNavigation(frame))
-        return;
-
     KURL url = completeURL(relativeURL);
     if (url.isNull())
+        return;
+
+    if (!shouldAllowNavigation(frame))
         return;
 
     navigateIfAllowed(frame, url, false, false);
@@ -875,6 +890,8 @@ CALLBACK_FUNC_DECL(DOMWindowSetInterval)
 
 void V8Custom::ClearTimeoutImpl(const v8::Arguments& args)
 {
+    int handle = toInt32(args[0]);
+
     v8::Handle<v8::Object> holder = args.Holder();
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
     if (!V8Proxy::canAccessFrame(imp->frame(), true))
@@ -882,7 +899,6 @@ void V8Custom::ClearTimeoutImpl(const v8::Arguments& args)
     ScriptExecutionContext* context = static_cast<ScriptExecutionContext*>(imp->document());
     if (!context)
         return;
-    int handle = toInt32(args[0]);
     DOMTimer::removeById(context, handle);
 }
 

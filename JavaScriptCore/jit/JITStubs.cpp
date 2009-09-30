@@ -471,7 +471,7 @@ asm volatile (
 ".thumb" "\n"
 ".thumb_func " THUMB_FUNC_PARAM(ctiTrampoline) "\n"
 SYMBOL_STRING(ctiTrampoline) ":" "\n"
-    "sub sp, sp, #0x3c" "\n"
+    "sub sp, sp, #0x40" "\n"
     "str lr, [sp, #0x20]" "\n"
     "str r4, [sp, #0x24]" "\n"
     "str r5, [sp, #0x28]" "\n"
@@ -486,7 +486,7 @@ SYMBOL_STRING(ctiTrampoline) ":" "\n"
     "ldr r5, [sp, #0x28]" "\n"
     "ldr r4, [sp, #0x24]" "\n"
     "ldr lr, [sp, #0x20]" "\n"
-    "add sp, sp, #0x3c" "\n"
+    "add sp, sp, #0x40" "\n"
     "bx lr" "\n"
 );
 
@@ -503,7 +503,7 @@ SYMBOL_STRING(ctiVMThrowTrampoline) ":" "\n"
     "ldr r5, [sp, #0x28]" "\n"
     "ldr r4, [sp, #0x24]" "\n"
     "ldr lr, [sp, #0x20]" "\n"
-    "add sp, sp, #0x3c" "\n"
+    "add sp, sp, #0x40" "\n"
     "bx lr" "\n"
 );
 
@@ -655,7 +655,7 @@ JITThunks::JITThunks(JSGlobalData* globalData)
     ASSERT(OBJECT_OFFSETOF(struct JITStackFrame, callFrame) == 0x34);
     ASSERT(OBJECT_OFFSETOF(struct JITStackFrame, exception) == 0x38);
     // The fifth argument is the first item already on the stack.
-    ASSERT(OBJECT_OFFSETOF(struct JITStackFrame, enabledProfilerReference) == 0x3c);
+    ASSERT(OBJECT_OFFSETOF(struct JITStackFrame, enabledProfilerReference) == 0x40);
 
     ASSERT(OBJECT_OFFSETOF(struct JITStackFrame, thunkReturnAddress) == 0x1C);
 #endif
@@ -679,7 +679,7 @@ NEVER_INLINE void JITThunks::tryCachePutByID(CallFrame* callFrame, CodeBlock* co
     JSCell* baseCell = asCell(baseValue);
     Structure* structure = baseCell->structure();
 
-    if (structure->isDictionary()) {
+    if (structure->isUncacheableDictionary()) {
         ctiPatchCallByReturnAddress(codeBlock, returnAddress, FunctionPtr(cti_op_put_by_id_generic));
         return;
     }
@@ -695,7 +695,7 @@ NEVER_INLINE void JITThunks::tryCachePutByID(CallFrame* callFrame, CodeBlock* co
     // Structure transition, cache transition info
     if (slot.type() == PutPropertySlot::NewProperty) {
         StructureChain* prototypeChain = structure->prototypeChain(callFrame);
-        if (!prototypeChain->isCacheable()) {
+        if (!prototypeChain->isCacheable() || structure->isDictionary()) {
             ctiPatchCallByReturnAddress(codeBlock, returnAddress, FunctionPtr(cti_op_put_by_id_generic));
             return;
         }
@@ -743,7 +743,7 @@ NEVER_INLINE void JITThunks::tryCacheGetByID(CallFrame* callFrame, CodeBlock* co
     JSCell* baseCell = asCell(baseValue);
     Structure* structure = baseCell->structure();
 
-    if (structure->isDictionary()) {
+    if (structure->isUncacheableDictionary()) {
         ctiPatchCallByReturnAddress(codeBlock, returnAddress, FunctionPtr(cti_op_get_by_id_generic));
         return;
     }
@@ -1154,7 +1154,7 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_method_check)
     JSObject* slotBaseObject;
     if (baseValue.isCell()
         && slot.isCacheable()
-        && !(structure = asCell(baseValue)->structure())->isDictionary()
+        && !(structure = asCell(baseValue)->structure())->isUncacheableDictionary()
         && (slotBaseObject = asObject(slot.slotBase()))->getPropertySpecificValue(callFrame, ident, specific)
         && specific
         ) {
@@ -1182,7 +1182,7 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_method_check)
         // for now.  For now it performs a check on a special object on the global object only used for this
         // purpose.  The object is in no way exposed, and as such the check will always pass.
         if (slot.slotBase() == baseValue) {
-            JIT::patchMethodCallProto(codeBlock, methodCallLinkInfo, callee, structure, callFrame->scopeChain()->globalObject()->methodCallDummy(), STUB_RETURN_ADDRESS);
+            JIT::patchMethodCallProto(codeBlock, methodCallLinkInfo, callee, structure, callFrame->scopeChain()->globalObject->methodCallDummy(), STUB_RETURN_ADDRESS);
             return JSValue::encode(result);
         }
     }
@@ -1228,7 +1228,7 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_self_fail)
 
     if (baseValue.isCell()
         && slot.isCacheable()
-        && !asCell(baseValue)->structure()->isDictionary()
+        && !asCell(baseValue)->structure()->isUncacheableDictionary()
         && slot.slotBase() == baseValue) {
 
         CodeBlock* codeBlock = callFrame->codeBlock();
@@ -1299,7 +1299,7 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_proto_list)
 
     CHECK_FOR_EXCEPTION();
 
-    if (!baseValue.isCell() || !slot.isCacheable() || asCell(baseValue)->structure()->isDictionary()) {
+    if (!baseValue.isCell() || !slot.isCacheable() || asCell(baseValue)->structure()->isUncacheableDictionary()) {
         ctiPatchCallByReturnAddress(callFrame->codeBlock(), STUB_RETURN_ADDRESS, FunctionPtr(cti_op_get_by_id_proto_fail));
         return JSValue::encode(result);
     }
@@ -1738,7 +1738,7 @@ DEFINE_STUB_FUNCTION(JSObject*, op_construct_JSConstruct)
     if (stackFrame.args[3].jsValue().isObject())
         structure = asObject(stackFrame.args[3].jsValue())->inheritorID();
     else
-        structure = constructor->scope().node()->globalObject()->emptyObjectStructure();
+        structure = constructor->scope().node()->globalObject->emptyObjectStructure();
     return new (stackFrame.globalData) JSObject(structure);
 }
 
@@ -2188,7 +2188,7 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_resolve_global)
     PropertySlot slot(globalObject);
     if (globalObject->getPropertySlot(callFrame, ident, slot)) {
         JSValue result = slot.getValue(callFrame, ident);
-        if (slot.isCacheable() && !globalObject->structure()->isDictionary() && slot.slotBase() == globalObject) {
+        if (slot.isCacheable() && !globalObject->structure()->isUncacheableDictionary() && slot.slotBase() == globalObject) {
             GlobalResolveInfo& globalResolveInfo = callFrame->codeBlock()->globalResolveInfo(globalResolveInfoIndex);
             if (globalResolveInfo.structure)
                 globalResolveInfo.structure->deref();
@@ -2641,7 +2641,7 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_call_eval)
     Register* newCallFrame = callFrame->registers() + registerOffset;
     Register* argv = newCallFrame - RegisterFile::CallFrameHeaderSize - argCount;
     JSValue thisValue = argv[0].jsValue();
-    JSGlobalObject* globalObject = callFrame->scopeChain()->globalObject();
+    JSGlobalObject* globalObject = callFrame->scopeChain()->globalObject;
 
     if (thisValue == globalObject && funcVal == globalObject->evalFunction()) {
         JSValue exceptionValue;

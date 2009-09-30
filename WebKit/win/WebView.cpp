@@ -50,6 +50,7 @@
 #include "WebKitSystemBits.h"
 #include "WebMutableURLRequest.h"
 #include "WebNotificationCenter.h"
+#include "WebPluginHalterClient.h"
 #include "WebPreferences.h"
 #include "WindowsTouch.h"
 #pragma warning( push, 0 )
@@ -642,6 +643,7 @@ HRESULT STDMETHODCALLTYPE WebView::close()
     setResourceLoadDelegate(0);
     setUIDelegate(0);
     setFormDelegate(0);
+    setPluginHalterDelegate(0);
 
     if (m_webInspector)
         m_webInspector->webViewClosed();
@@ -2356,7 +2358,7 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
     if (SUCCEEDED(m_preferences->shouldUseHighResolutionTimers(&useHighResolutionTimer)))
         Settings::setShouldUseHighResolutionTimers(useHighResolutionTimer);
 
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient);
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this));
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -3633,6 +3635,15 @@ HRESULT STDMETHODCALLTYPE WebView::toggleGrammarChecking(
     return setGrammarCheckingEnabled(enabled ? FALSE : TRUE);
 }
 
+HRESULT STDMETHODCALLTYPE WebView::reloadFromOrigin( 
+        /* [in] */ IUnknown* /*sender*/)
+{
+    if (!m_mainFrame)
+        return E_FAIL;
+
+    return m_mainFrame->reloadFromOrigin();
+}
+
 // IWebViewCSS -----------------------------------------------------------------
 
 HRESULT STDMETHODCALLTYPE WebView::computedStyleForElement( 
@@ -4403,6 +4414,16 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     settings->setLocalStorageEnabled(enabled);
 
+    hr = prefsPrivate->experimentalNotificationsEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setExperimentalNotificationsEnabled(enabled);
+
+    hr = prefsPrivate->experimentalWebSocketsEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setExperimentalWebSocketsEnabled(enabled);
+
     hr = prefsPrivate->isWebSecurityEnabled(&enabled);
     if (FAILED(hr))
         return hr;
@@ -4429,6 +4450,21 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings->setShouldUseHighResolutionTimers(enabled);
+
+    hr = prefsPrivate->pluginHalterEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setPluginHalterEnabled(enabled);
+
+    UINT runTime;
+    hr = prefsPrivate->pluginAllowedRunTime(&runTime);
+    if (FAILED(hr))
+        return hr;
+    settings->setPluginAllowedRunTime(runTime);
+
+#if ENABLE(3D_CANVAS)
+    settings->setExperimentalWebGLEnabled(true);
+#endif  // ENABLE(3D_CANVAS)
 
     if (!m_closeWindowTimer.isActive())
         m_mainFrame->invalidate(); // FIXME
@@ -5480,12 +5516,49 @@ HRESULT WebView::removeAllUserContentFromGroup(BSTR groupName)
     return S_OK;
 }
 
+HRESULT WebView::invalidateBackingStore(const RECT* rect)
+{
+    if (!IsWindow(m_viewWindow))
+        return S_OK;
+
+    RECT clientRect;
+    if (!GetClientRect(m_viewWindow, &clientRect))
+        return E_FAIL;
+
+    RECT rectToInvalidate;
+    if (!rect)
+        rectToInvalidate = clientRect;
+    else if (!IntersectRect(&rectToInvalidate, &clientRect, rect))
+        return S_OK;
+
+    repaint(rectToInvalidate, true);
+    return S_OK;
+}
+
 void WebView::downloadURL(const KURL& url)
 {
     // It's the delegate's job to ref the WebDownload to keep it alive - otherwise it will be
     // destroyed when this function returns.
     COMPtr<WebDownload> download(AdoptCOM, WebDownload::createInstance(url, m_downloadDelegate.get()));
     download->start();
+}
+
+
+HRESULT STDMETHODCALLTYPE WebView::setPluginHalterDelegate(IWebPluginHalterDelegate* d)
+{
+    m_pluginHalterDelegate = d;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE WebView::pluginHalterDelegate(IWebPluginHalterDelegate** d)
+{
+    if (!d)
+        return E_POINTER;
+
+    if (!m_pluginHalterDelegate)
+        return E_FAIL;
+
+    return m_pluginHalterDelegate.copyRefTo(d);
 }
 
 class EnumTextMatches : public IEnumTextMatches
@@ -5571,4 +5644,3 @@ Page* core(IWebView* iWebView)
 
     return page;
 }
-

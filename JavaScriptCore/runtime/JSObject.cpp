@@ -471,7 +471,7 @@ JSObject* JSObject::unwrappedObject()
 void JSObject::removeDirect(const Identifier& propertyName)
 {
     size_t offset;
-    if (m_structure->isDictionary()) {
+    if (m_structure->isUncacheableDictionary()) {
         offset = m_structure->removePropertyWithoutTransition(propertyName);
         if (offset != WTF::notFound)
             putDirectOffset(offset, jsUndefined());
@@ -511,11 +511,6 @@ Structure* JSObject::createInheritorID()
 void JSObject::allocatePropertyStorage(size_t oldSize, size_t newSize)
 {
     allocatePropertyStorageInline(oldSize, newSize);
-}
-
-JSObject* constructEmptyObject(ExecState* exec)
-{
-    return new (exec) JSObject(exec->lexicalGlobalObject()->emptyObjectStructure());
 }
 
 bool JSObject::getOwnPropertyDescriptor(ExecState*, const Identifier& propertyName, PropertyDescriptor& descriptor)

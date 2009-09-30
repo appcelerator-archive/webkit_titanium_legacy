@@ -128,6 +128,7 @@ bool setAlwaysAcceptCookies(bool alwaysAcceptCookies)
     return true;
 #else
     // FIXME: Implement!
+    return false;
 #endif
 }
 
@@ -735,6 +736,8 @@ static void resetDefaultsToConsistentValues(IWebPreferences* preferences)
         prefsPrivate->setAllowUniversalAccessFromFileURLs(TRUE);
         prefsPrivate->setAuthorAndUserStylesEnabled(TRUE);
         prefsPrivate->setDeveloperExtrasEnabled(FALSE);
+        prefsPrivate->setExperimentalNotificationsEnabled(TRUE);
+        prefsPrivate->setExperimentalWebSocketsEnabled(FALSE);
         prefsPrivate->setShouldPaintNativeControls(FALSE); // FIXME - need to make DRT pass with Windows native controls <http://bugs.webkit.org/show_bug.cgi?id=25592>
         prefsPrivate->setXSSAuditorEnabled(FALSE);
         prefsPrivate->setOfflineWebApplicationCacheEnabled(TRUE);

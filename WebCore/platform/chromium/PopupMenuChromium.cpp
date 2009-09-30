@@ -104,10 +104,7 @@ public:
 
     // PopupListBox methods
 
-    // Shows the popup
-    void showPopup();
-
-    // Hides the popup.  Do not call this directly: use client->hidePopup().
+    // Hides the popup.
     void hidePopup();
 
     // Updates our internal list to match the client.
@@ -377,8 +374,7 @@ void PopupContainer::showExternal(const IntRect& rect, FrameView* v, int index)
 
 void PopupContainer::hidePopup()
 {
-    if (client())
-        client()->popupClosed(this);
+    listBox()->hidePopup();
 }
 
 void PopupContainer::layout()
@@ -635,7 +631,7 @@ bool PopupListBox::handleKeyEvent(const PlatformKeyboardEvent& event)
         return true;
     case VKEY_RETURN:
         if (m_selectedIndex == -1)  {
-            m_popupClient->popupDidHide();
+            hidePopup();
             // Don't eat the enter if nothing is selected.
             return false;
         }
@@ -830,12 +826,19 @@ void PopupListBox::paintRow(GraphicsContext* gc, const IntRect& rect, int rowInd
     Font itemFont = getRowFont(rowIndex);
     // FIXME: http://crbug.com/19872 We should get the padding of individual option
     // elements.  This probably implies changes to PopupMenuClient.
-    int textX = max(0, m_popupClient->clientPaddingLeft() - m_popupClient->clientInsetLeft());
-    int textY = rowRect.y() + itemFont.ascent() + (rowRect.height() - itemFont.height()) / 2;
+    bool rightAligned = m_popupClient->menuStyle().textDirection() == RTL;
+    int textX = 0;
+    int maxWidth = 0;
+    if (rightAligned)
+        maxWidth = rowRect.width() - max(0, m_popupClient->clientPaddingRight() - m_popupClient->clientInsetRight());
+    else {
+        textX = max(0, m_popupClient->clientPaddingLeft() - m_popupClient->clientInsetLeft());
+        maxWidth = rowRect.width() - textX;
+    }
     // Prepare text to be drawn.
     String itemText = m_popupClient->itemText(rowIndex);
     if (m_settings.restrictWidthOfListBox)  // truncate string to fit in.
-        itemText = StringTruncator::rightTruncate(itemText, rowRect.width() - textX, itemFont);
+        itemText = StringTruncator::rightTruncate(itemText, maxWidth, itemFont);
     unsigned length = itemText.length();
     const UChar* str = itemText.characters();
     // Prepare the directionality to draw text.
@@ -846,7 +849,12 @@ void PopupListBox::paintRow(GraphicsContext* gc, const IntRect& rect, int rowInd
              PopupContainerSettings::FirstStrongDirectionalCharacterDirection)
         rtl = itemText.defaultWritingDirection() == WTF::Unicode::RightToLeft;
     TextRun textRun(str, length, false, 0, 0, rtl);
+    // If the text is right-to-left, make it right-aligned by adjusting its
+    // beginning position.
+    if (rightAligned)
+        textX += maxWidth - itemFont.width(textRun);
     // Draw the item text.
+    int textY = rowRect.y() + itemFont.ascent() + (rowRect.height() - itemFont.height()) / 2;
     gc->drawBidiText(itemFont, textRun, IntPoint(textX, textY));
 }
 
@@ -871,7 +879,7 @@ void PopupListBox::abandon()
 
     m_selectedIndex = m_originalIndex;
 
-    m_popupClient->popupDidHide();
+    hidePopup();
 
     if (m_acceptedIndexOnAbandon >= 0) {
         m_popupClient->valueChanged(m_acceptedIndexOnAbandon);
@@ -904,7 +912,7 @@ void PopupListBox::acceptIndex(int index)
     if (index < 0) {
         if (m_popupClient) {
             // Enter pressed with no selection, just close the popup.
-            m_popupClient->popupDidHide();
+            hidePopup();
         }
         return;
     }
@@ -913,7 +921,7 @@ void PopupListBox::acceptIndex(int index)
         RefPtr<PopupListBox> keepAlive(this);
 
         // Hide ourselves first since valueChanged may have numerous side-effects.
-        m_popupClient->popupDidHide();
+        hidePopup();
 
         // Tell the <select> PopupMenuClient what index was selected.
         m_popupClient->valueChanged(index);
@@ -1057,6 +1065,17 @@ void PopupListBox::adjustSelectedIndex(int delta)
     // selection into view.
     selectIndex(targetIndex);
     scrollToRevealSelection();
+}
+
+void PopupListBox::hidePopup()
+{
+    if (parent()) {
+        PopupContainer* container = static_cast<PopupContainer*>(parent());
+        if (container->client())
+            container->client()->popupClosed(container);
+    }
+
+    m_popupClient->popupDidHide();
 }
 
 void PopupListBox::updateFromElement()

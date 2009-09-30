@@ -44,6 +44,10 @@ InjectedScript.reset();
 InjectedScript.dispatch = function(methodName, args)
 {
     var result = InjectedScript[methodName].apply(InjectedScript, JSON.parse(args));
+    if (typeof result === "undefined") {
+        InjectedScript._window().console.error("Web Inspector error: InjectedScript.%s returns undefined", methodName);
+        result = null;
+    }
     return JSON.stringify(result);
 }
 
@@ -150,6 +154,7 @@ InjectedScript.applyStyleText = function(styleId, styleText, propertyName)
 InjectedScript.setStyleText = function(style, cssText)
 {
     style.cssText = cssText;
+    return true;
 }
 
 InjectedScript.toggleStyleEnabled = function(styleId, propertyName, disabled)
@@ -499,11 +504,20 @@ InjectedScript.setPropertyValue = function(objectProxy, propertyName, expression
 }
 
 
-InjectedScript.getCompletions = function(expression, includeInspectorCommandLineAPI)
+InjectedScript.getCompletions = function(expression, includeInspectorCommandLineAPI, callFrameId)
 {
     var props = {};
     try {
-        var expressionResult = InjectedScript._evaluateOn(InjectedScript._window().eval, InjectedScript._window(), expression);
+        var expressionResult;
+        // Evaluate on call frame if call frame id is available.
+        if (typeof callFrameId === "number") {
+            var callFrame = InjectedScript._callFrameForId(callFrameId);
+            if (!callFrame)
+                return props;
+            expressionResult = InjectedScript._evaluateOn(callFrame.evaluate, callFrame, expression);
+        } else {
+            expressionResult = InjectedScript._evaluateOn(InjectedScript._window().eval, InjectedScript._window(), expression);
+        }
         for (var prop in expressionResult)
             props[prop] = true;
         if (includeInspectorCommandLineAPI)
@@ -515,26 +529,20 @@ InjectedScript.getCompletions = function(expression, includeInspectorCommandLine
     return props;
 }
 
-
 InjectedScript.evaluate = function(expression)
+{
+    return InjectedScript._evaluateAndWrap(InjectedScript._window().eval, InjectedScript._window(), expression);
+}
+
+InjectedScript._evaluateAndWrap = function(evalFunction, object, expression)
 {
     var result = {};
     try {
-        var value = InjectedScript._evaluateOn(InjectedScript._window().eval, InjectedScript._window(), expression);
-        if (value === null)
-            return { value: null };
-        if (Object.type(value) === "error") {
-            result.value = Object.describe(value);
+        result.value = InspectorController.wrapObject(InjectedScript._evaluateOn(evalFunction, object, expression));
+        // Handle error that might have happened while describing result.
+        if (result.value.errorText) {
+            result.value = result.value.errorText;
             result.isException = true;
-            return result;
-        }
-
-        var wrapper = InspectorController.wrapObject(value);
-        if (typeof wrapper === "object" && wrapper.exception) {
-            result.value = wrapper.exception;
-            result.isException = true;
-        } else {
-            result.value = wrapper;
         }
     } catch (e) {
         result.value = e.toString();
@@ -549,7 +557,13 @@ InjectedScript._evaluateOn = function(evalFunction, object, expression)
     // Surround the expression in with statements to inject our command line API so that
     // the window object properties still take more precedent than our API functions.
     expression = "with (window._inspectorCommandLineAPI) { with (window) { " + expression + " } }";
-    return evalFunction.call(object, expression);
+    var value = evalFunction.call(object, expression);
+
+    // When evaluating on call frame error is not thrown, but returned as a value.
+    if (Object.type(value) === "error")
+        throw value.toString();
+
+    return value;
 }
 
 InjectedScript.addInspectedNode = function(nodeId)
@@ -803,7 +817,10 @@ InjectedScript.searchCanceled = function()
 
 InjectedScript.openInInspectedWindow = function(url)
 {
-    InjectedScript._window().open(url);
+    // Don't call window.open on wrapper - popup blocker mutes it.
+    // URIs should have no double quotes.
+    InjectedScript._window().eval("window.open(\"" + url + "\")");
+    return true;
 }
 
 InjectedScript.getCallFrames = function()
@@ -826,7 +843,7 @@ InjectedScript.evaluateInCallFrame = function(callFrameId, code)
     var callFrame = InjectedScript._callFrameForId(callFrameId);
     if (!callFrame)
         return false;
-    return InjectedScript._evaluateOn(callFrame.evaluate, callFrame, code);
+    return InjectedScript._evaluateAndWrap(callFrame.evaluate, callFrame, code);
 }
 
 InjectedScript._callFrameForId = function(id)
@@ -976,7 +993,7 @@ InjectedScript.createProxyObject = function(object, objectId, abbreviate)
     try {
         result.description = Object.describe(object, abbreviate);
     } catch (e) {
-        result.exception = e.toString();
+        result.errorText = e.toString();
     }
     return result;
 }
@@ -1091,10 +1108,6 @@ Object.describe = function(obj, abbreviated)
         return objectText;
     case "regexp":
         return String(obj).replace(/([\\\/])/g, "\\$1").replace(/\\(\/[gim]*)$/, "$1").substring(1);
-    case "boolean":
-    case "number":
-    case "null":
-        return obj;
     default:
         return String(obj);
     }

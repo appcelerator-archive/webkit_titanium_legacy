@@ -148,11 +148,11 @@ static NSValue* getTransformFunctionValue(const TransformOperation* transformOp,
         case TransformOperation::ROTATE_Y:
             return [NSNumber numberWithDouble:transformOp ? deg2rad(static_cast<const RotateTransformOperation*>(transformOp)->angle()) : 0];
         case TransformOperation::SCALE_X:
-            return [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->x() : 0];
+            return [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->x() : 1];
         case TransformOperation::SCALE_Y:
-            return [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->y() : 0];
+            return [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->y() : 1];
         case TransformOperation::SCALE_Z:
-            return [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->z() : 0];
+            return [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->z() : 1];
         case TransformOperation::TRANSLATE_X:
             return [NSNumber numberWithDouble:transformOp ? static_cast<const TranslateTransformOperation*>(transformOp)->x(size) : 0];
         case TransformOperation::TRANSLATE_Y:
@@ -162,9 +162,9 @@ static NSValue* getTransformFunctionValue(const TransformOperation* transformOp,
         case TransformOperation::SCALE:
         case TransformOperation::SCALE_3D:
             return [NSArray arrayWithObjects:
-                        [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->x() : 0],
-                        [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->y() : 0],
-                        [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->z() : 0],
+                        [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->x() : 1],
+                        [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->y() : 1],
+                        [NSNumber numberWithDouble:transformOp ? static_cast<const ScaleTransformOperation*>(transformOp)->z() : 1],
                         nil];
         case TransformOperation::TRANSLATE:
         case TransformOperation::TRANSLATE_3D:
@@ -704,7 +704,7 @@ void GraphicsLayerCA::setContentsToImage(Image* image)
         CGColorSpaceRef colorSpace = CGImageGetColorSpace(m_pendingContentsImage.get());
 
         static CGColorSpaceRef deviceRGB = CGColorSpaceCreateDeviceRGB();
-        if (CFEqual(colorSpace, deviceRGB)) {
+        if (colorSpace && CFEqual(colorSpace, deviceRGB)) {
             // CoreGraphics renders images tagged with DeviceRGB using the color space of the main display. When we hand such
             // images to CA we need to tag them similarly so CA rendering matches CG rendering.
             static CGColorSpaceRef genericRGB = CGDisplayCopyColorSpace(kCGDirectMainDisplay);

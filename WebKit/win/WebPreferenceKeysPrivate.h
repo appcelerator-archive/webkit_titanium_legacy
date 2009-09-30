@@ -53,6 +53,8 @@
 #define WebKitPluginsEnabledPreferenceKey "WebKitPluginsEnabled"
 #define WebKitDatabasesEnabledPreferenceKey "WebKitDatabasesEnabled"
 #define WebKitLocalStorageEnabledPreferenceKey "WebKitLocalStorageEnabled"
+#define WebKitExperimentalNotificationsEnabledPreferenceKey "WebKitExperimentalNotificationsEnabled"
+#define WebKitExperimentalWebSocketsEnabledPreferenceKey "WebKitExperimentalWebSocketsEnabled"
 #define WebKitAllowAnimatedImagesPreferenceKey "WebKitAllowAnimatedImagesPreferenceKey"
 #define WebKitAllowAnimatedImageLoopingPreferenceKey "WebKitAllowAnimatedImageLoopingPreferenceKey"
 #define WebKitDisplayImagesKey "WebKitDisplayImagesKey"
@@ -126,3 +128,7 @@
 #define WebKitXSSAuditorEnabledPreferenceKey "WebKitXSSAuditorEnabled"
 
 #define WebKitUseHighResolutionTimersPreferenceKey "WebKitUseHighResolutionTimers"
+
+#define WebKitPluginHalterEnabledPreferenceKey "WebKitPluginHalterEnabled"
+
+#define WebKitPluginAllowedRunTimePreferenceKey "WebKitPluginAllowedRunTime"

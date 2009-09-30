@@ -27,6 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import base64
 import os
 import re
 import stat
@@ -34,7 +35,7 @@ import subprocess
 import tempfile
 import unittest
 import urllib
-from modules.scm import detect_scm_system, SCM, ScriptError
+from modules.scm import detect_scm_system, SCM, ScriptError, CheckoutNeedsUpdate, ignore_error, commit_error_handler
 
 
 # Eventually we will want to write tests which work for both scms. (like update_webkit, changed_files, etc.)
@@ -132,6 +133,25 @@ class SCMTest(unittest.TestCase):
         os.mkdir(os.path.dirname(local_scripts_directory))
         os.symlink(webkit_scripts_directory, local_scripts_directory)
 
+    def test_error_handlers(self):
+        git_failure_message="Merge conflict during commit: Your file or directory 'WebCore/ChangeLog' is probably out-of-date: resource out of date; try updating at /usr/local/libexec/git-core//git-svn line 469"
+        svn_failure_message="""svn: Commit failed (details follow):
+svn: File or directory 'ChangeLog' is out of date; try updating
+svn: resource out of date; try updating
+"""
+        command_does_not_exist = ['does_not_exist', 'invalid_option']
+        self.assertRaises(OSError, SCM.run_command, command_does_not_exist)
+        self.assertRaises(OSError, SCM.run_command, command_does_not_exist, error_handler=ignore_error)
+
+        command_returns_non_zero = ['/bin/sh', '--invalid-option']
+        self.assertRaises(ScriptError, SCM.run_command, command_returns_non_zero)
+        self.assertTrue(SCM.run_command(command_returns_non_zero, error_handler=ignore_error))
+
+        self.assertRaises(CheckoutNeedsUpdate, commit_error_handler, ScriptError(output=git_failure_message))
+        self.assertRaises(CheckoutNeedsUpdate, commit_error_handler, ScriptError(output=svn_failure_message))
+        self.assertRaises(ScriptError, commit_error_handler, ScriptError(output='blah blah blah'))
+
+
     # Tests which both GitTest and SVNTest should run.
     # FIXME: There must be a simpler way to add these w/o adding a wrapper method to both subclasses
     def _shared_test_commit_with_message(self):
@@ -196,6 +216,27 @@ class SVNTest(SCMTest):
         scm = detect_scm_system(self.svn_checkout_path)
         self.assertEqual(scm.display_name(), "svn")
         self.assertEqual(scm.supports_local_commits(), False)
+
+    def test_apply_small_binary_patch(self):
+        patch_contents = """Index: test_file.swf
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream
+
+Property changes on: test_file.swf
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+
+Q1dTBx0AAAB42itg4GlgYJjGwMDDyODMxMDw34GBgQEAJPQDJA==
+"""
+        expected_contents = base64.b64decode("Q1dTBx0AAAB42itg4GlgYJjGwMDDyODMxMDw34GBgQEAJPQDJA==")
+        self._setup_webkittools_scripts_symlink(self.scm)
+        patch_file = self._create_patch(patch_contents)
+        self.scm.apply_patch(patch_file)
+        actual_contents = read_from_path("test_file.swf")
+        self.assertEqual(actual_contents, expected_contents)
 
     def test_apply_svn_patch(self):
         scm = detect_scm_system(self.svn_checkout_path)

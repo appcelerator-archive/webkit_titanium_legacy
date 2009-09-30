@@ -59,20 +59,7 @@ void JSXMLHttpRequest::markChildren(MarkStack& markStack)
             markStack.append(wrapper);
     }
 
-    markIfNotNull(markStack, m_impl->onreadystatechange());
-    markIfNotNull(markStack, m_impl->onabort());
-    markIfNotNull(markStack, m_impl->onerror());
-    markIfNotNull(markStack, m_impl->onload());
-    markIfNotNull(markStack, m_impl->onloadstart());
-    markIfNotNull(markStack, m_impl->onprogress());
-    
-    typedef XMLHttpRequest::EventListenersMap EventListenersMap;
-    typedef XMLHttpRequest::ListenerVector ListenerVector;
-    EventListenersMap& eventListeners = m_impl->eventListeners();
-    for (EventListenersMap::iterator mapIter = eventListeners.begin(); mapIter != eventListeners.end(); ++mapIter) {
-        for (ListenerVector::iterator vecIter = mapIter->second.begin(); vecIter != mapIter->second.end(); ++vecIter)
-            (*vecIter)->markJSFunction(markStack);
-    }
+    m_impl->markEventListeners(markStack);
 }
 
 // Custom functions
@@ -173,7 +160,7 @@ JSValue JSXMLHttpRequest::addEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false), args.at(2).toBoolean(exec));
+    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -187,7 +174,7 @@ JSValue JSXMLHttpRequest::removeEventListener(ExecState* exec, const ArgList& ar
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false).get(), args.at(2).toBoolean(exec));
+    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 

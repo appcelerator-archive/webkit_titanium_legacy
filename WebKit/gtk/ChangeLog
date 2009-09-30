@@ -1,3 +1,189 @@
+2009-09-29  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Do not set a non-default parent window for child widgets. We are
+        just doing the same than the default path does, and on top of that
+        if the widget's window changes (for example, during DnD widgets
+        are usually unrealized/realized) the child widget will we left
+        pointing to a dead window.
+
+        For examples of crashers caused by this see
+        https://bugzilla.gnome.org/show_bug.cgi?id=596397 and
+        https://bugzilla.gnome.org/show_bug.cgi?id=596398
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_container_add):
+
+2009-09-29  Xan Lopez  <xlopez@igalia.com>
+
+        Rubber-stamped by Eric Seidel.
+
+        [Gtk] Crash when saving a password
+        https://bugs.webkit.org/show_bug.cgi?id=28070
+
+        Disconnect the 'got-headers' callback when we are done with
+        it. The signal can be emitted more than once if the message is
+        retransmitted, but each time that happens authData is created
+        again and a new callback connected, so we have to get rid of the
+        old one (which will crash because we free authData).
+
+        * webkit/webkitsoupauthdialog.c:
+        (save_password_callback):
+
+2009-09-25  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Pop down the context menu when the page transitions to committed,
+        to avoid keeping a context menu out of context.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::transitionToCommittedForNewPage):
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebview.cpp:
+        (destroy_menu_cb):
+        (webkit_web_view_forward_context_menu_event):
+
+2009-09-24  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        Reviewed by Alice Liu.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_init):
+        Pass 0 for new Page constructor argument.
+
+2009-09-24  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha and Jan Alonzo.
+        [GTK] Add WEBKIT_LOAD_ERROR status
+        https://bugs.webkit.org/show_bug.cgi?id=29644
+
+        Add a new load-status enum value, WEBKIT_LOAD_FAILED, emitted when
+        there's an error during the load process. This is needed if we
+        want notify::load-status to be able to handle all situations,
+        since WEBKIT_LOAD_FINISHED is not emitted when there's an error
+        and we are lacking a notification of the load being stopped.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::dispatchDidFailLoad):
+        * tests/testloading.c:
+        (web_loading_fixture_setup):
+        (load_error_status_changed_cb):
+        (load_error_cb):
+        (test_loading_error):
+        (load_cancelled_cb):
+        (stop_load):
+        (load_cancelled_status_changed_cb):
+        (test_loading_cancelled):
+        (main):
+        * webkit/webkitwebframe.h:
+
+2009-09-24  Xan Lopez  <xlopez@igalia.com>
+
+        Revert r48697, since it broke key handling notification to GTK+.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::imContextCommitted):
+        (WebKit::imContextPreeditChanged):
+        (WebKit::EditorClient::shouldBeginEditing):
+        (WebKit::EditorClient::shouldEndEditing):
+        (WebKit::interpretKeyEvent):
+        (WebKit::handleEditingKeyboardEvent):
+        (WebKit::EditorClient::handleKeyboardEvent):
+        (WebKit::EditorClient::handleInputMethodKeydown):
+
+2009-09-23  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] REGRESSION: BitmapImage::getGdkPixbuf fails for non-square images
+        https://bugs.webkit.org/show_bug.cgi?id=29654
+
+        Ensure that even when GTKSimpleIMContext filters non-IME keystrokes,
+        keyboard events are fired properly.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::clearPendingIMData):
+        (WebKit::imContextCommitted):
+        (WebKit::imContextPreeditChanged):
+        (WebKit::EditorClient::shouldBeginEditing):
+        (WebKit::EditorClient::shouldEndEditing):
+        (WebKit::interpretEditorCommandKeyEvent):
+        (WebKit::handleCaretBrowsingKeyboardEvent):
+        (WebKit::EditorClient::handleKeyboardEvent):
+        (WebKit::EditorClient::handleInputMethodKeydown):
+
+2009-09-23  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] need to dump number of pending unload handlers
+        https://bugs.webkit.org/show_bug.cgi?id=29685
+
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebframe.cpp:
+        (webkit_web_frame_get_pending_unload_event_count): New function to
+        satisfy DRT needs.
+
+2009-09-23  Jan Michael Alonzo  <jmalonzo@webkit.org>
+
+        Reviewed by Xan Lopez.
+
+        Minor reorganization to the patch landed in
+        http://trac.webkit.org/changeset/48670. Also move JSCore-1.0.gir
+        in the gtk directory as that's only useful to the Gtk port at the
+        moment.
+
+        * JSCore-1.0.gir: Renamed from JSCore-1.0.gir.
+
+2009-09-22  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Jan Alonzo.
+
+        Hardcode element positions at 0,0 so that we know where to
+        generate events to test WebKitHitTestResult.
+
+        * tests/testhittestresult.c:
+        (load_status_cb):
+        (test_webkit_hit_test_result):
+        (main):
+
+2009-09-22  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Jan Alonzo.
+
+        [GTK] WebKitHitTestResult is completely broken in gmail
+        https://bugs.webkit.org/show_bug.cgi?id=29527
+
+        We need to use the main or focused frame when doing the coordinate
+        transformation instead of always using the main frame.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_get_hit_test_result):
+
+2009-09-21  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Update documentation control files to 1.1.15.
+
+        * docs/webkitgtk-docs.sgml:
+        * docs/webkitgtk-sections.txt:
+
+2009-09-21  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed docs build fix. Current CFLAGS and LIBS variables no
+        longer bring gthread in.
+
+        * docs/GNUmakefile.am:
+
+2009-09-21  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Update for release.
+
+        * NEWS:
+
 2009-09-20  Xan Lopez  <xlopez@igalia.com>
 
         Reviewed by Gustavo Noronha.

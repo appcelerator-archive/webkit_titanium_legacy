@@ -180,6 +180,7 @@ fast/events/drag-to-navigate.html
 fast/events/prevent-drag-to-navigate.html
 fast/forms/get-file-upload.html
 http/tests/security/clipboard/clipboard-file-access.html
+fast/events/drag-file-crash.html
 
 # Need to add functionality to DumpRenderTree to test IDN <rdar://problem/5301954>
 fast/encoding/idn-security.html
@@ -683,3 +684,9 @@ plugins/destroy-during-npp-new.html
 
 # <https://bugs.webkit.org/show_bug.cgi?id=29353>
 http/tests/xmlhttprequest/xmlhttprequest-missing-file-exception.html
+
+# This port doesn't support detecting slow unload handlers.
+fast/dom/Window/slow_unload_handler.html
+
+# This port doesn't have a global history delegate yet
+http/tests/globalhistory

@@ -45,8 +45,6 @@ void JSMessagePort::markChildren(MarkStack& markStack)
 {
     Base::markChildren(markStack);
 
-    markIfNotNull(markStack, m_impl->onmessage());
-
     // If we have a locally entangled port, we can directly mark it as reachable. Ports that are remotely entangled are marked in-use by markActiveObjectsForContext().
     if (MessagePort* entangledPort = m_impl->locallyEntangledPort()) {
         DOMObject* wrapper = getCachedDOMObjectWrapper(*Heap::heap(this)->globalData(), entangledPort);
@@ -54,13 +52,7 @@ void JSMessagePort::markChildren(MarkStack& markStack)
             markStack.append(wrapper);
     }
 
-    typedef MessagePort::EventListenersMap EventListenersMap;
-    typedef MessagePort::ListenerVector ListenerVector;
-    EventListenersMap& eventListeners = m_impl->eventListeners();
-    for (EventListenersMap::iterator mapIter = eventListeners.begin(); mapIter != eventListeners.end(); ++mapIter) {
-        for (ListenerVector::iterator vecIter = mapIter->second.begin(); vecIter != mapIter->second.end(); ++vecIter) 
-            (*vecIter)->markJSFunction(markStack);
-    }
+    m_impl->markEventListeners(markStack);
 }
 
 JSValue JSMessagePort::addEventListener(ExecState* exec, const ArgList& args)
@@ -73,7 +65,7 @@ JSValue JSMessagePort::addEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false).get(), args.at(2).toBoolean(exec));
+    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -87,7 +79,7 @@ JSValue JSMessagePort::removeEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false).get(), args.at(2).toBoolean(exec));
+    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
