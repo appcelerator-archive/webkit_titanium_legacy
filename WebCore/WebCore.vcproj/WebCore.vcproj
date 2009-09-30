@@ -31157,6 +31157,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\storage\StorageEventDispatcher.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\storage\StorageEventDispatcher.h"
+				>
+			</File>
+			<File
 				RelativePath="..\storage\StorageMap.cpp"
 				>
 			</File>

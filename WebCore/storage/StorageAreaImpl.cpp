@@ -28,16 +28,11 @@
 
 #if ENABLE(DOM_STORAGE)
 
-#include "DOMWindow.h"
-#include "EventNames.h"
 #include "ExceptionCode.h"
 #include "Frame.h"
-#include "Page.h"
-#include "PageGroup.h"
-#include "SecurityOrigin.h"
 #include "Settings.h"
-#include "StorageEvent.h"
 #include "StorageAreaSync.h"
+#include "StorageEventDispatcher.h"
 #include "StorageMap.h"
 #include "StorageSyncManager.h"
 
@@ -45,6 +40,7 @@ namespace WebCore {
 
 StorageAreaImpl::~StorageAreaImpl()
 {
+    ASSERT(isMainThread());
 }
 
 PassRefPtr<StorageAreaImpl> StorageAreaImpl::create(StorageType storageType, PassRefPtr<SecurityOrigin> origin, PassRefPtr<StorageSyncManager> syncManager)
@@ -61,6 +57,7 @@ StorageAreaImpl::StorageAreaImpl(StorageType storageType, PassRefPtr<SecurityOri
     , m_isShutdown(false)
 #endif
 {
+    ASSERT(isMainThread());
     ASSERT(m_securityOrigin);
     ASSERT(m_storageMap);
 
@@ -87,6 +84,7 @@ StorageAreaImpl::StorageAreaImpl(StorageAreaImpl* area)
     , m_isShutdown(area->m_isShutdown)
 #endif
 {
+    ASSERT(isMainThread());
     ASSERT(m_securityOrigin);
     ASSERT(m_storageMap);
     ASSERT(!m_isShutdown);
@@ -154,7 +152,7 @@ void StorageAreaImpl::setItem(const String& key, const String& value, ExceptionC
     if (oldValue != value) {
         if (m_storageAreaSync)
             m_storageAreaSync->scheduleItemForSync(key, value);
-        dispatchStorageEvent(key, oldValue, value, frame);
+        StorageEventDispatcher::dispatch(key, oldValue, value, m_storageType, m_securityOrigin.get(), frame);
     }
 }
 
@@ -175,7 +173,7 @@ void StorageAreaImpl::removeItem(const String& key, Frame* frame)
     if (!oldValue.isNull()) {
         if (m_storageAreaSync)
             m_storageAreaSync->scheduleItemForSync(key, String());
-        dispatchStorageEvent(key, oldValue, String(), frame);
+        StorageEventDispatcher::dispatch(key, oldValue, String(), m_storageType, m_securityOrigin.get(), frame);
     }
 }
 
@@ -191,7 +189,7 @@ void StorageAreaImpl::clear(Frame* frame)
 
     if (m_storageAreaSync)
         m_storageAreaSync->scheduleClear();
-    dispatchStorageEvent(String(), String(), String(), frame);
+    StorageEventDispatcher::dispatch(String(), String(), String(), m_storageType, m_securityOrigin.get(), frame);
 }
 
 bool StorageAreaImpl::contains(const String& key) const
@@ -227,45 +225,6 @@ void StorageAreaImpl::blockUntilImportComplete() const
 {
     if (m_storageAreaSync)
         m_storageAreaSync->blockUntilImportComplete();
-}
-
-void StorageAreaImpl::dispatchStorageEvent(const String& key, const String& oldValue, const String& newValue, Frame* sourceFrame)
-{
-#if PLATFORM(CHROMIUM)
-    // FIXME: Events are currently broken in Chromium.
-    return;
-#endif
-
-    Page* page = sourceFrame->page();
-    if (!page)
-        return;
-
-    // We need to copy all relevant frames from every page to a vector since sending the event to one frame might mutate the frame tree
-    // of any given page in the group or mutate the page group itself.
-    Vector<RefPtr<Frame> > frames;
-    if (m_storageType == SessionStorage) {
-        // Send events only to our page.
-        for (Frame* frame = page->mainFrame(); frame; frame = frame->tree()->traverseNext()) {
-            if (frame->document()->securityOrigin()->equal(securityOrigin()))
-                frames.append(frame);
-        }
-
-        for (unsigned i = 0; i < frames.size(); ++i)
-            frames[i]->document()->dispatchWindowEvent(StorageEvent::create(eventNames().storageEvent, key, oldValue, newValue, sourceFrame->document()->documentURI(), sourceFrame->domWindow(), frames[i]->domWindow()->sessionStorage()));
-    } else {
-        // Send events to every page.
-        const HashSet<Page*>& pages = page->group().pages();
-        HashSet<Page*>::const_iterator end = pages.end();
-        for (HashSet<Page*>::const_iterator it = pages.begin(); it != end; ++it) {
-            for (Frame* frame = (*it)->mainFrame(); frame; frame = frame->tree()->traverseNext()) {
-                if (frame->document()->securityOrigin()->equal(securityOrigin()))
-                    frames.append(frame);
-            }
-        }
-
-        for (unsigned i = 0; i < frames.size(); ++i)
-            frames[i]->document()->dispatchWindowEvent(StorageEvent::create(eventNames().storageEvent, key, oldValue, newValue, sourceFrame->document()->documentURI(), sourceFrame->domWindow(), frames[i]->domWindow()->localStorage()));
-    }
 }
 
 }

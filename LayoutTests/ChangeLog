@@ -1,3 +1,287 @@
+2009-09-30  Jian Li  <jianli@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Need to check NULL frame in EventHandler::updateDragAndDrop.
+        https://bugs.webkit.org/show_bug.cgi?id=29929
+
+        Add a new test for the bug.
+
+        * http/tests/misc/drag-over-iframe-invalid-source-crash-expected.txt: Added.
+        * http/tests/misc/drag-over-iframe-invalid-source-crash.html: Added.
+
+2009-09-29  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        ASSERTION FAILED: !repaintContainer || repaintContainer == this
+        https://bugs.webkit.org/show_bug.cgi?id=29755
+        
+        Testcase with multiple containers between the absolutely positioned div and its positioned
+        ancestor.
+
+        * compositing/repaint/opacity-between-absolute2.html: Added.
+        * platform/mac/compositing/repaint/opacity-between-absolute2-expected.checksum: Added.
+        * platform/mac/compositing/repaint/opacity-between-absolute2-expected.png: Added.
+        * platform/mac/compositing/repaint/opacity-between-absolute2-expected.txt: Added.
+
+2009-09-30  Renata Hodovan  <hodovan.renata@stud.u-szeged.hu>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Update Skipped after #48873 and some expected files, whose
+        problems are the same (default font size reconciliation
+        16px/13px), but the previous update didn't contain them.
+
+        * platform/qt/Skipped:
+        * platform/qt/css2.1/t040103-ident-04-c-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-00-f-expected.txt:
+        * platform/qt/css2.1/t040304-c64-uri-00-a-g-expected.txt:
+        * platform/qt/css2.1/t040306-syntax-01-f-expected.txt:
+        * platform/qt/css2.1/t1202-counter-05-b-expected.txt:
+        * platform/qt/css2.1/t140201-c535-bg-fixd-00-b-g-expected.txt:
+        * platform/qt/css2.1/t1507-c526-font-sz-03-f-a-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-00-d-expected.txt:
+
+2009-09-30  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by David Levin.
+
+        Move message-port-multi.js from resources to script-tests
+        https://bugs.webkit.org/show_bug.cgi?id=29798
+
+        Revert r48823. message-port-multi.js needs custom HTML.
+
+        * fast/events/message-port-multi-expected.txt:
+        * fast/events/message-port-multi.html:
+        * fast/events/resources/message-port-multi.js: Added.
+        (channel.port2.onmessage):
+        * fast/events/script-tests/message-port-multi.js: Removed.
+
+2009-09-30  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by David Kilzer.
+
+        Change remaining references in tests from bugzilla.opendarwin.org to bugs.webkit.org
+        https://bugs.webkit.org/show_bug.cgi?id=12140
+
+        Fixes for JS files.
+
+        * fast/js/date-preserve-milliseconds-expected.txt:
+        * fast/js/script-tests/array-float-delete.js:
+        * fast/js/script-tests/array-tostring-ignore-separator.js:
+        * fast/js/script-tests/date-big-setmonth.js:
+        * fast/js/script-tests/date-negative-setmonth.js:
+        * fast/js/script-tests/date-preserve-milliseconds.js:
+        * fast/js/script-tests/number-tofixed.js:
+        * fast/js/script-tests/object-extra-comma.js:
+        * fast/js/script-tests/object-prototype-constructor.js:
+        * fast/js/script-tests/object-prototype-toLocaleString.js:
+        * fast/js/script-tests/regexp-lastindex.js:
+        * fast/js/script-tests/regexp-stack-overflow.js:
+        * fast/js/script-tests/string-split-ignore-case.js:
+        * fast/js/script-tests/toString-exception.js:
+        * fast/js/script-tests/toString-overrides.js:
+        * fast/js/script-tests/toString-stack-overflow.js:
+        * fast/js/toString-stack-overflow-expected.txt:
+
+2009-09-30  Steve Block  <steveblock@google.com>
+
+        Reviewed by Darin Adler.
+
+        Geolocation LayoutTests should use an HTML template.
+        https://bugs.webkit.org/show_bug.cgi?id=29179
+
+        Updates Geolocation LayoutTests to correctly use an HTML template so that
+        individual HTML files can be generated using make-script-test-wrappers.
+        This requires a new js-test-post.js which allows for asynchronous tests.
+
+
+        * fast/dom/Geolocation/resources/TEMPLATE.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/resources/js-test-post.js: Added. Allows for asynchronous tests.
+
+        * fast/dom/Geolocation/resources/argument-types.js: Modified. Sepcifies synchronous test.
+        * fast/dom/Geolocation/argument-types.html: Modified. Updated to use new js-test-post.js.
+
+        * fast/dom/Geolocation/resources/callback-exception.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/callback-exception.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/callback-exception-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/enabled.js: Modified. Sepcifies synchronous test.
+        * fast/dom/Geolocation/enabled.html: Modified. Updated to use new js-test-post.js.
+
+        * fast/dom/Geolocation/resources/error.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/error.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/error-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/permission-denied.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/permission-denied.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/permission-denied-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/permission-denied-stops-watches.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/permission-denied-stops-watches.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/permission-denied-stops-watches-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/position-string.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/position-string.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/position-string-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/reentrant-error.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/reentrant-error.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/reentrant-error-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/reentrant-success.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/reentrant-success.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/reentrant-success-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/success.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/success.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/success-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/timeout.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/timeout.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/timeout-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/timeout-zero.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/timeout-zero.html: Modified. Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/timeout-zero-expected.txt: Modified. Adds successfullyParsed.
+
+        * fast/dom/Geolocation/resources/watch.js: Modified. Specifies asynchronous test.
+        * fast/dom/Geolocation/watch.html: Updated to use new js-test-post.js.
+        * fast/dom/Geolocation/watch-expected.txt: Modified. Adds successfullyParsed.
+
+2009-09-29  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Change remaining references in tests from bugzilla.opendarwin.org to bugs.webkit.org
+        https://bugs.webkit.org/show_bug.cgi?id=12140
+
+        Remove opendarwin URLs from href="".
+        This change doesn't change pixel test results.
+
+        * editing/pasteboard/display-block-on-spans.html:
+        * editing/pasteboard/drop-text-without-selection.html:
+        * editing/pasteboard/paste-text-019.html:
+        * editing/selection/6476.html:
+        * editing/selection/7152-1.html:
+        * editing/selection/7152-2.html:
+        * editing/selection/after-line-wrap.html:
+        * editing/selection/click-start-of-line.html:
+        * editing/selection/leave-requested-block.html:
+        * editing/selection/select-from-textfield-outwards.html:
+        * fast/block/basic/text-indent-rtl.html:
+        * fast/block/float/nopaint-after-layer-destruction.html:
+        * fast/block/float/nopaint-after-layer-destruction2.html:
+        * fast/block/float/table-relayout.html:
+        * fast/block/float/vertical-move-relayout.html:
+        * fast/block/positioning/height-change.html:
+        * fast/block/positioning/relayout-on-position-change.html:
+        * fast/block/positioning/window-height-change.html:
+        * fast/css-generated-content/hover-style-change.html: Added property allow-tabs.
+        * fast/css/error-in-last-decl.html:
+        * fast/css/ex-after-font-variant.html:
+        * fast/css/find-next-layer.html:
+        * fast/css/first-letter-detach.html:
+        * fast/css/font-shorthand-weight-only.html:
+        * fast/css/hover-subselector.html:
+        * fast/css/invalidation-errors-2.html:
+        * fast/css/invalidation-errors-3.html:
+        * fast/css/invalidation-errors.html:
+        * fast/css/resize-corner-tracking.html:
+        * fast/css/rtl-ordering.html:
+        * fast/css/universal-hover-quirk.html:
+        * fast/dom/Element/class-attribute-whitespace.html: Added property allow-tabs.
+        * fast/dom/HTMLHeadElement/head-link-style-href-check.html:
+        * fast/dom/HTMLLinkElement/pending-stylesheet-count.html:
+        * fast/dynamic/layer-hit-test-crash.html:
+        * fast/dynamic/selection-highlight-adjust.html:
+        * fast/encoding/resources/%25%u0435 0 %xx%%%ulike.html:
+        * fast/events/event-sender-mouse-moved.html:
+        * fast/events/resources/drag-outside-window-frame.html:
+        * fast/forms/button-cannot-be-nested.html:
+        * fast/forms/button-generated-content.html:
+        * fast/forms/button-inner-block-reuse.html:
+        * fast/forms/button-white-space.html:
+        * fast/forms/floating-textfield-relayout.html:
+        * fast/forms/form-hides-table.html:
+        * fast/forms/visual-hebrew-text-field.html:
+        * fast/history/clicked-link-is-visited.html:
+        * fast/history/resources/clicked-link-is-visited-2.html:
+        * fast/inline-block/overflow-clip.html:
+        * fast/invalid/missing-address-end-tag.html:
+        * fast/invalid/missing-dl-end-tag.html:
+        * fast/invalid/missing-dt-end-tag.html:
+        * fast/invalid/missing-font-end-tag.html:
+        * fast/js/exception-linenums-in-html-3.html:
+        * fast/js/missing-style-end-tag-js.html:
+        * fast/layers/opacity-outline.html:
+        * fast/lists/list-style-none-crash.html:
+        * fast/lists/markers-in-selection.html:
+        * fast/lists/scrolled-marker-paint.html:
+        * fast/overflow/image-selection-highlight.html:
+        * fast/overflow/overflow-rtl-inline-scrollbar.html:
+        * fast/parser/broken-comments-vs-parsing-mode.html:
+        * fast/parser/nofoo-tags-inside-paragraph.html:
+        * fast/parser/remove-block-in-residual-style.html:
+        * fast/repaint/backgroundSizeRepaint.html:
+        * fast/repaint/border-repaint-glitch.html:
+        * fast/repaint/bugzilla-3509.html:
+        * fast/repaint/bugzilla-5699.html:
+        * fast/repaint/bugzilla-6278.html:
+        * fast/repaint/bugzilla-6388.html:
+        * fast/repaint/bugzilla-6473.html:
+        * fast/repaint/bugzilla-7235.html:
+        * fast/repaint/clipped-relative.html:
+        * fast/repaint/containing-block-position-change.html:
+        * fast/repaint/flexible-box-overflow-horizontal.html:
+        * fast/repaint/flexible-box-overflow.html:
+        * fast/repaint/float-move-during-layout.html:
+        * fast/repaint/inline-outline-repaint.html:
+        * fast/repaint/layer-outline-horizontal.html:
+        * fast/repaint/layer-outline.html:
+        * fast/repaint/line-overflow.html:
+        * fast/repaint/outline-repaint-glitch.html:
+        * fast/repaint/outline-shrinking.html:
+        * fast/repaint/repaint-resized-overflow.html:
+        * fast/repaint/static-to-positioned.html:
+        * fast/repaint/table-cell-move.html:
+        * fast/repaint/table-extra-bottom-grow.html:
+        * fast/repaint/text-shadow-horizontal.html:
+        * fast/repaint/text-shadow.html:
+        * fast/replaced/applet-rendering-java-disabled.html:
+        * fast/replaced/image-solid-color-with-alpha.html:
+        * fast/replaced/inline-box-wrapper-handover.html:
+        * fast/replaced/pdf-as-image.html:
+        * fast/table/absolute-table-at-bottom.html:
+        * fast/table/add-before-anonymous-child.html:
+        * fast/table/border-collapsing/003.html:
+        * fast/table/border-collapsing/border-collapsing-head-foot.html:
+        * fast/table/border-collapsing/rtl-border-collapsing.html:
+        * fast/table/cell-absolute-child.html:
+        * fast/table/click-near-anonymous-table.html:
+        * fast/table/edge-offsets.html:
+        * fast/table/empty-section-crash.html:
+        * fast/table/fixed-table-non-cell-in-row.html:
+        * fast/table/form-with-table-style.html:
+        * fast/table/row-height-recalc.html:
+        * fast/table/rtl-cell-display-none-assert.html:
+        * fast/table/text-field-baseline.html:
+        * fast/text/atsui-small-caps-punctuation-size.html:
+        * fast/text/atsui-spacing-features.html:
+        * fast/text/basic/015.html:
+        * fast/text/capitalize-empty-generated-string.html:
+        * fast/text/in-rendered-text-rtl.html:
+        * fast/text/international/rtl-caret.html:
+        * fast/text/midword-break-hang.html:
+        * fast/text/whitespace/pre-wrap-overflow-selection.html:
+        * fast/text/whitespace/pre-wrap-spaces-after-newline.html:
+        * fast/tokenizer/missing-style-end-tag-1.html:
+        * fast/tokenizer/missing-style-end-tag-2.html:
+        * fast/tokenizer/missing-title-end-tag-1.html:
+        * fast/tokenizer/missing-title-end-tag-2.html:
+        * http/tests/misc/iframe404.html:
+
 2009-09-29  Brady Eidson  <beidson@apple.com>
 
         Reviewed by John Sullivan.
