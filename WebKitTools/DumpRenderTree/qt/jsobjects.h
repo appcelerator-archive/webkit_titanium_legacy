@@ -94,6 +94,7 @@ public slots:
     void setJavaScriptProfilingEnabled(bool enable);
     void setFixedContentsSize(int width, int height);
     void setPrivateBrowsingEnabled(bool enable);
+    void setPopupBlockingEnabled(bool enable);
 
     bool pauseAnimationAtTimeOnElementWithId(const QString &animationName, double time, const QString &elementId);
     bool pauseTransitionAtTimeOnElementWithId(const QString &propertyName, double time, const QString &elementId);
@@ -144,6 +145,7 @@ public slots:
     void keyDown(const QString &string, const QStringList &modifiers=QStringList());
     void clearKillRing() {}
     void contextClick();
+    void scheduleAsynchronousClick();
 
 private:
     QPoint m_mousePos;

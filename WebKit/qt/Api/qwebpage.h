@@ -288,6 +288,7 @@ public:
     enum ErrorDomain { QtNetwork, Http, WebKit };
     class ErrorPageExtensionOption : public ExtensionOption {
     public:
+        QUrl url;
         ErrorDomain domain;
         int error;
         QString errorString;
@@ -371,7 +372,7 @@ private:
     friend class QWebFrame;
     friend class QWebPagePrivate;
     friend class QWebView;
-    friend class QWebGraphicsItem;
+    friend class QGraphicsWebView;
     friend class QWebInspector;
     friend class WebCore::ChromeClientQt;
     friend class WebCore::EditorClientQt;

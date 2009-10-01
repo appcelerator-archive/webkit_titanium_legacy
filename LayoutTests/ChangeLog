@@ -1,3 +1,149 @@
+2009-10-01  Adam Roben  <aroben@apple.com>
+
+        Land expected failure results for two tests on Windows
+
+        These failures are covered by <http://webkit.org/b/29963> and
+        <http://webkit.org/b/29964>.
+
+        Rubber-stamped in advance by Eric Carlson.
+
+        * platform/win/fast/events/mouse-drag-from-frame-to-other-frame-expected.txt:
+        Added.
+        * platform/win/fast/forms/basic-inputs-expected.txt: Added.
+
+2009-10-01  Andras Becsi  <becsi.andras@stud.u-szeged.hu>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Skip fast/table/008.html until a solution for the crash on the buildbot is found.
+
+        * platform/qt/Skipped:
+
+2009-10-01  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Implement eventSender.scheduleAsynchronousClick().
+
+        https://bugs.webkit.org/show_bug.cgi?id=29931
+
+        * platform/qt/Skipped:
+
+2009-10-01  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Implement setPopupBlockingEnabled() in the LayoutTestController and remove
+        fast/events/open-window-from-another-frame.html from the Skipped list.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29930
+
+        * platform/qt/Skipped:
+
+2009-10-01  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] GtkIMContext filtering interferes with DOM key events
+        https://bugs.webkit.org/show_bug.cgi?id=28733
+
+        Re-enable skipped tests which were previously failing.
+
+        * platform/gtk/Skipped:
+
+2009-10-01  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] data: uri support in media player
+        https://bugs.webkit.org/show_bug.cgi?id=29842
+
+        Re-enable media/audio-data-url.html.
+
+        * platform/gtk/Skipped:
+
+2009-09-30  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29944
+        
+        Tests that the XSSAuditor allows requests that do not contain illegal URI 
+        characters.
+        
+        Added a notice regarding the failure of tests property-inject.html, 
+        property-escape-noquotes.html and property-escape-noquotes-tab-slash-chars.html, 
+        and rebased the expected results of these tests.
+
+        * http/tests/security/xssAuditor/property-escape-noquotes-expected.txt:
+        * http/tests/security/xssAuditor/property-escape-noquotes-tab-slash-chars-expected.txt:
+        * http/tests/security/xssAuditor/property-escape-noquotes-tab-slash-chars.html:
+        * http/tests/security/xssAuditor/property-escape-noquotes.html:
+        * http/tests/security/xssAuditor/property-inject-expected.txt:
+        * http/tests/security/xssAuditor/property-inject.html:
+        * http/tests/security/xssAuditor/resources/safe-script-noquotes.js: Added.
+        * http/tests/security/xssAuditor/resources/script-tag-safe2.html: Added.
+        * http/tests/security/xssAuditor/resources/script-tag-safe3.html: Added.
+        * http/tests/security/xssAuditor/script-tag-safe2-expected.txt: Added.
+        * http/tests/security/xssAuditor/script-tag-safe2.html: Added.
+        * http/tests/security/xssAuditor/script-tag-safe3-expected.txt: Added.
+        * http/tests/security/xssAuditor/script-tag-safe3.html: Added.
+
+2009-09-30  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Add ValidityState.tooLong support for <input> and <textarea>.
+        https://bugs.webkit.org/show_bug.cgi?id=27454
+
+        * fast/forms/ValidityState-tooLong-input-expected.txt: Added.
+        * fast/forms/ValidityState-tooLong-input.html: Added.
+        * fast/forms/ValidityState-tooLong-textarea-expected.txt: Added.
+        * fast/forms/ValidityState-tooLong-textarea.html: Added.
+        * fast/forms/script-tests/ValidityState-tooLong-input.js: Added.
+        * fast/forms/script-tests/ValidityState-tooLong-textarea.js: Added.
+
+2009-09-30  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Brady Eidson.
+
+        307 redirects should pass along http body and Content-Type header
+        https://bugs.webkit.org/show_bug.cgi?id=29943
+
+        Follow-up fix for:
+        <rdar://problem/3802660> SAP: 307 (Temporary Redirect) responses should use POST, not GET
+
+        * http/tests/loading/redirect-methods.html: Updated test to show the http body and content-type header.
+        * http/tests/loading/redirect-methods-expected.txt:
+        * http/tests/loading/resources/redirect-methods-result.php: 
+
+2009-09-30  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Use a script-tests directory rather than a resources directory for DOM Storage
+        https://bugs.webkit.org/show_bug.cgi?id=29938
+
+        Use a script-tests directory rather than a resources directory for DOM Storage.
+        This matches up with what's been done elsewhere in the tree.
+
+        * storage/domstorage/localstorage/clear.html:
+        * storage/domstorage/resources: Removed.
+        * storage/domstorage/resources/clear.js: Removed.
+        * storage/domstorage/script-tests: Copied from LayoutTests/storage/domstorage/resources.
+        * storage/domstorage/sessionstorage/clear.html:
+
+2009-09-30  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        REGRESSION(r47440): drop down menus at americanexpress.com disappear on mouse out
+        https://bugs.webkit.org/show_bug.cgi?id=29209
+
+        * fast/inline/relative-positioned-overflow-expected.txt: Added.
+        * fast/inline/relative-positioned-overflow.html: Added.
+        * platform/mac/fast/repaint/transform-absolute-in-positioned-container-expected.txt:
+
 2009-09-30  Jian Li  <jianli@chromium.org>
 
         Reviewed by Darin Adler.

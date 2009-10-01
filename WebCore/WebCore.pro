@@ -2391,7 +2391,7 @@ SOURCES += \
     ../WebKit/qt/WebCoreSupport/FrameLoaderClientQt.cpp \
     ../WebKit/qt/WebCoreSupport/InspectorClientQt.cpp \
     ../WebKit/qt/Api/qwebframe.cpp \
-    ../WebKit/qt/Api/qwebgraphicsitem.cpp \
+    ../WebKit/qt/Api/qgraphicswebview.cpp \
     ../WebKit/qt/Api/qwebpage.cpp \
     ../WebKit/qt/Api/qwebview.cpp \
     ../WebKit/qt/Api/qwebelement.cpp \
@@ -2590,6 +2590,7 @@ contains(DEFINES, ENABLE_DOM_STORAGE=1) {
         storage/StorageAreaImpl.h \
         storage/StorageAreaSync.h \
         storage/StorageEvent.h \
+        storage/StorageEventDispatcher.h \
         storage/Storage.h \
         storage/StorageMap.h \
         storage/StorageNamespace.h \
@@ -2604,6 +2605,7 @@ contains(DEFINES, ENABLE_DOM_STORAGE=1) {
         storage/StorageAreaImpl.cpp \
         storage/StorageAreaSync.cpp \
         storage/StorageEvent.cpp \
+        storage/StorageEventDispatcher.cpp \
         storage/StorageMap.cpp \
         storage/StorageNamespace.cpp \
         storage/StorageNamespaceImpl.cpp \

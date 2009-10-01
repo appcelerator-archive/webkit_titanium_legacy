@@ -1,3 +1,55 @@
+2009-10-01  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Allow custom memory allocation control for the whole JavaScriptCore
+        https://bugs.webkit.org/show_bug.cgi?id=27029
+
+        Since in JavaScriptCore almost every class which has been instantiated by operator new is
+        inherited from FastAllocBase (bug #20422), we disable customizing global operator new for the Qt-port
+        when USE_SYSTEM_MALLOC=0.
+
+        Add #include <unistd.h> to FastMalloc.cpp because it's used by TCMalloc_PageHeap::scavengerThread().
+        (It's needed for the functionality of TCmalloc.)
+
+        Add TCSystemAlloc.cpp to JavaScriptCore.pri if USE_SYSTEM_MALLOC is disabled.
+
+        * JavaScriptCore.pri:
+        * wtf/FastMalloc.cpp:
+        (WTF::sleep):
+        * wtf/FastMalloc.h:
+
+2009-09-30  Gabor Loki  <loki@inf.u-szeged.hu>
+
+        Reviewed by George Staikos.
+
+        Defines two pseudo-platforms for ARM and Thumb-2 instruction set.
+        https://bugs.webkit.org/show_bug.cgi?id=29122
+
+        Introduces WTF_PLATFORM_ARM_TRADITIONAL and WTF_PLATFORM_ARM_THUMB2
+        macros on ARM platforms. The PLATFORM(ARM_THUMB2) should be used
+        when Thumb-2 instruction set is the required target. The
+        PLATFORM(ARM_TRADITIONAL) is for generic ARM instruction set. In
+        case where the code is common the PLATFORM(ARM) have to be used.
+
+        Modified by George Wright  <gwright@rim.com> to correctly work
+        with the RVCT-defined __TARGET_ARCH_ARM and __TARGET_ARCH_THUMB
+        compiler macros, as well as adding readability changes.
+
+        * wtf/Platform.h:
+
+2009-09-30  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Geoff Garen.
+
+        Devirtualise array toString conversion
+
+        Tweak the implementation of Array.prototype.toString to have a fast path
+        when acting on a true JSArray.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncToString):
+
 2009-09-30  Csaba Osztrogonac  <oszi@inf.u-szeged.hu>
 
         Reviewed by Geoffrey Garen.

@@ -36,6 +36,7 @@
 #include "CookieStorageWin.h"
 #include "CredentialStorage.h"
 #include "DocLoader.h"
+#include "FormDataStreamCFNet.h"
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "Logging.h"
@@ -139,6 +140,16 @@ CFURLRequestRef willSendRequest(CFURLConnectionRef conn, CFURLRequestRef cfReque
             if (CFStringCompareWithOptions(originalMethod.get(), newMethod.get(), CFRangeMake(0, CFStringGetLength(originalMethod.get())), kCFCompareCaseInsensitive)) {
                 RetainPtr<CFMutableURLRequestRef> mutableRequest(AdoptCF, CFURLRequestCreateMutableCopy(0, cfRequest));
                 CFURLRequestSetHTTPRequestMethod(mutableRequest.get(), originalMethod.get());
+
+                FormData* body = handle->request().httpBody();
+                if (!equalIgnoringCase(handle->request().httpMethod(), "GET") && body && !body->isEmpty())
+                    WebCore::setHTTPBody(mutableRequest.get(), body);
+
+                String originalContentType = handle->request().httpContentType();
+                RetainPtr<CFStringRef> originalContentTypeCF(AdoptCF, originalContentType.createCFString());
+                if (!originalContentType.isEmpty())
+                    CFURLRequestSetHTTPHeaderFieldValue(mutableRequest.get(), CFSTR("Content-Type"), originalContentTypeCF.get());
+
                 request = mutableRequest.get();
             }
         }

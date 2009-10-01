@@ -1,3 +1,370 @@
+2009-10-01  Alexis Menard  <alexis.menard@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        Rename QWebGraphicsItem to QGraphicsWebView
+
+        * WebCore.pro:
+
+2009-10-01  Dumitru Daniliuc  <dumi@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Read-only transactions do not change file sizes and therefore
+        should not trigger quota updates.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29945
+
+        * storage/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::openTransactionAndPreflight):
+        (WebCore::SQLTransaction::runStatements):
+
+2009-09-30  Timothy Hatcher  <timothy@apple.com>
+
+        Fix list box scrolling by correctly overriding the scroll()
+        function on RenderBox.
+
+        <rdar://problem/7255440> REGRESSION (r48683): Mousewheel scrolling
+        of listboxes is broken (29756)
+
+        Reviewed by Dan Bernstein.
+
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::scroll):
+        * rendering/RenderListBox.h:
+        * rendering/RenderTextControlSingleLine.cpp:
+        (WebCore::RenderTextControlSingleLine::scroll):
+        * rendering/RenderTextControlSingleLine.h:
+
+2009-10-01  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Make a copy of listeners array before dispatching an event in
+        WebInspector.Object.prototype.dispatchEventToListeners. Otherwise if current
+        listener removes itself from the array next listener will be skipped.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29920
+
+        * inspector/front-end/Object.js:
+        (WebInspector.Object.prototype.dispatchEventToListeners): make a copy of listeners array before dispatching an event
+
+2009-10-01  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] GtkIMContext filtering interferes with DOM key events
+        https://bugs.webkit.org/show_bug.cgi?id=28733
+
+        Ensure that keyboard events filtered by the GtkIMContext still create
+        the proper DOM events.
+
+        No tests added. Instead previously skipped tests have been enabled.
+
+        * platform/gtk/KeyEventGtk.cpp:
+        (WebCore::keyIdentifierForGdkKeyCode):
+        (WebCore::singleCharacterString):
+
+2009-10-01  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] data: uri support in media player
+        https://bugs.webkit.org/show_bug.cgi?id=29842
+
+        New GStreamer element to handle data: uris. For now only base64
+        encoded data is supported. Decoded data is handed over to
+        giostreamsrc.
+
+        * GNUmakefile.am:
+        * platform/graphics/gtk/DataSourceGStreamer.cpp: Added.
+        (_do_init):
+        (webkit_data_src_base_init):
+        (webkit_data_src_class_init):
+        (webkit_data_src_reset):
+        (webkit_data_src_init):
+        (webkit_data_src_finalize):
+        (webkit_data_src_uri_get_type):
+        (webkit_data_src_uri_get_protocols):
+        (webkit_data_src_uri_get_uri):
+        (webkit_data_src_uri_set_uri):
+        (webkit_data_src_uri_handler_init):
+        * platform/graphics/gtk/DataSourceGStreamer.h: Added.
+        * platform/graphics/gtk/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::do_gst_init):
+        (WebCore::MediaPlayerPrivate::MediaPlayerPrivate):
+        (WebCore::MediaPlayerPrivate::mimeTypeCache):
+
+2009-09-30  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29944
+        
+        Reduces false positives in the XSSAuditor by explicitly allowing requests
+        that do not contain illegal URI characters.
+        
+        As a side effect of this change, the tests property-inject.html, 
+        property-escape-noquotes.html, and property-escape-noquotes-tab-slash-chars.html 
+        fail because these attacks do not contain any illegal URI characters and 
+        thus are now allowed by the XSSAuditor, where previously they weren't. A future
+        change may reinstate this functionality.
+
+        Tests: http/tests/security/xssAuditor/script-tag-safe2.html
+               http/tests/security/xssAuditor/script-tag-safe3.html
+
+        * page/XSSAuditor.cpp:
+        (WebCore::isIllegalURICharacter): Added method.
+        (WebCore::XSSAuditor::canEvaluate):
+        (WebCore::XSSAuditor::canCreateInlineEventListener):
+        (WebCore::XSSAuditor::findInRequest): Added parameter 
+        allowRequestIfNoIllegalURICharacters.
+        * page/XSSAuditor.h:
+
+2009-09-30  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        reproducible freeze and crash on closing form popup at bosch-home.nl
+        https://bugs.webkit.org/show_bug.cgi?id=28948
+
+        showModalDialog calls getDirect on what is actually a window shell,
+        so ends up not getting a value (since no value can ever be placed
+        directly on the shell), which leads to incorrect behaviour.
+
+        We use a manual test rather than automatic as it was not
+        possible to get a modal run loop to work inside DRT.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::showModalDialog):
+        * manual-tests/showModalDialog-returnValue.html: manual testcase.
+
+2009-09-30  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Adds ValidityState.tooLong support for <input> and <textarea>.
+
+        Introduces tooLong() in HTMLFormControlElement and it always returns false.
+        HTMLInputElement and HTMLTextAreaElement overrides it and checks the text
+        length and maxLength.  tooLong() should work only for `dirty' values.
+        So, introduces m_isDirty flag for HTMLTextAreaElement, and
+        !m_data.value().isNull() works as a dirty flag for HTMLInputElement.
+
+        Renames parameter names of setMaxLength().
+
+        https://bugs.webkit.org/show_bug.cgi?id=27454
+
+        Tests: fast/forms/ValidityState-tooLong-input.html
+               fast/forms/ValidityState-tooLong-textarea.html
+
+        * html/HTMLFormControlElement.h:
+        (WebCore::HTMLFormControlElement::tooLong):
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::tooLong):
+        (WebCore::HTMLInputElement::setMaxLength):
+        * html/HTMLInputElement.h:
+        * html/HTMLTextAreaElement.cpp:
+        (WebCore::HTMLTextAreaElement::HTMLTextAreaElement):
+        (WebCore::HTMLTextAreaElement::reset):
+        (WebCore::HTMLTextAreaElement::updateValue):
+        (WebCore::HTMLTextAreaElement::setMaxLength):
+        (WebCore::HTMLTextAreaElement::tooLong):
+        * html/HTMLTextAreaElement.h:
+        * html/ValidityState.h:
+        (WebCore::ValidityState::tooLong):
+
+2009-09-30  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Factor RedirectScheduler out of FrameLoader
+        https://bugs.webkit.org/show_bug.cgi?id=29948
+
+        This change introduces a new sub-object of Frame, redirectScheduler.
+        The redirectScheduler is responsible for scheduling redirects.
+
+        This change leaves the code for the redirectScheduler in
+        FrameLoader.cpp.  A future change will move the class into its own
+        file.
+
+        No behavior change (hopefully!).
+
+        * loader/FrameLoader.cpp:
+        (WebCore::RedirectScheduler::RedirectScheduler):
+        (WebCore::RedirectScheduler::~RedirectScheduler):
+        (WebCore::RedirectScheduler::redirectScheduledDuringLoad):
+        (WebCore::RedirectScheduler::clear):
+        (WebCore::FrameLoader::FrameLoader):
+        (WebCore::FrameLoader::setDefersLoading):
+        (WebCore::FrameLoader::stopLoading):
+        (WebCore::FrameLoader::didOpenURL):
+        (WebCore::FrameLoader::didExplicitOpen):
+        (WebCore::FrameLoader::cancelAndClear):
+        (WebCore::FrameLoader::clear):
+        (WebCore::FrameLoader::checkCompleted):
+        (WebCore::FrameLoader::isScheduledLocationChangePending):
+        (WebCore::FrameLoader::scheduleHTTPRedirection):
+        (WebCore::RedirectScheduler::scheduleRedirect):
+        (WebCore::RedirectScheduler::mustLockBackForwardList):
+        (WebCore::FrameLoader::scheduleLocationChange):
+        (WebCore::RedirectScheduler::scheduleLocationChange):
+        (WebCore::FrameLoader::scheduleFormSubmission):
+        (WebCore::RedirectScheduler::scheduleFormSubmission):
+        (WebCore::FrameLoader::scheduleRefresh):
+        (WebCore::RedirectScheduler::scheduleRefresh):
+        (WebCore::RedirectScheduler::locationChangePending):
+        (WebCore::FrameLoader::scheduleHistoryNavigation):
+        (WebCore::RedirectScheduler::scheduleHistoryNavigation):
+        (WebCore::RedirectScheduler::timerFired):
+        (WebCore::FrameLoader::provisionalLoadStarted):
+        (WebCore::RedirectScheduler::schedule):
+        (WebCore::RedirectScheduler::startTimer):
+        (WebCore::RedirectScheduler::cancel):
+        (WebCore::FrameLoader::completed):
+        (WebCore::FrameLoader::open):
+        * loader/FrameLoader.h:
+        (WebCore::FrameLoader::committedFirstRealDocumentLoad):
+        * page/Frame.cpp:
+        (WebCore::Frame::Frame):
+        (WebCore::Frame::redirectScheduler):
+        * page/Frame.h:
+
+2009-09-30  Maciej Stachowiak  <mjs@apple.com>
+
+        Build fix, not reviewed.
+
+        More Windows build fixes for https://bugs.webkit.org/show_bug.cgi?id=29943
+
+        * platform/network/cf/ResourceHandleCFNet.cpp:
+        (WebCore::willSendRequest):
+
+2009-09-30  Maciej Stachowiak  <mjs@apple.com>
+
+        Build fix, not reviewed.
+
+        Fix windows build for fix for https://bugs.webkit.org/show_bug.cgi?id=29943
+
+        * platform/network/cf/ResourceHandleCFNet.cpp:
+        (WebCore::willSendRequest):
+
+2009-09-30  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        [V8] HTMLAudioElement, HTMLImageElement, and HTMLOptionElement are constructable, but they shouldn't be.
+        Only Audio, Image, and Option should be constructable.
+        https://bugs.webkit.org/show_bug.cgi?id=29940
+
+        Test: fast/dom/dom-constructor.html
+
+        * WebCore.gypi: Added new files to project.
+        * bindings/scripts/CodeGeneratorV8.pm: Modified to generate custom constructors.
+        * bindings/v8/V8DOMWrapper.cpp:
+        (WebCore::V8DOMWrapper::getTemplate): Removed handling of HTMLImageElement, HTMLOptionElement
+          and HTMLAudioElement construction.
+        * bindings/v8/V8HTMLAudioElementConstructor.h: Added.
+        * bindings/v8/V8HTMLImageElementConstructor.h: Added.
+        * bindings/v8/V8HTMLOptionElementConstructor.h: Added.
+        * bindings/v8/V8Index.cpp: Added new headers.
+        * bindings/v8/V8Index.h: Added Audio, Image and Option decls.
+        * bindings/v8/custom/V8CustomBinding.h: Ditto.
+        * bindings/v8/custom/V8DOMWindowCustom.cpp:
+        (WebCore::ACCESSOR_GETTER): Added custom constructors.
+        * bindings/v8/custom/V8HTMLAudioElementConstructor.cpp:
+        (WebCore::V8HTMLImageElementConstructor::GetTemplate): Added custom template creator.
+        * bindings/v8/custom/V8HTMLOptionElementConstructor.cpp:
+        (WebCore::V8HTMLOptionElementConstructor::GetTemplate): Ditto.
+        * bindings/v8/custom/V8HTMLImageElementConstructor.cpp:
+        (WebCore::V8HTMLImageElementConstructor::GetTemplate): Ditto.
+
+2009-09-30  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Brady Eidson.
+
+        307 redirects should pass along http body and Content-Type header
+        https://bugs.webkit.org/show_bug.cgi?id=29943
+
+        Follow-up fix for:
+        <rdar://problem/3802660> SAP: 307 (Temporary Redirect) responses should use POST, not GET
+        
+        Test: http/tests/loading/resources/redirect-methods-result.php
+
+        * platform/network/cf/ResourceHandleCFNet.cpp:
+        (WebCore::willSendRequest): Pass along http body and Content-Type header.
+        * platform/network/mac/ResourceHandleMac.mm:
+        (-[WebCoreResourceHandleAsDelegate connection:willSendRequest:redirectResponse:]): ditto
+
+2009-09-30  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        Fixed https://bugs.webkit.org/show_bug.cgi?id=29941
+        REGRESSION (r48882-r48888): Many memory leaks on SnowLeopard leaks bot
+
+        Forgot to implement a destructor for JSDOMWindowBaseData, so it was
+        leaking its RefPtr data member.
+
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::destroyJSDOMWindowBaseData):
+        * bindings/js/JSDOMWindowBase.h:
+        (WebCore::JSDOMWindowBase::JSDOMWindowBaseData::JSDOMWindowBaseData::JSDOMWindowBaseData):
+
+2009-09-30  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Tim Hatcher.
+
+        Make sure the removal of user stylesheets results in all of the WebViews being updated to
+        reflect the changes.
+
+        * page/PageGroup.cpp:
+        (WebCore::PageGroup::removeUserContentWithURLForWorld):
+        (WebCore::PageGroup::removeUserContentForWorld):
+
+2009-09-30  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        REGRESSION(r47440): drop down menus at americanexpress.com disappear on mouse out
+        https://bugs.webkit.org/show_bug.cgi?id=29209
+
+        Test: fast/inline/relative-positioned-overflow.html
+
+        * rendering/InlineFlowBox.cpp:
+        (WebCore::InlineFlowBox::computeVerticalOverflow): Add self-painting
+        inlines to overflow to ensure that they are included in hit-testing.
+
+2009-09-30  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        transforms/3d tests are not run in Release builds
+        https://bugs.webkit.org/show_bug.cgi?id=29827
+
+        Make sure we export the WebCoreHas3DRendering symbol in Release builds,
+        because this symbols is used by run-webkit-tests (via 'nm') to detect whether
+        WebCore was built with ENABLE_3D_RENDERING turned on.
+
+        * DerivedSources.make:
+        * WebCore.3DRendering.exp: Added.
+        * WebCore.xcodeproj/project.pbxproj:
+
+2009-09-30  Jeremy Orlow  <jorlow@chromium.org>
+
+        Build fix for QT.  Didn't know WebCore.pro existed.
+
+        * WebCore.pro:
+
+2009-09-30  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Add a method for removal of user scripts and stylesheets by URL from a specific world.
+
+        * page/PageGroup.cpp:
+        (WebCore::PageGroup::removeUserContentURLForWorld):
+        * page/PageGroup.h:
+
 2009-09-30  Chris Hawk  <hawk@chromium.org>
 
         Reviewed by Dimitri Glazkov.

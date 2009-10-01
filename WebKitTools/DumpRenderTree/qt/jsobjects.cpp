@@ -291,6 +291,11 @@ void LayoutTestController::setPrivateBrowsingEnabled(bool enable)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::PrivateBrowsingEnabled, enable);
 }
 
+void LayoutTestController::setPopupBlockingEnabled(bool enable)
+{
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, !enable);
+}
+
 bool LayoutTestController::pauseAnimationAtTimeOnElementWithId(const QString &animationName,
                                                                double time,
                                                                const QString &elementId)
@@ -504,6 +509,14 @@ void EventSender::contextClick()
     QApplication::sendEvent(m_page, &event);
     QMouseEvent event2(QEvent::MouseButtonRelease, m_mousePos, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
     QApplication::sendEvent(m_page, &event2);
+}
+
+void EventSender::scheduleAsynchronousClick()
+{
+    QMouseEvent* event = new QMouseEvent(QEvent::MouseButtonPress, m_mousePos, Qt::LeftButton, Qt::RightButton, Qt::NoModifier);
+    QApplication::postEvent(m_page, event);
+    QMouseEvent* event2 = new QMouseEvent(QEvent::MouseButtonRelease, m_mousePos, Qt::LeftButton, Qt::RightButton, Qt::NoModifier);
+    QApplication::postEvent(m_page, event2);
 }
 
 QWebFrame* EventSender::frameUnderMouse() const

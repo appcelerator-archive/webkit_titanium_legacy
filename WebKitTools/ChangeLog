@@ -1,3 +1,63 @@
+2009-10-01  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Don't use TCmalloc in DumpRenderTree
+        https://bugs.webkit.org/show_bug.cgi?id=27029
+
+        Add USE_SYSTEM_MALLOC macro to the DRT's profile to avoid using TCmalloc in Qt's DRT.
+
+        * DumpRenderTree/qt/DumpRenderTree.pro:
+
+2009-10-01  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Implement eventSender.scheduleAsynchronousClick().
+
+        https://bugs.webkit.org/show_bug.cgi?id=29931
+
+        * DumpRenderTree/qt/jsobjects.cpp:
+        (EventSender::scheduleAsynchronousClick):
+        * DumpRenderTree/qt/jsobjects.h:
+
+2009-10-01  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Implement setPopupBlockingEnabled() in the LayoutTestController and remove
+        fast/events/open-window-from-another-frame.html from the Skipped list.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29930
+
+        * DumpRenderTree/qt/jsobjects.cpp:
+        (LayoutTestController::setPopupBlockingEnabled):
+        * DumpRenderTree/qt/jsobjects.h:
+
+2009-09-30  Cameron McCormack  <cam@mcc.id.au>
+
+        Unreviewed.
+
+        Added myself to the list of committers.
+
+        * Scripts/modules/committers.py:
+
+2009-09-30  Eric Seidel  <eric@webkit.org>
+
+        No review, just adding Geoff to the list of reviewers.
+
+        * Scripts/modules/committers.py:
+
+2009-09-30  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Added the WebKit Layout Tests fonts that are referenced in
+        LayoutTests/platform/win/css2.1/resources/Mac-compatible-font-fallback.css
+
+        * DumpRenderTree/fonts/WebKit Layout Tests 2.ttf: Added.
+        * DumpRenderTree/fonts/WebKit Layout Tests.ttf: Added.
+
 2009-09-30  Csaba Osztrogonac  <oszi@inf.u-szeged.hu>
 
         Reviewed by David Kilzer.
