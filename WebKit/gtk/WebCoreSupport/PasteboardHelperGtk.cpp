@@ -34,6 +34,7 @@ namespace WebKit {
 
 static GdkAtom gdkMarkupAtom = gdk_atom_intern("text/html", FALSE);
 static GdkAtom netscapeURLAtom = gdk_atom_intern("_NETSCAPE_URL", FALSE);
+static GdkAtom uriListAtom = gdk_atom_intern("text/uri-list", FALSE);
 
 GtkClipboard* PasteboardHelperGtk::defaultClipboard()
 {
@@ -103,20 +104,28 @@ void PasteboardHelperGtk::getClipboardContents(GtkClipboard* clipboard)
                 g_free(list[i]);
             g_free(list);
        }
+
+       if (data)
+           gtk_selection_data_free(data);
     }
     dataObject->setMarkup(markup);
 
-    Vector<KURL> uris;
-    if (gtk_clipboard_wait_is_uris_available(clipboard)) {
-        gchar** urisData = gtk_clipboard_wait_for_uris(clipboard);
-        if (urisData)
-            uris = urisToKURLVector(urisData);
-        g_strfreev(urisData);
+    Vector<KURL> uriList;
+    if (gtk_clipboard_wait_is_target_available(clipboard, uriListAtom)) {
+        GtkSelectionData* data = gtk_clipboard_wait_for_contents(clipboard, uriListAtom);
+        if (data) {
+            gchar** uris = gtk_selection_data_get_uris(data);
+            if (uris) {
+                uriList = urisToKURLVector(uris);
+                g_strfreev(uris);
+            }
+            gtk_selection_data_free(data);
+        }
     }
-    dataObject->setURIList(uris);
+    dataObject->setURIList(uriList);
 
-    // TODO: Eventually WebKit may have support for reading image data directly
-    // from the clipboard, but for now, don't read image data.
+    // TODO: Eventually WebKit may need to support for reading image
+    // data directly from the clipboard, but for now, don't read image data.
 }
 
 static bool settingClipboard = false;
@@ -215,11 +224,11 @@ void PasteboardHelperGtk::fillDataObject(GtkSelectionData* selectionData, guint 
         g_free(text);
 
     } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_HTML) {
-        const gchar* data = reinterpret_cast<const gchar*>(gtk_selection_data_get_data(selectionData));
+        const gchar* data = reinterpret_cast<const gchar*>(selectionData->data);
         if (!data)
             return;
 
-        gchar* markup = g_strndup(data, gtk_selection_data_get_length(selectionData));
+        gchar* markup = g_strndup(data, selectionData->length);
         dataObject->setMarkup(markup);
         g_free(markup);
 
@@ -233,11 +242,11 @@ void PasteboardHelperGtk::fillDataObject(GtkSelectionData* selectionData, guint 
         g_strfreev(uris);
 
     } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL) {
-        const gchar* data = reinterpret_cast<const gchar*>(gtk_selection_data_get_data(selectionData));
+        const gchar* data = reinterpret_cast<const gchar*>(selectionData->data);
         if (!data)
             return;
 
-        gchar* urlWithLabelChars = g_strndup(data, gtk_selection_data_get_length(selectionData));
+        gchar* urlWithLabelChars = g_strndup(data, selectionData->length);
         String urlWithLabel(urlWithLabelChars);
 
         Vector<String> pieces;
