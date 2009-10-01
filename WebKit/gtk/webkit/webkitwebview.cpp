@@ -1145,7 +1145,7 @@ static GdkDragAction toGdkAction(DragOperation coreAction)
     else if (coreAction & DragOperationLink)
         return GDK_ACTION_LINK;
     else
-        return (GdkDragAction) 0;
+        return static_cast<GdkDragAction>(0);
 }
 
 static WebCore::DragOperation toDragOperation(GdkDragAction gdkAction)
@@ -1159,7 +1159,7 @@ static WebCore::DragOperation toDragOperation(GdkDragAction gdkAction)
         action |= DragOperationLink;
     if (gdkAction & GDK_ACTION_PRIVATE)
         action |= DragOperationPrivate;
-    return (WebCore::DragOperation) action;
+    return static_cast<WebCore::DragOperation>(action);
 }
 
 static void webkit_web_view_drag_end(GtkWidget* widget, GdkDragContext* context)
@@ -1186,22 +1186,21 @@ static bool dragDropHappened = false;
 
 static gboolean do_drag_leave(gpointer data)
 {
+   WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
+   WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+   ASSERT(priv->droppingDataObject);
+
     // Don't call dragExited if this was the result of a drop action.
-    if (dragDropHappened) {
-        dragDropHappened = false;
-        return FALSE;
+    if (!dragDropHappened) {
+        Page* page = core(webView);
+        DragData dragData(priv->droppingDataObject,
+                          lastDragWidgetPoint, lastDragGlobalPoint,
+                          DragOperationNone);
+        page->dragController()->dragExited(&dragData);
     }
 
-    WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
-    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
-    ASSERT(priv->droppingDataObject);
-
-    Page* page = core(webView);
-    DragData dragData(priv->droppingDataObject,
-                      lastDragWidgetPoint, lastDragGlobalPoint,
-                      DragOperationNone);
-    page->dragController()->dragExited(&dragData);
-
+    dragDropHappened = false;
+    priv->droppingDataObject.clear();
     return FALSE;
 }
 
@@ -1313,7 +1312,6 @@ static gboolean webkit_web_view_drag_drop(GtkWidget* widget, GdkDragContext* con
 
     // TODO: Is there any way to detect if the DragController actually performed a delete?
     gtk_drag_finish(context, TRUE, FALSE, time);
-    priv->droppingDataObject.clear();
     return TRUE;
 }
 
@@ -1468,13 +1466,12 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
             0,
             g_signal_accumulator_true_handled,
             NULL,
-            webkit_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT_OBJECT_STRING,
-            G_TYPE_BOOLEAN, 5,
+            webkit_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT_OBJECT,
+            G_TYPE_BOOLEAN, 4,
             WEBKIT_TYPE_WEB_FRAME,
             WEBKIT_TYPE_NETWORK_REQUEST,
             WEBKIT_TYPE_WEB_NAVIGATION_ACTION,
-            WEBKIT_TYPE_WEB_POLICY_DECISION,
-            G_TYPE_STRING);
+            WEBKIT_TYPE_WEB_POLICY_DECISION);
 
     /**
      * WebKitWebView::navigation-policy-decision-requested:
@@ -2520,8 +2517,6 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     settings->setOfflineWebApplicationCacheEnabled(enableOfflineWebAppCache);
     settings->setEditingBehavior(core(editingBehavior));
     settings->setAllowUniversalAccessFromFileURLs(enableUniversalAccessFromFileURI);
-
-    settings->setJavaScriptCanOpenWindowsAutomatically(true);
 
     g_free(defaultEncoding);
     g_free(cursiveFontFamily);

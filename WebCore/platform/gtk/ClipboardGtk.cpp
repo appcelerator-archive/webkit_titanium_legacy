@@ -128,15 +128,15 @@ void ClipboardGtk::clearAllData()
         PasteboardHelper::helper()->writeClipboardContents(m_clipboard);
 }
 
-String joinURIList(Vector<String> uriList)
+String joinURIList(Vector<KURL> uriList)
 {
     if (uriList.isEmpty())
         return String();
 
-    String joined(uriList[0]);
+    String joined(uriList[0].string());
     for (size_t i = 1; i < uriList.size(); i++) {
         joined.append("\r\n");
-        joined.append(uriList[i]);
+        joined.append(uriList[i].string());
     }
 
     return joined;
@@ -180,6 +180,8 @@ String ClipboardGtk::getData(const String& htmlType, bool &success) const
         success = true;
         return m_dataObject->text();
     }
+
+    return String();
 }
 
 bool ClipboardGtk::setData(const String& htmlType, const String& data)
@@ -190,12 +192,13 @@ bool ClipboardGtk::setData(const String& htmlType, const String& data)
     bool success = false;
     ClipboardType type = dataObjectTypeFromHTMLClipboardType(htmlType);
     if (type == ClipboardTypeURIList || type == ClipboardTypeURL) {
-        Vector<String> uriList;
+
+        Vector<KURL> uriList;
         gchar** uris = g_uri_list_extract_uris(data.utf8().data());
         if (uris) {
             gchar** currentURI = uris;
             while (*currentURI) {
-                uriList.append(String::fromUTF8(*currentURI));
+                uriList.append(KURL(KURL(), *currentURI));
                 currentURI++;
             }
             g_strfreev(uris);
@@ -266,19 +269,17 @@ PassRefPtr<FileList> ClipboardGtk::files() const
 
 void ClipboardGtk::writeURL(const KURL& url, const String& label, Frame* frame)
 {
-    // Mac writes the URL to the URL portion of the clipboard and then writes
-    // the label to the text portion of the clipboard. We'll try to duplicate
-    // that behavior here.
-
     String actualLabel(label);
     if (actualLabel.isEmpty())
         actualLabel = url;
 
-    Vector<String> uriList;
+    Vector<KURL> uriList;
 
-    uriList.append(url.string());
+    uriList.append(url);
     m_dataObject->setURIList(uriList);
-    m_dataObject->setText(actualLabel);
+    m_dataObject->setText(url.string());
+
+    // TODO: We should write some markup which includes the label and the URL.
 
     if (m_clipboard)
         PasteboardHelper::helper()->writeClipboardContents(m_clipboard);

@@ -34,7 +34,11 @@ namespace WebKit {
 
 class PasteboardHelperGtk : public PasteboardHelper {
 public:
-    PasteboardHelperGtk() { }
+    static PassRefPtr<PasteboardHelperGtk> create()
+    {
+        return adoptRef(new PasteboardHelperGtk());
+    }
+
     virtual GtkClipboard* defaultClipboard();
     virtual GtkClipboard* defaultClipboardForFrame(Frame*);
     virtual GtkClipboard* primaryClipboard();
@@ -46,6 +50,9 @@ public:
     virtual GtkTargetList* fullTargetList();
     virtual GtkTargetList* targetListForDataObject(DataObjectGtk* dataObject);
     virtual GtkTargetList* targetListForDragContext(GdkDragContext* context);
+
+private:
+    PasteboardHelperGtk() { }
 };
 
 }

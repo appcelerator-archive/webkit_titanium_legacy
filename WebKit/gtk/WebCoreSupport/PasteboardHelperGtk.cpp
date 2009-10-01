@@ -59,14 +59,14 @@ GtkClipboard* PasteboardHelperGtk::primaryClipboardForFrame(Frame* frame)
                                     GDK_SELECTION_PRIMARY);
 }
 
-static Vector<String> urisToStringVector(gchar** uris)
+static Vector<KURL> urisToKURLVector(gchar** uris)
 {
     ASSERT(uris);
 
-    Vector<String> uriList;
+    Vector<KURL> uriList;
     gchar** currentURI = uris;
     while (*currentURI) {
-        uriList.append(*currentURI);
+        uriList.append(KURL(KURL(), *currentURI));
         currentURI++;
     }
 
@@ -106,11 +106,11 @@ void PasteboardHelperGtk::getClipboardContents(GtkClipboard* clipboard)
     }
     dataObject->setMarkup(markup);
 
-    Vector<String> uris;
+    Vector<KURL> uris;
     if (gtk_clipboard_wait_is_uris_available(clipboard)) {
         gchar** urisData = gtk_clipboard_wait_for_uris(clipboard);
         if (urisData)
-            uris = urisToStringVector(urisData);
+            uris = urisToKURLVector(urisData);
         g_strfreev(urisData);
     }
     dataObject->setURIList(uris);
@@ -176,10 +176,10 @@ void PasteboardHelperGtk::fillSelectionData(GtkSelectionData* selectionData, gui
         g_free(markup);
 
     } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST) {
-        Vector<String> uriList(dataObject->uriList());
+        Vector<KURL> uriList(dataObject->uriList());
         gchar** uris = g_new0(gchar*, uriList.size() + 1);
         for (size_t i = 0; i < uriList.size(); i++)
-            uris[i] = g_strdup(uriList[i].utf8().data());
+            uris[i] = g_strdup(uriList[i].string().utf8().data());
 
         gtk_selection_data_set_uris(selectionData, uris);
         g_strfreev(uris);
@@ -228,7 +228,7 @@ void PasteboardHelperGtk::fillDataObject(GtkSelectionData* selectionData, guint 
         if (!uris)
             return;
 
-        Vector<String> uriList(urisToStringVector(uris));
+        Vector<KURL> uriList(urisToKURLVector(uris));
         dataObject->setURIList(uriList);
         g_strfreev(uris);
 
@@ -240,12 +240,13 @@ void PasteboardHelperGtk::fillDataObject(GtkSelectionData* selectionData, guint 
         gchar* urlWithLabelChars = g_strndup(data, gtk_selection_data_get_length(selectionData));
         String urlWithLabel(urlWithLabelChars);
 
-        Vector<String> uriList;
         Vector<String> pieces;
         urlWithLabel.split("\n", pieces);
-        uriList.append(pieces[0]);
 
+        Vector<KURL> uriList;
+        uriList.append(KURL(KURL(), pieces[0]));
         dataObject->setURIList(uriList);
+
         if (pieces.size() > 1)
             dataObject->setText(pieces[1]);
 
