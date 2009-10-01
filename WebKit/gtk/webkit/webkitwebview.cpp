@@ -949,6 +949,9 @@ static void webkit_web_view_dispose(GObject* object)
         priv->userAgent = NULL;
     }
 
+    priv->draggingDataObject.clear();
+    priv->droppingDataObject.clear();
+
     G_OBJECT_CLASS(webkit_web_view_parent_class)->dispose(object);
 }
 
@@ -1104,9 +1107,9 @@ static bool dragDropHappened = false;
 
 static gboolean do_drag_leave(gpointer data)
 {
-   WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
-   WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
-   ASSERT(priv->droppingDataObject);
+    WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->droppingDataObject);
 
     // Don't call dragExited if this was the result of a drop action.
     if (!dragDropHappened) {
