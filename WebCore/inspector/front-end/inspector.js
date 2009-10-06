@@ -42,7 +42,8 @@ var Preferences = {
     heapProfilerPresent: false,
     samplingCPUProfiler: false,
     showColorNicknames: true,
-    colorFormat: "hex"
+    colorFormat: "hex",
+    eventListenersFilter: "all"
 }
 
 var WebInspector = {
@@ -353,6 +354,10 @@ WebInspector.loaded = function()
     var colorFormat = InspectorController.setting("color-format");
     if (colorFormat)
         Preferences.colorFormat = colorFormat;
+
+    var eventListenersFilter = InspectorController.setting("event-listeners-filter");
+    if (eventListenersFilter)
+        Preferences.eventListenersFilter = eventListenersFilter;
 
     this.drawer = new WebInspector.Drawer();
     this.console = new WebInspector.ConsoleView(this.drawer);
@@ -784,7 +789,7 @@ WebInspector.toggleAttach = function()
 
 WebInspector.toolbarDragStart = function(event)
 {
-    if (!WebInspector.attached && InspectorController.platform() !== "mac-leopard")
+    if ((!WebInspector.attached && InspectorController.platform() !== "mac-leopard") || InspectorController.platform() == "qt")
         return;
 
     var target = event.target;
@@ -914,10 +919,8 @@ WebInspector.addResource = function(identifier, payload)
     this.resources[identifier] = resource;
     this.resourceURLMap[resource.url] = resource;
 
-    if (resource.mainResource) {
+    if (resource.mainResource)
         this.mainResource = resource;
-        this.panels.elements.reset();
-    }
 
     if (this.panels.resources)
         this.panels.resources.addResource(resource);
@@ -1016,10 +1019,15 @@ WebInspector.addDatabase = function(payload)
 WebInspector.addDOMStorage = function(payload)
 {
     var domStorage = new WebInspector.DOMStorage(
-        payload.domStorage,
+        payload.id,
         payload.host,
         payload.isLocalStorage);
     this.panels.storage.addDOMStorage(domStorage);
+}
+
+WebInspector.updateDOMStorage = function(storageId)
+{
+    this.panels.storage.updateDOMStorage(storageId);
 }
 
 WebInspector.resourceTrackingWasEnabled = function()
@@ -1112,6 +1120,12 @@ WebInspector.resourceURLChanged = function(resource, oldURL)
     this.resourceURLMap[resource.url] = resource;
 }
 
+WebInspector.didCommitLoad = function()
+{
+    // Cleanup elements panel early on inspected page refresh.
+    WebInspector.setDocument(null);
+}
+
 WebInspector.addMessageToConsole = function(payload)
 {
     var consoleMessage = new WebInspector.ConsoleMessage(
@@ -1128,16 +1142,86 @@ WebInspector.addMessageToConsole = function(payload)
 
 WebInspector.log = function(message)
 {
-    var msg = new WebInspector.ConsoleMessage(
-        WebInspector.ConsoleMessage.MessageSource.Other,
-        WebInspector.ConsoleMessage.MessageType.Log,
-        WebInspector.ConsoleMessage.MessageLevel.Debug,
-        -1,
-        null,
-        null,
-        1,
-        message);
-    this.console.addMessage(msg);
+    // remember 'this' for setInterval() callback
+    var self = this;
+    
+    // return indication if we can actually log a message
+    function isLogAvailable()
+    {
+        return WebInspector.ConsoleMessage && WebInspector.ObjectProxy && self.console;
+    }
+    
+    // flush the queue of pending messages
+    function flushQueue()
+    {
+        var queued = WebInspector.log.queued;
+        if (!queued) 
+            return;
+            
+        for (var i = 0; i < queued.length; ++i)
+            logMessage(queued[i]);
+        
+        delete WebInspector.log.queued;
+    }
+
+    // flush the queue if it console is available
+    // - this function is run on an interval
+    function flushQueueIfAvailable()
+    {
+        if (!isLogAvailable())
+            return;
+            
+        clearInterval(WebInspector.log.interval);
+        delete WebInspector.log.interval;
+        
+        flushQueue();
+    }
+    
+    // actually log the message
+    function logMessage(message)
+    {
+        var repeatCount = 1;
+        if (message == WebInspector.log.lastMessage)
+            repeatCount = WebInspector.log.repeatCount + 1;
+    
+        WebInspector.log.lastMessage = message;
+        WebInspector.log.repeatCount = repeatCount;
+        
+        // ConsoleMessage expects a proxy object
+        message = new WebInspector.ObjectProxy(null, [], 0, message, false);
+        
+        // post the message
+        var msg = new WebInspector.ConsoleMessage(
+            WebInspector.ConsoleMessage.MessageSource.Other,
+            WebInspector.ConsoleMessage.MessageType.Log,
+            WebInspector.ConsoleMessage.MessageLevel.Debug,
+            -1,
+            null,
+            null,
+            repeatCount,
+            message);
+    
+        self.console.addMessage(msg);
+    }
+    
+    // if we can't log the message, queue it
+    if (!isLogAvailable()) {
+        if (!WebInspector.log.queued)
+            WebInspector.log.queued = [];
+            
+        WebInspector.log.queued.push(message);
+        
+        if (!WebInspector.log.interval)
+            WebInspector.log.interval = setInterval(flushQueueIfAvailable, 1000);
+        
+        return;
+    }
+
+    // flush the pending queue if any
+    flushQueue();
+
+    // log the message
+    logMessage(message);
 }
 
 WebInspector.addProfile = function(profile)

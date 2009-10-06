@@ -2,6 +2,7 @@
  * Copyright (C) 2007, 2009 Apple Inc.  All rights reserved.
  * Copyright (C) 2007 Collabora Ltd.  All rights reserved.
  * Copyright (C) 2007 Alp Toker <alp@atoker.com>
+ * Copyright (C) 2009 Gustavo Noronha Silva <gns@gnome.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -24,6 +25,7 @@
 #if ENABLE(VIDEO)
 
 #include "MediaPlayerPrivateGStreamer.h"
+#include "DataSourceGStreamer.h"
 
 #include "CString.h"
 #include "GraphicsContext.h"
@@ -121,6 +123,17 @@ void MediaPlayerPrivate::registerMediaEngine(MediaEngineRegistrar registrar)
 
 static bool gstInitialized = false;
 
+static void do_gst_init() {
+    // FIXME: We should pass the arguments from the command line
+    if (!gstInitialized) {
+        gst_init(0, 0);
+        gstInitialized = true;
+        gst_element_register(0, "webkitmediasrc", GST_RANK_PRIMARY,
+                             WEBKIT_TYPE_DATA_SRC);
+
+    }
+}
+
 MediaPlayerPrivate::MediaPlayerPrivate(MediaPlayer* player)
     : m_player(player)
     , m_playBin(0)
@@ -139,14 +152,16 @@ MediaPlayerPrivate::MediaPlayerPrivate(MediaPlayer* player)
     , m_seeking(false)
     , m_errorOccured(false)
 {
-    // FIXME: We should pass the arguments from the command line
-    if (!gstInitialized) {
-        gst_init(0, 0);
-        gstInitialized = true;
-    }
+    do_gst_init();
 
     // FIXME: The size shouldn't be fixed here, this is just a quick hack.
     m_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 640, 480);
+}
+
+static gboolean idleUnref(gpointer data)
+{
+    g_object_unref(reinterpret_cast<GObject*>(data));
+    return FALSE;
 }
 
 MediaPlayerPrivate::~MediaPlayerPrivate()
@@ -157,6 +172,18 @@ MediaPlayerPrivate::~MediaPlayerPrivate()
     if (m_playBin) {
         gst_element_set_state(m_playBin, GST_STATE_NULL);
         gst_object_unref(GST_OBJECT(m_playBin));
+    }
+
+    // FIXME: We should find a better way to handle the lifetime of this object; this is
+    // needed because the object is sometimes being destroyed inbetween a call to
+    // webkit_video_sink_render, and the idle it schedules. Adding a ref in
+    // webkit_video_sink_render that would be balanced by the idle is not an option,
+    // because in some cases the destruction of the sink may happen in time for the idle
+    // to be removed from the queue, so it may not run. It would also cause lots of ref
+    // counting churn (render/idle are called many times). This is an ugly race.
+    if (m_videoSink) {
+        g_idle_add(idleUnref, m_videoSink);
+        m_videoSink = 0;
     }
 }
 
@@ -199,12 +226,17 @@ float MediaPlayerPrivate::duration() const
     GstFormat timeFormat = GST_FORMAT_TIME;
     gint64 timeLength = 0;
 
-    // FIXME: We try to get the duration, but we do not trust the
+#if !GST_CHECK_VERSION(0, 10, 23)
+    // We try to get the duration, but we do not trust the
     // return value of the query function only; the problem we are
     // trying to work-around here is that pipelines in stream mode may
     // not be able to figure out the duration, but still return true!
-    // See https://bugs.webkit.org/show_bug.cgi?id=24639.
+    // See https://bugs.webkit.org/show_bug.cgi?id=24639 which has been
+    // fixed in gst-plugins-base 0.10.23
     if (!gst_element_query_duration(m_playBin, &timeFormat, &timeLength) || timeLength <= 0) {
+#else
+    if (!gst_element_query_duration(m_playBin, &timeFormat, &timeLength)) {
+#endif
         LOG_VERBOSE(Media, "Time duration query failed.");
         return numeric_limits<float>::infinity();
     }
@@ -628,10 +660,8 @@ void MediaPlayerPrivate::paint(GraphicsContext* context, const IntRect& rect)
 
 static HashSet<String> mimeTypeCache()
 {
-    if (!gstInitialized) {
-        gst_init(0, NULL);
-        gstInitialized = true;
-    }
+
+    do_gst_init();
 
     static HashSet<String> cache;
     static bool typeListInitialized = false;
@@ -672,6 +702,37 @@ static HashSet<String> mimeTypeCache()
                     (g_str_equal(mimetype[0], "application") &&
                         !ignoredApplicationSubtypes.contains(String(mimetype[1])))) {
                 cache.add(String(capability[0]));
+
+                // These formats are supported by GStreamer, but not correctly advertised
+                if (g_str_equal(capability[0], "video/x-h264") ||
+                    g_str_equal(capability[0], "audio/x-m4a")) {
+                    cache.add(String("video/mp4"));
+                    cache.add(String("audio/aac"));
+                }
+
+                if (g_str_equal(capability[0], "video/x-theora"))
+                    cache.add(String("video/ogg"));
+
+                if (g_str_equal(capability[0], "audio/x-wav"))
+                    cache.add(String("audio/wav"));
+
+                if (g_str_equal(capability[0], "audio/mpeg")) {
+                    // This is what we are handling: mpegversion=(int)1, layer=(int)[ 1, 3 ]
+                    gchar** versionAndLayer = g_strsplit(capability[1], ",", 2);
+
+                    if (g_str_has_suffix (versionAndLayer[0], "(int)1")) {
+                        for (int i = 0; versionAndLayer[1][i] != '\0'; i++) {
+                            if (versionAndLayer[1][i] == '1')
+                                cache.add(String("audio/mp1"));
+                            else if (versionAndLayer[1][i] == '2')
+                                cache.add(String("audio/mp2"));
+                            else if (versionAndLayer[1][i] == '3')
+                                cache.add(String("audio/mp3"));
+                        }
+                    }
+
+                    g_strfreev(versionAndLayer);
+                }
             }
 
             g_strfreev(capability);
@@ -692,8 +753,12 @@ void MediaPlayerPrivate::getSupportedTypes(HashSet<String>& types)
 
 MediaPlayer::SupportsType MediaPlayerPrivate::supportsType(const String& type, const String& codecs)
 {
+    if (type.isNull() || type.isEmpty())
+        return MediaPlayer::IsNotSupported;
+
+    // spec says we should not return "probably" if the codecs string is empty
     if (mimeTypeCache().contains(type))
-        return !codecs.isEmpty() ? MediaPlayer::MayBeSupported : MediaPlayer::IsSupported;
+        return codecs.isEmpty() ? MediaPlayer::MayBeSupported : MediaPlayer::IsSupported;
     return MediaPlayer::IsNotSupported;
 }
 
@@ -723,6 +788,11 @@ void MediaPlayerPrivate::createGSTPlayBin(String url)
     g_object_set(G_OBJECT(m_playBin), "uri", url.utf8().data(), NULL);
 
     m_videoSink = webkit_video_sink_new(m_surface);
+
+    // This ref is to protect the sink from being destroyed before we stop the idle it
+    // creates internally. See the comment in ~MediaPlayerPrivate.
+    g_object_ref(m_videoSink);
+
     g_object_set(m_playBin, "video-sink", m_videoSink, NULL);
 
     g_signal_connect(m_videoSink, "repaint-requested", G_CALLBACK(mediaPlayerPrivateRepaintCallback), this);

@@ -8,6 +8,7 @@
  *  Copyright (C) 2008 Nuanti Ltd.
  *  Copyright (C) 2008, 2009 Collabora Ltd.
  *  Copyright (C) 2009 Igalia S.L.
+ *  Copyright (C) 2009 Martin Robinson
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -49,6 +50,9 @@
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "DragClientGtk.h"
+#include "DragController.h"
+#include "DragData.h"
+#include "DragActions.h"
 #include "Editor.h"
 #include "EditorClientGtk.h"
 #include "EventHandler.h"
@@ -62,14 +66,16 @@
 #include "InspectorClientGtk.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
+#include "MouseEventWithHitTestResults.h"
 #include "PasteboardHelper.h"
 #include "PlatformKeyboardEvent.h"
 #include "PlatformWheelEvent.h"
 #include "ProgressTracker.h"
 #include "ResourceHandle.h"
+#include "RenderView.h"
 #include "ScriptValue.h"
 #include "Scrollbar.h"
-#include <wtf/GOwnPtr.h>
+#include "GOwnPtr.h"
 
 #include <gdk/gdkkeysyms.h>
 
@@ -178,6 +184,31 @@ G_DEFINE_TYPE(WebKitWebView, webkit_web_view, GTK_TYPE_CONTAINER)
 static void webkit_web_view_settings_notify(WebKitWebSettings* webSettings, GParamSpec* pspec, WebKitWebView* webView);
 static void webkit_web_view_set_window_features(WebKitWebView* webView, WebKitWebWindowFeatures* webWindowFeatures);
 
+static void destroy_menu_cb(GtkObject* object, gpointer data)
+{
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(data);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+
+    g_object_unref(priv->currentMenu);
+    priv->currentMenu = NULL;
+}
+
+static IntPoint viewPointToGlobalPoint(FrameView* view, IntPoint& viewPoint)
+{
+    int x, y;
+    gdk_window_get_origin(GTK_WIDGET(view->hostWindow()->platformPageClient())->window, &x, &y);
+    return viewPoint + IntSize(x, y);
+}
+
+/* From EventHandler.cpp */
+static IntPoint documentPointForWindowPoint(Frame* frame, const IntPoint& windowPoint)
+{
+    FrameView* view = frame->view();
+    // FIXME: Is it really OK to use the wrong coordinates here when view is 0?
+    // Historically the code would just crash; this is clearly no worse than that.
+    return view ? view->windowToContents(windowPoint) : windowPoint;
+}
+
 static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webView, const PlatformMouseEvent& event)
 {
     Page* page = core(webView);
@@ -209,8 +240,14 @@ static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webVie
         return FALSE;
 
     WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    priv->currentMenu = GTK_MENU(g_object_ref(menu));
     priv->lastPopupXPosition = event.globalX();
     priv->lastPopupYPosition = event.globalY();
+
+    g_signal_connect(menu, "destroy",
+                     G_CALLBACK(destroy_menu_cb),
+                     NULL);
+
     gtk_menu_popup(menu, NULL, NULL,
                    NULL,
                    priv, event.button() + 1, gtk_get_current_event_time());
@@ -273,13 +310,10 @@ static gboolean webkit_web_view_popup_menu_handler(GtkWidget* widget)
         location = IntPoint(rightAligned ? firstRect.right() : firstRect.x(), firstRect.bottom());
     }
 
-    int x, y;
-    gdk_window_get_origin(GTK_WIDGET(view->hostWindow()->platformWindow())->window, &x, &y);
-
     // FIXME: The IntSize(0, -1) is a hack to get the hit-testing to result in the selected element.
     // Ideally we'd have the position of a context menu event be separate from its target node.
     location = view->contentsToWindow(location) + IntSize(0, -1);
-    IntPoint global = location + IntSize(x, y);
+    IntPoint global(viewPointToGlobalPoint(view, location));
     PlatformMouseEvent event(location, global, NoButton, MouseEventPressed, 0, false, false, false, false, gtk_get_current_event_time());
 
     return webkit_web_view_forward_context_menu_event(WEBKIT_WEB_VIEW(widget), event);
@@ -487,14 +521,14 @@ static gboolean webkit_web_view_button_press_event(GtkWidget* widget, GdkEventBu
 #if PLATFORM(X11)
     /* Copy selection to the X11 selection clipboard */
     if (event->button == 2) {
-        bool primary = webView->priv->usePrimaryForPaste;
-        webView->priv->usePrimaryForPaste = true;
+        bool primary = PasteboardHelper::usePrimaryClipboard();
+        PasteboardHelper::setUsePrimaryClipboard(true);
 
         Editor* editor = webView->priv->corePage->focusController()->focusedOrMainFrame()->editor();
         result = result || editor->canPaste() || editor->canDHTMLPaste();
         editor->paste();
 
-        webView->priv->usePrimaryForPaste = primary;
+        PasteboardHelper::setUsePrimaryClipboard(primary);
     }
 #endif
 
@@ -696,8 +730,6 @@ static void webkit_web_view_container_add(GtkContainer* container, GtkWidget* wi
     WebKitWebViewPrivate* priv = webView->priv;
 
     priv->children.add(widget);
-    if (GTK_WIDGET_REALIZED(container))
-        gtk_widget_set_parent_window(widget, GTK_WIDGET(webView)->window);
     gtk_widget_set_parent(widget, GTK_WIDGET(container));
 }
 
@@ -986,12 +1018,6 @@ static void webkit_web_view_dispose(GObject* object)
 
         g_object_unref(priv->imContext);
         priv->imContext = NULL;
-
-        gtk_target_list_unref(priv->copy_target_list);
-        priv->copy_target_list = NULL;
-
-        gtk_target_list_unref(priv->paste_target_list);
-        priv->paste_target_list = NULL;
     }
 
     if (priv->mainResource) {
@@ -1003,6 +1029,9 @@ static void webkit_web_view_dispose(GObject* object)
         g_hash_table_unref(priv->subResources);
         priv->subResources = NULL;
     }
+
+    priv->draggingDataObject.clear();
+    priv->droppingDataObject.clear();
 
     G_OBJECT_CLASS(webkit_web_view_parent_class)->dispose(object);
 }
@@ -1110,128 +1139,183 @@ static void webkit_web_view_screen_changed(GtkWidget* widget, GdkScreen* previou
     settings->setMinimumLogicalFontSize(minimumLogicalFontSize / 72.0 * DPI);
 }
 
+static GdkDragAction toGdkAction(DragOperation coreAction)
+{
+    if (coreAction & DragOperationEvery || coreAction & DragOperationCopy)
+        return GDK_ACTION_COPY;
+    else if (coreAction & DragOperationMove)
+        return GDK_ACTION_MOVE;
+    else if (coreAction & DragOperationLink)
+        return GDK_ACTION_LINK;
+    else
+        return static_cast<GdkDragAction>(0);
+}
+
+static WebCore::DragOperation toDragOperation(GdkDragAction gdkAction)
+{
+    unsigned int action = DragOperationNone;
+    if (gdkAction & GDK_ACTION_COPY)
+        action |= DragOperationCopy;
+    if (gdkAction & GDK_ACTION_MOVE)
+        action |= DragOperationMove;
+    if (gdkAction & GDK_ACTION_LINK)
+        action |= DragOperationLink;
+    if (gdkAction & GDK_ACTION_PRIVATE)
+        action |= DragOperationPrivate;
+    return static_cast<WebCore::DragOperation>(action);
+}
+
 static void webkit_web_view_drag_end(GtkWidget* widget, GdkDragContext* context)
 {
-    g_object_unref(context);
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->draggingDataObject);
+    priv->draggingDataObject.clear();
 }
 
-struct DNDContentsRequest
+static void webkit_web_view_drag_data_get(GtkWidget* widget, GdkDragContext* context, GtkSelectionData* selectionData, guint info, guint time_)
 {
-    gint info;
-    GtkSelectionData* dnd_selection_data;
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->draggingDataObject);
 
-    gboolean is_url_label_request;
-    gchar* url;
-};
+    PasteboardHelper::helper()->fillSelectionData(selectionData, info, priv->draggingDataObject.get());
+}
 
-void clipboard_contents_received(GtkClipboard* clipboard, GtkSelectionData* selection_data, gpointer data)
+static IntPoint lastDragGlobalPoint;
+static IntPoint lastDragWidgetPoint;
+static int pendingDragDataRequests = 0;
+static bool dragDropHappened = false;
+
+static gboolean do_drag_leave(gpointer data)
 {
-    DNDContentsRequest* contents_request = reinterpret_cast<DNDContentsRequest*>(data);
+    WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->droppingDataObject);
 
-    if (contents_request->is_url_label_request) {
-        // We have received contents of the label clipboard. Use them to form
-        // required structures. When formed, enhance the dnd's selection data
-        // with them and return.
+    // Don't call dragExited if this was the result of a drop action.
+    if (!dragDropHappened) {
+        Page* page = core(webView);
+        DragData dragData(priv->droppingDataObject,
+                          lastDragWidgetPoint, lastDragGlobalPoint,
+                          DragOperationNone);
+        page->dragController()->dragExited(&dragData);
+    }
 
-        // If the label is empty, use the url itself.
-        gchar* url_label = reinterpret_cast<gchar*>(gtk_selection_data_get_text(selection_data));
-        if (!url_label)
-            url_label = g_strdup(contents_request->url);
+    dragDropHappened = false;
+    priv->droppingDataObject.clear();
+    return FALSE;
+}
 
-        gchar* data = 0;
-        switch (contents_request->info) {
-        case WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST:
-            data = g_strdup_printf("%s\r\n%s\r\n", contents_request->url, url_label);
-            break;
-        case WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL:
-            data = g_strdup_printf("%s\n%s", contents_request->url, url_label);
-            break;
-        }
+static void webkit_web_view_drag_leave(GtkWidget* widget, GdkDragContext* context, guint time)
+{
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->droppingDataObject);
 
-        if (data) {
-            gtk_selection_data_set(contents_request->dnd_selection_data,
-                                   contents_request->dnd_selection_data->target, 8,
-                                   reinterpret_cast<const guchar*>(data), strlen(data));
-            g_free(data);
-        }
-
-        g_free(url_label);
-        g_free(contents_request->url);
-        g_free(contents_request);
-
+    if (priv->droppingDataObject->dragContext() != context)
         return;
-    }
 
-    switch (contents_request->info) {
-    case WEBKIT_WEB_VIEW_TARGET_INFO_HTML:
-    case WEBKIT_WEB_VIEW_TARGET_INFO_TEXT:
-        {
-        gchar* data = reinterpret_cast<gchar*>(gtk_selection_data_get_text(selection_data));
-        if (data) {
-            gtk_selection_data_set(contents_request->dnd_selection_data,
-                                   contents_request->dnd_selection_data->target, 8,
-                                   reinterpret_cast<const guchar*>(data),
-                                   strlen(data));
-            g_free(data);
-        }
-        break;
-        }
-    case WEBKIT_WEB_VIEW_TARGET_INFO_IMAGE:
-        {
-        GdkPixbuf* pixbuf = gtk_selection_data_get_pixbuf(selection_data);
-        if (pixbuf) {
-            gtk_selection_data_set_pixbuf(contents_request->dnd_selection_data, pixbuf);
-            g_object_unref(pixbuf);
-        }
-        break;
-        }
-    case WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST:
-    case WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL:
-        // URL's label is stored in another clipboard, so we store URL into
-        // contents request, mark the latter as an url label request
-        // and request for contents of the label clipboard.
-        contents_request->is_url_label_request = TRUE;
-        contents_request->url = reinterpret_cast<gchar*>(gtk_selection_data_get_text(selection_data));
-
-        gtk_clipboard_request_contents(gtk_clipboard_get(gdk_atom_intern_static_string("WebKitClipboardUrlLabel")),
-                                       selection_data->target, clipboard_contents_received, contents_request);
-        break;
-    }
+    // During a drop GTK+ will fire a drag-leave signal right before firing
+    // the drag-drop signal. We want the actions for drag-leave to happen after
+    // those for drag-drop, so schedule them to happen asynchronously here.
+    g_idle_add(do_drag_leave, webView);
 }
 
-static void webkit_web_view_drag_data_get(GtkWidget* widget, GdkDragContext* context, GtkSelectionData* selection_data, guint info, guint time_)
+static gboolean webkit_web_view_drag_motion(GtkWidget* widget, GdkDragContext* context, gint x, gint y, guint time)
 {
-    GdkAtom selection_atom = GDK_NONE;
-    GdkAtom target_atom = selection_data->target;
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    Page* page = core(webView);
 
-    switch (info) {
-        case WEBKIT_WEB_VIEW_TARGET_INFO_HTML:
-            selection_atom = gdk_atom_intern_static_string("WebKitClipboardHtml");
-            // HTML markup data is set as text, therefor, we need a text-like target atom
-            target_atom = gdk_atom_intern_static_string("UTF8_STRING");
-            break;
-        case WEBKIT_WEB_VIEW_TARGET_INFO_TEXT:
-            selection_atom = gdk_atom_intern_static_string("WebKitClipboardText");
-            break;
-        case WEBKIT_WEB_VIEW_TARGET_INFO_IMAGE:
-            selection_atom = gdk_atom_intern_static_string("WebKitClipboardImage");
-            break;
-        case WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST:
-        case WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL:
-            selection_atom = gdk_atom_intern_static_string("WebKitClipboardUrl");
-            // We require URL and label, which are both stored in text format
-            // and are needed to be retrieved as such.
-            target_atom = gdk_atom_intern_static_string("UTF8_STRING");
-            break;
+    if (pendingDragDataRequests != 0)
+        return FALSE;
+
+    lastDragWidgetPoint = IntPoint(x, y);
+    lastDragGlobalPoint = viewPointToGlobalPoint(page->mainFrame()->view(), lastDragWidgetPoint);
+
+    if (!priv->droppingDataObject) {
+        priv->droppingDataObject = DataObjectGtk::create();
+        priv->droppingDataObject->setDragContext(context);
+
+        // Fetch a list of applicable targets for this drop. Only one target
+        // per type will be selected to prevent unecessary data conversion.
+        GtkTargetList* targetList = PasteboardHelper::helper()->targetListForDragContext(context);
+        GList* list = targetList->list;
+        pendingDragDataRequests = g_list_length(list);
+        while (list) {
+            GtkTargetPair* pair = reinterpret_cast<GtkTargetPair*>(list->data);
+            gtk_drag_get_data(widget, context, pair->target, time);
+            list = list->next;
+        }
+        gtk_target_list_unref(targetList);
+
+    } else {
+        if (priv->droppingDataObject->dragContext() != context)
+            return FALSE;
+
+        DragData dragData(priv->droppingDataObject,
+                          lastDragWidgetPoint, lastDragGlobalPoint,
+                          toDragOperation(context->actions));
+
+        DragOperation operation = page->dragController()->dragUpdated(&dragData);
+        gdk_drag_status(context, toGdkAction(operation), time);
     }
 
-    DNDContentsRequest* contents_request = g_new(DNDContentsRequest, 1);
-    contents_request->info = info;
-    contents_request->is_url_label_request = FALSE;
-    contents_request->dnd_selection_data = selection_data;
+    return TRUE;
+}
 
-    gtk_clipboard_request_contents(gtk_clipboard_get(selection_atom), target_atom,
-                                   clipboard_contents_received, contents_request);
+static void webkit_web_view_drag_data_received(GtkWidget* widget, GdkDragContext* context, gint x, gint y, GtkSelectionData* selectionData, guint info, guint time)
+{
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->droppingDataObject);
+
+    DataObjectGtk* dataObject = priv->droppingDataObject.get();
+    if (dataObject->dragContext() != context)
+        return;
+
+    pendingDragDataRequests--;
+    PasteboardHelper::helper()->fillDataObject(selectionData, info, dataObject);
+
+    // Don't begin handling drag-motion events until we can notify the DragController.
+    if (pendingDragDataRequests == 0) {
+        Page* page = core(webView);
+
+        IntPoint viewPoint(x, y);
+        IntPoint globalPoint(viewPointToGlobalPoint(page->mainFrame()->view(),
+                                                    viewPoint));
+        DragData dragData(priv->droppingDataObject, viewPoint, globalPoint,
+                          toDragOperation(context->actions));
+        DragOperation operation = page->dragController()->dragEntered(&dragData);
+        gdk_drag_status(context, toGdkAction(operation), time);
+    }
+
+}
+
+static gboolean webkit_web_view_drag_drop(GtkWidget* widget, GdkDragContext* context, gint x, gint y, guint time)
+{
+    WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
+    ASSERT(priv->droppingDataObject.get());
+
+    // Prevent handling older drag-n-drop operations.
+    if (priv->droppingDataObject->dragContext() != context)
+        return FALSE;
+
+    dragDropHappened = true;
+
+    Page* page = core(webView);
+    IntPoint viewPoint(x, y);
+    IntPoint globalPoint(viewPointToGlobalPoint(page->mainFrame()->view(),
+                                                viewPoint));
+    DragData dragData(priv->droppingDataObject, viewPoint, globalPoint,
+                      toDragOperation(context->actions));
+    page->dragController()->performDrag(&dragData);
+
+    // TODO: Is there any way to detect if the DragController actually performed a delete?
+    gtk_drag_finish(context, TRUE, FALSE, time);
+    return TRUE;
 }
 
 static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
@@ -1385,13 +1469,12 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
             0,
             g_signal_accumulator_true_handled,
             NULL,
-            webkit_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT_OBJECT_STRING,
-            G_TYPE_BOOLEAN, 5,
+            webkit_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT_OBJECT,
+            G_TYPE_BOOLEAN, 4,
             WEBKIT_TYPE_WEB_FRAME,
             WEBKIT_TYPE_NETWORK_REQUEST,
             WEBKIT_TYPE_WEB_NAVIGATION_ACTION,
-            WEBKIT_TYPE_WEB_POLICY_DECISION,
-            G_TYPE_STRING);
+            WEBKIT_TYPE_WEB_POLICY_DECISION);
 
     /**
      * WebKitWebView::navigation-policy-decision-requested:
@@ -2077,6 +2160,10 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
     widgetClass->screen_changed = webkit_web_view_screen_changed;
     widgetClass->drag_end = webkit_web_view_drag_end;
     widgetClass->drag_data_get = webkit_web_view_drag_data_get;
+    widgetClass->drag_motion = webkit_web_view_drag_motion;
+    widgetClass->drag_leave = webkit_web_view_drag_leave;
+    widgetClass->drag_drop = webkit_web_view_drag_drop;
+    widgetClass->drag_data_received = webkit_web_view_drag_data_received;
 
     GtkContainerClass* containerClass = GTK_CONTAINER_CLASS(webViewClass);
     containerClass->add = webkit_web_view_container_add;
@@ -2434,8 +2521,6 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     settings->setEditingBehavior(core(editingBehavior));
     settings->setAllowUniversalAccessFromFileURLs(enableUniversalAccessFromFileURI);
 
-    settings->setJavaScriptCanOpenWindowsAutomatically(true);
-
     g_free(defaultEncoding);
     g_free(cursiveFontFamily);
     g_free(defaultFontFamily);
@@ -2534,7 +2619,7 @@ static void webkit_web_view_init(WebKitWebView* webView)
     priv->imContext = gtk_im_multicontext_new();
 
     WebKit::InspectorClient* inspectorClient = new WebKit::InspectorClient(webView);
-    priv->corePage = new Page(new WebKit::ChromeClient(webView), new WebKit::ContextMenuClient(webView), new WebKit::EditorClient(webView), new WebKit::DragClient(webView), inspectorClient);
+    priv->corePage = new Page(new WebKit::ChromeClient(webView), new WebKit::ContextMenuClient(webView), new WebKit::EditorClient(webView), new WebKit::DragClient(webView), inspectorClient, 0);
 
     // We also add a simple wrapper class to provide the public
     // interface for the Web Inspector.
@@ -2556,17 +2641,6 @@ static void webkit_web_view_init(WebKitWebView* webView)
 
     priv->zoomFullContent = FALSE;
 
-    GdkAtom textHtml = gdk_atom_intern_static_string("text/html");
-    /* Targets for copy */
-    priv->copy_target_list = gtk_target_list_new(NULL, 0);
-    gtk_target_list_add(priv->copy_target_list, textHtml, 0, WEBKIT_WEB_VIEW_TARGET_INFO_HTML);
-    gtk_target_list_add_text_targets(priv->copy_target_list, WEBKIT_WEB_VIEW_TARGET_INFO_TEXT);
-
-    /* Targets for pasting */
-    priv->paste_target_list = gtk_target_list_new(NULL, 0);
-    gtk_target_list_add(priv->paste_target_list, textHtml, 0, WEBKIT_WEB_VIEW_TARGET_INFO_HTML);
-    gtk_target_list_add_text_targets(priv->paste_target_list, WEBKIT_WEB_VIEW_TARGET_INFO_TEXT);
-
     priv->webSettings = webkit_web_settings_new();
     webkit_web_view_update_settings(webView);
     g_signal_connect(priv->webSettings, "notify", G_CALLBACK(webkit_web_view_settings_notify), webView);
@@ -2574,6 +2648,10 @@ static void webkit_web_view_init(WebKitWebView* webView)
     priv->webWindowFeatures = webkit_web_window_features_new();
 
     priv->subResources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
+
+    gtk_drag_dest_set(GTK_WIDGET(webView), static_cast<GtkDestDefaults>(0), NULL, 0,
+                      (GdkDragAction) (GDK_ACTION_COPY | GDK_ACTION_MOVE | GDK_ACTION_LINK));
+    gtk_drag_dest_set_target_list(GTK_WIDGET(webView), PasteboardHelper::helper()->fullTargetList());
 }
 
 GtkWidget* webkit_web_view_new(void)
@@ -2613,11 +2691,6 @@ void webkit_web_view_request_download(WebKitWebView* webView, WebKitNetworkReque
     }
 
     webkit_download_start(download);
-}
-
-bool webkit_web_view_use_primary_for_paste(WebKitWebView* webView)
-{
-    return webView->priv->usePrimaryForPaste;
 }
 
 void webkit_web_view_set_settings(WebKitWebView* webView, WebKitWebSettings* webSettings)
@@ -3022,6 +3095,12 @@ void webkit_web_view_load_request(WebKitWebView* webView, WebKitNetworkRequest* 
     webkit_web_frame_load_request(frame, request);
 }
 
+/**
+ * webkit_web_view_stop_loading:
+ * @webView: a #WebKitWebView
+ * 
+ * Stops any ongoing load in the @webView.
+ **/
 void webkit_web_view_stop_loading(WebKitWebView* webView)
 {
     g_return_if_fail(WEBKIT_IS_WEB_VIEW(webView));
@@ -3029,7 +3108,7 @@ void webkit_web_view_stop_loading(WebKitWebView* webView)
     Frame* frame = core(webView)->mainFrame();
 
     if (FrameLoader* loader = frame->loader())
-        loader->stopAllLoaders();
+        loader->stopForUserCancel();
 }
 
 /**
@@ -3358,19 +3437,15 @@ void webkit_web_view_set_editable(WebKitWebView* webView, gboolean flag)
  * @web_view: a #WebKitWebView
  *
  * This function returns the list of targets this #WebKitWebView can
- * provide for clipboard copying and as DND source. The targets in the list are
- * added with %info values from the #WebKitWebViewTargetInfo enum,
- * using gtk_target_list_add() and
- * gtk_target_list_add_text_targets().
+ * provide for clipboard pasting and as a drag and drop source.
+ * The targets in the list are associated with %info values from the
+ * #WebKitWebViewTargetInfo enum based on their type.
  *
- * Return value: the #GtkTargetList
+ * Return value: the #GtkTargetList of copy targets
  **/
 GtkTargetList* webkit_web_view_get_copy_target_list(WebKitWebView* webView)
 {
-    g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), NULL);
-
-    WebKitWebViewPrivate* priv = webView->priv;
-    return priv->copy_target_list;
+    return PasteboardHelper::helper()->fullTargetList();
 }
 
 /**
@@ -3378,19 +3453,15 @@ GtkTargetList* webkit_web_view_get_copy_target_list(WebKitWebView* webView)
  * @web_view: a #WebKitWebView
  *
  * This function returns the list of targets this #WebKitWebView can
- * provide for clipboard pasting and as DND destination. The targets in the list are
- * added with %info values from the #WebKitWebViewTargetInfo enum,
- * using gtk_target_list_add() and
- * gtk_target_list_add_text_targets().
+ * provide for clipboard pasting and as a drag and drop destination.
+ * The targets in the list are associated with %info values from the
+ * #WebKitWebViewTargetInfo enum based on their type.
  *
- * Return value: the #GtkTargetList
+ * Return value: the #GtkTargetList of paste targets
  **/
 GtkTargetList* webkit_web_view_get_paste_target_list(WebKitWebView* webView)
 {
-    g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), NULL);
-
-    WebKitWebViewPrivate* priv = webView->priv;
-    return priv->paste_target_list;
+    return PasteboardHelper::helper()->fullTargetList();
 }
 
 /**
@@ -3913,4 +3984,31 @@ GList* webkit_web_view_get_subresources(WebKitWebView* webView)
     WebKitWebViewPrivate* priv = webView->priv;
     GList* subResources = g_hash_table_get_values(priv->subResources);
     return g_list_remove(subResources, priv->mainResource);
+}
+
+/**
+ * webkit_web_view_get_hit_test_result:
+ * @webView: a #WebKitWebView
+ * @event: a #GdkEventButton
+ * 
+ * Does a 'hit test' in the coordinates specified by @event to figure
+ * out context information about that position in the @webView.
+ * 
+ * Returns: a newly created #WebKitHitTestResult with the context of the
+ * specified position.
+ *
+ * Since: 1.1.15
+ **/
+WebKitHitTestResult* webkit_web_view_get_hit_test_result(WebKitWebView* webView, GdkEventButton* event)
+{
+    g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), NULL);
+    g_return_val_if_fail(event, NULL);
+
+    PlatformMouseEvent mouseEvent = PlatformMouseEvent(event);
+    Frame* frame = core(webView)->focusController()->focusedOrMainFrame();
+    HitTestRequest request(HitTestRequest::Active);
+    IntPoint documentPoint = documentPointForWindowPoint(frame, mouseEvent.pos());
+    MouseEventWithHitTestResults mev = frame->document()->prepareMouseEvent(request, documentPoint, mouseEvent);
+
+    return kit(mev.hitTestResult());
 }

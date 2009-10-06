@@ -43,23 +43,6 @@ using namespace JSC;
 
 namespace WebCore {
 
-void JSEventSource::markChildren(MarkStack& markStack)
-{
-    DOMObject::markChildren(markStack);
-
-    markIfNotNull(markStack, m_impl->onopen());
-    markIfNotNull(markStack, m_impl->onmessage());
-    markIfNotNull(markStack, m_impl->onerror());
-
-    typedef EventSource::EventListenersMap EventListenersMap;
-    typedef EventSource::ListenerVector ListenerVector;
-    EventListenersMap& eventListeners = m_impl->eventListeners();
-    for (EventListenersMap::iterator mapIter = eventListeners.begin(); mapIter != eventListeners.end(); ++mapIter) {
-        for (ListenerVector::iterator vecIter = mapIter->second.begin(); vecIter != mapIter->second.end(); ++vecIter)
-            (*vecIter)->markJSFunction(markStack);
-    }
-}
-
 JSValue JSEventSource::addEventListener(ExecState* exec, const ArgList& args)
 {
     JSDOMGlobalObject* globalObject = toJSDOMGlobalObject(impl()->scriptExecutionContext());
@@ -70,7 +53,7 @@ JSValue JSEventSource::addEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false).get(), args.at(2).toBoolean(exec));
+    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -84,7 +67,7 @@ JSValue JSEventSource::removeEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false).get(), args.at(2).toBoolean(exec));
+    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 

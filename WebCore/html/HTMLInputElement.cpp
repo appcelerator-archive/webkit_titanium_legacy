@@ -34,6 +34,7 @@
 #include "Event.h"
 #include "EventHandler.h"
 #include "EventNames.h"
+#include "ExceptionCode.h"
 #include "File.h"
 #include "FileList.h"
 #include "FocusController.h"
@@ -71,7 +72,7 @@ using namespace HTMLNames;
 const int maxSavedResults = 256;
 
 HTMLInputElement::HTMLInputElement(const QualifiedName& tagName, Document* doc, HTMLFormElement* f)
-    : HTMLFormControlElementWithState(tagName, doc, f)
+    : HTMLTextFormControlElement(tagName, doc, f)
     , m_xPos(0)
     , m_yPos(0)
     , m_maxResults(-1)
@@ -195,6 +196,42 @@ bool HTMLInputElement::patternMismatch() const
     return false;
 }
 
+bool HTMLInputElement::tooLong() const
+{
+    switch (inputType()) {
+    case EMAIL:
+    case PASSWORD:
+    case SEARCH:
+    case TELEPHONE:
+    case TEXT:
+    case URL: {
+        int max = maxLength();
+        if (max < 0)
+            return false;
+        // Return false for the default value even if it is longer than maxLength.
+        bool userEdited = !m_data.value().isNull();
+        if (!userEdited)
+            return false;
+        return value().length() > static_cast<unsigned>(max);
+    }
+    case BUTTON:
+    case CHECKBOX:
+    case COLOR:
+    case FILE:
+    case HIDDEN:
+    case IMAGE:
+    case ISINDEX:
+    case NUMBER:
+    case RADIO:
+    case RANGE:
+    case RESET:
+    case SUBMIT:
+        return false;
+    }
+    ASSERT_NOT_REACHED();
+    return false;
+}
+
 static inline CheckedRadioButtons& checkedRadioButtons(const HTMLInputElement *element)
 {
     if (HTMLFormElement* form = element->form())
@@ -257,20 +294,17 @@ bool HTMLInputElement::shouldUseInputMethod() const
     return m_type == TEXT || m_type == SEARCH || m_type == ISINDEX;
 }
 
-void HTMLInputElement::dispatchFocusEvent()
+void HTMLInputElement::handleFocusEvent()
 {
     InputElement::dispatchFocusEvent(this, this);
 
     if (isTextField())
         m_autofilled = false;
-
-    HTMLFormControlElementWithState::dispatchFocusEvent();
 }
 
-void HTMLInputElement::dispatchBlurEvent()
+void HTMLInputElement::handleBlurEvent()
 {
     InputElement::dispatchBlurEvent(this, this);
-    HTMLFormControlElementWithState::dispatchBlurEvent();
 }
 
 void HTMLInputElement::setType(const String& t)
@@ -354,7 +388,7 @@ void HTMLInputElement::setInputType(const String& t)
                 m_data.setValue(String());
             }
             if (!didStoreValue && willStoreValue)
-                m_data.setValue(constrainValue(getAttribute(valueAttr)));
+                m_data.setValue(sanitizeValue(getAttribute(valueAttr)));
             else
                 InputElement::updateValueIfNeeded(m_data, this);
 
@@ -741,8 +775,7 @@ void HTMLInputElement::parseMappedAttribute(MappedAttribute *attr)
         }
         setNeedsStyleRecalc();
     } else if (attr->name() == placeholderAttr) {
-        if (isTextField())
-            updatePlaceholderVisibility();
+        updatePlaceholderVisibility(true);
     } else if (attr->name() == autosaveAttr ||
              attr->name() == incrementalAttr ||
              attr->name() == minAttr ||
@@ -814,7 +847,7 @@ RenderObject *HTMLInputElement::createRenderer(RenderArena *arena, RenderStyle *
         case TELEPHONE:
         case TEXT:
         case URL:
-            return new (arena) RenderTextControlSingleLine(this);
+            return new (arena) RenderTextControlSingleLine(this, placeholderShouldBeVisible());
     }
     ASSERT(false);
     return 0;
@@ -1053,7 +1086,7 @@ String HTMLInputElement::value() const
 
     String value = m_data.value();
     if (value.isNull()) {
-        value = constrainValue(getAttribute(valueAttr));
+        value = sanitizeValue(getAttribute(valueAttr));
 
         // If no attribute exists, then just use "on" or "" based off the checked() state of the control.
         if (value.isNull() && (inputType() == CHECKBOX || inputType() == RADIO))
@@ -1109,9 +1142,9 @@ void HTMLInputElement::setValue(const String& value)
         if (inputType() == FILE)
             m_fileList->clear();
         else {
-            m_data.setValue(constrainValue(value));
+            m_data.setValue(sanitizeValue(value));
             if (isTextField()) {
-                InputElement::updatePlaceholderVisibility(this, this);
+                updatePlaceholderVisibility(false);
                 if (inDocument())
                     document()->updateStyleIfNeeded();
             }
@@ -1120,7 +1153,7 @@ void HTMLInputElement::setValue(const String& value)
             renderer()->updateFromElement();
         setNeedsStyleRecalc();
     } else
-        setAttribute(valueAttr, constrainValue(value));
+        setAttribute(valueAttr, sanitizeValue(value));
     
     if (isTextField()) {
         unsigned max = m_data.value().length();
@@ -1151,6 +1184,7 @@ void HTMLInputElement::setValueFromRenderer(const String& value)
 {
     // File upload controls will always use setFileListFromRenderer.
     ASSERT(inputType() != FILE);
+    updatePlaceholderVisibility(false);
     InputElement::setValueFromRenderer(m_data, this, this, value);
 }
 
@@ -1612,9 +1646,12 @@ int HTMLInputElement::maxLength() const
     return m_data.maxLength();
 }
 
-void HTMLInputElement::setMaxLength(int _maxLength)
+void HTMLInputElement::setMaxLength(int maxLength, ExceptionCode& ec)
 {
-    setAttribute(maxlengthAttr, String::number(_maxLength));
+    if (maxLength < 0)
+        ec = INDEX_SIZE_ERR;
+    else
+        setAttribute(maxlengthAttr, String::number(maxLength));
 }
 
 bool HTMLInputElement::multiple() const
@@ -1668,9 +1705,11 @@ FileList* HTMLInputElement::files()
     return m_fileList.get();
 }
 
-String HTMLInputElement::constrainValue(const String& proposedValue) const
+String HTMLInputElement::sanitizeValue(const String& proposedValue) const
 {
-    return InputElement::constrainValue(this, proposedValue, m_data.maxLength());
+    if (isTextField())
+        return InputElement::sanitizeValue(this, proposedValue);
+    return proposedValue;
 }
 
 bool HTMLInputElement::needsActivationCallback()
@@ -1740,7 +1779,7 @@ void HTMLInputElement::onSearch()
     ASSERT(isSearchField());
     if (renderer())
         toRenderTextControlSingleLine(renderer())->stopSearchEventTimer();
-    dispatchEvent(eventNames().searchEvent, true, false);
+    dispatchEvent(Event::create(eventNames().searchEvent, true, false));
 }
 
 VisibleSelection HTMLInputElement::selection() const
@@ -1786,11 +1825,6 @@ bool HTMLInputElement::willValidate() const
     // FIXME: This shall check for new WF2 input types too
     return HTMLFormControlElementWithState::willValidate() && inputType() != HIDDEN &&
            inputType() != BUTTON && inputType() != RESET;
-}
-
-bool HTMLInputElement::placeholderShouldBeVisible() const
-{
-    return InputElement::placeholderShouldBeVisible(this, this);
 }
 
 bool HTMLInputElement::formStringToDouble(const String& src, double* out)

@@ -54,6 +54,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 #if ENABLE(VIDEO)
 #define VIDEO_HTMLELEMENT_TYPES(V)                                      \
+    V(AUDIO, HTMLAudioElementConstructor)                               \
     V(HTMLAUDIOELEMENT, HTMLAudioElement)                               \
     V(HTMLMEDIAELEMENT, HTMLMediaElement)                               \
     V(HTMLSOURCEELEMENT, HTMLSourceElement)                             \
@@ -117,7 +118,9 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(ENTITY, Entity)                                                   \
     V(ENTITYREFERENCE, EntityReference)                                 \
     V(HTMLDOCUMENT, HTMLDocument)                                       \
+    V(IMAGE, HTMLImageElementConstructor)                               \
     V(NODE, Node)                                                       \
+    V(OPTION, HTMLOptionElementConstructor)                             \
     V(NOTATION, Notation)                                               \
     V(PROCESSINGINSTRUCTION, ProcessingInstruction)                     \
     V(TEXT, Text)                                                       \
@@ -444,12 +447,35 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #define DOM_OBJECT_WORKERS_TYPES(V)
 #endif
 
+#if ENABLE(3D_CANVAS)
+#define DOM_OBJECT_3D_CANVAS_TYPES(V)                                   \
+    V(CANVASARRAY, CanvasArray)                                         \
+    V(CANVASARRAYBUFFER, CanvasArrayBuffer)                             \
+    V(CANVASBUFFER, CanvasBuffer)                                       \
+    V(CANVASBYTEARRAY, CanvasByteArray)                                 \
+    V(CANVASFLOATARRAY, CanvasFloatArray)                               \
+    V(CANVASFRAMEBUFFER, CanvasFramebuffer)                             \
+    V(CANVASINTARRAY, CanvasIntArray)                                   \
+    V(CANVASPROGRAM, CanvasProgram)                                     \
+    V(CANVASRENDERBUFFER, CanvasRenderbuffer)                           \
+    V(CANVASRENDERINGCONTEXT3D, CanvasRenderingContext3D)               \
+    V(CANVASSHADER, CanvasShader)                                       \
+    V(CANVASSHORTARRAY, CanvasShortArray)                               \
+    V(CANVASTEXTURE, CanvasTexture)                                     \
+    V(CANVASUNSIGNEDBYTEARRAY, CanvasUnsignedByteArray)                 \
+    V(CANVASUNSIGNEDINTARRAY, CanvasUnsignedIntArray)                   \
+    V(CANVASUNSIGNEDSHORTARRAY, CanvasUnsignedShortArray)
+#else
+#define DOM_OBJECT_3D_CANVAS_TYPES(V)
+#endif
+
 #define DOM_OBJECT_TYPES(V)                                             \
     DOM_OBJECT_TYPES_1(V)                                               \
     DOM_OBJECT_TYPES_2(V)                                               \
     DOM_OBJECT_DATABASE_TYPES(V)                                        \
     DOM_OBJECT_STORAGE_TYPES(V)                                         \
-    DOM_OBJECT_WORKERS_TYPES(V)
+    DOM_OBJECT_WORKERS_TYPES(V)                                         \
+    DOM_OBJECT_3D_CANVAS_TYPES(V)
 
 #if ENABLE(SVG)
 // SVG_OBJECT_TYPES are svg non-node, non-pod types.

@@ -640,9 +640,10 @@ void RenderThemeChromiumSkia::adjustSliderThumbSize(RenderObject* object) const
     else if (object->style()->appearance() == MediaVolumeSliderThumbPart)
         thumbImage = mediaVolumeSliderThumbImage();
 
-    ASSERT(thumbImage);
-    object->style()->setWidth(Length(thumbImage->width(), Fixed));
-    object->style()->setHeight(Length(thumbImage->height(), Fixed));
+    if (thumbImage) {
+        object->style()->setWidth(Length(thumbImage->width(), Fixed));
+        object->style()->setHeight(Length(thumbImage->height(), Fixed));
+    }
 #else
     UNUSED_PARAM(object);
 #endif
@@ -866,6 +867,19 @@ int RenderThemeChromiumSkia::buttonInternalPaddingBottom() const
 {
     return 1;
 }
+
+#if ENABLE(VIDEO)
+bool RenderThemeChromiumSkia::shouldRenderMediaControlPart(ControlPart part, Element* e)
+{
+    HTMLMediaElement* mediaElement = static_cast<HTMLMediaElement*>(e);
+    switch (part) {
+    case MediaMuteButtonPart:
+        return true;
+    default:
+        return RenderTheme::shouldRenderMediaControlPart(part, e);
+    }
+}
+#endif
 
 // static
 void RenderThemeChromiumSkia::setDefaultFontSize(int fontSize)

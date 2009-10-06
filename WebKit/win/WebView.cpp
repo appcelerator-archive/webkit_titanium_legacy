@@ -50,6 +50,7 @@
 #include "WebKitSystemBits.h"
 #include "WebMutableURLRequest.h"
 #include "WebNotificationCenter.h"
+#include "WebPluginHalterClient.h"
 #include "WebPreferences.h"
 #include "WindowsTouch.h"
 #pragma warning( push, 0 )
@@ -642,6 +643,7 @@ HRESULT STDMETHODCALLTYPE WebView::close()
     setResourceLoadDelegate(0);
     setUIDelegate(0);
     setFormDelegate(0);
+    setPluginHalterDelegate(0);
 
     if (m_webInspector)
         m_webInspector->webViewClosed();
@@ -723,6 +725,10 @@ bool WebView::ensureBackingStore()
 
 void WebView::addToDirtyRegion(const IntRect& dirtyRect)
 {
+    // FIXME: We want an assert here saying that the dirtyRect is inside the clienRect,
+    // but it was being hit during our layout tests, and is being investigated in
+    // http://webkit.org/b/29350.
+
     HRGN newRegion = ::CreateRectRgn(dirtyRect.x(), dirtyRect.y(),
                                      dirtyRect.right(), dirtyRect.bottom());
     addToDirtyRegion(newRegion);
@@ -949,6 +955,10 @@ void WebView::paintIntoBackingStore(FrameView* frameView, HDC bitmapDC, const In
 {
     LOCAL_GDI_COUNTER(0, __FUNCTION__);
 
+    // FIXME: We want an assert here saying that the dirtyRect is inside the clienRect,
+    // but it was being hit during our layout tests, and is being investigated in
+    // http://webkit.org/b/29350.
+
     RECT rect = dirtyRect;
 
 #if FLASH_BACKING_STORE_REDRAW
@@ -968,6 +978,11 @@ void WebView::paintIntoBackingStore(FrameView* frameView, HDC bitmapDC, const In
         gc.clearRect(dirtyRect);
     else
         FillRect(bitmapDC, &rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+    COMPtr<IWebUIDelegatePrivate2> uiPrivate(Query, m_uiDelegate);
+    if (uiPrivate)
+        uiPrivate->drawBackground(this, reinterpret_cast<OLE_HANDLE>(bitmapDC), &rect);
+
     if (frameView && frameView->frame() && frameView->frame()->contentRenderer()) {
         gc.clip(dirtyRect);
         frameView->paint(&gc, dirtyRect);
@@ -1867,8 +1882,8 @@ static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, L
             webView->paint((HDC)wParam, lParam);
             break;
         case WM_DESTROY:
-            webView->close();
             webView->setIsBeingDestroyed();
+            webView->close();
             webView->revokeDragDrop();
             break;
         case WM_GESTURENOTIFY:
@@ -2314,7 +2329,7 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
 
     registerWebViewWindowClass();
 
-    m_viewWindow = CreateWindowEx(0, kWebViewWindowClassName, 0, WS_CHILD | WS_CLIPCHILDREN,
+    m_viewWindow = CreateWindowEx(0, kWebViewWindowClassName, 0, WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
         frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top, m_hostWindow ? m_hostWindow : HWND_MESSAGE, 0, gInstance, 0);
     ASSERT(::IsWindow(m_viewWindow));
 
@@ -2343,7 +2358,7 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
     if (SUCCEEDED(m_preferences->shouldUseHighResolutionTimers(&useHighResolutionTimer)))
         Settings::setShouldUseHighResolutionTimers(useHighResolutionTimer);
 
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient);
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this));
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -2994,8 +3009,17 @@ HRESULT STDMETHODCALLTYPE WebView::setHostWindow(
     /* [in] */ OLE_HANDLE oleWindow)
 {
     HWND window = (HWND)(ULONG64)oleWindow;
-    if (m_viewWindow)
-        SetParent(m_viewWindow, window ? window : HWND_MESSAGE);
+    if (m_viewWindow) {
+        if (window)
+            SetParent(m_viewWindow, window);
+        else if (!isBeingDestroyed()) {
+            // Turn the WebView into a message-only window so it will no longer be a child of the
+            // old host window and will be hidden from screen. We only do this when
+            // isBeingDestroyed() is false because doing this while handling WM_DESTROY can leave
+            // m_viewWindow in a weird state (see <http://webkit.org/b/29337>).
+            SetParent(m_viewWindow, HWND_MESSAGE);
+        }
+    }
 
     m_hostWindow = window;
 
@@ -3609,6 +3633,15 @@ HRESULT STDMETHODCALLTYPE WebView::toggleGrammarChecking(
         return hr;
 
     return setGrammarCheckingEnabled(enabled ? FALSE : TRUE);
+}
+
+HRESULT STDMETHODCALLTYPE WebView::reloadFromOrigin( 
+        /* [in] */ IUnknown* /*sender*/)
+{
+    if (!m_mainFrame)
+        return E_FAIL;
+
+    return m_mainFrame->reloadFromOrigin();
 }
 
 // IWebViewCSS -----------------------------------------------------------------
@@ -4381,6 +4414,16 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     settings->setLocalStorageEnabled(enabled);
 
+    hr = prefsPrivate->experimentalNotificationsEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setExperimentalNotificationsEnabled(enabled);
+
+    hr = prefsPrivate->experimentalWebSocketsEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setExperimentalWebSocketsEnabled(enabled);
+
     hr = prefsPrivate->isWebSecurityEnabled(&enabled);
     if (FAILED(hr))
         return hr;
@@ -4407,6 +4450,21 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings->setShouldUseHighResolutionTimers(enabled);
+
+    hr = prefsPrivate->pluginHalterEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setPluginHalterEnabled(enabled);
+
+    UINT runTime;
+    hr = prefsPrivate->pluginAllowedRunTime(&runTime);
+    if (FAILED(hr))
+        return hr;
+    settings->setPluginAllowedRunTime(runTime);
+
+#if ENABLE(3D_CANVAS)
+    settings->setExperimentalWebGLEnabled(true);
+#endif  // ENABLE(3D_CANVAS)
 
     if (!m_closeWindowTimer.isActive())
         m_mainFrame->invalidate(); // FIXME
@@ -5428,6 +5486,22 @@ HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR
     return S_OK;
 }
 
+HRESULT WebView::removeUserContentWithURLFromGroup(BSTR groupName, unsigned worldID, BSTR url)
+{
+    String group(groupName, SysStringLen(groupName));
+    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+        return E_INVALIDARG;
+
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    ASSERT(pageGroup);
+    if (!pageGroup)
+        return E_FAIL;
+
+    pageGroup->removeUserContentWithURLForWorld(KURL(KURL(), String(url, SysStringLen(url))), worldID);
+
+    return S_OK;
+}
+
 HRESULT WebView::removeUserContentFromGroup(BSTR groupName, unsigned worldID)
 {
     String group(groupName, SysStringLen(groupName));
@@ -5458,12 +5532,49 @@ HRESULT WebView::removeAllUserContentFromGroup(BSTR groupName)
     return S_OK;
 }
 
+HRESULT WebView::invalidateBackingStore(const RECT* rect)
+{
+    if (!IsWindow(m_viewWindow))
+        return S_OK;
+
+    RECT clientRect;
+    if (!GetClientRect(m_viewWindow, &clientRect))
+        return E_FAIL;
+
+    RECT rectToInvalidate;
+    if (!rect)
+        rectToInvalidate = clientRect;
+    else if (!IntersectRect(&rectToInvalidate, &clientRect, rect))
+        return S_OK;
+
+    repaint(rectToInvalidate, true);
+    return S_OK;
+}
+
 void WebView::downloadURL(const KURL& url)
 {
     // It's the delegate's job to ref the WebDownload to keep it alive - otherwise it will be
     // destroyed when this function returns.
     COMPtr<WebDownload> download(AdoptCOM, WebDownload::createInstance(url, m_downloadDelegate.get()));
     download->start();
+}
+
+
+HRESULT STDMETHODCALLTYPE WebView::setPluginHalterDelegate(IWebPluginHalterDelegate* d)
+{
+    m_pluginHalterDelegate = d;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE WebView::pluginHalterDelegate(IWebPluginHalterDelegate** d)
+{
+    if (!d)
+        return E_POINTER;
+
+    if (!m_pluginHalterDelegate)
+        return E_FAIL;
+
+    return m_pluginHalterDelegate.copyRefTo(d);
 }
 
 class EnumTextMatches : public IEnumTextMatches
@@ -5549,4 +5660,3 @@ Page* core(IWebView* iWebView)
 
     return page;
 }
-

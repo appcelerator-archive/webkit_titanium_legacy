@@ -134,7 +134,6 @@ String WMLInputElement::value() const
 
 void WMLInputElement::setValue(const String& value)
 {
-    InputElement::updatePlaceholderVisibility(this, this);
     setFormControlValueMatchesRenderer(false);
     m_data.setValue(constrainValue(value));
     if (inDocument())
@@ -221,7 +220,7 @@ void WMLInputElement::copyNonAttributeProperties(const Element* source)
 
 RenderObject* WMLInputElement::createRenderer(RenderArena* arena, RenderStyle*)
 {
-    return new (arena) RenderTextControlSingleLine(this);
+    return new (arena) RenderTextControlSingleLine(this, false);
 }
 
 void WMLInputElement::detach()
@@ -309,18 +308,13 @@ void WMLInputElement::cacheSelection(int start, int end)
 
 String WMLInputElement::constrainValue(const String& proposedValue) const
 {
-    return InputElement::constrainValue(this, proposedValue, m_data.maxLength());
+    return InputElement::sanitizeUserInputValue(this, proposedValue, m_data.maxLength());
 }
 
 void WMLInputElement::documentDidBecomeActive()
 {
     ASSERT(m_isPasswordField);
     reset();
-}
-
-bool WMLInputElement::placeholderShouldBeVisible() const
-{
-    return InputElement::placeholderShouldBeVisible(this, this);
 }
 
 void WMLInputElement::willMoveToNewOwnerDocument()

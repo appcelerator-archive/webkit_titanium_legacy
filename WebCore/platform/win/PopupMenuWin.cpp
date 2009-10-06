@@ -40,6 +40,7 @@
 #include "SimpleFontData.h"
 #include <tchar.h>
 #include <windows.h>
+#include <windowsx.h>
 #if PLATFORM(WINCE)
 #include <ResDefCE.h>
 #define MAKEPOINTS(l) (*((POINTS FAR *)&(l)))
@@ -61,10 +62,26 @@ const int popupWindowBorderWidth = 1;
 
 static LPCTSTR kPopupWindowClassName = _T("PopupWindowClass");
 
+// This is used from within our custom message pump when we want to send a
+// message to the web view and not have our message stolen and sent to
+// the popup window.
+static const UINT WM_HOST_WINDOW_FIRST = WM_USER;
+static const UINT WM_HOST_WINDOW_CHAR = WM_USER + WM_CHAR; 
+static const UINT WM_HOST_WINDOW_MOUSEMOVE = WM_USER + WM_MOUSEMOVE;
+
 // FIXME: Remove this as soon as practical.
 static inline bool isASCIIPrintable(unsigned c)
 {
     return c >= 0x20 && c <= 0x7E;
+}
+
+static void translatePoint(LPARAM& lParam, HWND from, HWND to)
+{
+    POINT pt;
+    pt.x = (short)GET_X_LPARAM(lParam);
+    pt.y = (short)GET_Y_LPARAM(lParam);    
+    ::MapWindowPoints(from, to, &pt, 1);
+    lParam = MAKELPARAM(pt.x, pt.y);
 }
 
 PopupMenu::PopupMenu(PopupMenuClient* client)
@@ -79,6 +96,7 @@ PopupMenu::PopupMenu(PopupMenuClient* client)
     , m_wheelDelta(0)
     , m_focusedIndex(0)
     , m_scrollbarCapturingMouse(false)
+    , m_showPopup(false)
 {
 }
 
@@ -105,7 +123,7 @@ void PopupMenu::show(const IntRect& r, FrameView* view, int index)
     if (clientRect().isEmpty())
         return;
 
-    HWND hostWindow = view->hostWindow()->platformWindow();
+    HWND hostWindow = view->hostWindow()->platformPageClient();
 
     if (!m_scrollbar && visibleItems() < client()->listSize()) {
         // We need a scroll bar
@@ -125,6 +143,9 @@ void PopupMenu::show(const IntRect& r, FrameView* view, int index)
 
         if (!m_popup)
             return;
+    } else {
+        // We need to reposition the popup window.
+        ::MoveWindow(m_popup, m_windowRect.x(), m_windowRect.y(), m_windowRect.width(), m_windowRect.height(), false);
     }
 
     // Determine whether we should animate our popups
@@ -142,26 +163,120 @@ void PopupMenu::show(const IntRect& r, FrameView* view, int index)
             // NOTE: This may have to change for Vista
             DWORD slideDirection = (m_windowRect.y() < viewRect.top + view->contentsToWindow(r.location()).y()) ? AW_VER_NEGATIVE : AW_VER_POSITIVE;
 
-            ::AnimateWindow(m_popup, defaultAnimationDuration, AW_SLIDE | slideDirection | AW_ACTIVATE);
+            ::AnimateWindow(m_popup, defaultAnimationDuration, AW_SLIDE | slideDirection);
         }
     } else
 #endif
-        ::ShowWindow(m_popup, SW_SHOWNORMAL);
-    ::SetCapture(m_popup);
+        ::ShowWindow(m_popup, SW_SHOWNOACTIVATE);
 
     if (client()) {
         int index = client()->selectedIndex();
         if (index >= 0)
             setFocusedIndex(index);
     }
+
+    m_showPopup = true;
+
+    // Protect the popup menu in case its owner is destroyed while we're running the message pump.
+    RefPtr<PopupMenu> protect(this);
+
+    ::SetCapture(hostWindow);
+
+    MSG msg;
+    HWND activeWindow;
+
+    while (::GetMessage(&msg, 0, 0, 0)) {
+        switch (msg.message) {
+            case WM_HOST_WINDOW_MOUSEMOVE:
+            case WM_HOST_WINDOW_CHAR: 
+                if (msg.hwnd == m_popup) {
+                    // This message should be sent to the host window.
+                    msg.hwnd = hostWindow;
+                    msg.message -= WM_HOST_WINDOW_FIRST;
+                }
+                break;
+
+            // Steal mouse messages.
+            case WM_NCMOUSEMOVE:
+            case WM_NCLBUTTONDOWN:
+            case WM_NCLBUTTONUP:
+            case WM_NCLBUTTONDBLCLK:
+            case WM_NCRBUTTONDOWN:
+            case WM_NCRBUTTONUP:
+            case WM_NCRBUTTONDBLCLK:
+            case WM_NCMBUTTONDOWN:
+            case WM_NCMBUTTONUP:
+            case WM_NCMBUTTONDBLCLK:
+            case WM_MOUSEWHEEL:
+                msg.hwnd = m_popup;
+                break;
+
+            // These mouse messages use client coordinates so we need to convert them.
+            case WM_MOUSEMOVE:
+            case WM_LBUTTONDOWN:
+            case WM_LBUTTONUP:
+            case WM_LBUTTONDBLCLK:
+            case WM_RBUTTONDOWN:
+            case WM_RBUTTONUP:
+            case WM_RBUTTONDBLCLK:
+            case WM_MBUTTONDOWN:
+            case WM_MBUTTONUP:
+            case WM_MBUTTONDBLCLK: {
+                // Translate the coordinate.
+                translatePoint(msg.lParam, msg.hwnd, m_popup);
+
+                msg.hwnd = m_popup;
+                break;
+            }
+
+            // Steal all keyboard messages.
+            case WM_KEYDOWN:
+            case WM_KEYUP:
+            case WM_CHAR:
+            case WM_DEADCHAR:
+            case WM_SYSKEYUP:
+            case WM_SYSCHAR:
+            case WM_SYSDEADCHAR:
+                msg.hwnd = m_popup;
+                break;
+        }
+
+        ::TranslateMessage(&msg);
+        ::DispatchMessage(&msg);
+
+        if (!m_popupClient)
+            break;
+
+        if (!m_showPopup)
+            break;
+        activeWindow = ::GetActiveWindow();
+        if (activeWindow != hostWindow && !::IsChild(activeWindow, hostWindow))
+            break;
+        if (::GetCapture() != hostWindow)
+            break;
+    }
+
+    if (::GetCapture() == hostWindow)
+        ::ReleaseCapture();
+
+    // We're done, hide the popup if necessary.
+    hide();
 }
 
 void PopupMenu::hide()
 {
+    if (!m_showPopup)
+        return;
+
+    m_showPopup = false;
+
     ::ShowWindow(m_popup, SW_HIDE);
 
     if (client())
         client()->popupDidHide();
+
+    // Post a WM_NULL message to wake up the message pump if necessary.
+    ::PostMessage(m_popup, WM_NULL, 0, 0);
 }
 
 const int endOfLinePadding = 2;
@@ -174,7 +289,7 @@ void PopupMenu::calculatePositionAndSize(const IntRect& r, FrameView* v)
 
     // Then, translate to screen coordinates
     POINT location(rScreenCoords.location());
-    if (!::ClientToScreen(v->hostWindow()->platformWindow(), &location))
+    if (!::ClientToScreen(v->hostWindow()->platformPageClient(), &location))
         return;
 
     rScreenCoords.setLocation(location);
@@ -660,6 +775,9 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
     LRESULT lResult = 0;
 
     switch (message) {
+        case WM_MOUSEACTIVATE:
+            return MA_NOACTIVATE;
+
         case WM_SIZE: {
             if (!scrollbar())
                 break;
@@ -674,15 +792,6 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
             break;
         }
-        case WM_ACTIVATE:
-            if (wParam == WA_INACTIVE)
-                hide();
-            break;
-        case WM_KILLFOCUS:
-            if ((HWND)wParam != popupHandle())
-                // Focus is going elsewhere, so hide
-                hide();
-            break;
         case WM_KEYDOWN:
             if (!client())
                 break;
@@ -725,7 +834,7 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
                     break;
                 }
                 case VK_TAB:
-                    ::SendMessage(client()->hostWindow()->platformWindow(), message, wParam, lParam);
+                    ::SendMessage(client()->hostWindow()->platformPageClient(), message, wParam, lParam);
                     hide();
                     break;
                 case VK_ESCAPE:
@@ -734,7 +843,10 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
                 default:
                     if (isASCIIPrintable(wParam))
                         // Send the keydown to the WebView so it can be used for type-to-select.
-                        ::PostMessage(client()->hostWindow()->platformWindow(), message, wParam, lParam);
+                        // Since we know that the virtual key is ASCII printable, it's OK to convert this to
+                        // a WM_CHAR message. (We don't want to call TranslateMessage because that will post a
+                        // WM_CHAR message that will be stolen and redirected to the popup HWND.
+                        ::PostMessage(m_popup, WM_HOST_WINDOW_CHAR, wParam, lParam);
                     else
                         lResult = 1;
                     break;
@@ -785,18 +897,23 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
             RECT bounds;
             GetClientRect(popupHandle(), &bounds);
+            if (!::PtInRect(&bounds, mousePoint) && !(wParam & MK_LBUTTON) && client()) {
+                // When the mouse is not inside the popup menu and the left button isn't down, just
+                // repost the message to the web view.
+
+                // Translate the coordinate.
+                translatePoint(lParam, m_popup, client()->hostWindow()->platformPageClient());
+
+                ::PostMessage(m_popup, WM_HOST_WINDOW_MOUSEMOVE, wParam, lParam);
+                break;
+            }
+
             if ((shouldHotTrack || wParam & MK_LBUTTON) && ::PtInRect(&bounds, mousePoint))
                 setFocusedIndex(listIndexAtPoint(mousePoint), true);
-
-            // Release capture if the left button isn't down, and the mousePoint is outside the popup window.
-            // This way, the WebView will get future mouse events in the rest of the window.
-            if (!(wParam & MK_LBUTTON) && !::PtInRect(&bounds, mousePoint))
-                ::ReleaseCapture();
 
             break;
         }
         case WM_LBUTTONDOWN: {
-            ::SetCapture(popupHandle());
             IntPoint mousePoint(MAKEPOINTS(lParam));
             if (scrollbar()) {
                 IntRect scrollBarRect = scrollbar()->frameRect();
@@ -810,13 +927,19 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
                 }
             }
 
-            setFocusedIndex(listIndexAtPoint(mousePoint), true);
+            // If the mouse is inside the window, update the focused index. Otherwise, 
+            // hide the popup.
+            RECT bounds;
+            GetClientRect(m_popup, &bounds);
+            if (::PtInRect(&bounds, mousePoint))
+                setFocusedIndex(listIndexAtPoint(mousePoint), true);
+            else
+                hide();
             break;
         }
         case WM_LBUTTONUP: {
             IntPoint mousePoint(MAKEPOINTS(lParam));
             if (scrollbar()) {
-                ::ReleaseCapture();
                 IntRect scrollBarRect = scrollbar()->frameRect();
                 if (scrollbarCapturingMouse() || scrollBarRect.contains(mousePoint)) {
                     setScrollbarCapturingMouse(false);
@@ -830,11 +953,10 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
                     break;
                 }
             }
-            // Only release capture and hide the popup if the mouse is inside the popup window.
+            // Only hide the popup if the mouse is inside the popup window.
             RECT bounds;
             GetClientRect(popupHandle(), &bounds);
             if (client() && ::PtInRect(&bounds, mousePoint)) {
-                ::ReleaseCapture();
                 hide();
                 int index = focusedIndex();
                 if (index >= 0)
@@ -842,18 +964,22 @@ LRESULT PopupMenu::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
             }
             break;
         }
-        case WM_MOUSEWHEEL:
-            if (scrollbar()) {
-                int i = 0;
-                for (incrementWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam)); abs(wheelDelta()) >= WHEEL_DELTA; reduceWheelDelta(WHEEL_DELTA)) {
-                    if (wheelDelta() > 0)
-                        ++i;
-                    else
-                        --i;
-                }
-                scrollbar()->scroll(i > 0 ? ScrollUp : ScrollDown, ScrollByLine, abs(i));
+
+        case WM_MOUSEWHEEL: {
+            if (!scrollbar())
+                break;
+
+            int i = 0;
+            for (incrementWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam)); abs(wheelDelta()) >= WHEEL_DELTA; reduceWheelDelta(WHEEL_DELTA)) {
+                if (wheelDelta() > 0)
+                    ++i;
+                else
+                    --i;
             }
+            scrollbar()->scroll(i > 0 ? ScrollUp : ScrollDown, ScrollByLine, abs(i));
             break;
+        }
+
         case WM_PAINT: {
             PAINTSTRUCT paintInfo;
             ::BeginPaint(popupHandle(), &paintInfo);

@@ -74,7 +74,7 @@ namespace JSC {
         friend class JSCell;
 
     public:
-        explicit JSObject(PassRefPtr<Structure>);
+        explicit JSObject(NonNullPassRefPtr<Structure>);
 
         virtual void markChildren(MarkStack&);
         ALWAYS_INLINE void markChildrenDirect(MarkStack& markStack);
@@ -86,7 +86,7 @@ namespace JSC {
         JSValue prototype() const;
         void setPrototype(JSValue prototype);
         
-        void setStructure(PassRefPtr<Structure>);
+        void setStructure(NonNullPassRefPtr<Structure>);
         Structure* inheritorID();
 
         virtual UString className() const;
@@ -186,10 +186,11 @@ namespace JSC {
 
         void fillGetterPropertySlot(PropertySlot&, JSValue* location);
 
-        virtual void defineGetter(ExecState*, const Identifier& propertyName, JSObject* getterFunction);
-        virtual void defineSetter(ExecState*, const Identifier& propertyName, JSObject* setterFunction);
+        virtual void defineGetter(ExecState*, const Identifier& propertyName, JSObject* getterFunction, unsigned attributes = 0);
+        virtual void defineSetter(ExecState*, const Identifier& propertyName, JSObject* setterFunction, unsigned attributes = 0);
         virtual JSValue lookupGetter(ExecState*, const Identifier& propertyName);
         virtual JSValue lookupSetter(ExecState*, const Identifier& propertyName);
+        virtual bool defineOwnProperty(ExecState*, const Identifier& propertyName, PropertyDescriptor&, bool shouldThrow);
 
         virtual bool isGlobalObject() const { return false; }
         virtual bool isVariableObject() const { return false; }
@@ -207,6 +208,17 @@ namespace JSC {
         static PassRefPtr<Structure> createStructure(JSValue prototype)
         {
             return Structure::create(prototype, TypeInfo(ObjectType, HasStandardGetOwnPropertySlot | HasDefaultMark | HasDefaultGetPropertyNames));
+        }
+
+    protected:
+        void addAnonymousSlots(unsigned count);
+        void putAnonymousValue(unsigned index, JSValue value)
+        {
+            *locationForOffset(index) = value;
+        }
+        JSValue getAnonymousValue(unsigned index)
+        {
+            return *locationForOffset(index);
         }
 
     private:
@@ -252,8 +264,6 @@ namespace JSC {
         RefPtr<Structure> m_inheritorID;
     };
     
-JSObject* constructEmptyObject(ExecState*);
-
 inline JSObject* asObject(JSCell* cell)
 {
     ASSERT(cell->isObject());
@@ -265,10 +275,9 @@ inline JSObject* asObject(JSValue value)
     return asObject(value.asCell());
 }
 
-inline JSObject::JSObject(PassRefPtr<Structure> structure)
+inline JSObject::JSObject(NonNullPassRefPtr<Structure> structure)
     : JSCell(structure.releaseRef()) // ~JSObject balances this ref()
 {
-    ASSERT(m_structure);
     ASSERT(m_structure->propertyStorageCapacity() == inlineStorageCapacity);
     ASSERT(m_structure->isEmpty());
     ASSERT(prototype().isNull() || Heap::heap(this) == Heap::heap(prototype()));
@@ -297,7 +306,7 @@ inline void JSObject::setPrototype(JSValue prototype)
     setStructure(newStructure.release());
 }
 
-inline void JSObject::setStructure(PassRefPtr<Structure> structure)
+inline void JSObject::setStructure(NonNullPassRefPtr<Structure> structure)
 {
     m_structure->deref();
     m_structure = structure.releaseRef(); // ~JSObject balances this ref()
@@ -511,6 +520,17 @@ inline void JSObject::putDirectInternal(JSGlobalData& globalData, const Identifi
 {
     PutPropertySlot slot;
     putDirectInternal(propertyName, value, attributes, false, slot, getJSFunction(globalData, value));
+}
+
+inline void JSObject::addAnonymousSlots(unsigned count)
+{
+    size_t currentCapacity = m_structure->propertyStorageCapacity();
+    RefPtr<Structure> structure = Structure::addAnonymousSlotsTransition(m_structure, count);
+
+    if (currentCapacity != structure->propertyStorageCapacity())
+        allocatePropertyStorage(currentCapacity, structure->propertyStorageCapacity());
+
+    setStructure(structure.release());
 }
 
 inline void JSObject::putDirect(const Identifier& propertyName, JSValue value, unsigned attributes, bool checkReadOnly, PutPropertySlot& slot)

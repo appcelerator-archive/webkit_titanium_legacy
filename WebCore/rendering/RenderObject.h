@@ -305,6 +305,7 @@ public:
     virtual bool isRenderPath() const { return false; }
     virtual bool isSVGText() const { return false; }
     virtual bool isSVGImage() const { return false; }
+    virtual bool isSVGForeignObject() const { return false; }
 
     // Per SVG 1.1 objectBoundingBox ignores clipping, masking, filter effects, opacity and stroke-width.
     // This is used for all computation of objectBoundingBox relative units and by SVGLocateable::getBBox().
@@ -402,11 +403,11 @@ public:
     bool hasOutlineAnnotation() const;
     bool hasOutline() const { return style()->hasOutline() || hasOutlineAnnotation(); }
 
-   /**
-     * returns the object containing this one. can be different from parent for
-     * positioned elements
-     */
-    RenderObject* container() const;
+    // Returns the object containing this one. Can be different from parent for positioned elements.
+    // If repaintContainer and repaintContainerSkipped are not null, on return *repaintContainerSkipped
+    // is true if the renderer returned is an ancestor of repaintContainer.
+    RenderObject* container(RenderBoxModelObject* repaintContainer = 0, bool* repaintContainerSkipped = 0) const;
+
     virtual RenderObject* hoverAncestor() const { return parent(); }
 
     // IE Extension that can be called on any RenderObject.  See the implementation for the details.
@@ -540,6 +541,8 @@ public:
 
     // Return the offset from the container() renderer (excluding transforms)
     virtual IntSize offsetFromContainer(RenderObject*) const;
+    // Return the offset from an object up the container() chain. Asserts that none of the intermediate objects have transforms.
+    IntSize offsetFromAncestorContainer(RenderObject*) const;
     
     virtual void absoluteRects(Vector<IntRect>&, int, int) { }
     // FIXME: useTransforms should go away eventually
@@ -662,7 +665,9 @@ public:
     // Whether or not a given block needs to paint selection gaps.
     virtual bool shouldPaintSelectionGaps() const { return false; }
 
+#if ENABLE(DRAG_SUPPORT)
     Node* draggableNode(bool dhtmlOK, bool uaOK, int x, int y, bool& dhtmlWillDrag) const;
+#endif
 
     /**
      * Returns the local coordinates of the caret within this render object.
@@ -980,6 +985,42 @@ inline void makeMatrixRenderable(TransformationMatrix& matrix, bool has3DRenderi
     if (!has3DRendering)
         matrix.makeAffine();
 #endif
+}
+
+inline int adjustForAbsoluteZoom(int value, RenderObject* renderer)
+{
+    float zoomFactor = renderer->style()->effectiveZoom();
+    if (zoomFactor == 1)
+        return value;
+    // Needed because computeLengthInt truncates (rather than rounds) when scaling up.
+    if (zoomFactor > 1)
+        value++;
+    return static_cast<int>(value / zoomFactor);
+}
+
+inline void adjustIntRectForAbsoluteZoom(IntRect& rect, RenderObject* renderer)
+{
+    rect.setX(adjustForAbsoluteZoom(rect.x(), renderer));
+    rect.setY(adjustForAbsoluteZoom(rect.y(), renderer));
+    rect.setWidth(adjustForAbsoluteZoom(rect.width(), renderer));
+    rect.setHeight(adjustForAbsoluteZoom(rect.height(), renderer));
+}
+
+inline FloatPoint adjustFloatPointForAbsoluteZoom(const FloatPoint& point, RenderObject* renderer)
+{
+    // The result here is in floats, so we don't need the truncation hack from the integer version above.
+    float zoomFactor = renderer->style()->effectiveZoom();
+    if (zoomFactor == 1)
+        return point;
+    return FloatPoint(point.x() / zoomFactor, point.y() / zoomFactor);
+}
+
+inline void adjustFloatQuadForAbsoluteZoom(FloatQuad& quad, RenderObject* renderer)
+{
+    quad.setP1(adjustFloatPointForAbsoluteZoom(quad.p1(), renderer));
+    quad.setP2(adjustFloatPointForAbsoluteZoom(quad.p2(), renderer));
+    quad.setP3(adjustFloatPointForAbsoluteZoom(quad.p3(), renderer));
+    quad.setP4(adjustFloatPointForAbsoluteZoom(quad.p4(), renderer));
 }
 
 } // namespace WebCore

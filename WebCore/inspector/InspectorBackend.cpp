@@ -30,6 +30,8 @@
 #include "config.h"
 #include "InspectorBackend.h"
 
+#if ENABLE(INSPECTOR)
+
 #if ENABLE(DATABASE)
 #include "Database.h"
 #endif
@@ -43,6 +45,7 @@
 #include "InspectorDOMAgent.h"
 #include "InspectorFrontend.h"
 #include "InspectorResource.h"
+#include "Pasteboard.h"
 #include "ScriptFunctionCall.h"
 
 #if ENABLE(DOM_STORAGE)
@@ -54,6 +57,8 @@
 #include "JavaScriptDebugServer.h"
 using namespace JSC;
 #endif
+
+#include "markup.h"
 
 #include <wtf/RefPtr.h>
 #include <wtf/StdLibExtras.h>
@@ -271,19 +276,6 @@ bool InspectorBackend::timelineEnabled() const
     return false;
 }
 
-void InspectorBackend::getCookies(long callId)
-{
-    if (InspectorDOMAgent* domAgent = inspectorDOMAgent())
-        domAgent->getCookies(callId);
-}
-
-void InspectorBackend::deleteCookie(const String& cookieName)
-{
-    if (!m_inspectorController)
-        return;
-    m_inspectorController->deleteCookie(cookieName);
-}
-
 #if ENABLE(JAVASCRIPT_DEBUGGER)
 const ProfilesArray& InspectorBackend::profiles() const
 {
@@ -444,6 +436,34 @@ void InspectorBackend::setTextNodeValue(long callId, long nodeId, const String& 
         domAgent->setTextNodeValue(callId, nodeId, value);
 }
 
+void InspectorBackend::getEventListenersForNode(long callId, long nodeId)
+{
+    if (InspectorDOMAgent* domAgent = inspectorDOMAgent())
+        domAgent->getEventListenersForNode(callId, nodeId);
+}
+
+void InspectorBackend::copyNode(long nodeId)
+{
+    Node* node = nodeForId(nodeId);
+    if (!node)
+        return;
+    String markup = createMarkup(node);
+    Pasteboard::generalPasteboard()->writePlainText(markup);
+}
+
+void InspectorBackend::getCookies(long callId)
+{
+    if (InspectorDOMAgent* domAgent = inspectorDOMAgent())
+        domAgent->getCookies(callId);
+}
+
+void InspectorBackend::deleteCookie(const String& cookieName)
+{
+    if (!m_inspectorController)
+        return;
+    m_inspectorController->deleteCookie(cookieName);
+}
+
 void InspectorBackend::highlight(long nodeId)
 {
     if (Node* node = nodeForId(nodeId))
@@ -500,8 +520,26 @@ void InspectorBackend::selectDatabase(Database* database)
 #if ENABLE(DOM_STORAGE)
 void InspectorBackend::selectDOMStorage(Storage* storage)
 {
-    if (InspectorFrontend* frontend = inspectorFrontend())
-        frontend->selectDOMStorage(storage);
+    if (m_inspectorController)
+        m_inspectorController->selectDOMStorage(storage);
+}
+
+void InspectorBackend::getDOMStorageEntries(long callId, long storageId)
+{
+    if (m_inspectorController)
+        m_inspectorController->getDOMStorageEntries(callId, storageId);
+}
+
+void InspectorBackend::setDOMStorageItem(long callId, long storageId, const String& key, const String& value)
+{
+    if (m_inspectorController)
+        m_inspectorController->setDOMStorageItem(callId, storageId, key, value);
+}
+
+void InspectorBackend::removeDOMStorageItem(long callId, long storageId, const String& key)
+{
+    if (m_inspectorController)
+        m_inspectorController->removeDOMStorageItem(callId, storageId, key);
 }
 #endif
 
@@ -520,3 +558,5 @@ InspectorFrontend* InspectorBackend::inspectorFrontend()
 }
 
 } // namespace WebCore
+
+#endif // ENABLE(INSPECTOR)

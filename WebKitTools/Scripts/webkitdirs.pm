@@ -1,4 +1,5 @@
 # Copyright (C) 2005, 2006, 2007 Apple Inc. All rights reserved.
+# Copyright (C) 2009 Google Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,8 +29,10 @@
 
 use strict;
 use warnings;
+use Config;
 use FindBin;
 use File::Basename;
+use File::Spec;
 use POSIX;
 use VCSUtils;
 
@@ -82,6 +85,15 @@ sub determineSourceDir
     }
 
     $sourceDir = "$sourceDir/OpenSource" if -d "$sourceDir/OpenSource";
+}
+
+sub currentPerlPath()
+{
+    my $thisPerl = $^X;
+    if ($^O ne 'VMS') {
+        $thisPerl .= $Config{_exe} unless $thisPerl =~ m/$Config{_exe}$/i;
+    }
+    return $thisPerl;
 }
 
 # used for scripts which are stored in a non-standard location
@@ -548,6 +560,25 @@ sub libraryContainsSymbol
     return $foundSymbol;
 }
 
+sub hasMathMLSupport
+{
+    my $path = shift;
+
+    return libraryContainsSymbol($path, "MathMLElement");
+}
+
+sub checkWebCoreMathMLSupport
+{
+    my $required = shift;
+    my $framework = "WebCore";
+    my $path = builtDylibPathForName($framework);
+    my $hasMathML = hasMathMLSupport($path);
+    if ($required && !$hasMathML) {
+        die "$framework at \"$path\" does not include MathML Support, please run build-webkit --mathml\n";
+    }
+    return $hasMathML;
+}
+
 sub hasSVGSupport
 {
     my $path = shift;
@@ -867,7 +898,7 @@ sub isDarwin()
 
 sub isWindows()
 {
-    return isCygwin() || ($^O eq "MSWin32") || 0;
+    return ($^O eq "MSWin32") || 0;
 }
 
 sub isLinux()
@@ -998,7 +1029,7 @@ sub checkRequiredSystemConfig
             print "http://developer.apple.com/tools/xcode\n";
             print "*************************************************************\n";
         }
-    } elsif (isGtk() or isQt() or isWx()) {
+    } elsif (isGtk() or isQt() or isWx() or isChromium()) {
         my @cmds = qw(flex bison gperf);
         my @missing = ();
         foreach my $cmd (@cmds) {
@@ -1127,6 +1158,9 @@ sub buildWafProject
     print "Building $project\n";
 
     my $wafCommand = "$sourceDir/WebKitTools/wx/waf";
+    if ($ENV{'WXWEBKIT_WAF'}) {
+        $wafCommand = $ENV{'WXWEBKIT_WAF'};
+    }
     if (isCygwin()) {
         $wafCommand = `cygpath --windows "$wafCommand"`;
         chomp($wafCommand);
@@ -1303,16 +1337,18 @@ sub buildQMakeProject($@)
         }
     }
 
-    my $dir = baseProductDir();
+    my $dir = File::Spec->canonpath(baseProductDir());
+    my @mkdirArgs;
+    push @mkdirArgs, "-p" if !isWindows();
     if (! -d $dir) {
-        system "mkdir", "-p", "$dir";
+        system "mkdir", @mkdirArgs, "$dir";
         if (! -d $dir) {
             die "Failed to create product directory " . $dir;
         }
     }
-    $dir = $dir . "/$config";
+    $dir = File::Spec->catfile($dir, $config);
     if (! -d $dir) {
-        system "mkdir", "-p", "$dir";
+        system "mkdir", @mkdirArgs, "$dir";
         if (! -d $dir) {
             die "Failed to create build directory " . $dir;
         }
@@ -1354,6 +1390,28 @@ sub buildGtkProject($$@)
     }
 
     return buildAutotoolsProject($clean, @buildArgs);
+}
+
+sub buildChromium($@)
+{
+    my ($clean, @options) = @_;
+
+    my $result = 1;
+    if (isDarwin()) {
+        # Mac build - builds the root xcode project.
+        $result = buildXCodeProject("WebKit/chromium/webkit", $clean, (@options));
+    } elsif (isCygwin()) {
+        # Windows build
+        # FIXME support windows.
+        print STDERR "Windows build is not supported. Yet.";
+    } elsif (isLinux()) {
+        # Linux build
+        # FIXME support linux.
+        print STDERR "Linux build is not supported. Yet.";
+    } else {
+        print STDERR "This platform is not supported by chromium.";
+    }
+    return $result;
 }
 
 sub setPathForRunningWebKitApp

@@ -436,20 +436,42 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
     }
 #endif
 
+#if ENABLE(3D_CANVAS)
     // The following objects are created from JavaScript.
-    case V8ClassIndex::DOMPARSER:
-        descriptor->SetCallHandler(USE_CALLBACK(DOMParserConstructor));
+    case V8ClassIndex::CANVASARRAYBUFFER:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasArrayBufferConstructor));
         break;
-#if ENABLE(VIDEO)
-    case V8ClassIndex::HTMLAUDIOELEMENT:
-        descriptor->SetCallHandler(USE_CALLBACK(HTMLAudioElementConstructor));
+    case V8ClassIndex::CANVASBYTEARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasByteArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasByteArray), USE_INDEXED_PROPERTY_SETTER(CanvasByteArray));
+        break;
+    case V8ClassIndex::CANVASFLOATARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasFloatArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasFloatArray), USE_INDEXED_PROPERTY_SETTER(CanvasFloatArray));
+        break;
+    case V8ClassIndex::CANVASINTARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasIntArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasIntArray), USE_INDEXED_PROPERTY_SETTER(CanvasIntArray));
+        break;
+    case V8ClassIndex::CANVASSHORTARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasShortArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasShortArray), USE_INDEXED_PROPERTY_SETTER(CanvasShortArray));
+        break;
+    case V8ClassIndex::CANVASUNSIGNEDBYTEARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasUnsignedByteArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasUnsignedByteArray), USE_INDEXED_PROPERTY_SETTER(CanvasUnsignedByteArray));
+        break;
+    case V8ClassIndex::CANVASUNSIGNEDINTARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasUnsignedIntArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasUnsignedIntArray), USE_INDEXED_PROPERTY_SETTER(CanvasUnsignedIntArray));
+        break;
+    case V8ClassIndex::CANVASUNSIGNEDSHORTARRAY:
+        descriptor->SetCallHandler(USE_CALLBACK(CanvasUnsignedShortArrayConstructor));
+        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(CanvasUnsignedShortArray), USE_INDEXED_PROPERTY_SETTER(CanvasUnsignedShortArray));
         break;
 #endif
-    case V8ClassIndex::HTMLIMAGEELEMENT:
-        descriptor->SetCallHandler(USE_CALLBACK(HTMLImageElementConstructor));
-        break;
-    case V8ClassIndex::HTMLOPTIONELEMENT:
-        descriptor->SetCallHandler(USE_CALLBACK(HTMLOptionElementConstructor));
+    case V8ClassIndex::DOMPARSER:
+        descriptor->SetCallHandler(USE_CALLBACK(DOMParserConstructor));
         break;
     case V8ClassIndex::WEBKITCSSMATRIX:
         descriptor->SetCallHandler(USE_CALLBACK(WebKitCSSMatrixConstructor));
@@ -545,6 +567,16 @@ v8::Local<v8::Function> V8DOMWrapper::getConstructor(V8ClassIndex::V8WrapperType
     Frame* frame = window->frame();
     if (!frame)
         return v8::Local<v8::Function>();
+
+#if ENABLE(WEB_SOCKETS)
+    // Make typeof(window.WebSocket) == 'undefined' when
+    // experimentalWebSocketEnabled is false.
+    if (type == V8ClassIndex::WEBSOCKET) {
+        Settings* settings = frame->settings();
+        if (!settings || !settings->experimentalWebSocketsEnabled())
+            return v8::Local<v8::Function>();
+    }
+#endif
 
     v8::Handle<v8::Context> context = V8Proxy::context(frame);
     if (context.IsEmpty())
@@ -1112,6 +1144,8 @@ v8::Handle<v8::Value> V8DOMWrapper::convertEventToV8Object(Event* event)
         type = V8ClassIndex::OVERFLOWEVENT;
     else if (event->isMessageEvent())
         type = V8ClassIndex::MESSAGEEVENT;
+    else if (event->isPageTransitionEvent())
+        type = V8ClassIndex::PAGETRANSITIONEVENT;
     else if (event->isProgressEvent()) {
         if (event->isXMLHttpRequestProgressEvent())
             type = V8ClassIndex::XMLHTTPREQUESTPROGRESSEVENT;
@@ -1343,7 +1377,11 @@ v8::Handle<v8::Value> V8DOMWrapper::convertEventListenerToV8Object(EventListener
 
 PassRefPtr<EventListener> V8DOMWrapper::getEventListener(Node* node, v8::Local<v8::Value> value, bool isAttribute, bool findOnly)
 {
-    V8Proxy* proxy = V8Proxy::retrieve(node->scriptExecutionContext());
+    ScriptExecutionContext* context = node->scriptExecutionContext();
+    if (!context)
+        return 0;
+
+    V8Proxy* proxy = V8Proxy::retrieve(context);
     // The document might be created using createDocument, which does
     // not have a frame, use the active frame.
     if (!proxy)

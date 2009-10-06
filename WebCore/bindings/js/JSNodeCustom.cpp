@@ -122,7 +122,7 @@ JSValue JSNode::addEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false), args.at(2).toBoolean(exec));
+    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -140,7 +140,7 @@ JSValue JSNode::removeEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), globalObject, false).get(), args.at(2).toBoolean(exec));
+    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -150,10 +150,10 @@ void JSNode::pushEventHandlerScope(ExecState*, ScopeChain&) const
 
 void JSNode::markChildren(MarkStack& markStack)
 {
-    Node* node = m_impl.get();
-
     Base::markChildren(markStack);
-    markEventListeners(markStack, node->eventListeners());
+
+    Node* node = m_impl.get();
+    node->markEventListeners(markStack);
 
     // Nodes in the document are kept alive by JSDocument::mark, so, if we're in
     // the document, we need to mark the document, but we don't need to explicitly

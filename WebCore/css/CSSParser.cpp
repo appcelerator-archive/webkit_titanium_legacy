@@ -892,14 +892,15 @@ bool CSSParser::parseValue(int propId, bool important)
         RefPtr<CSSValue> val1;
         RefPtr<CSSValue> val2;
         int propId1, propId2;
+        bool result = false;
         if (parseFillProperty(propId, propId1, propId2, val1, val2)) {
             addProperty(propId1, val1.release(), important);
             if (val2)
                 addProperty(propId2, val2.release(), important);
-            return true;
+            result = true;
         }
         m_implicitShorthand = false;
-        return false;
+        return result;
     }
     case CSSPropertyListStyleImage:     // <uri> | none | inherit
         if (id == CSSValueNone) {
@@ -1519,6 +1520,12 @@ bool CSSParser::parseValue(int propId, bool important)
     case CSSPropertyWebkitTextSecurity:
         // disc | circle | square | none | inherit
         if (id == CSSValueDisc || id == CSSValueCircle || id == CSSValueSquare|| id == CSSValueNone)
+            valid_primitive = true;
+        break;
+
+    case CSSPropertyWebkitFontSmoothing:
+        if (id == CSSValueAuto || id == CSSValueNone 
+            || id == CSSValueAntialiased || id == CSSValueSubpixelAntialiased)
             valid_primitive = true;
         break;
 
@@ -2143,7 +2150,7 @@ PassRefPtr<CSSValue> CSSParser::parseAttr(CSSParserValueList* args)
     if (attrName[0] == '-')
         return 0;
 
-    if (document()->isHTMLDocument())
+    if (document() && document()->isHTMLDocument())
         attrName = attrName.lower();
     
     return CSSPrimitiveValue::create(attrName, CSSPrimitiveValue::CSS_ATTR);

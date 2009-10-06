@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<!-- 
+<!--
 
 Copyright (C) 2007 Kevin Ollivier.  All rights reserved.
 
@@ -8,13 +8,13 @@ modification, are permitted provided that the following conditions
 are met:
 
 1.  Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer. 
+    notice, this list of conditions and the following disclaimer.
 2.  Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution. 
+    documentation and/or other materials provided with the distribution.
 3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
     its contributors may be used to endorse or promote products derived
-    from this software without specific prior written permission. 
+    from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -51,7 +51,7 @@ This file contains the list of files needed to build WebCore.
         accessibility/AccessibilityTableRow.cpp
         accessibility/AXObjectCache.cpp
     </set>
-    
+
     <set append="1" var="WEBCORE_SOURCES_JS">
         bindings/js/GCController.cpp
         bindings/js/JSAttrCustom.cpp
@@ -122,7 +122,6 @@ This file contains the list of files needed to build WebCore.
         bindings/js/JSMessagePortCustom.cpp
         bindings/js/JSMimeTypeArrayCustom.cpp
         bindings/js/JSNamedNodeMapCustom.cpp
-        bindings/js/JSNamedNodesCollection.cpp
         bindings/js/JSNavigatorCustom.cpp
         bindings/js/JSNodeCustom.cpp
         bindings/js/JSNodeFilterCondition.cpp
@@ -500,7 +499,7 @@ This file contains the list of files needed to build WebCore.
         dom/RegisteredEventListener.cpp
         dom/ScriptElement.cpp
         dom/ScriptExecutionContext.cpp
-        dom/SelectElement.cpp 
+        dom/SelectElement.cpp
         dom/SelectorNodeList.cpp
         dom/StaticNodeList.cpp
         dom/StyleElement.cpp
@@ -508,6 +507,7 @@ This file contains the list of files needed to build WebCore.
         dom/TagNodeList.cpp
         dom/Text.cpp
         dom/TextEvent.cpp
+        dom/TransformSourceLibxslt.cpp
         dom/Traversal.cpp
         dom/TreeWalker.cpp
         dom/UIEvent.cpp
@@ -569,7 +569,7 @@ This file contains the list of files needed to build WebCore.
         editing/markup.cpp
         editing/visible_units.cpp
     </set>
-    
+
     <set append="1" var="WEBCORE_SOURCES_HISTORY">
         history/BackForwardList.cpp
         history/CachedFrame.cpp
@@ -577,7 +577,7 @@ This file contains the list of files needed to build WebCore.
         history/PageCache.cpp
         history/HistoryItem.cpp
     </set>
-    
+
     <set append="1" var="WEBCORE_SOURCES_HTML">
         html/canvas/CanvasGradient.cpp
         html/canvas/CanvasPattern.cpp
@@ -737,7 +737,7 @@ This file contains the list of files needed to build WebCore.
         loader/WorkerThreadableLoader.cpp
         loader/loader.cpp
     </set>
-    
+
     <set append="1" var="WEBCORE_SOURCES_ICON">
         loader/icon/IconDatabase.cpp
         loader/icon/IconLoader.cpp
@@ -1056,6 +1056,7 @@ This file contains the list of files needed to build WebCore.
         storage/StorageAreaImpl.cpp
         storage/StorageAreaSync.cpp
         storage/StorageEvent.cpp
+        storage/StorageEventDispatcher.cpp
         storage/StorageNamespace.cpp
         storage/StorageNamespaceImpl.cpp
         storage/StorageMap.cpp
@@ -1084,10 +1085,11 @@ This file contains the list of files needed to build WebCore.
         xml/XPathValue.cpp
         xml/XPathVariableReference.cpp
         xml/XSLImportRule.cpp
-        xml/XSLStyleSheet.cpp
+        xml/XSLStyleSheetLibxslt.cpp
         xml/XSLTExtensions.cpp
         xml/XSLTUnicodeSort.cpp
         xml/XSLTProcessor.cpp
+        xml/XSLTProcessorLibxslt.cpp
     </set>
 
 </makefile>

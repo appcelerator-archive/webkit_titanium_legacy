@@ -96,7 +96,7 @@ bool EventHandler::passWheelEventToWidget(PlatformWheelEvent& event, Widget* wid
 
 PassRefPtr<Clipboard> EventHandler::createDraggingClipboard() const
 {
-    return ClipboardGtk::create(ClipboardWritable, true);
+    return ClipboardGtk::create(ClipboardWritable, DataObjectGtk::create(), true);
 }
 
 bool EventHandler::passMousePressEventToSubframe(MouseEventWithHitTestResults& mev, Frame* subframe)
@@ -120,6 +120,15 @@ bool EventHandler::passMouseReleaseEventToSubframe(MouseEventWithHitTestResults&
 unsigned EventHandler::accessKeyModifiers()
 {
     return PlatformKeyboardEvent::AltKey;
+}
+
+// GTK+ must scroll horizontally if the mouse pointer is on top of the
+// horizontal scrollbar while scrolling with the wheel; we need to
+// add the deltas and ticks here so that this behavior is consistent
+// for styled scrollbars.
+bool EventHandler::shouldTurnVerticalTicksIntoHorizontal(const HitTestResult& result) const
+{
+    return result.scrollbar() && result.scrollbar()->orientation() == HorizontalScrollbar;
 }
 
 }

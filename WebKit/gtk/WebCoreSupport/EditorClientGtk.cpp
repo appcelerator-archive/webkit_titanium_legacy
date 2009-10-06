@@ -26,17 +26,20 @@
 #include "CString.h"
 #include "EditCommand.h"
 #include "Editor.h"
-#include <enchant.h>
 #include "EventNames.h"
 #include "FocusController.h"
 #include "Frame.h"
-#include <glib.h>
 #include "KeyboardCodes.h"
 #include "KeyboardEvent.h"
 #include "NotImplemented.h"
 #include "Page.h"
 #include "PlatformKeyboardEvent.h"
 #include "markup.h"
+#include "DataObjectGtk.h"
+#include "PasteboardHelperGtk.h"
+
+#include <enchant.h>
+#include <glib.h>
 #include "webkitprivate.h"
 
 // Arbitrary depth limit for the undo stack, to keep it from using
@@ -49,39 +52,32 @@ using namespace WebCore;
 
 namespace WebKit {
 
+static gchar* pendingComposition = 0;
+static gchar* pendingPreedit = 0;
+
+static void clearPendingIMData()
+{
+    g_free(pendingComposition);
+    pendingComposition = 0;
+    g_free(pendingPreedit);
+    pendingPreedit = 0;
+}
 static void imContextCommitted(GtkIMContext* context, const gchar* str, EditorClient* client)
 {
-    Frame* targetFrame = core(client->m_webView)->focusController()->focusedOrMainFrame();
+    ASSERT(!pendingComposition);
 
-    if (!targetFrame || !targetFrame->editor()->canEdit())
-        return;
-
-    Editor* editor = targetFrame->editor();
-
-    String commitString = String::fromUTF8(str);
-    editor->confirmComposition(commitString);
+    // This signal will fire during a keydown event. We want the contents of the
+    // field to change right before the keyup event, so we wait until then to actually
+    // commit this composition.
+    pendingComposition = g_strdup(str);
 }
 
 static void imContextPreeditChanged(GtkIMContext* context, EditorClient* client)
 {
-    Frame* frame = core(client->m_webView)->focusController()->focusedOrMainFrame();
-    Editor* editor = frame->editor();
+    ASSERT(!pendingPreedit);
 
-    gchar* preedit = NULL;
-    gint cursorPos = 0;
     // We ignore the provided PangoAttrList for now.
-    gtk_im_context_get_preedit_string(context, &preedit, NULL, &cursorPos);
-    String preeditString = String::fromUTF8(preedit);
-    g_free(preedit);
-
-    // setComposition() will replace the user selection if passed an empty
-    // preedit. We don't want this to happen.
-    if (preeditString.isEmpty() && !editor->hasComposition())
-        return;
-
-    Vector<CompositionUnderline> underlines;
-    underlines.append(CompositionUnderline(0, preeditString.length(), Color(0, 0, 0), false));
-    editor->setComposition(preeditString, underlines, cursorPos, 0);
+    gtk_im_context_get_preedit_string(context, &pendingPreedit, NULL, NULL);
 }
 
 void EditorClient::setInputMethodState(bool active)
@@ -136,12 +132,16 @@ int EditorClient::spellCheckerDocumentTag()
 
 bool EditorClient::shouldBeginEditing(WebCore::Range*)
 {
+    clearPendingIMData();
+
     notImplemented();
     return true;
 }
 
 bool EditorClient::shouldEndEditing(WebCore::Range*)
 {
+    clearPendingIMData();
+
     notImplemented();
     return true;
 }
@@ -180,31 +180,6 @@ void EditorClient::respondToChangedContents()
     notImplemented();
 }
 
-static void clipboard_get_contents_cb(GtkClipboard* clipboard, GtkSelectionData* selection_data, guint info, gpointer data)
-{
-    WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
-    Frame* frame = core(webView)->focusController()->focusedOrMainFrame();
-    PassRefPtr<Range> selectedRange = frame->selection()->toNormalizedRange();
-
-    if (static_cast<gint>(info) == WEBKIT_WEB_VIEW_TARGET_INFO_HTML) {
-        String markup = createMarkup(selectedRange.get(), 0, AnnotateForInterchange);
-        gtk_selection_data_set(selection_data, selection_data->target, 8,
-                               reinterpret_cast<const guchar*>(markup.utf8().data()), markup.utf8().length());
-    } else {
-        String text = selectedRange->text();
-        gtk_selection_data_set_text(selection_data, text.utf8().data(), text.utf8().length());
-    }
-}
-
-static void clipboard_clear_contents_cb(GtkClipboard* clipboard, gpointer data)
-{
-    WebKitWebView* webView = reinterpret_cast<WebKitWebView*>(data);
-    Frame* frame = core(webView)->focusController()->focusedOrMainFrame();
-
-    // Collapse the selection without clearing it
-    frame->selection()->setBase(frame->selection()->extent(), frame->selection()->affinity());
-}
-
 void EditorClient::respondToChangedSelection()
 {
     WebKitWebViewPrivate* priv = m_webView->priv;
@@ -216,16 +191,22 @@ void EditorClient::respondToChangedSelection()
     if (targetFrame->editor()->ignoreCompositionSelectionChange())
         return;
 
-    GtkClipboard* clipboard = gtk_widget_get_clipboard(GTK_WIDGET(m_webView), GDK_SELECTION_PRIMARY);
+#if PLATFORM(X11)
     if (targetFrame->selection()->isRange()) {
-        GtkTargetList* targetList = webkit_web_view_get_copy_target_list(m_webView);
-        gint targetCount;
-        GtkTargetEntry* targets = gtk_target_table_new_from_list(targetList, &targetCount);
-        gtk_clipboard_set_with_owner(clipboard, targets, targetCount,
-                                     clipboard_get_contents_cb, clipboard_clear_contents_cb, G_OBJECT(m_webView));
-        gtk_target_table_free(targets, targetCount);
-    } else if (gtk_clipboard_get_owner(clipboard) == G_OBJECT(m_webView))
-        gtk_clipboard_clear(clipboard);
+
+        bool primary = PasteboardHelper::usePrimaryClipboard();
+        PasteboardHelper::setUsePrimaryClipboard(true);
+        GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(targetFrame);
+        PasteboardHelper::setUsePrimaryClipboard(primary);
+
+        DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
+        RefPtr<Range> range = targetFrame->selection()->toNormalizedRange();
+        dataObject->setText(targetFrame->selectedText());
+        dataObject->setMarkup(createMarkup(range.get(), 0, AnnotateForInterchange));
+
+        PasteboardHelper::helper()->writeClipboardContents(clipboard);
+    }
+#endif
 
     if (!targetFrame->editor()->hasComposition())
         return;
@@ -421,7 +402,7 @@ static const KeyPressEntry keyPressEntries[] = {
     { '\r',   AltKey | ShiftKey,  "InsertNewline"                               },
 };
 
-static const char* interpretKeyEvent(const KeyboardEvent* evt)
+static const char* interpretEditorCommandKeyEvent(const KeyboardEvent* evt)
 {
     ASSERT(evt->type() == eventNames().keydownEvent || evt->type() == eventNames().keypressEvent);
 
@@ -456,74 +437,117 @@ static const char* interpretKeyEvent(const KeyboardEvent* evt)
     return mapKey ? keyPressCommandsMap->get(mapKey) : 0;
 }
 
-static bool handleEditingKeyboardEvent(KeyboardEvent* evt)
+static bool handleCaretBrowsingKeyboardEvent(Frame* frame, const PlatformKeyboardEvent* keyEvent)
 {
-    Node* node = evt->target()->toNode();
-    ASSERT(node);
-    Frame* frame = node->document()->frame();
-    ASSERT(frame);
-
-    const PlatformKeyboardEvent* keyEvent = evt->keyEvent();
-    if (!keyEvent)
-        return false;
-
-    bool caretBrowsing = frame->settings()->caretBrowsingEnabled();
-    if (caretBrowsing) {
-        switch (keyEvent->windowsVirtualKeyCode()) {
-            case VK_LEFT:
-                frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                        SelectionController::LEFT,
-                        keyEvent->ctrlKey() ? WordGranularity : CharacterGranularity,
-                        true);
-                return true;
-            case VK_RIGHT:
-                frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                        SelectionController::RIGHT,
-                        keyEvent->ctrlKey() ? WordGranularity : CharacterGranularity,
-                        true);
-                return true;
-            case VK_UP:
-                frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                        SelectionController::BACKWARD,
-                        keyEvent->ctrlKey() ? ParagraphGranularity : LineGranularity,
-                        true);
-                return true;
-            case VK_DOWN:
-                frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                        SelectionController::FORWARD,
-                        keyEvent->ctrlKey() ? ParagraphGranularity : LineGranularity,
-                        true);
-                return true;
-        }
+    switch (keyEvent->windowsVirtualKeyCode()) {
+        case VK_LEFT:
+            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
+                    SelectionController::LEFT,
+                    keyEvent->ctrlKey() ? WordGranularity : CharacterGranularity,
+                    true);
+            return true;
+        case VK_RIGHT:
+            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
+                    SelectionController::RIGHT,
+                    keyEvent->ctrlKey() ? WordGranularity : CharacterGranularity,
+                    true);
+            return true;
+        case VK_UP:
+            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
+                    SelectionController::BACKWARD,
+                    keyEvent->ctrlKey() ? ParagraphGranularity : LineGranularity,
+                    true);
+            return true;
+        case VK_DOWN:
+            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
+                    SelectionController::FORWARD,
+                    keyEvent->ctrlKey() ? ParagraphGranularity : LineGranularity,
+                    true);
+            return true;
+        default:
+            return false; // Not a caret browswing keystroke, so continue processing.
     }
-
-    Editor::Command command = frame->editor()->command(interpretKeyEvent(evt));
-
-    if (keyEvent->type() == PlatformKeyboardEvent::RawKeyDown) {
-        // WebKit doesn't have enough information about mode to decide how commands that just insert text if executed via Editor should be treated,
-        // so we leave it upon WebCore to either handle them immediately (e.g. Tab that changes focus) or let a keypress event be generated
-        // (e.g. Tab that inserts a Tab character, or Enter).
-        return !command.isTextInsertion() && command.execute(evt);
-    }
-
-    if (command.execute(evt))
-        return true;
-
-    // Don't insert null or control characters as they can result in unexpected behaviour
-    if (evt->charCode() < ' ')
-        return false;
-
-    // Don't insert anything if a modifier is pressed
-    if (keyEvent->ctrlKey() || keyEvent->altKey())
-        return false;
-
-    return frame->editor()->insertText(evt->keyEvent()->text(), evt);
 }
 
 void EditorClient::handleKeyboardEvent(KeyboardEvent* event)
 {
-    if (handleEditingKeyboardEvent(event))
+    Node* node = event->target()->toNode();
+    ASSERT(node);
+    Frame* frame = node->document()->frame();
+    ASSERT(frame);
+
+    const PlatformKeyboardEvent* platformEvent = event->keyEvent();
+    if (!platformEvent)
+        return;
+
+    bool caretBrowsing = frame->settings()->caretBrowsingEnabled();
+    if (caretBrowsing && handleCaretBrowsingKeyboardEvent(frame, platformEvent)) {
+        // This was a caret browsing key event, so prevent it from bubbling up to the DOM.
         event->setDefaultHandled();
+        return;
+    }
+
+    // Don't allow editor commands or text insertion for nodes that cannot edit.
+    if (!frame->editor()->canEdit())
+        return;
+
+    const gchar* editorCommandString = interpretEditorCommandKeyEvent(event);
+    if (editorCommandString) {
+        Editor::Command command = frame->editor()->command(editorCommandString);
+
+        // On editor commands from key down events, we only want to let the event bubble up to
+        // the DOM if it inserts text. If it doesn't insert text (e.g. Tab that changes focus)
+        // we just want WebKit to handle it immediately without a DOM event.
+        if (platformEvent->type() == PlatformKeyboardEvent::RawKeyDown) {
+            if (!command.isTextInsertion() && command.execute(event))
+                event->setDefaultHandled();
+
+            return;
+        } else if (command.execute(event)) {
+            event->setDefaultHandled();
+            return;
+        }
+    }
+
+    // This is just a normal text insertion, so wait to execute the insertion
+    // until a keypress event happens. This will ensure that the insertion will not
+    // be reflected in the contents of the field until the keyup DOM event.
+    if (event->type() == eventNames().keypressEvent) {
+
+        if (pendingComposition) {
+            String compositionString = String::fromUTF8(pendingComposition);
+            frame->editor()->confirmComposition(compositionString);
+
+            clearPendingIMData();
+            event->setDefaultHandled();
+
+        } else if (pendingPreedit) {
+            String preeditString = String::fromUTF8(pendingPreedit);
+
+            // Don't use an empty preedit as it will destroy the current
+            // selection, even if the composition is cancelled or fails later on.
+            if (!preeditString.isEmpty()) {
+                Vector<CompositionUnderline> underlines;
+                underlines.append(CompositionUnderline(0, preeditString.length(), Color(0, 0, 0), false));
+                frame->editor()->setComposition(preeditString, underlines, 0, 0);
+            }
+
+            clearPendingIMData();
+            event->setDefaultHandled();
+
+        } else {
+            // Don't insert null or control characters as they can result in unexpected behaviour
+            if (event->charCode() < ' ')
+                return;
+
+            // Don't insert anything if a modifier is pressed
+            if (platformEvent->ctrlKey() || platformEvent->altKey())
+                return;
+
+            if (frame->editor()->insertText(platformEvent->text(), event))
+                event->setDefaultHandled();
+        }
+    }
 }
 
 void EditorClient::handleInputMethodKeydown(KeyboardEvent* event)
@@ -532,10 +556,10 @@ void EditorClient::handleInputMethodKeydown(KeyboardEvent* event)
     if (!targetFrame || !targetFrame->editor()->canEdit())
         return;
 
+    // TODO: We need to decide which filtered keystrokes should be treated as IM
+    // events and which should not.
     WebKitWebViewPrivate* priv = m_webView->priv;
-    // TODO: Dispatch IE-compatible text input events for IM events.
-    if (gtk_im_context_filter_keypress(priv->imContext, event->keyEvent()->gdkEventKey()))
-        event->setDefaultHandled();
+    gtk_im_context_filter_keypress(priv->imContext, event->keyEvent()->gdkEventKey());
 }
 
 EditorClient::EditorClient(WebKitWebView* webView)

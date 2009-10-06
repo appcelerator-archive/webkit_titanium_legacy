@@ -958,8 +958,12 @@ sub GenerateBatchedAttributeData
             my $constructorType = $codeGenerator->StripModule($attribute->signature->type);
             $constructorType =~ s/Constructor$//;
             my $constructorIndex = uc($constructorType);
-            $data = "V8ClassIndex::${constructorIndex}";
-            $getter = "${interfaceName}Internal::${interfaceName}ConstructorGetter";
+            if ($customAccessor) {
+                $getter = "V8Custom::v8${customAccessor}AccessorGetter";
+            } else {
+                $data = "V8ClassIndex::${constructorIndex}";
+                $getter = "${interfaceName}Internal::${interfaceName}ConstructorGetter";
+            }
             $setter = "0";
             $propAttr = "v8::ReadOnly";
 
@@ -1003,7 +1007,12 @@ sub GenerateBatchedAttributeData
         # Replaceable
         if ($attrExt->{"Replaceable"} && !$hasCustomSetter) {
             $setter = "0";
-            $propAttr .= "|v8::ReadOnly";
+            # Handle the special case of window.top being marked as Replaceable.
+            # FIXME: Investigate whether we could treat window.top as replaceable 
+            # and allow shadowing without it being a security hole.
+            if (!($interfaceName eq "DOMWindow" and $attrName eq "top")) { 
+                $propAttr .= "|v8::ReadOnly";
+            }
         }
 
         # Read only attributes
@@ -1083,7 +1092,11 @@ sub GenerateImplementation
 
         # Generate special code for the constructor attributes.
         if ($attrType =~ /Constructor$/) {
-            $hasConstructors = 1;
+            if ($attribute->signature->extendedAttributes->{"CustomGetter"}) {
+                $implIncludes{"V8CustomBinding.h"} = 1;
+            } else {
+                $hasConstructors = 1;
+            }
             next;
         }
 
@@ -1584,6 +1597,11 @@ sub GetNativeTypeFromSignature
 
     my $type = GetTypeFromSignature($signature);
 
+    if ($type eq "unsigned long" and $signature->extendedAttributes->{"IsIndex"}) {
+        # Special-case index arguments because we need to check that they aren't < 0.
+        return "int";
+    }
+
     return GetNativeType($type, $isParameter);
 }
 
@@ -1591,7 +1609,24 @@ sub IsRefPtrType
 {
     my $type = shift;
     return 1 if $type eq "Attr";
+    return 1 if $type eq "CanvasArray";
+    return 1 if $type eq "CanvasArrayBuffer";
+    return 1 if $type eq "CanvasBooleanArray";
+    return 1 if $type eq "CanvasByteArray";
+    return 1 if $type eq "CanvasBuffer";
+    return 1 if $type eq "CanvasFloatArray";
+    return 1 if $type eq "CanvasFramebuffer";
     return 1 if $type eq "CanvasGradient";
+    return 1 if $type eq "CanvasIntArray";
+    return 1 if $type eq "CanvasObject";
+    return 1 if $type eq "CanvasProgram";
+    return 1 if $type eq "CanvasRenderbuffer";
+    return 1 if $type eq "CanvasShader";
+    return 1 if $type eq "CanvasShortArray";
+    return 1 if $type eq "CanvasTexture";
+    return 1 if $type eq "CanvasUnsignedByteArray";
+    return 1 if $type eq "CanvasUnsignedIntArray";
+    return 1 if $type eq "CanvasUnsignedShortArray";
     return 1 if $type eq "ClientRect";
     return 1 if $type eq "ClientRectList";
     return 1 if $type eq "CDATASection";
@@ -1689,7 +1724,8 @@ sub GetNativeType
 
     return "int" if $type eq "int";
     return "int" if $type eq "short" or $type eq "unsigned short";
-    return "int" if $type eq "long" or $type eq "unsigned long";
+    return "unsigned" if $type eq "unsigned long";
+    return "int" if $type eq "long";
     return "unsigned long long" if $type eq "unsigned long long";
     return "bool" if $type eq "boolean";
     return "String" if $type eq "DOMString";
@@ -1720,6 +1756,19 @@ sub GetNativeType
 my %typeCanFailConversion = (
     "AtomicString" => 0,
     "Attr" => 1,
+    "CanvasArray" => 0,
+    "CanvasBuffer" => 0,
+    "CanvasByteArray" => 0,
+    "CanvasFloatArray" => 0,
+    "CanvasFramebuffer" => 0,
+    "CanvasGradient" => 0,
+    "CanvasIntArray" => 0,
+    "CanvasPixelArray" => 0,
+    "CanvasProgram" => 0,
+    "CanvasRenderbuffer" => 0,
+    "CanvasShader" => 0,
+    "CanvasShortArray" => 0,
+    "CanvasTexture" => 0,
     "CompareHow" => 0,
     "DataGridColumn" => 0,
     "DOMString" => 0,
@@ -1729,8 +1778,11 @@ my %typeCanFailConversion = (
     "Event" => 0,
     "EventListener" => 0,
     "EventTarget" => 0,
+    "HTMLCanvasElement" => 0,
     "HTMLElement" => 0,
+    "HTMLImageElement" => 0,
     "HTMLOptionElement" => 0,
+    "HTMLVideoElement" => 0,
     "Node" => 0,
     "NodeFilter" => 0,
     "MessagePort" => 0,

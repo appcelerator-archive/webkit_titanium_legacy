@@ -35,6 +35,7 @@
 #include "ResourceRequest.h"
 #include "ThreadableLoader.h"
 #include "Timer.h"
+#include <wtf/Forward.h>
 
 namespace WebCore {
 
@@ -110,6 +111,36 @@ namespace WebCore {
         NewWindowPolicyDecisionFunction m_newWindowFunction;
         ContentPolicyDecisionFunction m_contentFunction;
         void* m_argument;
+    };
+
+    class RedirectScheduler : public Noncopyable {
+    public:
+        RedirectScheduler(Frame*);
+        ~RedirectScheduler();
+
+        bool redirectScheduledDuringLoad();
+        bool locationChangePending();
+
+        void scheduleRedirect(double delay, const String& url);
+        void scheduleLocationChange(const String& url, const String& referrer, bool lockHistory, bool lockBackForwardList, bool wasUserGesture);
+        void scheduleFormSubmission(const FrameLoadRequest&, bool lockHistory, PassRefPtr<Event>, PassRefPtr<FormState>);
+        void scheduleRefresh(bool wasUserGesture);
+        void scheduleHistoryNavigation(int steps);
+
+        void startTimer();
+
+        void cancel(bool newLoadInProgress = false);
+        void clear();
+
+    private:
+        void timerFired(Timer<RedirectScheduler>*);
+        void schedule(PassOwnPtr<ScheduledRedirection> redirection);
+
+        static bool mustLockBackForwardList(Frame* targetFrame);
+
+        Frame* m_frame;
+        Timer<RedirectScheduler> m_timer;
+        OwnPtr<ScheduledRedirection> m_scheduledRedirection;
     };
 
     class FrameLoader : public Noncopyable {
@@ -272,7 +303,7 @@ namespace WebCore {
 
         KURL baseURL() const;
 
-        bool isScheduledLocationChangePending() const { return m_scheduledRedirection && isLocationChange(*m_scheduledRedirection); }
+        bool isScheduledLocationChangePending() const;
         void scheduleHTTPRedirection(double delay, const String& url);
         void scheduleLocationChange(const String& url, const String& referrer, bool lockHistory = true, bool lockBackForwardList = true, bool userGesture = false);
         void scheduleRefresh(bool userGesture = false);
@@ -371,6 +402,7 @@ namespace WebCore {
         static bool allowSubstituteDataAccessToLocal();
 
         bool committingFirstRealLoad() const { return !m_creatingInitialEmptyDocument && !m_committedFirstRealDocumentLoad; }
+        bool committedFirstRealDocumentLoad() const { return m_committedFirstRealDocumentLoad; }
 
         void iconLoadDecisionAvailable();
 
@@ -384,6 +416,13 @@ namespace WebCore {
         bool shouldInterruptLoadForXFrameOptions(const String&, const KURL&);
 
         void open(CachedFrameBase&);
+
+        // FIXME: Should these really be public?
+        void completed();
+        bool allAncestorsAreComplete() const; // including this
+        bool allChildrenAreComplete() const; // immediate children, not all descendants
+        void clientRedirected(const KURL&, double delay, double fireDate, bool lockBackForwardList);
+        void clientRedirectCancelledOrFinished(bool cancelWithLoadInProgress);
 
     private:
         PassRefPtr<HistoryItem> createHistoryItem(bool useOriginal);
@@ -411,17 +450,10 @@ namespace WebCore {
         void updateHistoryForClientRedirect();
         void updateHistoryForCommit();
         void updateHistoryForAnchorScroll();
-    
-        void redirectionTimerFired(Timer<FrameLoader>*);
-        void checkCompletedTimerFired(Timer<FrameLoader>*);
-        void checkLoadCompleteTimerFired(Timer<FrameLoader>*);
-        
-        void cancelRedirection(bool newLoadInProgress = false);
+
+        void checkTimerFired(Timer<FrameLoader>*);
 
         void started();
-
-        void completed();
-        void parentCompleted();
 
         bool shouldUsePlugin(const KURL&, const String& mimeType, bool hasFallback, bool& useFallback);
         bool loadPlugin(RenderPart*, const KURL&, const String& mimeType,
@@ -487,10 +519,6 @@ namespace WebCore {
         bool shouldReloadToHandleUnreachableURL(DocumentLoader*);
         void handleUnimplementablePolicy(const ResourceError&);
 
-        void scheduleRedirection(ScheduledRedirection*);
-        void startRedirectionTimer();
-        void stopRedirectionTimer();
-
         void dispatchDidCommitLoad();
         void dispatchAssignIdentifierToInitialRequest(unsigned long identifier, DocumentLoader*, const ResourceRequest&);
         void dispatchWillSendRequest(DocumentLoader*, unsigned long identifier, ResourceRequest&, const ResourceResponse& redirectResponse);
@@ -498,7 +526,6 @@ namespace WebCore {
         void dispatchDidReceiveContentLength(DocumentLoader*, unsigned long identifier, int length);
         void dispatchDidFinishLoading(DocumentLoader*, unsigned long identifier);
 
-        static bool isLocationChange(const ScheduledRedirection&);
         void scheduleFormSubmission(const FrameLoadRequest&, bool lockHistory, PassRefPtr<Event>, PassRefPtr<FormState>);
 
         void loadWithDocumentLoader(DocumentLoader*, FrameLoadType, PassRefPtr<FormState>); // Calls continueLoadAfterNavigationPolicy
@@ -512,8 +539,6 @@ namespace WebCore {
         void loadURL(const KURL&, const String& referrer, const String& frameName,          // Called by loadFrameRequest, calls loadWithNavigationAction or dispatches to navigation policy delegate
             bool lockHistory, FrameLoadType, PassRefPtr<Event>, PassRefPtr<FormState>);                                                         
 
-        void clientRedirectCancelledOrFinished(bool cancelWithLoadInProgress);
-        void clientRedirected(const KURL&, double delay, double fireDate, bool lockBackForwardList);
         bool shouldReload(const KURL& currentURL, const KURL& destinationURL);
 
         void sendRemainingDelegateMessages(unsigned long identifier, const ResourceResponse&, int length, const ResourceError&);
@@ -540,6 +565,7 @@ namespace WebCore {
 
         void scheduleCheckCompleted();
         void scheduleCheckLoadComplete();
+        void startCheckCompleteTimer();
 
         KURL originalRequestURL() const;
 
@@ -597,8 +623,6 @@ namespace WebCore {
 
         bool m_cancellingWithLoadInProgress;
 
-        OwnPtr<ScheduledRedirection> m_scheduledRedirection;
-
         bool m_needsClear;
         bool m_receivedData;
 
@@ -609,10 +633,10 @@ namespace WebCore {
         bool m_containsPlugIns;
 
         KURL m_submittedFormURL;
-    
-        Timer<FrameLoader> m_redirectionTimer;
-        Timer<FrameLoader> m_checkCompletedTimer;
-        Timer<FrameLoader> m_checkLoadCompleteTimer;
+
+        Timer<FrameLoader> m_checkTimer;
+        bool m_shouldCallCheckCompleted;
+        bool m_shouldCallCheckLoadComplete;
 
         Frame* m_opener;
         HashSet<Frame*> m_openedFrames;

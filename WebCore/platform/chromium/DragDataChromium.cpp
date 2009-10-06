@@ -30,6 +30,7 @@
 #include "config.h"
 #include "DragData.h"
 
+#include "ChromiumBridge.h"
 #include "ChromiumDataObject.h"
 #include "Clipboard.h"
 #include "ClipboardChromium.h"
@@ -67,9 +68,9 @@ String DragData::asURL(String* title) const
         url = m_platformDragData->url.string();
     else if (m_platformDragData->filenames.size() == 1) {
         String fileName = m_platformDragData->filenames[0];
-        // FIXME: Add isDirectory to FileSystem so that we can check if it is not a directory.
-        if (fileExists(fileName))
-            url = fileName;
+        fileName = ChromiumBridge::getAbsolutePath(fileName);
+        if (fileExists(fileName) && !ChromiumBridge::isDirectory(fileName))
+            url = ChromiumBridge::filePathToURL(fileName).string();
     }
  
     // |title| can be NULL

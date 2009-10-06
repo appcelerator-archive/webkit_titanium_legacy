@@ -78,7 +78,7 @@ void DragData::asFilenames(Vector<String>& result) const
 
     const unsigned numFiles = DragQueryFileW(hdrop, 0xFFFFFFFF, 0, 0);
     for (unsigned i = 0; i < numFiles; i++) {
-        if (!DragQueryFileW(hdrop, 0, filename, ARRAYSIZE(filename)))
+        if (!DragQueryFileW(hdrop, i, filename, ARRAYSIZE(filename)))
             continue;
         result.append((UChar*)filename);
     }

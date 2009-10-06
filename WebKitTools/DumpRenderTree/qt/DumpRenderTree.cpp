@@ -45,6 +45,7 @@
 #include <QUrl>
 #include <QFocusEvent>
 #include <QFontDatabase>
+#include <QNetworkRequest>
 
 #include <qwebpage.h>
 #include <qwebframe.h>
@@ -86,6 +87,9 @@ public:
 public slots:
     bool shouldInterruptJavaScript() { return false; }
 
+protected:
+    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, NavigationType type);
+
 private slots:
     void setViewGeometry(const QRect &r)
     {
@@ -102,8 +106,7 @@ WebPage::WebPage(QWidget *parent, DumpRenderTree *drt)
 {
     settings()->setFontSize(QWebSettings::MinimumFontSize, 5);
     settings()->setFontSize(QWebSettings::MinimumLogicalFontSize, 5);
-    // To get DRT compliant to some layout tests lets set the default fontsize to 13.
-    settings()->setFontSize(QWebSettings::DefaultFontSize, 13);
+    settings()->setFontSize(QWebSettings::DefaultFontSize, 16);
     settings()->setFontSize(QWebSettings::DefaultFixedFontSize, 13);
     settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, true);
     settings()->setAttribute(QWebSettings::JavascriptCanAccessClipboard, true);
@@ -143,6 +146,42 @@ bool WebPage::javaScriptPrompt(QWebFrame*, const QString& msg, const QString& de
     fprintf(stdout, "PROMPT: %s, default text: %s\n", msg.toUtf8().constData(), defaultValue.toUtf8().constData());
     *result = defaultValue;
     return true;
+}
+
+bool WebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, NavigationType type)
+{
+    if (m_drt->layoutTestController()->waitForPolicy()) {
+        QString url = QString::fromUtf8(request.url().toEncoded());
+        QString typeDescription;
+
+        switch (type) {
+        case NavigationTypeLinkClicked:
+            typeDescription = "link clicked";
+            break;
+        case NavigationTypeFormSubmitted:
+            typeDescription = "form submitted";
+            break;
+        case NavigationTypeBackOrForward:
+            typeDescription = "back/forward";
+            break;
+        case NavigationTypeReload:
+            typeDescription = "reload";
+            break;
+        case NavigationTypeFormResubmitted:
+            typeDescription = "form resubmitted";
+            break;
+        case NavigationTypeOther:
+            typeDescription = "other";
+            break;
+        default:
+            typeDescription = "illegal value";
+        }
+
+        fprintf(stdout, "Policy delegate: attempt to load %s with navigation type '%s'\n",
+                url.toUtf8().constData(), typeDescription.toUtf8().constData());
+        m_drt->layoutTestController()->notifyDone();
+    }
+    return QWebPage::acceptNavigationRequest(frame, request, type);
 }
 
 DumpRenderTree::DumpRenderTree()

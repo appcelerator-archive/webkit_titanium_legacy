@@ -606,6 +606,22 @@ Element* AccessibilityRenderObject::mouseButtonListener() const
     return 0;
 }
 
+void AccessibilityRenderObject::increment()
+{
+    if (roleValue() != SliderRole)
+        return;
+    
+    changeValueByPercent(5);
+}
+
+void AccessibilityRenderObject::decrement()
+{
+    if (roleValue() != SliderRole)
+        return;
+    
+    changeValueByPercent(-5);
+}
+
 static Element* siblingWithAriaRole(String role, Node* node)
 {
     Node* sibling = node->parent()->firstChild();
@@ -1260,15 +1276,9 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
     
     // find out if this element is inside of a label element.
     // if so, it may be ignored because it's the label for a checkbox or radio button
-    HTMLLabelElement* labelElement = labelElementContainer();
-    if (labelElement) {
-        HTMLElement* correspondingControl = labelElement->correspondingControl();
-        if (correspondingControl && correspondingControl->renderer()) {
-            AccessibilityObject* controlObject = axObjectCache()->getOrCreate(correspondingControl->renderer());
-            if (!controlObject->exposesTitleUIElement())
-                return true;
-        }
-    }
+    AccessibilityObject* controlObject = correspondingControlForLabelElement();
+    if (controlObject && !controlObject->exposesTitleUIElement())
+        return true;
         
     AccessibilityRole ariaRole = ariaRoleAttribute();
     if (ariaRole == TextAreaRole || ariaRole == StaticTextRole) {
@@ -1581,8 +1591,22 @@ void AccessibilityRenderObject::setFocused(bool on)
     }
 }
 
+void AccessibilityRenderObject::changeValueByPercent(float percentChange)
+{
+    float range = maxValueForRange() - minValueForRange();
+    float value = valueForRange();
+    
+    value += range * (percentChange / 100);
+    setValue(String::number(value));
+    
+    axObjectCache()->postNotification(m_renderer, AXObjectCache::AXValueChanged, true);
+}
+    
 void AccessibilityRenderObject::setValue(const String& string)
 {
+    if (!m_renderer)
+        return;
+    
     // FIXME: Do we want to do anything here for ARIA textboxes?
     if (m_renderer->isTextField()) {
         HTMLInputElement* input = static_cast<HTMLInputElement*>(m_renderer->node());
@@ -1590,6 +1614,10 @@ void AccessibilityRenderObject::setValue(const String& string)
     } else if (m_renderer->isTextArea()) {
         HTMLTextAreaElement* textArea = static_cast<HTMLTextAreaElement*>(m_renderer->node());
         textArea->setValue(string);
+    } else if (roleValue() == SliderRole) {
+        Node* element = m_renderer->node();
+        if (element && element->isElementNode())
+            static_cast<Element*>(element)->setAttribute(aria_valuenowAttr, string);
     }
 }
 
@@ -2085,8 +2113,14 @@ AccessibilityObject* AccessibilityRenderObject::doAccessibilityHitTest(const Int
     if (obj->isListBox())
         return static_cast<AccessibilityListBox*>(result)->doAccessibilityHitTest(point);
         
-    if (result->accessibilityIsIgnored())
+    if (result->accessibilityIsIgnored()) {
+        // If this element is the label of a control, a hit test should return the control.
+        AccessibilityObject* controlObject = result->correspondingControlForLabelElement();
+        if (controlObject && !controlObject->exposesTitleUIElement())
+            return controlObject;
+
         result = result->parentObjectUnignored();
+    }
 
     return result;
 }
@@ -2165,6 +2199,18 @@ void AccessibilityRenderObject::handleActiveDescendantChanged()
         doc->axObjectCache()->postNotification(activedescendant->renderer(), AXObjectCache::AXFocusedUIElementChanged, true);
 }
 
+AccessibilityObject* AccessibilityRenderObject::correspondingControlForLabelElement() const
+{
+    HTMLLabelElement* labelElement = labelElementContainer();
+    if (!labelElement)
+        return 0;
+    
+    HTMLElement* correspondingControl = labelElement->correspondingControl();
+    if (!correspondingControl)
+        return 0;
+    
+    return axObjectCache()->getOrCreate(correspondingControl->renderer());     
+}
 
 AccessibilityObject* AccessibilityRenderObject::observableObject() const
 {
@@ -2408,6 +2454,7 @@ bool AccessibilityRenderObject::canSetFocusAttribute() const
         case PopUpButtonRole:
         case CheckBoxRole:
         case RadioButtonRole:
+        case SliderRole:
             return true;
         default:
             return false;
@@ -2629,7 +2676,9 @@ void AccessibilityRenderObject::updateBackingStore()
 {
     if (!m_renderer)
         return;
-    m_renderer->view()->layoutIfNeeded();
-}    
-    
+
+    // Updating layout may delete m_renderer and this object.
+    m_renderer->document()->updateLayoutIgnorePendingStylesheets();
+}
+
 } // namespace WebCore

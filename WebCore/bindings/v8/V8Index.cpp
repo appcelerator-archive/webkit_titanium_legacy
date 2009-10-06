@@ -109,6 +109,7 @@
 #include "V8HTMLHtmlElement.h"
 #include "V8HTMLIFrameElement.h"
 #include "V8HTMLImageElement.h"
+#include "V8HTMLImageElementConstructor.h"
 #include "V8HTMLInputElement.h"
 #include "V8HTMLIsIndexElement.h"
 #include "V8HTMLLabelElement.h"
@@ -123,6 +124,7 @@
 #include "V8HTMLOListElement.h"
 #include "V8HTMLOptGroupElement.h"
 #include "V8HTMLOptionElement.h"
+#include "V8HTMLOptionElementConstructor.h"
 #include "V8HTMLParagraphElement.h"
 #include "V8HTMLParamElement.h"
 #include "V8HTMLPreElement.h"
@@ -370,6 +372,7 @@
 
 #if ENABLE(VIDEO)
 #include "V8HTMLAudioElement.h"
+#include "V8HTMLAudioElementConstructor.h"
 #include "V8HTMLMediaElement.h"
 #include "V8HTMLSourceElement.h"
 #include "V8HTMLVideoElement.h"
@@ -397,6 +400,25 @@
 
 #if ENABLE(SHARED_WORKERS)
 #include "V8SharedWorker.h"
+#endif
+
+#if ENABLE(3D_CANVAS)
+#include "V8CanvasRenderingContext3D.h"
+#include "V8CanvasArrayBuffer.h"
+#include "V8CanvasArray.h"
+#include "V8CanvasByteArray.h"
+#include "V8CanvasBuffer.h"
+#include "V8CanvasFloatArray.h"
+#include "V8CanvasFramebuffer.h"
+#include "V8CanvasIntArray.h"
+#include "V8CanvasProgram.h"
+#include "V8CanvasRenderbuffer.h"
+#include "V8CanvasShader.h"
+#include "V8CanvasShortArray.h"
+#include "V8CanvasTexture.h"
+#include "V8CanvasUnsignedByteArray.h"
+#include "V8CanvasUnsignedIntArray.h"
+#include "V8CanvasUnsignedShortArray.h"
 #endif
 
 namespace WebCore {

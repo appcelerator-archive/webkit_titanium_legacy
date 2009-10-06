@@ -375,6 +375,11 @@ public:
         load32(setupArmAddress(address), dest);
     }
 
+    void load32WithUnalignedHalfWords(BaseIndex address, RegisterID dest)
+    {
+        load32(setupArmAddress(address), dest);
+    }
+
     void load32(void* address, RegisterID dest)
     {
         move(ImmPtr(address), addressTempRegister);
@@ -532,6 +537,7 @@ public:
     Jump branchTruncateDoubleToInt32(FPRegisterID, RegisterID)
     {
         ASSERT_NOT_REACHED();
+        return jump();
     }
 
 
@@ -713,6 +719,13 @@ public:
     {
         // use addressTempRegister incase the branch32 we call uses dataTempRegister. :-/
         load32(left, addressTempRegister);
+        return branch32(cond, addressTempRegister, right);
+    }
+
+    Jump branch32WithUnalignedHalfWords(Condition cond, BaseIndex left, Imm32 right)
+    {
+        // use addressTempRegister incase the branch32 we call uses dataTempRegister. :-/
+        load32WithUnalignedHalfWords(left, addressTempRegister);
         return branch32(cond, addressTempRegister, right);
     }
 
@@ -1038,7 +1051,7 @@ protected:
         return addressTempRegister;
     }
 
-    DataLabel32 moveFixedWidthEncoding(Imm32 imm, RegisterID dst)
+    void moveFixedWidthEncoding(Imm32 imm, RegisterID dst)
     {
         uint32_t value = imm.m_value;
         m_assembler.movT3(dst, ARMThumbImmediate::makeUInt16(value & 0xffff));

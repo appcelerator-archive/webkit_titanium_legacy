@@ -131,6 +131,7 @@ void LayoutTestController::reset()
     m_dumpDatabaseCallbacks = false;
     m_timeoutTimer.stop();
     m_topLoadingFrame = 0;
+    m_waitForPolicy = false;
     qt_dump_editing_callbacks(false);
     qt_dump_resource_load_callbacks(false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::PrivateBrowsingEnabled, false);
@@ -188,6 +189,7 @@ void LayoutTestController::notifyDone()
     emit done();
     m_isLoading = false;
     m_waitForDone = false;
+    m_waitForPolicy = false;
 }
 
 int LayoutTestController::windowCount()
@@ -289,6 +291,11 @@ void LayoutTestController::setPrivateBrowsingEnabled(bool enable)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::PrivateBrowsingEnabled, enable);
 }
 
+void LayoutTestController::setPopupBlockingEnabled(bool enable)
+{
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, !enable);
+}
+
 bool LayoutTestController::pauseAnimationAtTimeOnElementWithId(const QString &animationName,
                                                                double time,
                                                                const QString &elementId)
@@ -340,6 +347,12 @@ void LayoutTestController::clearAllDatabases()
 void LayoutTestController::whiteListAccessFromOrigin(const QString& sourceOrigin, const QString& destinationProtocol, const QString& destinationHost, bool allowDestinationSubdomains)
 {
     QWebSecurityOrigin::whiteListAccessFromOrigin(sourceOrigin, destinationProtocol, destinationHost, allowDestinationSubdomains);
+}
+
+void LayoutTestController::waitForPolicyDelegate()
+{
+    m_waitForPolicy = true;
+    waitUntilDone();
 }
 
 EventSender::EventSender(QWebPage *parent)
@@ -488,6 +501,22 @@ void EventSender::keyDown(const QString &string, const QStringList &modifiers)
     }
     QKeyEvent event(QEvent::KeyPress, code, modifs, s);
     QApplication::sendEvent(m_page, &event);
+}
+
+void EventSender::contextClick()
+{
+    QMouseEvent event(QEvent::MouseButtonPress, m_mousePos, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
+    QApplication::sendEvent(m_page, &event);
+    QMouseEvent event2(QEvent::MouseButtonRelease, m_mousePos, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
+    QApplication::sendEvent(m_page, &event2);
+}
+
+void EventSender::scheduleAsynchronousClick()
+{
+    QMouseEvent* event = new QMouseEvent(QEvent::MouseButtonPress, m_mousePos, Qt::LeftButton, Qt::RightButton, Qt::NoModifier);
+    QApplication::postEvent(m_page, event);
+    QMouseEvent* event2 = new QMouseEvent(QEvent::MouseButtonRelease, m_mousePos, Qt::LeftButton, Qt::RightButton, Qt::NoModifier);
+    QApplication::postEvent(m_page, event2);
 }
 
 QWebFrame* EventSender::frameUnderMouse() const

@@ -348,7 +348,7 @@ WebInspector.StylesSidebarPane.prototype = {
 
     addBlankSection: function()
     {
-        var blankSection = new WebInspector.BlankStylePropertiesSection(this.appropriateSelectorForNode());
+        var blankSection = new WebInspector.BlankStylePropertiesSection(appropriateSelectorForNode(this.node, true));
         blankSection.pane = this;
 
         var elementStyleSection = this.sections[1];        
@@ -367,27 +367,6 @@ WebInspector.StylesSidebarPane.prototype = {
         this.sections.splice(index, 1);
         if (section.element.parentNode)
             section.element.parentNode.removeChild(section.element);
-    },
-
-    appropriateSelectorForNode: function()
-    {
-        var node = this.node;
-        if (!node)
-            return "";
-
-        var id = node.getAttribute("id");
-        if (id)
-            return "#" + id;
-
-        var className = node.getAttribute("class");
-        if (className)
-            return "." + className.replace(/\s+/, ".");
-
-        var nodeName = node.nodeName.toLowerCase();
-        if (nodeName === "input" && node.getAttribute("type"))
-            return nodeName + "[type=\"" + node.getAttribute("type") + "\"]";
-
-        return nodeName;
     }
 }
 
@@ -1316,17 +1295,14 @@ WebInspector.StylePropertyTreeElement.prototype = {
         var section = this.treeOutline.section;
         var elementsPanel = WebInspector.panels.elements;
         var styleTextLength = styleText.trimWhitespace().length;
-        if (!styleTextLength) {
-            if (updateInterface) {
+        if (!styleTextLength && updateInterface) {
+            if (this._newProperty) {
                 // The user deleted everything, so remove the tree element and update.
-                if (!this._newProperty)
-                    delete section._afterUpdate;
-                if (section && section.pane)
-                    section.pane.update();
                 this.parent.removeChild(this);
-                elementsPanel.removeStyleChange(section.identifier, this.style, this.name);
+                return;
+            } else {
+                delete section._afterUpdate;
             }
-            return;
         }
 
         var self = this;
@@ -1349,10 +1325,16 @@ WebInspector.StylePropertyTreeElement.prototype = {
             var changedProperties = result[1];
             elementsPanel.removeStyleChange(section.identifier, self.style, self.name);
 
-            self.style = WebInspector.CSSStyleDeclaration.parseStyle(newPayload);
-            for (var i = 0; i < changedProperties.length; ++i)
-                elementsPanel.addStyleChange(section.identifier, self.style, changedProperties[i]);
-            self._styleRule.style = self.style;
+            if (!styleTextLength) {
+                // Do remove ourselves from UI when the property removal is confirmed.
+                self.parent.removeChild(self);
+            } else {
+                self.style = WebInspector.CSSStyleDeclaration.parseStyle(newPayload);
+                for (var i = 0; i < changedProperties.length; ++i)
+                    elementsPanel.addStyleChange(section.identifier, self.style, changedProperties[i]);
+                self._styleRule.style = self.style;
+            }
+
             if (section && section.pane)
                 section.pane.dispatchEventToListeners("style edited");
 

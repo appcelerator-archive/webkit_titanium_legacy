@@ -364,10 +364,7 @@ void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFuncti
     WebKitWebNavigationAction* navigationAction = getNavigationAction(action, frameName.utf8().data());
     gboolean isHandled = false;
 
-    gchar* frameNameStr = strdup(frameName.utf8().data());
-
-    g_signal_emit_by_name(webView, "new-window-policy-decision-requested", m_frame, request, navigationAction, policyDecision, frameNameStr, &isHandled);
-    free(frameNameStr);
+    g_signal_emit_by_name(webView, "new-window-policy-decision-requested", m_frame, request, navigationAction, policyDecision, &isHandled);
 
     g_object_unref(navigationAction);
     g_object_unref(request);
@@ -899,6 +896,8 @@ void FrameLoaderClient::dispatchDidFailProvisionalLoad(const ResourceError& erro
 
 void FrameLoaderClient::dispatchDidFailLoad(const ResourceError& error)
 {
+    notifyStatus(m_frame, WEBKIT_LOAD_FAILED);
+
     WebKitWebView* webView = getViewFromFrame(m_frame);
     GError* webError = g_error_new_literal(g_quark_from_string(error.domain().utf8().data()),
                                            error.errorCode(),
@@ -1078,6 +1077,14 @@ void FrameLoaderClient::transitionToCommittedForNewPage()
 
     WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(containingWindow);
     frame->view()->setGtkAdjustments(priv->horizontalAdjustment, priv->verticalAdjustment);
+
+    if (priv->currentMenu) {
+        GtkMenu* menu = priv->currentMenu;
+        priv->currentMenu = NULL;
+
+        gtk_menu_popdown(menu);
+        g_object_unref(menu);
+    }
 }
 
 }

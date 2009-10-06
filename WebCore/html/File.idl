@@ -29,6 +29,7 @@ module html {
         GenerateConstructor
     ] File {
         readonly attribute DOMString fileName;
+		readonly attribute DOMString path;
         readonly attribute unsigned long long fileSize;
     };
 

@@ -625,6 +625,11 @@ RenderBlock* RenderObject::containingBlock() const
             // inline directly.
             if (o->style()->position() == RelativePosition && o->isInline() && !o->isReplaced())
                 return o->containingBlock();
+#if ENABLE(SVG)
+            if (o->isSVGForeignObject()) //foreignObject is the containing block for contents inside it
+                break;
+#endif
+
             o = o->parent();
         }
     } else {
@@ -1369,6 +1374,7 @@ Color RenderObject::selectionForegroundColor() const
     return color;
 }
 
+#if ENABLE(DRAG_SUPPORT)
 Node* RenderObject::draggableNode(bool dhtmlOK, bool uaOK, int x, int y, bool& dhtmlWillDrag) const
 {
     if (!dhtmlOK && !uaOK)
@@ -1403,6 +1409,7 @@ Node* RenderObject::draggableNode(bool dhtmlOK, bool uaOK, int x, int y, bool& d
     }
     return 0;
 }
+#endif // ENABLE(DRAG_SUPPORT)
 
 void RenderObject::selectionStartEnd(int& spos, int& epos) const
 {
@@ -1748,6 +1755,23 @@ IntSize RenderObject::offsetFromContainer(RenderObject* o) const
     return offset;
 }
 
+IntSize RenderObject::offsetFromAncestorContainer(RenderObject* container) const
+{
+    IntSize offset;
+    const RenderObject* currContainer = this;
+    do {
+        RenderObject* nextContainer = currContainer->container();
+        ASSERT(nextContainer);  // This means we reached the top without finding container.
+        if (!nextContainer)
+            break;
+        ASSERT(!currContainer->hasTransform());
+        offset += currContainer->offsetFromContainer(nextContainer);
+        currContainer = nextContainer;
+    } while (currContainer != container);
+
+    return offset;
+}
+
 IntRect RenderObject::localCaretRect(InlineBox*, int, int* extraWidthToEndOfLine)
 {
     if (extraWidthToEndOfLine)
@@ -1781,8 +1805,11 @@ bool RenderObject::hasOutlineAnnotation() const
     return node() && node()->isLink() && document()->printing();
 }
 
-RenderObject* RenderObject::container() const
+RenderObject* RenderObject::container(RenderBoxModelObject* repaintContainer, bool* repaintContainerSkipped) const
 {
+    if (repaintContainerSkipped)
+        *repaintContainerSkipped = false;
+
     // This method is extremely similar to containingBlock(), but with a few notable
     // exceptions.
     // (1) It can be used on orphaned subtrees, i.e., it can be called safely even when
@@ -1807,14 +1834,20 @@ RenderObject* RenderObject::container() const
         // we'll just return 0).
         // FIXME: The definition of view() has changed to not crawl up the render tree.  It might
         // be safe now to use it.
-        while (o && o->parent() && !(o->hasTransform() && o->isRenderBlock()))
+        while (o && o->parent() && !(o->hasTransform() && o->isRenderBlock())) {
+            if (repaintContainerSkipped && o == repaintContainer)
+                *repaintContainerSkipped = true;
             o = o->parent();
+        }
     } else if (pos == AbsolutePosition) {
         // Same goes here.  We technically just want our containing block, but
         // we may not have one if we're part of an uninstalled subtree.  We'll
         // climb as high as we can though.
-        while (o && o->style()->position() == StaticPosition && !o->isRenderView() && !(o->hasTransform() && o->isRenderBlock()))
+        while (o && o->style()->position() == StaticPosition && !o->isRenderView() && !(o->hasTransform() && o->isRenderBlock())) {
+            if (repaintContainerSkipped && o == repaintContainer)
+                *repaintContainerSkipped = true;
             o = o->parent();
+        }
     }
 
     return o;

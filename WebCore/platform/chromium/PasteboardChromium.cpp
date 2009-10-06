@@ -96,6 +96,17 @@ void Pasteboard::writeSelection(Range* selectedRange, bool canSmartCopyOrDelete,
     ChromiumBridge::clipboardWriteSelection(html, url, plainText, canSmartCopyOrDelete);
 }
 
+void Pasteboard::writePlainText(const String& text)
+{
+#if PLATFORM(WIN_OS)
+    String plainText(text);
+    replaceNewlinesWithWindowsStyleNewlines(plainText);
+    ChromiumBridge::clipboardWritePlainText(plainText);
+#else
+    ChromiumBridge::clipboardWritePlainText(text);
+#endif
+}
+
 void Pasteboard::writeURL(const KURL& url, const String& titleStr, Frame* frame)
 {
     ASSERT(!url.isEmpty());

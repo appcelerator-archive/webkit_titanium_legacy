@@ -81,6 +81,8 @@ http/tests/security/isolatedWorld/image-properties.html
 http/tests/security/isolatedWorld/image-prototype.html
 http/tests/security/isolatedWorld/location-properties.html
 http/tests/security/isolatedWorld/location-prototype.html
+http/tests/security/isolatedWorld/window-setTimeout-function.html
+http/tests/security/isolatedWorld/window-setTimeout-string.html
 http/tests/security/isolatedWorld/storage-properties.html
 http/tests/security/isolatedWorld/storage-prototype.html
 http/tests/security/isolatedWorld/number-prototype.html
@@ -106,3 +108,5 @@ media/video-controls-zoomed.html
 # <rdar://problem/7196485> and https://bugs.webkit.org/show_bug.cgi?id=29021
 fast/loader/frames-with-unload-handlers-in-page-cache.html
 
+# This port doesn't support detecting slow unload handlers.
+fast/dom/Window/slow_unload_handler.html

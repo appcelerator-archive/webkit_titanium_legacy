@@ -50,6 +50,11 @@ win32-* {
     }
 }
 
+wince* {
+    SOURCES += $$QT_SOURCE_TREE/src/3rdparty/ce-compat/ce_time.cpp
+    DEFINES += WINCEBASIC
+}
+
 include(pcre/pcre.pri)
 
 LUT_FILES += \
@@ -123,12 +128,20 @@ SOURCES += \
     yarr/RegexJIT.cpp \
     interpreter/RegisterFile.cpp
 
-win32-*|wince* {
-    SOURCES += jit/ExecutableAllocatorWin.cpp \
-               runtime/MarkStackWin.cpp
+symbian {
+    SOURCES += runtime/MarkStackSymbian.cpp
 } else {
-    SOURCES += jit/ExecutableAllocatorPosix.cpp \
-               runtime/MarkStackPosix.cpp
+    win32-*|wince* {
+        SOURCES += jit/ExecutableAllocatorWin.cpp \
+                  runtime/MarkStackWin.cpp
+    } else {
+        SOURCES += jit/ExecutableAllocatorPosix.cpp \
+                  runtime/MarkStackPosix.cpp
+    }
+}
+
+!contains(DEFINES, USE_SYSTEM_MALLOC) {
+    SOURCES += wtf/TCSystemAlloc.cpp
 }
 
 # AllInOneFile.cpp helps gcc analize and optimize code

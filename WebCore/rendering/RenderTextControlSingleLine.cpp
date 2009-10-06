@@ -48,14 +48,13 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
-RenderTextControlSingleLine::RenderTextControlSingleLine(Node* node)
-    : RenderTextControl(node)
+RenderTextControlSingleLine::RenderTextControlSingleLine(Node* node, bool placeholderVisible)
+    : RenderTextControl(node, placeholderVisible)
     , m_searchPopupIsVisible(false)
     , m_shouldDrawCapsLockIndicator(false)
     , m_searchEventTimer(this, &RenderTextControlSingleLine::searchEventTimerFired)
     , m_searchPopup(0)
 {
-    m_placeholderVisible = inputElement()->placeholderShouldBeVisible();
 }
 
 RenderTextControlSingleLine::~RenderTextControlSingleLine()
@@ -155,7 +154,11 @@ void RenderTextControlSingleLine::subtreeHasChanged()
     RenderTextControl::subtreeHasChanged();
 
     InputElement* input = inputElement();
-    input->setValueFromRenderer(input->constrainValue(text()));
+    // We don't need to call sanitizeUserInputValue() function here because
+    // InputElement::handleBeforeTextInsertedEvent() has already called
+    // sanitizeUserInputValue().
+    // sanitizeValue() is needed because IME input doesn't dispatch BeforeTextInsertedEvent.
+    input->setValueFromRenderer(input->sanitizeValue(text()));
 
     if (m_cancelButton)
         updateCancelButtonVisibility();
@@ -456,7 +459,7 @@ void RenderTextControlSingleLine::updateFromElement()
 
     if (m_placeholderVisible) {
         ExceptionCode ec = 0;
-        innerTextElement()->setInnerText(inputElement()->placeholder(), ec);
+        innerTextElement()->setInnerText(static_cast<Element*>(node())->getAttribute(placeholderAttr), ec);
         ASSERT(!ec);
     } else
         setInnerTextValue(inputElement()->value());
@@ -805,12 +808,12 @@ void RenderTextControlSingleLine::setScrollTop(int newTop)
         innerTextElement()->setScrollTop(newTop);
 }
 
-bool RenderTextControlSingleLine::scroll(ScrollDirection direction, ScrollGranularity granularity, float multiplier)
+bool RenderTextControlSingleLine::scroll(ScrollDirection direction, ScrollGranularity granularity, float multiplier, Node** stopNode)
 {
     RenderLayer* layer = innerTextElement()->renderBox()->layer();
     if (layer && layer->scroll(direction, granularity, multiplier))
         return true;
-    return RenderBlock::scroll(direction, granularity, multiplier);
+    return RenderBlock::scroll(direction, granularity, multiplier, stopNode);
 }
 
 PassRefPtr<Scrollbar> RenderTextControlSingleLine::createScrollbar(ScrollbarClient* client, ScrollbarOrientation orientation, ScrollbarControlSize controlSize)

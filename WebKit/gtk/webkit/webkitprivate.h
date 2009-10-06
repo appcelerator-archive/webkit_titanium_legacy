@@ -30,6 +30,7 @@
 
 #include <webkit/webkitdefines.h>
 #include <webkit/webkitdownload.h>
+#include <webkit/webkithittestresult.h>
 #include <webkit/webkitnetworkrequest.h>
 #include <webkit/webkitwebview.h>
 #include <webkit/webkitwebdatasource.h>
@@ -59,6 +60,7 @@
 #include "ResourceResponse.h"
 #include "WindowFeatures.h"
 #include "SecurityOrigin.h"
+#include "DataObjectGtk.h"
 
 #include <atk/atk.h>
 #include <glib.h>
@@ -94,6 +96,8 @@ namespace WebKit {
 
     WebKitSecurityOrigin* kit(WebCore::SecurityOrigin*);
     WebCore::SecurityOrigin* core(WebKitSecurityOrigin*);
+
+    WebKitHitTestResult* kit(const WebCore::HitTestResult&);
 }
 
 typedef struct {
@@ -118,15 +122,13 @@ extern "C" {
         WebKitWebFrame* mainFrame;
         WebKitWebBackForwardList* backForwardList;
 
+        GtkMenu* currentMenu;
         gint lastPopupXPosition;
         gint lastPopupYPosition;
 
         HashSet<GtkWidget*> children;
         bool editable;
         GtkIMContext* imContext;
-
-        GtkTargetList* copy_target_list;
-        GtkTargetList* paste_target_list;
 
         gboolean transparent;
 
@@ -139,13 +141,15 @@ extern "C" {
         char* customEncoding;
 
         gboolean disposing;
-        gboolean usePrimaryForPaste;
 
         // These are hosted here because the DataSource object is
         // created too late in the frame loading process.
         WebKitWebResource* mainResource;
         char* mainResourceIdentifier;
         GHashTable* subResources;
+
+        RefPtr<WebCore::DataObjectGtk> draggingDataObject;
+        RefPtr<WebCore::DataObjectGtk> droppingDataObject;
     };
 
     #define WEBKIT_WEB_FRAME_GET_PRIVATE(obj)    (G_TYPE_INSTANCE_GET_PRIVATE((obj), WEBKIT_TYPE_WEB_FRAME, WebKitWebFramePrivate))
@@ -281,6 +285,9 @@ extern "C" {
     WEBKIT_API gchar*
     webkit_web_frame_dump_render_tree (WebKitWebFrame* frame);
 
+    WEBKIT_API guint
+    webkit_web_frame_get_pending_unload_event_count(WebKitWebFrame* frame);
+
     WEBKIT_API bool
     webkit_web_frame_pause_animation(WebKitWebFrame* frame, const gchar* name, double time, const gchar* element);
 
@@ -307,9 +314,6 @@ extern "C" {
 
     GSList*
     webkit_web_settings_get_spell_languages(WebKitWebView* web_view);
-
-    bool
-    webkit_web_view_use_primary_for_paste(WebKitWebView* web_view);
 
     GHashTable*
     webkit_history_items(void);

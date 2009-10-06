@@ -236,6 +236,8 @@ NEVER_INLINE CollectorBlock* Heap::allocateBlock()
     uintptr_t address = reinterpret_cast<uintptr_t>(mask);
 
     memset(reinterpret_cast<void*>(address), 0, BLOCK_SIZE);
+#elif PLATFORM(WINCE)
+    void* address = VirtualAlloc(NULL, BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 #elif PLATFORM(WIN_OS)
 #if COMPILER(MINGW)
     void* address = __mingw_aligned_malloc(BLOCK_SIZE, BLOCK_SIZE);
@@ -318,6 +320,8 @@ NEVER_INLINE void Heap::freeBlock(CollectorBlock* block)
     vm_deallocate(current_task(), reinterpret_cast<vm_address_t>(block), BLOCK_SIZE);
 #elif PLATFORM(SYMBIAN)
     userChunk->Free(reinterpret_cast<TAny*>(block));
+#elif PLATFORM(WINCE)
+    VirtualFree(block, 0, MEM_RELEASE);
 #elif PLATFORM(WIN_OS)
 #if COMPILER(MINGW)
     __mingw_aligned_free(block);
@@ -778,10 +782,16 @@ void NEVER_INLINE Heap::markCurrentThreadConservativelyInternal(MarkStack& markS
     markConservatively(markStack, stackPointer, stackBase);
 }
 
+#if COMPILER(GCC)
+#define REGISTER_BUFFER_ALIGNMENT __attribute__ ((aligned (sizeof(void*))))
+#else
+#define REGISTER_BUFFER_ALIGNMENT
+#endif
+
 void Heap::markCurrentThreadConservatively(MarkStack& markStack)
 {
     // setjmp forces volatile registers onto the stack
-    jmp_buf registers;
+    jmp_buf registers REGISTER_BUFFER_ALIGNMENT;
 #if COMPILER(MSVC)
 #pragma warning(push)
 #pragma warning(disable: 4611)

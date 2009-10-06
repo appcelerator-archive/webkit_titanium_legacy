@@ -304,6 +304,16 @@ HRESULT STDMETHODCALLTYPE WebFrame::setExcludeFromTextSearch(
     return E_FAIL;
 }
 
+HRESULT WebFrame::reloadFromOrigin()
+{
+    Frame* coreFrame = core(this);
+    if (!coreFrame)
+        return E_FAIL;
+
+    coreFrame->loader()->reload(true);
+    return S_OK;
+}
+
 HRESULT STDMETHODCALLTYPE WebFrame::paintDocumentRectToContext(
     /* [in] */ RECT rect,
     /* [in] */ OLE_HANDLE deviceContext)
@@ -1135,6 +1145,21 @@ HRESULT WebFrame::isDisplayingStandaloneImage(BOOL* result)
 
     Document* document = frame->document();
     *result = document && document->isImageDocument();
+    return S_OK;
+}
+
+HRESULT WebFrame::allowsFollowingLink(BSTR url, BOOL* result)
+{
+    if (!result)
+        return E_POINTER;
+
+    *result = TRUE;
+
+    Frame* frame = core(this);
+    if (!frame)
+        return E_FAIL;
+
+    *result = FrameLoader::canLoad(MarshallingHelpers::BSTRToKURL(url), String(), frame->document());
     return S_OK;
 }
 

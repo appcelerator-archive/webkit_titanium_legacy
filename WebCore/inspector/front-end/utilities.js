@@ -621,11 +621,38 @@ function nodeTitleInfo(hasChildren, linkify)
     return info;
 }
 
-function getDocumentForNode(node) {
+function appropriateSelectorForNode(node, justSelector)
+{
+    if (!node)
+        return "";
+
+    var lowerCaseName = node.localName || node.nodeName.toLowerCase();
+
+    var id = node.getAttribute("id");
+    if (id) {
+        var selector = "#" + id;
+        return (justSelector ? selector : lowerCaseName + selector);
+    }
+
+    var className = node.getAttribute("class");
+    if (className) {
+        var selector = "." + className.replace(/\s+/, ".");
+        return (justSelector ? selector : lowerCaseName + selector);
+    }
+
+    if (lowerCaseName === "input" && node.getAttribute("type"))
+        return lowerCaseName + "[type=\"" + node.getAttribute("type") + "\"]";
+
+    return lowerCaseName;
+}
+
+function getDocumentForNode(node)
+{
     return node.nodeType == Node.DOCUMENT_NODE ? node : node.ownerDocument;
 }
 
-function parentNode(node) {
+function parentNode(node)
+{
     return node.parentNode;
 }
 
@@ -814,12 +841,16 @@ String.tokenizeFormatString = function(format)
 String.standardFormatters = {
     d: function(substitution)
     {
+        if (typeof substitution == "object" && Object.proxyType(substitution) === "number")
+            substitution = substitution.description;
         substitution = parseInt(substitution);
         return !isNaN(substitution) ? substitution : 0;
     },
 
     f: function(substitution, token)
     {
+        if (typeof substitution == "object" && Object.proxyType(substitution) === "number")
+            substitution = substitution.description;
         substitution = parseFloat(substitution);
         if (substitution && token.precision > -1)
             substitution = substitution.toFixed(token.precision);
@@ -828,6 +859,8 @@ String.standardFormatters = {
 
     s: function(substitution)
     {
+        if (typeof substitution == "object" && Object.proxyType(substitution) !== "null")
+            substitution = substitution.description;
         return substitution;
     },
 };

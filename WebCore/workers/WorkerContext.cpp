@@ -161,57 +161,6 @@ void WorkerContext::scriptImported(unsigned long, const String&)
     notImplemented();
 }
 
-void WorkerContext::addEventListener(const AtomicString& eventType, PassRefPtr<EventListener> eventListener, bool)
-{
-    EventListenersMap::iterator iter = m_eventListeners.find(eventType);
-    if (iter == m_eventListeners.end()) {
-        ListenerVector listeners;
-        listeners.append(eventListener);
-        m_eventListeners.add(eventType, listeners);
-    } else {
-        ListenerVector& listeners = iter->second;
-        for (ListenerVector::iterator listenerIter = listeners.begin(); listenerIter != listeners.end(); ++listenerIter) {
-            if (**listenerIter == *eventListener)
-                return;
-        }
-        
-        listeners.append(eventListener);
-        m_eventListeners.add(eventType, listeners);
-    }    
-}
-
-void WorkerContext::removeEventListener(const AtomicString& eventType, EventListener* eventListener, bool)
-{
-    EventListenersMap::iterator iter = m_eventListeners.find(eventType);
-    if (iter == m_eventListeners.end())
-        return;
-    
-    ListenerVector& listeners = iter->second;
-    for (ListenerVector::const_iterator listenerIter = listeners.begin(); listenerIter != listeners.end(); ++listenerIter) {
-        if (**listenerIter == *eventListener) {
-            listeners.remove(listenerIter - listeners.begin());
-            return;
-        }
-    }
-}
-
-bool WorkerContext::dispatchEvent(PassRefPtr<Event> event, ExceptionCode& ec)
-{
-    if (!event || event->type().isEmpty()) {
-        ec = EventException::UNSPECIFIED_EVENT_TYPE_ERR;
-        return true;
-    }
-    
-    ListenerVector listenersCopy = m_eventListeners.get(event->type());
-    for (ListenerVector::const_iterator listenerIter = listenersCopy.begin(); listenerIter != listenersCopy.end(); ++listenerIter) {
-        event->setTarget(this);
-        event->setCurrentTarget(this);
-        listenerIter->get()->handleEvent(event.get(), false);
-    }
-    
-    return !event->defaultPrevented();
-}
-
 void WorkerContext::postTask(PassRefPtr<Task> task)
 {
     thread()->runLoop().postTask(task);
@@ -239,6 +188,10 @@ void WorkerContext::clearInterval(int timeoutId)
 
 void WorkerContext::importScripts(const Vector<String>& urls, const String& callerURL, int callerLine, ExceptionCode& ec)
 {
+#if !ENABLE(INSPECTOR)
+    UNUSED_PARAM(callerURL);
+    UNUSED_PARAM(callerLine);
+#endif
     ec = 0;
     Vector<String>::const_iterator urlsEnd = urls.end();
     Vector<KURL> completedURLs;
@@ -263,7 +216,9 @@ void WorkerContext::importScripts(const Vector<String>& urls, const String& call
         }
 
         scriptExecutionContext()->scriptImported(scriptLoader.identifier(), scriptLoader.script());
+#if ENABLE(INSPECTOR)
         scriptExecutionContext()->addMessage(InspectorControllerDestination, JSMessageSource, LogMessageType, LogMessageLevel, "Worker script imported: \"" + *it + "\".", callerLine, callerURL);
+#endif
 
         ScriptValue exception;
         m_script->evaluate(ScriptSourceCode(scriptLoader.script(), *it), &exception);
@@ -278,7 +233,7 @@ void WorkerContext::reportException(const String& errorMessage, int lineNumber, 
 {
     bool errorHandled = false;
     if (onerror())
-        errorHandled = onerror()->reportError(errorMessage, sourceURL, lineNumber);
+        errorHandled = onerror()->reportError(this, errorMessage, sourceURL, lineNumber);
 
     if (!errorHandled)
         thread()->workerReportingProxy().postExceptionToWorkerObject(errorMessage, lineNumber, sourceURL);
@@ -297,6 +252,16 @@ NotificationCenter* WorkerContext::webkitNotifications() const
     return m_notifications.get();
 }
 #endif
+
+EventTargetData* WorkerContext::eventTargetData()
+{
+    return &m_eventTargetData;
+}
+
+EventTargetData* WorkerContext::ensureEventTargetData()
+{
+    return &m_eventTargetData;
+}
 
 } // namespace WebCore
 

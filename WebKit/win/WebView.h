@@ -353,6 +353,9 @@ public:
     virtual HRESULT STDMETHODCALLTYPE toggleGrammarChecking( 
         /* [in] */ IUnknown *sender);
 
+    virtual HRESULT STDMETHODCALLTYPE reloadFromOrigin( 
+        /* [in] */ IUnknown *sender);
+
     // IWebViewCSS
 
     virtual HRESULT STDMETHODCALLTYPE computedStyleForElement( 
@@ -739,8 +742,14 @@ public:
 
     virtual HRESULT STDMETHODCALLTYPE addUserScriptToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url, unsigned patternsCount, BSTR* patterns, WebUserScriptInjectionTime);
     virtual HRESULT STDMETHODCALLTYPE addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url, unsigned patternsCount, BSTR* patterns);
+    virtual HRESULT STDMETHODCALLTYPE removeUserContentWithURLFromGroup(BSTR groupName, unsigned worldID, BSTR url);
     virtual HRESULT STDMETHODCALLTYPE removeUserContentFromGroup(BSTR groupName, unsigned worldID);
     virtual HRESULT STDMETHODCALLTYPE removeAllUserContentFromGroup(BSTR groupName);
+
+    virtual HRESULT STDMETHODCALLTYPE setPluginHalterDelegate(IWebPluginHalterDelegate*);
+    virtual HRESULT STDMETHODCALLTYPE pluginHalterDelegate(IWebPluginHalterDelegate**);
+
+    virtual HRESULT STDMETHODCALLTYPE invalidateBackingStore(const RECT*);
 
     // WebView
     bool shouldUseEmbeddedView(const WebCore::String& mimeType) const;
@@ -890,6 +899,7 @@ protected:
     COMPtr<WebPreferences> m_preferences;
     COMPtr<WebInspector> m_webInspector;
     WebInspectorClient *m_webInspectorClient;
+    COMPtr<IWebPluginHalterDelegate> m_pluginHalterDelegate;
 
     bool m_userAgentOverridden;
     bool m_useBackForwardList;

@@ -63,6 +63,13 @@ public:
 
     virtual QWebPage *createWindow(QWebPage::WebWindowType);
     virtual QObject* createPlugin(const QString&, const QUrl&, const QStringList&, const QStringList&);
+    virtual bool supportsExtension(QWebPage::Extension extension) const
+    {
+        if (extension == QWebPage::ErrorPageExtension)
+            return true;
+        return false;
+    }
+    virtual bool extension(Extension extension, const ExtensionOption *option, ExtensionReturn *output);
 };
 
 class MainWindow : public QMainWindow
@@ -94,7 +101,7 @@ public:
 
         setupUI();
 
-        // set the proxy to the http_proxy env variable - if present        
+        // set the proxy to the http_proxy env variable - if present
         QUrl proxyUrl = view->guessUrlFromString(qgetenv("http_proxy"));
         if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
             int proxyPort = (proxyUrl.port() > 0)  ? proxyUrl.port() : 8080;
@@ -214,6 +221,7 @@ protected slots:
         bool ok;
         QString str = QInputDialog::getText(this, "Select elements", "Choose elements",
                                             QLineEdit::Normal, "a", &ok);
+
         if (ok && !str.isEmpty()) {
             QList<QWebElement> result =  view->page()->mainFrame()->findAllElements(str);
             foreach (QWebElement e, result)
@@ -293,7 +301,7 @@ private:
         viewMenu->addSeparator();
         viewMenu->addAction("Dump HTML", this, SLOT(dumpHtml()));
 
-        QMenu *formatMenu = new QMenu("F&ormat");
+        QMenu *formatMenu = new QMenu("F&ormat", this);
         formatMenuAction = menuBar()->addMenu(formatMenu);
         formatMenuAction->setVisible(false);
         formatMenu->addAction(view->pageAction(QWebPage::ToggleBold));
@@ -336,6 +344,17 @@ private:
     QStringList urlList;
     QStringListModel urlModel;
 };
+
+bool WebPage::extension(Extension extension, const ExtensionOption *option, ExtensionReturn *output)
+{
+    const QWebPage::ErrorPageExtensionOption* info = static_cast<const QWebPage::ErrorPageExtensionOption*>(option);
+    QWebPage::ErrorPageExtensionReturn* errorPage = static_cast<QWebPage::ErrorPageExtensionReturn*>(output);
+
+    errorPage->content = QString("<html><head><title>Failed loading page</title></head><body>%1</body></html>")
+        .arg(info->errorString).toUtf8();
+
+    return true;
+}
 
 QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
 {
@@ -452,6 +471,10 @@ int main(int argc, char **argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::PluginsEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
     QWebSettings::enablePersistentStorage();
+
+    // To allow QWebInspector's configuration persistence
+    QCoreApplication::setOrganizationName("Nokia");
+    QCoreApplication::setApplicationName("QtLauncher");
 
     const QStringList args = app.arguments();
 

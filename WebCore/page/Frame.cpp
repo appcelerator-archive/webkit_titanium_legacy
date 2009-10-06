@@ -73,6 +73,7 @@
 #include "Settings.h"
 #include "TextIterator.h"
 #include "TextResourceDecoder.h"
+#include "UserContentURLPattern.h"
 #include "XMLNames.h"
 #include "htmlediting.h"
 #include "markup.h"
@@ -97,6 +98,10 @@
 #include "WMLNames.h"
 #endif
 
+#if ENABLE(MATHML)
+#include "MathMLNames.h"
+#endif
+
 using namespace std;
 
 namespace WebCore {
@@ -118,6 +123,7 @@ Frame::Frame(Page* page, HTMLFrameOwnerElement* ownerElement, FrameLoaderClient*
     : m_page(page)
     , m_treeNode(this, parentFromOwnerElement(ownerElement))
     , m_loader(this, frameLoaderClient)
+    , m_redirectScheduler(this)
     , m_ownerElement(ownerElement)
     , m_script(this)
     , m_selectionGranularity(CharacterGranularity)
@@ -127,6 +133,9 @@ Frame::Frame(Page* page, HTMLFrameOwnerElement* ownerElement, FrameLoaderClient*
     , m_eventHandler(this)
     , m_animationController(this)
     , m_lifeSupportTimer(this, &Frame::lifeSupportTimerFired)
+#if ENABLE(ORIENTATION_EVENTS)
+    , m_orientation(0)
+#endif
     , m_caretVisible(false)
     , m_caretPaint(true)
     , m_highlightTextMatches(false)
@@ -150,6 +159,10 @@ Frame::Frame(Page* page, HTMLFrameOwnerElement* ownerElement, FrameLoaderClient*
 
 #if ENABLE(WML)
     WMLNames::init();
+#endif
+
+#if ENABLE(MATHML)
+    MathMLNames::init();
 #endif
 
     XMLNames::init();
@@ -206,6 +219,11 @@ void Frame::init()
 FrameLoader* Frame::loader() const
 {
     return &m_loader;
+}
+
+RedirectScheduler* Frame::redirectScheduler() const
+{
+    return &m_redirectScheduler;
 }
 
 FrameView* Frame::view() const
@@ -268,6 +286,15 @@ void Frame::setDocument(PassRefPtr<Document> newDoc)
     m_script.updateDocument();
 }
 
+#if ENABLE(ORIENTATION_EVENTS)
+void Frame::sendOrientationChangeEvent(int orientation)
+{
+    m_orientation = orientation;
+    if (Document* doc = document())
+        doc->dispatchWindowEvent(eventNames().orientationchangeEvent, false, false);
+}
+#endif // ENABLE(ORIENTATION_EVENTS)
+    
 Settings* Frame::settings() const
 {
     return m_page ? m_page->settings() : 0;
@@ -850,12 +877,16 @@ void Frame::injectUserScriptsForWorld(unsigned worldID, const UserScriptVector& 
     if (userScripts.isEmpty())
         return;
 
+    Document* doc = document();
+    if (!doc)
+        return;
+
     // FIXME: Need to implement pattern checking.
     Vector<ScriptSourceCode> sourceCode;
     unsigned count = userScripts.size();
     for (unsigned i = 0; i < count; ++i) {
         UserScript* script = userScripts[i].get();
-        if (script->injectionTime() == injectionTime)
+        if (script->injectionTime() == injectionTime && UserContentURLPattern::matchesPatterns(doc->url(), script->patterns()))
             sourceCode.append(ScriptSourceCode(script->source(), script->url()));
     }
     script()->evaluateInIsolatedWorld(worldID, sourceCode);
@@ -1645,7 +1676,7 @@ void Frame::unfocusWindow()
         page()->chrome()->unfocus();
 }
 
-bool Frame::shouldClose(RegisteredEventListenerVector* alternateEventListeners)
+bool Frame::shouldClose()
 {
     Chrome* chrome = page() ? page()->chrome() : 0;
     if (!chrome || !chrome->canRunBeforeUnloadConfirmPanel())
@@ -1659,7 +1690,8 @@ bool Frame::shouldClose(RegisteredEventListenerVector* alternateEventListeners)
     if (!body)
         return true;
 
-    RefPtr<BeforeUnloadEvent> beforeUnloadEvent = m_domWindow->dispatchBeforeUnloadEvent(alternateEventListeners);
+    RefPtr<BeforeUnloadEvent> beforeUnloadEvent = BeforeUnloadEvent::create();
+    m_domWindow->dispatchEvent(beforeUnloadEvent.get(), m_domWindow->document());
 
     if (!beforeUnloadEvent->defaultPrevented())
         doc->defaultEventHandler(beforeUnloadEvent.get());

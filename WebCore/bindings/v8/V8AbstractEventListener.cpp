@@ -31,6 +31,7 @@
 #include "config.h"
 #include "V8AbstractEventListener.h"
 
+#include "DateExtension.h"
 #include "Document.h"
 #include "Event.h"
 #include "Frame.h"
@@ -41,7 +42,8 @@
 namespace WebCore {
 
 V8AbstractEventListener::V8AbstractEventListener(Frame* frame, bool isAttribute)
-    : m_isAttribute(isAttribute)
+    : EventListener(JSEventListenerType)
+    , m_isAttribute(isAttribute)
     , m_frame(frame)
     , m_lineNumber(0)
     , m_columnNumber(0)
@@ -61,11 +63,15 @@ V8AbstractEventListener::V8AbstractEventListener(Frame* frame, bool isAttribute)
     }
 }
 
-void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Context, Event* event, v8::Handle<v8::Value> jsEvent, bool isWindowEvent)
+void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Context, Event* event, v8::Handle<v8::Value> jsEvent)
 {
     // We push the event being processed into the global object, so that it can be exposed by DOMWindow's bindings.
     v8::Local<v8::String> eventSymbol = v8::String::NewSymbol("event");
     v8::Local<v8::Value> returnValue;
+
+    // In beforeunload/unload handlers, we want to avoid sleeps which do tight loops of calling Date.getTime().
+    if (event->type() == "beforeunload" || event->type() == "unload")
+        DateExtension::get()->setAllowSleep(false);
 
     {
         // Catch exceptions thrown in the event handler so they do not propagate to javascript code that caused the event to fire.
@@ -81,16 +87,28 @@ void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Conte
         tryCatch.Reset();
 
         // Call the event handler.
-        returnValue = callListenerFunction(jsEvent, event, isWindowEvent);
-        tryCatch.Reset();
+        tryCatch.SetVerbose(false); // We do not want to report the exception to the inspector console.
+        returnValue = callListenerFunction(jsEvent, event);
+        if (!tryCatch.CanContinue())
+            return;
+
+        // If an error occurs while handling the event, it should be reported.
+        if (tryCatch.HasCaught()) {
+            reportException(0, tryCatch);
+            tryCatch.Reset();
+        }
 
         // Restore the old event. This must be done for all exit paths through this method.
+        tryCatch.SetVerbose(true);
         if (savedEvent.IsEmpty())
             v8Context->Global()->SetHiddenValue(eventSymbol, v8::Undefined());
         else
             v8Context->Global()->SetHiddenValue(eventSymbol, savedEvent);
         tryCatch.Reset();
     }
+
+    if (event->type() == "beforeunload" || event->type() == "unload")
+        DateExtension::get()->setAllowSleep(true);
 
     ASSERT(!V8Proxy::handleOutOfMemory() || returnValue.IsEmpty());
 
@@ -106,7 +124,7 @@ void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Conte
         event->preventDefault();
 }
 
-void V8AbstractEventListener::handleEvent(Event* event, bool isWindowEvent)
+void V8AbstractEventListener::handleEvent(ScriptExecutionContext* scriptExecutionContext, Event* event)
 {
     // EventListener could be disconnected from the frame.
     if (disconnected())
@@ -136,7 +154,7 @@ void V8AbstractEventListener::handleEvent(Event* event, bool isWindowEvent)
     // Get the V8 wrapper for the event object.
     v8::Handle<v8::Value> jsEvent = V8DOMWrapper::convertEventToV8Object(event);
 
-    invokeEventHandler(v8Context, event, jsEvent, isWindowEvent);
+    invokeEventHandler(v8Context, event, jsEvent);
 
     Document::updateStyleForAllDocuments();
 }
@@ -152,13 +170,10 @@ void V8AbstractEventListener::disposeListenerObject()
     }
 }
 
-v8::Local<v8::Object> V8AbstractEventListener::getReceiverObject(Event* event, bool isWindowEvent)
+v8::Local<v8::Object> V8AbstractEventListener::getReceiverObject(Event* event)
 {
     if (!m_listener.IsEmpty() && !m_listener->IsFunction())
         return v8::Local<v8::Object>::New(m_listener);
-
-    if (isWindowEvent)
-        return v8::Context::GetCurrent()->Global();
 
     EventTarget* target = event->currentTarget();
     v8::Handle<v8::Value> value = V8DOMWrapper::convertEventTargetToV8Object(target);

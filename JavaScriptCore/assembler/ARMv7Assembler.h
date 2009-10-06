@@ -28,7 +28,7 @@
 
 #include <wtf/Platform.h>
 
-#if ENABLE(ASSEMBLER) && PLATFORM_ARM_ARCH(7)
+#if ENABLE(ASSEMBLER) && PLATFORM(ARM_THUMB2)
 
 #include "AssemblerBuffer.h"
 #include <wtf/Assertions.h>
@@ -199,7 +199,7 @@ class ARMThumbImmediate {
         };
     } PatternBytes;
 
-    ALWAYS_INLINE static int32_t countLeadingZerosPartial(uint32_t& value, int32_t& zeros, const int N)
+    ALWAYS_INLINE static void countLeadingZerosPartial(uint32_t& value, int32_t& zeros, const int N)
     {
         if (value & ~((1<<N)-1)) /* check for any of the top N bits (of 2N bits) are set */ \
             value >>= N;         /* if any were set, lose the bottom N */ \
@@ -1753,6 +1753,6 @@ private:
 
 } // namespace JSC
 
-#endif // ENABLE(ASSEMBLER) && PLATFORM_ARM_ARCH(7)
+#endif // ENABLE(ASSEMBLER) && PLATFORM(ARM_THUMB2)
 
 #endif // ARMAssembler_h

@@ -56,6 +56,7 @@ class QBitArray;
 QT_END_NAMESPACE
 
 class QWebInspector;
+class QWebPageClient;
 
 class QWebPagePrivate {
 public:
@@ -67,9 +68,7 @@ public:
 #endif
     void _q_onLoadProgressChanged(int);
     void _q_webActionTriggered(bool checked);
-#ifndef NDEBUG
     void _q_cleanupLeakMessages();
-#endif
     void updateAction(QWebPage::WebAction action);
     void updateNavigationActions();
     void updateEditorActions();
@@ -131,10 +130,11 @@ public:
     QPointer<QWebFrame> mainFrame;
 
     QWebPage *q;
+    QWebPageClient* client;
 #ifndef QT_NO_UNDOSTACK
     QUndoStack *undoStack;
 #endif
-    QWidget *view;
+    QWidget* view;
 
     bool insideOpenCall;
     quint64 m_totalBytes;
@@ -142,6 +142,8 @@ public:
 
     QPoint tripleClick;
     QBasicTimer tripleClickTimer;
+
+    bool clickCausedFocus;
 
 #if QT_VERSION < 0x040400
     bool acceptNavigationRequest(QWebFrame *frame, const QWebNetworkRequest &request, QWebPage::NavigationType type);

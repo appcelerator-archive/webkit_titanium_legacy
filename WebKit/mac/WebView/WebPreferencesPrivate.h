@@ -107,6 +107,12 @@ extern NSString *WebPreferencesRemovedNotification;
 - (BOOL)isXSSAuditorEnabled;
 - (void)setXSSAuditorEnabled:(BOOL)flag;
 
+- (BOOL)experimentalNotificationsEnabled;
+- (void)setExperimentalNotificationsEnabled:(BOOL)notificationsEnabled;
+
+- (BOOL)experimentalWebSocketsEnabled;
+- (void)setExperimentalWebSocketsEnabled:(BOOL)websocketsEnabled;
+
 // zero means do AutoScale
 - (float)PDFScaleFactor;
 - (void)setPDFScaleFactor:(float)scale;

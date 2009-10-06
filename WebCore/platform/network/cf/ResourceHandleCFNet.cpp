@@ -31,10 +31,12 @@
 
 #include "AuthenticationCF.h"
 #include "AuthenticationChallenge.h"
+#include "Base64.h"
 #include "CString.h"
 #include "CookieStorageWin.h"
 #include "CredentialStorage.h"
 #include "DocLoader.h"
+#include "FormDataStreamCFNet.h"
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "Logging.h"
@@ -108,6 +110,16 @@ static void setDefaultMIMEType(CFURLResponseRef response)
     CFURLResponseSetMIMEType(response, defaultMIMETypeString);
 }
 
+static String encodeBasicAuthorization(const String& user, const String& password)
+{
+    CString unencodedString = (user + ":" + password).utf8();
+    Vector<char> unencoded(unencodedString.length());
+    std::copy(unencodedString.data(), unencodedString.data() + unencodedString.length(), unencoded.begin());
+    Vector<char> encoded;
+    base64Encode(unencoded, encoded);
+    return String(encoded.data(), encoded.size());
+}
+
 CFURLRequestRef willSendRequest(CFURLConnectionRef conn, CFURLRequestRef cfRequest, CFURLResponseRef cfRedirectResponse, const void* clientInfo)
 {
     ResourceHandle* handle = static_cast<ResourceHandle*>(const_cast<void*>(clientInfo));
@@ -128,6 +140,16 @@ CFURLRequestRef willSendRequest(CFURLConnectionRef conn, CFURLRequestRef cfReque
             if (CFStringCompareWithOptions(originalMethod.get(), newMethod.get(), CFRangeMake(0, CFStringGetLength(originalMethod.get())), kCFCompareCaseInsensitive)) {
                 RetainPtr<CFMutableURLRequestRef> mutableRequest(AdoptCF, CFURLRequestCreateMutableCopy(0, cfRequest));
                 CFURLRequestSetHTTPRequestMethod(mutableRequest.get(), originalMethod.get());
+
+                FormData* body = handle->request().httpBody();
+                if (!equalIgnoringCase(handle->request().httpMethod(), "GET") && body && !body->isEmpty())
+                    WebCore::setHTTPBody(mutableRequest.get(), body);
+
+                String originalContentType = handle->request().httpContentType();
+                RetainPtr<CFStringRef> originalContentTypeCF(AdoptCF, originalContentType.createCFString());
+                if (!originalContentType.isEmpty())
+                    CFURLRequestSetHTTPHeaderFieldValue(mutableRequest.get(), CFSTR("Content-Type"), originalContentTypeCF.get());
+
                 request = mutableRequest.get();
             }
         }
@@ -383,10 +405,7 @@ bool ResourceHandle::start(Frame* frame)
         d->m_initialCredential = CredentialStorage::getDefaultAuthenticationCredential(d->m_request.url());
         
     if (!d->m_initialCredential.isEmpty()) {
-        // Apply basic auth header
-        String unencoded = d->m_initialCredential.user() + ":" + d->m_initialCredential.password();
-        CString encoded = unencoded.utf8().base64Encode();
-        String authHeader = String::format("Basic %s", encoded.data());
+        String authHeader = "Basic " + encodeBasicAuthorization(d->m_initialCredential.user(), d->m_initialCredential.password());
         d->m_request.addHTTPHeaderField("Authorization", authHeader);
     }
 
@@ -753,10 +772,7 @@ RetainPtr<CFDataRef> WebCoreSynchronousLoader::load(const ResourceRequest& reque
             loader.m_initialCredential = CredentialStorage::getDefaultAuthenticationCredential(url);
 
         if (!loader.m_initialCredential.isEmpty()) {
-            // Apply basic auth header
-            String unencoded = loader.m_initialCredential.user() + ":" + loader.m_initialCredential.password();
-            CString encoded = unencoded.utf8().base64Encode();
-            String authHeader = String::format("Basic %s", encoded.data());
+            String authHeader = "Basic " + encodeBasicAuthorization(loader.m_initialCredential.user(), loader.m_initialCredential.password());
             requestWithInitialCredential.addHTTPHeaderField("Authorization", authHeader);
         }
 

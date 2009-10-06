@@ -54,12 +54,15 @@ namespace WebCore {
     class EditorClient;
     class FocusController;
     class Frame;
+    class HaltablePlugin;
     class InspectorClient;
     class InspectorController;
     class InspectorTimelineAgent;
     class Node;
     class PageGroup;
     class PluginData;
+    class PluginHalter;
+    class PluginHalterClient;
     class PluginView;
     class ProgressTracker;
     class RenderTheme;
@@ -82,7 +85,7 @@ namespace WebCore {
     public:
         static void setNeedsReapplyStyles();
 
-        Page(ChromeClient*, ContextMenuClient*, EditorClient*, DragClient*, InspectorClient*);
+        Page(ChromeClient*, ContextMenuClient*, EditorClient*, DragClient*, InspectorClient*, PluginHalterClient*);
         ~Page();
 
         RenderTheme* theme() const { return m_theme.get(); };
@@ -125,15 +128,23 @@ namespace WebCore {
 
         Chrome* chrome() const { return m_chrome.get(); }
         SelectionController* dragCaretController() const { return m_dragCaretController.get(); }
+#if ENABLE(DRAG_SUPPORT)
         DragController* dragController() const { return m_dragController.get(); }
+#endif
         FocusController* focusController() const { return m_focusController.get(); }
+#if ENABLE(CONTEXT_MENUS)
         ContextMenuController* contextMenuController() const { return m_contextMenuController.get(); }
+#endif
+#if ENABLE(INSPECTOR)
         InspectorController* inspectorController() const { return m_inspectorController.get(); }
+#endif
         Settings* settings() const { return m_settings.get(); }
         ProgressTracker* progress() const { return m_progress.get(); }
 
+#if ENABLE(INSPECTOR)
         void setParentInspectorController(InspectorController* controller) { m_parentInspectorController = controller; }
         InspectorController* parentInspectorController() const { return m_parentInspectorController; }
+#endif
         
         void setTabKeyCyclesThroughElements(bool b) { m_tabKeyCyclesThroughElements = b; }
         bool tabKeyCyclesThroughElements() const { return m_tabKeyCyclesThroughElements; }
@@ -173,6 +184,11 @@ namespace WebCore {
         void userStyleSheetLocationChanged();
         const String& userStyleSheet() const;
 
+        void didStartPlugin(HaltablePlugin*);
+        void didStopPlugin(HaltablePlugin*);
+        void pluginAllowedRunTimeChanged();
+        void pluginHalterEnabledStateChanged();
+
         static void setDebuggerForAllPages(JSC::Debugger*);
         void setDebugger(JSC::Debugger*);
         JSC::Debugger* debugger() const { return m_debugger; }
@@ -211,16 +227,24 @@ namespace WebCore {
         void setJavaScriptURLsAreAllowed(bool);
         bool javaScriptURLsAreAllowed() const;
 
+#if ENABLE(INSPECTOR)
         InspectorTimelineAgent* inspectorTimelineAgent() const;
+#endif
     private:
         void initGroup();
 
         OwnPtr<Chrome> m_chrome;
         OwnPtr<SelectionController> m_dragCaretController;
+#if ENABLE(DRAG_SUPPORT)
         OwnPtr<DragController> m_dragController;
+#endif
         OwnPtr<FocusController> m_focusController;
+#if ENABLE(CONTEXT_MENUS)
         OwnPtr<ContextMenuController> m_contextMenuController;
+#endif
+#if ENABLE(INSPECTOR)
         OwnPtr<InspectorController> m_inspectorController;
+#endif
         OwnPtr<Settings> m_settings;
         OwnPtr<ProgressTracker> m_progress;
         
@@ -248,7 +272,9 @@ namespace WebCore {
 
         bool m_javaScriptURLsAreAllowed;
 
+#if ENABLE(INSPECTOR)
         InspectorController* m_parentInspectorController;
+#endif
 
         String m_userStyleSheetPath;
         mutable String m_userStyleSheet;
@@ -265,6 +291,9 @@ namespace WebCore {
 
         bool m_canStartPlugins;
         HashSet<PluginView*> m_unstartedPlugins;
+
+        OwnPtr<PluginHalter> m_pluginHalter;
+        PluginHalterClient* m_pluginHalterClient;
 
 #if ENABLE(DOM_STORAGE)
         RefPtr<StorageNamespace> m_sessionStorage;

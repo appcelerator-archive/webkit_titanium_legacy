@@ -66,8 +66,12 @@
 #include "PluginDatabase.h"
 #include "ProgressTracker.h"
 #include "RefPtr.h"
+#include "RenderTextControl.h"
+#include "TextIterator.h"
 #include "HashMap.h"
 #include "HTMLFormElement.h"
+#include "HTMLInputElement.h"
+#include "HTMLNames.h"
 #include "HitTestResult.h"
 #include "WindowFeatures.h"
 #include "LocalizedStrings.h"
@@ -95,6 +99,7 @@
 #include <QSslSocket>
 #include <QStyle>
 #include <QSysInfo>
+#include <QTextCharFormat>
 #if QT_VERSION >= 0x040400
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
@@ -256,11 +261,13 @@ static inline Qt::DropAction dragOpToDropAction(unsigned actions)
 
 QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
     : q(qq)
+    , client(0)
     , view(0)
     , inspectorFrontend(0)
     , inspector(0)
     , inspectorIsInternalOnly(false)
     , viewportSize(QSize(0, 0))
+    , clickCausedFocus(false)
 {
     WebCore::InitializeLoggingChannelsIfNecessary();
     JSC::initializeThreading();
@@ -270,7 +277,7 @@ QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
     contextMenuClient = new ContextMenuClientQt();
     editorClient = new EditorClientQt(q);
     page = new Page(chromeClient, contextMenuClient, editorClient,
-                    new DragClientQt(q), new InspectorClientQt(q));
+                    new DragClientQt(q), new InspectorClientQt(q), 0);
 
     // ### should be configurable
     page->settings()->setDefaultTextEncodingName("iso-8859-1");
@@ -432,13 +439,13 @@ void QWebPagePrivate::_q_webActionTriggered(bool checked)
     q->triggerAction(action, checked);
 }
 
-#ifndef NDEBUG
 void QWebPagePrivate::_q_cleanupLeakMessages()
 {
+#ifndef NDEBUG
     // Need this to make leak messages accurate.
     cache()->setCapacities(0, 0, 0);
-}
 #endif
+}
 
 void QWebPagePrivate::updateAction(QWebPage::WebAction action)
 {
@@ -626,6 +633,11 @@ void QWebPagePrivate::mousePressEvent(QMouseEvent *ev)
     if (!frame->view())
         return;
 
+    RefPtr<WebCore::Node> oldNode;
+    if (page->focusController()->focusedFrame()
+        && page->focusController()->focusedFrame()->document())
+        oldNode = page->focusController()->focusedFrame()->document()->focusedNode();
+
     if (tripleClickTimer.isActive()
             && (ev->pos() - tripleClick).manhattanLength()
                 < QApplication::startDragDistance()) {
@@ -639,6 +651,14 @@ void QWebPagePrivate::mousePressEvent(QMouseEvent *ev)
     if (mev.button() != NoButton)
         accepted = frame->eventHandler()->handleMousePressEvent(mev);
     ev->setAccepted(accepted);
+
+    RefPtr<WebCore::Node> newNode;
+    if (page->focusController()->focusedFrame()
+        && page->focusController()->focusedFrame()->document())
+        newNode = page->focusController()->focusedFrame()->document()->focusedNode();
+
+    if (newNode && oldNode != newNode)
+        clickCausedFocus = true;
 }
 
 void QWebPagePrivate::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *ev)
@@ -744,6 +764,20 @@ void QWebPagePrivate::mouseReleaseEvent(QGraphicsSceneMouseEvent* ev)
     ev->setAccepted(accepted);
 
     handleClipboard(ev, ev->button());
+
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    if (view && view->testAttribute(Qt::WA_InputMethodEnabled)
+        && ev->button() == Qt::LeftButton && qApp->autoSipEnabled()) {
+        QStyle::RequestSoftwareInputPanel behavior = QStyle::RequestSoftwareInputPanel(
+            view->style()->styleHint(QStyle::SH_RequestSoftwareInputPanel));
+        if (!clickCausedFocus || behavior == QStyle::RSIP_OnMouseClick) {
+            QEvent event(QEvent::RequestSoftwareInputPanel);
+            QApplication::sendEvent(view, &event);
+        }
+    }
+
+    clickCausedFocus = false;
+#endif
 }
 
 void QWebPagePrivate::mouseReleaseEvent(QMouseEvent *ev)
@@ -1086,13 +1120,53 @@ void QWebPagePrivate::inputMethodEvent(QInputMethodEvent *ev)
         return;
     }
 
+    RenderObject* renderer = 0;
+    RenderTextControl* renderTextControl = 0;
+
+    if (frame->selection()->rootEditableElement())
+        renderer = frame->selection()->rootEditableElement()->shadowAncestorNode()->renderer();
+
+    if (renderer && renderer->isTextControl())
+        renderTextControl = toRenderTextControl(renderer);
+
+    Vector<CompositionUnderline> underlines;
+
+    for (int i = 0; i < ev->attributes().size(); ++i) {
+        const QInputMethodEvent::Attribute& a = ev->attributes().at(i);
+        switch (a.type) {
+        case QInputMethodEvent::TextFormat: {
+            QTextCharFormat textCharFormat = a.value.value<QTextFormat>().toCharFormat();
+            QColor qcolor = textCharFormat.underlineColor();
+            underlines.append(CompositionUnderline(a.start, a.length, Color(makeRGBA(qcolor.red(), qcolor.green(), qcolor.blue(), qcolor.alpha())), false));
+            break;
+        }
+        case QInputMethodEvent::Cursor: {
+            frame->setCaretVisible(a.length); //if length is 0 cursor is invisible
+            if (a.length > 0) {
+                RenderObject* caretRenderer = frame->selection()->caretRenderer();
+                if (caretRenderer) {
+                    QColor qcolor = a.value.value<QColor>();
+                    caretRenderer->style()->setColor(Color(makeRGBA(qcolor.red(), qcolor.green(), qcolor.blue(), qcolor.alpha())));
+                }
+            }
+            break;
+        }
+#if QT_VERSION >= 0x040600
+        case QInputMethodEvent::Selection: {
+            if (renderTextControl) {
+                renderTextControl->setSelectionStart(a.start);
+                renderTextControl->setSelectionEnd(a.start + a.length);
+            }
+            break;
+        }
+#endif
+        }
+    }
+
     if (!ev->commitString().isEmpty())
         editor->confirmComposition(ev->commitString());
-    else {
+    else if (!ev->preeditString().isEmpty()) {
         QString preedit = ev->preeditString();
-        // ### FIXME: use the provided QTextCharFormat (use color at least)
-        Vector<CompositionUnderline> underlines;
-        underlines.append(CompositionUnderline(0, preedit.length(), Color(0, 0, 0), false));
         editor->setComposition(preedit, underlines, preedit.length(), 0);
     }
     ev->accept();
@@ -1195,41 +1269,89 @@ bool QWebPagePrivate::handleScrolling(QKeyEvent *ev, Frame *frame)
 */
 QVariant QWebPage::inputMethodQuery(Qt::InputMethodQuery property) const
 {
+    Frame* frame = d->page->focusController()->focusedFrame();
+    if (!frame)
+        return QVariant();
+
+    WebCore::Editor* editor = frame->editor();
+
+    RenderObject* renderer = 0;
+    RenderTextControl* renderTextControl = 0;
+
+    if (frame->selection()->rootEditableElement())
+        renderer = frame->selection()->rootEditableElement()->shadowAncestorNode()->renderer();
+
+    if (renderer && renderer->isTextControl())
+        renderTextControl = toRenderTextControl(renderer);
+
     switch (property) {
-    case Qt::ImMicroFocus: {
-        Frame *frame = d->page->focusController()->focusedFrame();
-        if (frame)
+        case Qt::ImMicroFocus: {
             return QVariant(frame->selection()->absoluteCaretBounds());
-        return QVariant();
-    }
-    case Qt::ImFont: {
-        QWebView *webView = qobject_cast<QWebView *>(d->view);
-        if (webView)
-            return QVariant(webView->font());
-        return QVariant();
-    }
-    case Qt::ImCursorPosition: {
-        Frame *frame = d->page->focusController()->focusedFrame();
-        if (frame) {
-            VisibleSelection selection = frame->selection()->selection();
-            if (selection.isCaret())
-                return QVariant(selection.start().deprecatedEditingOffset());
         }
-        return QVariant();
-    }
-    case Qt::ImSurroundingText: {
-        Frame *frame = d->page->focusController()->focusedFrame();
-        if (frame) {
-            Document *document = frame->document();
-            if (document->focusedNode())
-                return QVariant(document->focusedNode()->nodeValue());
+        case Qt::ImFont: {
+            if (renderTextControl) {
+                RenderStyle* renderStyle = renderTextControl->style();
+                return QVariant(QFont(renderStyle->font().font()));
+            }
+            return QVariant(QFont());
         }
-        return QVariant();
-    }
-    case Qt::ImCurrentSelection:
-        return QVariant(selectedText());
-    default:
-        return QVariant();
+        case Qt::ImCursorPosition: {
+            if (renderTextControl) {
+                if (editor->hasComposition()) {
+                    RefPtr<Range> range = editor->compositionRange();
+                    return QVariant(renderTextControl->selectionEnd() - TextIterator::rangeLength(range.get()));
+                }
+                return QVariant(renderTextControl->selectionEnd());
+            }
+            return QVariant();
+        }
+        case Qt::ImSurroundingText: {
+            if (renderTextControl) {
+                QString text = renderTextControl->text();
+                RefPtr<Range> range = editor->compositionRange();
+                if (range) {
+                    text.remove(range->startPosition().offsetInContainerNode(), TextIterator::rangeLength(range.get()));
+                }
+                return QVariant(text);
+            }
+            return QVariant();
+        }
+        case Qt::ImCurrentSelection: {
+            if (renderTextControl) {
+                int start = renderTextControl->selectionStart();
+                int end = renderTextControl->selectionEnd();
+                if (end > start)
+                    return QVariant(QString(renderTextControl->text()).mid(start,end-start));
+            }
+            return QVariant();
+
+        }
+#if QT_VERSION >= 0x040600
+        case Qt::ImAnchorPosition: {
+            if (renderTextControl) {
+                if (editor->hasComposition()) {
+                    RefPtr<Range> range = editor->compositionRange();
+                    return QVariant(renderTextControl->selectionStart() - TextIterator::rangeLength(range.get()));
+                }
+                return QVariant(renderTextControl->selectionStart());
+            }
+            return QVariant();
+        }
+        case Qt::ImMaximumTextLength: {
+            if (frame->selection()->isContentEditable()) {
+                if (frame->document() && frame->document()->focusedNode()) {
+                    if (frame->document()->focusedNode()->hasTagName(HTMLNames::inputTag)) {
+                        HTMLInputElement* inputElement = static_cast<HTMLInputElement*>(frame->document()->focusedNode());
+                        return QVariant(inputElement->maxLength());
+                    }
+                }
+                return QVariant(InputElement::s_maximumLength);
+            }
+            return QVariant(0);
+        }
+#endif
+        default:
+            return QVariant();
     }
 }
 
@@ -1490,6 +1612,7 @@ QWebPage::QWebPage(QObject *parent)
 */
 QWebPage::~QWebPage()
 {
+    d->createMainFrame();
     FrameLoader *loader = d->mainFrame->d->frame->loader();
     if (loader)
         loader->detachFromParent();
@@ -1519,6 +1642,7 @@ QWebFrame *QWebPage::mainFrame() const
 */
 QWebFrame *QWebPage::currentFrame() const
 {
+    d->createMainFrame();
     return static_cast<WebCore::FrameLoaderClientQt *>(d->page->focusController()->focusedOrMainFrame()->loader()->client())->webFrame();
 }
 
@@ -1544,6 +1668,7 @@ QWebFrame* QWebPage::frameAt(const QPoint& pos) const
 */
 QWebHistory *QWebPage::history() const
 {
+    d->createMainFrame();
     return &d->history;
 }
 
@@ -1554,8 +1679,10 @@ QWebHistory *QWebPage::history() const
 */
 void QWebPage::setView(QWidget *view)
 {
-    d->view = view;
-    setViewportSize(view ? view->size() : QSize(0, 0));
+    if (d->view != view) {
+        d->view = view;
+        setViewportSize(view ? view->size() : QSize(0, 0));
+    }
 }
 
 /*!
@@ -1929,6 +2056,7 @@ bool QWebPage::acceptNavigationRequest(QWebFrame *frame, const QWebNetworkReques
 */
 QString QWebPage::selectedText() const
 {
+    d->createMainFrame();
     return d->page->focusController()->focusedOrMainFrame()->selectedText();
 }
 
@@ -2484,6 +2612,7 @@ void QWebPage::updatePositionDependentActions(const QPoint &pos)
         }
     }
 
+    d->createMainFrame();
     WebCore::Frame* focusedFrame = d->page->focusController()->focusedOrMainFrame();
     HitTestResult result = focusedFrame->eventHandler()->hitTestResultAtPoint(focusedFrame->view()->windowToContents(pos), /*allowShadowContent*/ false);
 
@@ -2909,6 +3038,11 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
         case QSysInfo::WV_VISTA:
             ver = "Windows NT 6.0";
             break;
+#if QT_VERSION > 0x040500
+        case QSysInfo::WV_WINDOWS7:
+            ver = "Windows NT 6.1";
+            break;
+#endif
         case QSysInfo::WV_CE:
             ver = "Windows CE";
             break;

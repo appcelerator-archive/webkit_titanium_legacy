@@ -411,8 +411,6 @@ webcore_sources += \
 	WebCore/bindings/js/JSMessagePortCustom.h \
 	WebCore/bindings/js/JSMimeTypeArrayCustom.cpp \
 	WebCore/bindings/js/JSNamedNodeMapCustom.cpp \
-	WebCore/bindings/js/JSNamedNodesCollection.cpp \
-	WebCore/bindings/js/JSNamedNodesCollection.h \
 	WebCore/bindings/js/JSNavigatorCustom.cpp \
 	WebCore/bindings/js/JSNodeCustom.cpp \
 	WebCore/bindings/js/JSNodeFilterCondition.cpp \
@@ -1316,6 +1314,7 @@ webcore_sources += \
 	WebCore/page/Geolocation.cpp \
 	WebCore/page/Geolocation.h \
 	WebCore/page/Geoposition.h \
+	WebCore/page/HaltablePlugin.h \
 	WebCore/page/History.cpp \
 	WebCore/page/History.h \
 	WebCore/page/Location.cpp \
@@ -1334,6 +1333,9 @@ webcore_sources += \
 	WebCore/page/PageGroup.h \
   WebCore/page/PageGroupLoadDeferrer.cpp \
   WebCore/page/PageGroupLoadDeferrer.h \
+	WebCore/page/PluginHalter.cpp \
+	WebCore/page/PluginHalter.h \
+	WebCore/page/PluginHalterClient.h \
 	WebCore/page/PositionCallback.h \
 	WebCore/page/PositionError.h \
 	WebCore/page/PositionErrorCallback.h \
@@ -1347,8 +1349,12 @@ webcore_sources += \
 	WebCore/page/SecurityOriginHash.h \
 	WebCore/page/Settings.cpp \
 	WebCore/page/Settings.h \
+	WebCore/page/UserContentURLPattern.cpp \
+	WebCore/page/UserContentURLPattern.h \
 	WebCore/page/UserScript.h \
 	WebCore/page/UserScriptTypes.h \
+	WebCore/page/UserStyleSheet.h \
+	WebCore/page/UserStyleSheetTypes.h \
 	WebCore/page/WebKitPoint.h \
 	WebCore/page/WindowFeatures.cpp \
 	WebCore/page/WindowFeatures.h \
@@ -1486,6 +1492,7 @@ webcore_sources += \
 	WebCore/platform/graphics/FontFastPath.cpp \
 	WebCore/platform/graphics/FontRenderingMode.h \
 	WebCore/platform/graphics/FontSelector.h \
+	WebCore/platform/graphics/FontSmoothingMode.h \
 	WebCore/platform/graphics/FontTraitsMask.h \
 	WebCore/platform/graphics/GeneratedImage.cpp \
 	WebCore/platform/graphics/GeneratedImage.h \
@@ -1790,6 +1797,7 @@ webcore_sources += \
 	WebCore/rendering/RenderView.h \
 	WebCore/rendering/RenderWidget.cpp \
 	WebCore/rendering/RenderWidget.h \
+	WebCore/rendering/RenderWidgetProtector.h \
 	WebCore/rendering/RenderWordBreak.cpp \
 	WebCore/rendering/RenderWordBreak.h \
 	WebCore/rendering/RootInlineBox.cpp \
@@ -1922,6 +1930,8 @@ webcoregtk_sources += \
 	WebCore/platform/gtk/ContextMenuItemGtk.cpp \
 	WebCore/platform/gtk/CursorGtk.cpp \
 	WebCore/platform/gtk/CursorGtk.h \
+	WebCore/platform/gtk/DataObjectGtk.cpp \
+	WebCore/platform/gtk/DataObjectGtk.h \
 	WebCore/platform/gtk/DragDataGtk.cpp \
 	WebCore/platform/gtk/DragImageGtk.cpp \
 	WebCore/platform/gtk/EventLoopGtk.cpp \
@@ -1937,6 +1947,7 @@ webcoregtk_sources += \
 	WebCore/platform/gtk/MIMETypeRegistryGtk.cpp \
 	WebCore/platform/gtk/MouseEventGtk.cpp \
 	WebCore/platform/gtk/PasteboardGtk.cpp \
+	WebCore/platform/gtk/PasteboardHelper.cpp \
 	WebCore/platform/gtk/PasteboardHelper.h \
 	WebCore/platform/gtk/PlatformScreenGtk.cpp \
 	WebCore/platform/gtk/PopupMenuGtk.cpp \
@@ -2223,6 +2234,7 @@ webcore_sources += \
 	WebCore/storage/StorageAreaSync.cpp \
 	WebCore/storage/StorageAreaSync.h \
 	WebCore/storage/StorageEvent.cpp \
+	WebCore/storage/StorageEventDispatcher.cpp \
 	WebCore/storage/StorageEvent.h \
 	WebCore/storage/StorageMap.cpp \
 	WebCore/storage/StorageMap.h \
@@ -2256,6 +2268,17 @@ webcore_sources += \
 webcore_cppflags += -DENABLE_ICONDATABASE=0
 
 endif # END ENABLE_ICONDATABASE
+
+# ----
+# Orientation Events
+# ----
+if ENABLE_ORIENTATION_EVENTS
+
+FEATURE_DEFINES_JAVASCRIPT += ENABLE_ORIENTATION_EVENTS=1
+
+webcore_cppflags += -DENABLE_ORIENTATION_EVENTS=1
+
+endif # END ENABLE_ORIENTATION_EVENTS
 
 # ----
 # Video Support
@@ -2298,11 +2321,14 @@ webcoregtk_sources += \
 	WebCore/platform/graphics/gtk/MediaPlayerPrivateGStreamer.cpp \
 	WebCore/platform/graphics/gtk/MediaPlayerPrivateGStreamer.h \
 	WebCore/platform/graphics/gtk/VideoSinkGStreamer.cpp \
-	WebCore/platform/graphics/gtk/VideoSinkGStreamer.h
+	WebCore/platform/graphics/gtk/VideoSinkGStreamer.h \
+	WebCore/platform/graphics/gtk/DataSourceGStreamer.cpp \
+	WebCore/platform/graphics/gtk/DataSourceGstreamer.h
 
 webcore_libadd += \
 	-lgstinterfaces-0.10 \
-	-lgstvideo-0.10
+	-lgstvideo-0.10 \
+	-lgstpbutils-0.10
 
 endif # END ENABLE_VIDEO
 
@@ -2395,13 +2421,16 @@ FEATURE_DEFINES_JAVASCRIPT += ENABLE_XSLT=1
 webcore_cppflags += -DENABLE_XSLT=1
 
 webcore_sources += \
+	WebCore/dom/TransformSourceLibxslt.cpp \
+	WebCore/dom/TransformSource.h \
 	WebCore/xml/XSLImportRule.cpp \
 	WebCore/xml/XSLImportRule.h \
-	WebCore/xml/XSLStyleSheet.cpp \
+	WebCore/xml/XSLStyleSheetLibxslt.cpp \
 	WebCore/xml/XSLStyleSheet.h \
 	WebCore/xml/XSLTExtensions.cpp \
 	WebCore/xml/XSLTExtensions.h \
 	WebCore/xml/XSLTProcessor.cpp \
+	WebCore/xml/XSLTProcessorLibxslt.cpp \
 	WebCore/xml/XSLTProcessor.h \
 	WebCore/xml/XSLTUnicodeSort.cpp \
 	WebCore/xml/XSLTUnicodeSort.h
@@ -2469,7 +2498,6 @@ webcore_cppflags += \
 webcore_built_sources += \
 	WebCore/bindings/js/JSSharedWorkerConstructor.cpp \
 	WebCore/bindings/js/JSSharedWorkerConstructor.h \
-	WebCore/bindings/js/JSSharedWorkerContextCustom.cpp \
 	WebCore/bindings/js/JSSharedWorkerCustom.cpp \
 	WebCore/workers/DefaultSharedWorkerRepository.cpp \
 	WebCore/workers/DefaultSharedWorkerRepository.h \

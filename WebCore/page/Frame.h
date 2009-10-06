@@ -67,6 +67,7 @@ namespace WebCore {
     class Editor;
     class EventHandler;
     class FrameLoader;
+    class RedirectScheduler;
     class FrameLoaderClient;
     class FrameTree;
     class FrameView;
@@ -110,6 +111,7 @@ namespace WebCore {
         Editor* editor() const;
         EventHandler* eventHandler() const;
         FrameLoader* loader() const;
+        RedirectScheduler* redirectScheduler() const;
         SelectionController* selection() const;
         FrameTree* tree() const;
         AnimationController* animation() const;
@@ -153,6 +155,14 @@ namespace WebCore {
 
         void setDocument(PassRefPtr<Document>);
 
+#if ENABLE(ORIENTATION_EVENTS)
+        // Orientation is the interface orientation in degrees. Some examples are:
+        //  0 is straight up; -90 is when the device is rotated 90 clockwise;
+        //  90 is when rotated counter clockwise.
+        void sendOrientationChangeEvent(int orientation);
+        int orientation() const { return m_orientation; }
+#endif
+
         void clearTimers();
         static void clearTimers(FrameView*, Document*);
 
@@ -190,7 +200,7 @@ namespace WebCore {
     public:
         void focusWindow();
         void unfocusWindow();
-        bool shouldClose(RegisteredEventListenerVector* alternateEventListeners = 0);
+        bool shouldClose();
         void scheduleClose();
 
         void setJSStatusBarText(const String&);
@@ -326,6 +336,7 @@ namespace WebCore {
         Page* m_page;
         mutable FrameTree m_treeNode;
         mutable FrameLoader m_loader;
+        mutable RedirectScheduler m_redirectScheduler;
 
         mutable RefPtr<DOMWindow> m_domWindow;
         HashSet<DOMWindow*> m_liveFormerWindows;
@@ -354,6 +365,10 @@ namespace WebCore {
 
         Timer<Frame> m_lifeSupportTimer;
 
+#if ENABLE(ORIENTATION_EVENTS)
+        int m_orientation;
+#endif
+        
         bool m_caretVisible;
         bool m_caretPaint;
 
