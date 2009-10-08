@@ -81,7 +81,7 @@ namespace WebCore {
         void setDragImage(CachedImage*, Node*, const IntPoint&);
 
         COMPtr<IDataObject> m_dataObject;
-        COMPtr<WCDataObject> m_writableDataObject;
+        //COMPtr<WCDataObject> m_writableDataObject;
         Frame* m_frame;
     };
 
