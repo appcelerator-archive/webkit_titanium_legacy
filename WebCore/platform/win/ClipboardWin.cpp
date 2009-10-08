@@ -221,9 +221,6 @@ static HGLOBAL createGlobalImageFileContent(SharedBuffer* data)
 
 static HGLOBAL createGlobalHDropContent(const KURL& url, String& fileName, SharedBuffer* data)
 {
-    if (fileName.isEmpty() || !data )
-        return 0;
-
     WCHAR filePath[MAX_PATH];
 
     if (url.isLocalFile()) {
@@ -237,6 +234,8 @@ static HGLOBAL createGlobalHDropContent(const KURL& url, String& fileName, Share
         else
             return 0;
     } else {
+	    if (fileName.isEmpty() || !data )
+            return 0;
         WCHAR tempPath[MAX_PATH];
         WCHAR extension[MAX_PATH];
         if (!::GetTempPath(ARRAYSIZE(tempPath), tempPath))
@@ -313,7 +312,6 @@ static HGLOBAL createGlobalUrlFileDescriptor(const String& url, const String& ti
     
     return memObj;
 }
-
 
 static HGLOBAL createGlobalImageFileDescriptor(const String& url, const String& title, CachedImage* image)
 {
@@ -537,8 +535,23 @@ bool ClipboardWin::setData(const String& type, const String& data)
 
     ClipboardDataType winType = clipboardTypeFromMIMEType(type);
 
-    if (winType == ClipboardDataTypeURL)
-        return WebCore::writeURL(m_dataObject.get(), KURL(data), String(), false, true);
+    if (winType == ClipboardDataTypeURL) {
+		KURL url(ParsedURLString, data);
+		String emptyStr;
+        bool wroteURL = WebCore::writeURL(m_dataObject.get(), url, emptyStr, false, true);
+		
+		HGLOBAL hDropContent = createGlobalHDropContent(url, emptyStr, 0);
+		if (hDropContent) {
+		    STGMEDIUM medium = {0};
+            medium.tymed = TYMED_HGLOBAL;
+		    medium.hGlobal = hDropContent;
+            wroteURL = SUCCEEDED(m_dataObject->SetData(cfHDropFormat(), &medium, TRUE)) && wroteURL;
+		} else
+		    GlobalFree(hDropContent);
+		
+        //HRESULT hr = writeFileToDataObject(m_dataObject.get(), urlFileDescriptor, urlFileContent, 0);
+		return wroteURL;
+	}
 
     if (winType == ClipboardDataTypeText) {
         STGMEDIUM medium = {0};
@@ -596,6 +609,38 @@ HashSet<String> ClipboardWin::types() const
     }
 
     return results;
+}
+
+PassRefPtr<FileList> ClipboardWin::files() const
+{
+	if (policy() != ClipboardReadable && policy() != ClipboardTypesReadable)
+        return FileList::create();
+
+    if (!m_dataObject)
+        return FileList::create();
+
+    RefPtr<FileList> files = FileList::create();    
+	STGMEDIUM medium;
+	if (FAILED(m_dataObject->GetData(cfHDropFormat(), &medium)))
+	    return files.release();
+	
+	HDROP hdrop = (HDROP) GlobalLock(medium.hGlobal);
+	if (!hdrop)
+	    return files.release();
+	
+	WCHAR filename[MAX_PATH];
+	UINT fileCount = DragQueryFile(hdrop, (UINT)-1, 0, 0);
+    for (UINT i = 0; i < fileCount; i++) {
+        if (!DragQueryFileW(hdrop, i, filename, ARRAYSIZE(filename)))
+            continue;
+        files->append(File::create((UChar*)filename));
+    }
+
+    // Free up memory from drag
+    DragFinish(hdrop);
+    GlobalUnlock(medium.hGlobal);	
+	
+	return files.release();
 }
 
 void ClipboardWin::setDragImage(CachedImage* image, Node *node, const IntPoint &loc)
