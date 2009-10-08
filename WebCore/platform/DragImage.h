@@ -40,6 +40,8 @@ class NSImage;
 QT_BEGIN_NAMESPACE
 class QPixmap;
 QT_END_NAMESPACE
+#elif PLATFORM(GTK)
+#include <gdk/gdk.h>
 #elif PLATFORM(WIN)
 typedef struct HBITMAP__* HBITMAP;
 #elif PLATFORM(WX)
@@ -69,7 +71,7 @@ namespace WebCore {
 #elif PLATFORM(WX)
     typedef wxDragImage* DragImageRef;
 #elif PLATFORM(GTK)
-    typedef void* DragImageRef;
+    typedef GdkPixbuf* DragImageRef;
 #endif
     
     IntSize dragImageSize(DragImageRef);

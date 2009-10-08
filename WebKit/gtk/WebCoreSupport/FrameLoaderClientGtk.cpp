@@ -129,7 +129,7 @@ static String agentOS()
 #endif
 }
 
-String FrameLoaderClient::composeUserAgent()
+static String FrameLoaderClient::composeUserAgent()
 {
     // This is a liberal interpretation of http://www.mozilla.org/build/revised-user-agent-strings.html
     // See also http://developer.apple.com/internet/safari/faq.html#anchor2

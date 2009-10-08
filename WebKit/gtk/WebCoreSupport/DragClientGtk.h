@@ -32,6 +32,8 @@
 
 #include "DragClient.h"
 
+typedef struct _WebKitWebView WebKitWebView;
+
 namespace WebKit {
     class DragClient : public WebCore::DragClient {
     public:
