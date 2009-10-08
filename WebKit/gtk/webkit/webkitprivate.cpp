@@ -163,7 +163,7 @@ void webkit_init()
 
     PageGroup::setShouldTrackVisitedLinks(true);
 
-    Pasteboard::generalPasteboard()->setHelper(new WebKit::PasteboardHelperGtk());
+    PasteboardHelper::setHelper(new WebKit::PasteboardHelperGtk());
 
     SoupSession* session = webkit_get_default_session();
     SoupSessionFeature* authDialog = static_cast<SoupSessionFeature*>(g_object_new(WEBKIT_TYPE_SOUP_AUTH_DIALOG, NULL));

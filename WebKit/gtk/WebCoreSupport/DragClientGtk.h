@@ -45,6 +45,10 @@ namespace WebKit {
         virtual WebCore::DragImageRef createDragImageForLink(WebCore::KURL&, const WebCore::String& label, WebCore::Frame*);
 
         virtual void dragControllerDestroyed();
+
+   private:
+        WebKitWebView* m_webView;
+        WebCore::IntPoint m_startPos;
     };
 }
 

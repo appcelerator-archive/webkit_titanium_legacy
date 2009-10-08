@@ -17,7 +17,21 @@
 #include "config.h"
 #include "DragClientGtk.h"
 
+#include "Document.h"
+#include "Document.h"
+#include "Element.h"
+#include "Frame.h"
 #include "NotImplemented.h"
+#include "RenderObject.h"
+#include "ClipboardGtk.h"
+#include "PasteboardHelper.h"
+#include "webkitwebview.h"
+#include "webkitprivate.h"
+
+#include <gtk/gtk.h>
+#if !GTK_CHECK_VERSION(2, 14, 0)
+#define gtk_widget_get_window(widget) (widget)->window
+#endif
 
 using namespace WebCore;
 
@@ -45,9 +59,32 @@ DragSourceAction DragClient::dragSourceActionMaskForPoint(const IntPoint&)
     return DragSourceActionAny;
 }
 
-void DragClient::startDrag(DragImageRef, const IntPoint&, const IntPoint&, Clipboard*, Frame*, bool)
+void DragClient::startDrag(DragImageRef image, const IntPoint& dragImageOrigin, const IntPoint& eventPos, Clipboard* clipboard, Frame* frame, bool linkDrag)
 {
-    notImplemented();
+    ClipboardGtk* clipboardGtk = reinterpret_cast<ClipboardGtk*>(clipboard);
+
+    GdkDragAction dragAction = GDK_ACTION_COPY;
+    if (linkDrag)
+        dragAction = (GdkDragAction) (dragAction | GDK_ACTION_LINK);
+
+    WebKitWebView* webView = webkit_web_frame_get_web_view(kit(frame));
+    RefPtr<DataObjectGtk> dataObject = clipboardGtk->dataObject();
+    WEBKIT_WEB_VIEW_GET_PRIVATE(webView)->draggingDataObject = dataObject;
+
+    GtkTargetList* targetList = PasteboardHelper::helper()->targetListForDataObject(dataObject.get());
+    GdkEvent* event = gdk_event_new(GDK_BUTTON_PRESS);
+    reinterpret_cast<GdkEventButton*>(event)->window = gtk_widget_get_window(GTK_WIDGET(m_webView));
+    reinterpret_cast<GdkEventButton*>(event)->time = GDK_CURRENT_TIME;
+
+    GdkDragContext* context = gtk_drag_begin(GTK_WIDGET(m_webView),
+                                             targetList, dragAction, 1, event);
+    dataObject->setDragContext(context);
+    gtk_target_list_unref(targetList);
+
+    if (image)
+        gtk_drag_set_icon_pixbuf(context, image, eventPos.x() - dragImageOrigin.x(), eventPos.y() - dragImageOrigin.y());
+    else
+        gtk_drag_set_icon_default(context);
 }
 
 DragImageRef DragClient::createDragImageForLink(KURL&, const String& label, Frame*)
