@@ -195,6 +195,7 @@ private:
     bool startData(String urlString);
     bool startHttp(String urlString);
     bool startGio(KURL url);
+    bool startPreprocessed();
 #endif
 
     void scheduleFailure(FailureType);
