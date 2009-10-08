@@ -397,10 +397,7 @@ void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFuncti
     WebKitWebNavigationAction* navigationAction = getNavigationAction(action, frameName.utf8().data());
     gboolean isHandled = false;
 
-    gchar* frameNameStr = strdup(frameName.utf8().data());
-
-    g_signal_emit_by_name(webView, "new-window-policy-decision-requested", m_frame, request, navigationAction, policyDecision, frameNameStr, &isHandled);
-    free(frameNameStr);
+    g_signal_emit_by_name(webView, "new-window-policy-decision-requested", m_frame, request, navigationAction, policyDecision, &isHandled);
 
     g_object_unref(navigationAction);
     g_object_unref(request);

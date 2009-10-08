@@ -170,7 +170,6 @@ namespace WebKit {
 
         virtual bool canCachePage() const;
         virtual void download(WebCore::ResourceHandle*, const WebCore::ResourceRequest&, const WebCore::ResourceRequest&, const WebCore::ResourceResponse&);
-        static WebCore::String composeUserAgent();
     private:
         WebKitWebFrame* m_frame;
         WebCore::ResourceResponse m_response;

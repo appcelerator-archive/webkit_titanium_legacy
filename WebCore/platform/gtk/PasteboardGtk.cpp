@@ -76,8 +76,8 @@ void Pasteboard::writeURL(const KURL& url, const String&, Frame* frame)
     if (actualLabel.isEmpty())
         actualLabel = url;
 
-    Vector<String> uriList;
-    uriList.append(url.string());
+    Vector<KURL> uriList;
+    uriList.append(url);
     dataObject->setURIList(uriList);
     dataObject->setText(actualLabel);
 

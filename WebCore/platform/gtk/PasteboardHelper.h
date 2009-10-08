@@ -25,8 +25,9 @@
 #define PasteboardHelper_h
 
 #include "Frame.h"
-
 #include "DataObjectGtk.h"
+
+#include <wtf/RefCounted.h>
 #include <gtk/gtk.h>
 
 namespace WebCore {
@@ -34,7 +35,7 @@ namespace WebCore {
 // This singleton is necessary because WebKit knows about per-widget clipboards
 // and the info identifier for clipboard and drag-and-drop selection data. WebCore
 // doesn't have the information, so it must ask WebKit. Can this be in WebCore?
-class PasteboardHelper {
+class PasteboardHelper : public RefCounted<PasteboardHelper> {
 public:
     virtual ~PasteboardHelper() {};
 
@@ -51,10 +52,10 @@ public:
     virtual GtkTargetList* targetListForDragContext(GdkDragContext* context) = 0;
     static bool usePrimaryClipboard();
     static void setUsePrimaryClipboard(bool);
-    static void setHelper(PasteboardHelper*);
+    static void setHelper(PassRefPtr<PasteboardHelper>);
     static GtkClipboard* clipboard();
     static GtkClipboard* clipboardForFrame(Frame*);
-    static PasteboardHelper* helper();
+    static PassRefPtr<PasteboardHelper> helper();
 };
 
 }
