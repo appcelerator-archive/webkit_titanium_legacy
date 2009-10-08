@@ -945,10 +945,6 @@ static void webkit_web_view_dispose(GObject* object)
         priv->imContext = NULL;
     }
 
-        delete priv->userAgent;
-        priv->userAgent = NULL;
-    }
-
     priv->draggingDataObject.clear();
     priv->droppingDataObject.clear();
 
