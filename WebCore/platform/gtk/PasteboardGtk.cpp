@@ -62,7 +62,7 @@ void Pasteboard::writeSelection(Range* selectedRange, bool canSmartCopyOrDelete,
     PasteboardHelper::helper()->writeClipboardContents(clipboard);
 }
 
-void Pasteboard::writeURL(const KURL& url, const String&, Frame* frame)
+void Pasteboard::writeURL(const KURL& url, const String& label, Frame* frame)
 {
     if (url.isEmpty())
         return;

@@ -643,7 +643,7 @@ bool ResourceHandle::start(Frame* frame)
         } else {
             d->m_titaniumURL = strdup(url.string().utf8().data());
             KURL fileURL = TitaniumProtocols::URLToFileURL(url);
-            return startGio(this, fileURL);
+            return startGio(fileURL);
         }
     }
 
@@ -908,7 +908,7 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
             ResourceRequest newRequest = handle->request();
             newRequest.setURL(normalized);
             if (d->client())
-                d->client()->willSendRequest(handle.get(), newRequest, response);
+                d->client()->willSendRequest(handle, newRequest, response);
 
         } else {
             response.setURL(KURL(KURL(), d->m_titaniumURL));

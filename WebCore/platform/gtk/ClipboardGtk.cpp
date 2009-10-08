@@ -19,10 +19,17 @@
 #include "config.h"
 #include "ClipboardGtk.h"
 
+#include "CachedImage.h"
+#include "CString.h"
+#include "Editor.h"
+#include "Element.h"
+#include "FileList.h"
+#include "Frame.h"
+#include "markup.h"
 #include "NotImplemented.h"
+#include "RenderImage.h"
 #include "StringHash.h"
 #include "PasteboardHelper.h"
-
 #include "Editor.h"
 
 namespace WebCore {
@@ -340,27 +347,23 @@ DragImageRef ClipboardGtk::createDragImage(IntPoint& location) const
     return result;
 }
 
-void ClipboardGtk::declareAndWriteDragImage(Element*, const KURL&, const String&, Frame*)
+static CachedImage* getCachedImage(Element* element)
 {
-<<<<<<< HEAD:WebCore/platform/gtk/ClipboardGtk.cpp
-    notImplemented();
+    // Attempt to pull CachedImage from element
+    ASSERT(element);
+    RenderObject* renderer = element->renderer();
+    if (!renderer || !renderer->isImage())
+        return 0;
+ 
+    RenderImage* image = static_cast<RenderImage*>(renderer);
+    if (image->cachedImage() && !image->cachedImage()->errorOccurred())
+        return image->cachedImage();
+ 
+    return 0;
 }
 
-void ClipboardGtk::writeURL(const KURL&, const String&, Frame*)
+void ClipboardGtk::declareAndWriteDragImage(Element* element, const KURL& url, const String& label, Frame* frame)
 {
-    notImplemented();
-}
-
-void ClipboardGtk::writeRange(Range*, Frame*)
-{
-    notImplemented();
-}
-
-bool ClipboardGtk::hasData()
-{
-    notImplemented();
-    return false;
-=======
     CachedImage* cachedImage = getCachedImage(element);
     if (!cachedImage || !cachedImage->isLoaded())
         return;
@@ -376,7 +379,6 @@ bool ClipboardGtk::hasData()
 
     if (m_clipboard)
         PasteboardHelper::helper()->writeClipboardContents(m_clipboard);
->>>>>>> a8b0143... Full drag-and-drop and DOM clipboard support for GTK+.:WebCore/platform/gtk/ClipboardGtk.cpp
 }
 
 }

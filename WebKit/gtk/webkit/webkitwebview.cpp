@@ -178,17 +178,8 @@ static void webkit_web_view_set_window_features(WebKitWebView* webView, WebKitWe
 static IntPoint viewPointToGlobalPoint(FrameView* view, IntPoint& viewPoint)
 {
     int x, y;
-    gdk_window_get_origin(GTK_WIDGET(view->hostWindow()->platformPageClient())->window, &x, &y);
+    gdk_window_get_origin(GTK_WIDGET(view->hostWindow()->platformWindow())->window, &x, &y);
     return viewPoint + IntSize(x, y);
-}
-
-/* From EventHandler.cpp */
-static IntPoint documentPointForWindowPoint(Frame* frame, const IntPoint& windowPoint)
-{
-    FrameView* view = frame->view();
-    // FIXME: Is it really OK to use the wrong coordinates here when view is 0?
-    // Historically the code would just crash; this is clearly no worse than that.
-    return view ? view->windowToContents(windowPoint) : windowPoint;
 }
 
 static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webView, const PlatformMouseEvent& event)
