@@ -588,7 +588,7 @@ bool ResourceHandle::startHttp(String urlString)
 
                     SoupBuffer* soupBuffer = soup_buffer_new_with_owner(g_mapped_file_get_contents(fileMapping),
                                                                         g_mapped_file_get_length(fileMapping),
-                                                                        fileMapping, reinterpret_cast<GDestroyNotify>(g_mapped_file_free));
+                                                                        fileMapping, reinterpret_cast<GDestroyNotify>(g_mapped_file_unref));
                     soup_message_body_append_buffer(d->m_msg->request_body, soupBuffer);
                     soup_buffer_free(soupBuffer);
                 }

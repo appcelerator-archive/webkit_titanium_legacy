@@ -37,6 +37,12 @@ using namespace WebCore;
 
 namespace WebKit {
 
+DragClient::DragClient(WebKitWebView* webView)
+    : m_webView(webView)
+    , m_startPos(0,0)
+{
+}
+
 void DragClient::willPerformDragDestinationAction(DragDestinationAction, DragData*)
 {
     notImplemented();

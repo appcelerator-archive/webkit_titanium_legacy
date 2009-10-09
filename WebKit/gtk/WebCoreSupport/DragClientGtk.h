@@ -37,6 +37,7 @@ typedef struct _WebKitWebView WebKitWebView;
 namespace WebKit {
     class DragClient : public WebCore::DragClient {
     public:
+        DragClient(WebKitWebView*);
         virtual void willPerformDragDestinationAction(WebCore::DragDestinationAction, WebCore::DragData*);
         virtual void willPerformDragSourceAction(WebCore::DragSourceAction, const WebCore::IntPoint&, WebCore::Clipboard*);
         virtual WebCore::DragDestinationAction actionMaskForDrag(WebCore::DragData*);
