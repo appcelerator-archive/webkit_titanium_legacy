@@ -34,6 +34,7 @@
 #include "Editor.h"
 #include "Element.h"
 #include "EventHandler.h"
+#include "FileList.h"
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
