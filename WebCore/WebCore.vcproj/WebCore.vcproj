@@ -21720,14 +21720,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\rendering\bidi.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\rendering\bidi.h"
-				>
-			</File>
-			<File
 				RelativePath="..\rendering\break_lines.cpp"
 				>
 			</File>
@@ -21849,6 +21841,10 @@
 			</File>
 			<File
 				RelativePath="..\rendering\RenderBlock.h"
+				>
+			</File>
+			<File
+				RelativePath="..\rendering\RenderBlockLineLayout.cpp"
 				>
 			</File>
 			<File
