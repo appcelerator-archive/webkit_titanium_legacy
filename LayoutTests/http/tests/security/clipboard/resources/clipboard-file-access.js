@@ -1,4 +1,4 @@
-description("Tests access to event.dataTransfer.files");
+description("Tests access to event.dataTransfer.files and .types");
 
 var dragTarget = document.createElement("div");
 dragTarget.innerHTML = "Drag here"
@@ -10,18 +10,29 @@ document.body.insertBefore(dragTarget, document.body.firstChild);
 
 dragTarget.addEventListener("dragentered", function() {
     event.dataTransfer.dropEffect = "copy";
+    eventShouldContainTransferType(event, "Files");
+    fileListShouldBe("event.dataTransfer.files", []);
     event.preventDefault();
 }, false);
 
 dragTarget.addEventListener("dragover", function() {
     debug("On dragover:")
+    event.dataTransfer.dropEffect = "copy";
+    eventShouldContainTransferType(event, "Files");
     fileListShouldBe("event.dataTransfer.files", []);
     event.preventDefault();
+}, false);
+
+dragTarget.addEventListener("dragleave", function() {
+    debug("On dragleave:")
+    eventShouldContainTransferType(event, "Files");
+    fileListShouldBe("event.dataTransfer.files", []);
 }, false);
 
 var expectedFilesOnDrop;
 dragTarget.addEventListener("drop", function() {
     debug("On drop:")
+    eventShouldContainTransferType(event, "Files");
     fileListShouldBe("event.dataTransfer.files", expectedFilesOnDrop);
     event.preventDefault();
 }, false);
@@ -36,7 +47,17 @@ function moveMouseToCenterOfElement(element)
 function dragFilesOntoDragTarget(files) {
     eventSender.beginDragWithFiles(files);
     moveMouseToCenterOfElement(dragTarget);
+    if (leave && leave === true)
+        moveMouseToOutsideOfElement(dragTarget);
     eventSender.mouseUp();
+}
+
+function eventShouldContainTransferType(event, typeString)
+{
+   if (event.dataTransfer.types.indexOf(typeString) == -1)
+       testFailed("event.dataTransfer.types " + typeString + " expected.");
+   else
+       testPassed("event.dataTransfer.types contains " + typeString + ".");
 }
 
 function fileListShouldBe(fileListString, filesArray)
