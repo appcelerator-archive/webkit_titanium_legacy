@@ -249,7 +249,7 @@ HashSet<String> ClipboardGtk::types() const
     return types;
 }
 
-PassRefPtr<FileList> ClipboardGtk::files() const
+IntPoint ClipboardGtk::dragLocation() const
 {
     if (policy() != ClipboardReadable)
         return FileList::create();

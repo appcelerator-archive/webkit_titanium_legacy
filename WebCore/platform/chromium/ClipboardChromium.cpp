@@ -162,6 +162,9 @@ HashSet<String> ClipboardChromium::types() const
     if (!m_dataObject)
         return results;
 
+    if (!m_dataObject->filenames.isEmpty())
+        results.add("Files");
+
     if (m_dataObject->url.isValid()) {
         results.add("URL");
         results.add("text/uri-list");
@@ -173,6 +176,12 @@ HashSet<String> ClipboardChromium::types() const
     }
 
     return results;
+}
+
+PassRefPtr<FileList> ClipboardChromium::files() const
+{
+    notImplemented();
+    return 0;
 }
 
 void ClipboardChromium::setDragImage(CachedImage* image, Node* node, const IntPoint& loc)

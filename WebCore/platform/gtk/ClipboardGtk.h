@@ -52,8 +52,6 @@ public:
     String getData(const String& type, bool& success) const;
     bool setData(const String& type, const String& data);
 
-    virtual bool hasData();
-
     virtual HashSet<String> types() const;
     virtual PassRefPtr<FileList> files() const;
 
