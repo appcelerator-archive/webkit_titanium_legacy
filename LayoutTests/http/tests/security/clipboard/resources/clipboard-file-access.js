@@ -8,9 +8,12 @@ dragTarget.style.height = "100px";
 // Important that we put this at the top of the doc so that logging does not cause it to go out of view (and be undragable)
 document.body.insertBefore(dragTarget, document.body.firstChild);
 
-dragTarget.addEventListener("dragentered", function() {
+var filesToDrag;
+dragTarget.addEventListener("dragenter", function() {
+    debug("On dragenter:")
     event.dataTransfer.dropEffect = "copy";
-    eventShouldContainTransferType(event, "Files");
+    var shouldContainType = (filesToDrag.length > 0);
+    checkForEventTransferType(event, "Files", shouldContainType);
     fileListShouldBe("event.dataTransfer.files", []);
     event.preventDefault();
 }, false);
@@ -18,21 +21,24 @@ dragTarget.addEventListener("dragentered", function() {
 dragTarget.addEventListener("dragover", function() {
     debug("On dragover:")
     event.dataTransfer.dropEffect = "copy";
-    eventShouldContainTransferType(event, "Files");
+    var shouldContainType = (filesToDrag.length > 0);
+    checkForEventTransferType(event, "Files", shouldContainType);
     fileListShouldBe("event.dataTransfer.files", []);
     event.preventDefault();
 }, false);
 
 dragTarget.addEventListener("dragleave", function() {
     debug("On dragleave:")
-    eventShouldContainTransferType(event, "Files");
+    var shouldContainType = (filesToDrag.length > 0);
+    checkForEventTransferType(event, "Files", shouldContainType);
     fileListShouldBe("event.dataTransfer.files", []);
 }, false);
 
 var expectedFilesOnDrop;
 dragTarget.addEventListener("drop", function() {
     debug("On drop:")
-    eventShouldContainTransferType(event, "Files");
+    var shouldContainType = (filesToDrag.length > 0);
+    checkForEventTransferType(event, "Files", shouldContainType);
     fileListShouldBe("event.dataTransfer.files", expectedFilesOnDrop);
     event.preventDefault();
 }, false);
@@ -44,7 +50,14 @@ function moveMouseToCenterOfElement(element)
     eventSender.mouseMoveTo(centerX, centerY);
 }
 
-function dragFilesOntoDragTarget(files) {
+function moveMouseToOutsideOfElement(element) {
+    var outsideX = element.offsetLeft + element.offsetWidth + 42;
+    var outsideY = element.offsetTop + element.offsetHeight + 42;
+    eventSender.mouseMoveTo(outsideX, outsideY);
+}
+
+function dragFilesOntoDragTarget(files, leave) {
+    filesToDrag = files;
     eventSender.beginDragWithFiles(files);
     moveMouseToCenterOfElement(dragTarget);
     if (leave && leave === true)
@@ -52,12 +65,21 @@ function dragFilesOntoDragTarget(files) {
     eventSender.mouseUp();
 }
 
-function eventShouldContainTransferType(event, typeString)
+function checkForEventTransferType(event, typeString, shouldContainType)
 {
-   if (event.dataTransfer.types.indexOf(typeString) == -1)
-       testFailed("event.dataTransfer.types " + typeString + " expected.");
-   else
-       testPassed("event.dataTransfer.types contains " + typeString + ".");
+    var passedCheck;
+    var message;
+    if (event.dataTransfer.types && event.dataTransfer.types.indexOf(typeString) != -1) {
+        passedCheck = shouldContainType;
+        message = "event.dataTransfer.types contains " + typeString + ".";
+    } else {
+        passedCheck = !shouldContainType;
+        message = "event.dataTransfer.types does not contain " + typeString + ".";
+    }
+    if (passedCheck)
+        testPassed(message);
+    else
+        testFailed(message);
 }
 
 function fileListShouldBe(fileListString, filesArray)
