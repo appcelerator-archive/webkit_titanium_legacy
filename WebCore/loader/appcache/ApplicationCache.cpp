@@ -106,6 +106,7 @@ unsigned ApplicationCache::removeResource(const String& url)
     
 ApplicationCacheResource* ApplicationCache::resourceForURL(const String& url)
 {
+    ASSERT(!KURL(ParsedURLString, url).hasFragmentIdentifier());
     return m_resources.get(url).get();
 }    
 

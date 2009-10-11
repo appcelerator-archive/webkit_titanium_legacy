@@ -1,3 +1,654 @@
+2009-08-31  Alexey Proskuryakov  <ap@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28852
+        Rename KURL single argument constructor to avoid confusion
+
+        * WebURLResponse.cpp: (WebURLResponse::createInstance): Adapt to the change.
+
+2009-08-20  Adam Roben  <aroben@apple.com>
+
+        Give WebKit clients access to the window features specified in
+        window.open
+
+        Reviewed by Steve Falkenburg.
+
+        * COMVariantSetter.h: Added COMVariantSetters for bool and float.
+
+        * Interfaces/IWebUIDelegatePrivate.idl: Added IWebUIDelegatePrivate2,
+        which contains a new version of createWebViewWithRequest that also
+        passes the window features as an IPropertyBag. This is analagous to
+        the -createWebViewWithRequest:windowFeatures: method added to
+        WebUIDelegate on Mac in r27452. Also added key strings for use with
+        the window features property bag.
+
+        * WebCoreSupport/WebChromeClient.cpp:
+        (createWindowFeaturesPropertyBag): Added this helper function to turn
+        a WebCore::WindowFeatures into an IPropertyBag for passing to WebKit
+        clients.
+        (WebChromeClient::createWindow): If the UI delegate implements
+        IWebUIDelegatePrivate2, call the new createWebViewWithRequest function
+        that takes a window features property bag. If the delegate doesn't
+        implement the new function, fall back to the old functions.
+
+2009-08-20  Adam Roben  <aroben@apple.com>
+
+        A little clean-up in WebChromeClient::createWindow
+
+        Reviewed by Steve Falkenburg.
+
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::createWindow): Refactored to share more code between
+        the dialog and non-dialog cases.
+
+2009-08-28  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Holger Freyther.
+
+        https://bugs.webkit.org/show_bug.cgi?id=25889
+        [GTK] scrollbar policy for main frame is not implementable
+
+        Add empty implementation for new ChromeClient method.
+
+        * WebCoreSupport/WebChromeClient.h:
+        (WebChromeClient::scrollbarsModeDidChange):
+
+2009-08-27  Brent Fulgham  <bfulgham@webkit.org>
+
+        Reviewed by Adam Roben.
+
+        Modify Release_Cairo target to build testapi using the
+        Release_CFLite target so that the correct CoreFoundation
+        (in this case, CFLite.dll) is linked.
+
+        * WebKit.vcproj/WebKit.sln:
+
+2009-08-26  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Oliver Hunt.
+
+        Don't let local files access web URLs
+        https://bugs.webkit.org/show_bug.cgi?id=28480
+
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings):
+
+2009-08-26  David Levin  <levin@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        ResourceRequestBase::*[Aa]llowHTTPCookies shouldn't mention http.
+        https://bugs.webkit.org/show_bug.cgi?id=28735
+
+        * WebMutableURLRequest.cpp:
+        (WebMutableURLRequest::setHTTPShouldHandleCookies):
+
+2009-08-25  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        <video> and <audio> controller should be accessible
+        https://bugs.webkit.org/show_bug.cgi?id=28081
+
+        * WebCoreLocalizedStrings.cpp:
+        (WebCore::localizedMediaControlElementString):
+        (WebCore::localizedMediaControlElementHelpText):
+        (WebCore::localizedMediaTimeDescription):
+            New.
+
+2009-08-25  Brent Fulgham  <bfulgham@webkit.org>
+
+        Build fix for Windows.
+
+        Revise Debug_Cairo build target to build testapi, jsc, WinLauncher,
+        DumpRenderTree, and TestNetscapeAPI using WinCairo debug build
+        settings so they link against the proper libraries.
+
+        * WebKit.vcproj/WebKit.sln:
+
+2009-08-25  David Levin  <levin@chromium.org>
+
+        Reviewed by Adam Roben.
+
+        PLATFORM(CFNETWORK) should be USE(CFNETWORK).
+        https://bugs.webkit.org/show_bug.cgi?id=28713
+
+        Also, moved the #if header section after the other #includes.
+
+        * WebError.cpp:
+        (WebError::localizedDescription):
+
+2009-08-24  Brent Fulgham  <bfulgham@webkit.org>
+
+        Reviewed by Steve Falkenburg.
+
+        Revise CFLite Debug build to emit DLL's with _debug label.
+        https://bugs.webkit.org/show_bug.cgi?id=28695.
+
+        * WebKit.vcproj/WebKit.vcproj: Modify Debug_Cairo target to
+          inherit from new debug_wincairo property sheet, instead of
+          the current debug sheet. 
+
+2009-08-22  Adam Barth  <abarth@webkit.org>
+
+        Revert 47684.  We're going to do this later once clients have had a
+        chance to opt into the setting they like.
+
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings):
+
+2009-08-22  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Don't let local files access web URLs
+        https://bugs.webkit.org/show_bug.cgi?id=28480
+
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings):
+
+2009-08-20  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Fix of <http://webkit.org/b/27850>. Panning by emulating Mouse Wheel Events breaks Google Maps.
+        
+        Switched to using RenderLayer::scrollByRecursively instead of emulating a mouse wheel,
+        and switched to handling the hit testing in WebView from doing it as part of the mouse wheel event.
+        One downside of this fix is that panning will not jump out of frames anymore (same behavior as pan-scrolling), but
+        this is tracked in <http://webkit.org/b/28237>.
+
+        * WebView.cpp:
+        (WebView::gestureNotify): Added hit testing here to figure out the node the user started the gesture on.
+        (WebView::gesture): Switched from emulating mouse wheel events for panning to calling RenderLayer::scrollByRecursively.
+        * WebView.h:
+
+2009-08-18  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Fix of <https://bugs.webkit.org/show_bug.cgi?id=28326> DRT on Windows doesn't support 
+        LayoutTestController::setQuota or print a callback on UIDelegate::exceededDatabaseQuota.
+        
+        Added a setQuota interface method to IWebDatabaseManager and implemented it.
+
+        * Interfaces/IWebDatabaseManager.idl:
+        * WebDatabaseManager.cpp:
+        (WebDatabaseManager::setQuota):
+        * WebDatabaseManager.h:
+
+2009-08-18  Drew Wilson  <atwilson@google.com>
+
+        Unreviewed (build break).
+
+        Added missing include for WebWorkersPrivate.h.
+
+        * WebKitClassFactory.cpp:
+
+2009-08-18  Peter Kasting  <pkasting@google.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28415
+        Set svn:eol-style CRLF on all .sln and .vcproj files that don't already
+        have it.
+
+        * WebKit.vcproj/InterfacesGenerated.vcproj:
+
+2009-08-18  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by Eric Seidel.
+
+        Need to extend DumpRenderTree to expose number of worker threads
+        https://bugs.webkit.org/show_bug.cgi?id=28292
+
+        Defined/implemented COM interfaces to expose WorkerThread::workerThreadCount() for DumpRenderTree.
+
+        * ForEachCoClass.h:
+        Added WebWorkersPrivate.
+        * Interfaces/IWebWorkersPrivate.idl: Added.
+        * Interfaces/WebKit.idl:
+        Added WebWorkersPrivate.
+        * WebKit.vcproj/Interfaces.vcproj:
+        * WebKit.vcproj/WebKit.vcproj:
+        * WebWorkersPrivate.cpp: Added.
+        Implementation of the IWebWorkersPrivate COM interface, to expose workerThreadCount() for DumpRenderTree.
+        (WebWorkersPrivate::QueryInterface):
+        (WebWorkersPrivate::AddRef):
+        (WebWorkersPrivate::Release):
+        (WebWorkersPrivate::workerThreadCount):
+        (WebWorkersPrivate::createInstance):
+        (WebWorkersPrivate::WebWorkersPrivate):
+        (WebWorkersPrivate::~WebWorkersPrivate):
+        * WebWorkersPrivate.h: Added.
+
+2009-08-17  Peter Kasting  <pkasting@google.com>
+
+        Reviewed by Steve Falkenburg.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27323
+        Only add Cygwin to the path when it isn't already there.  This avoids
+        causing problems for people who purposefully have non-Cygwin versions of
+        executables like svn in front of the Cygwin ones in their paths.
+
+        * WebKit.vcproj/Interfaces.vcproj:
+        * WebKit.vcproj/InterfacesGenerated.vcproj:
+        * WebKit.vcproj/WebKit.vcproj:
+        * WebKit.vcproj/WebKitGUID.vcproj:
+
+2009-08-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Speculative fix for Windows build bustage.
+
+        * DOMHTMLClasses.cpp:
+        (DOMHTMLElement::idName):
+
+2009-08-13  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        Part of <rdar://problem/6218721> No MSAA focus events fired for Webkit
+        nightly (20866)
+
+        https://bugs.webkit.org/show_bug.cgi?id=20866
+
+        Reviewed by Oliver Hunt.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::getAccessibilityObjectForChild):
+        If the child ID is negative, negate it and treat it as an AXID.
+
+2009-08-12  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Fix of <rdar://6728361> Mouse wheel scrolling on a page with expanded drop down 
+        list detaches drop down.
+        
+        Added a check in mouseWheel to see if our focus is currently in a popup, if so, close
+        the popup (matches other browser behavior).
+
+        * WebView.cpp:
+        (WebView::mouseWheel):
+
+2009-08-12  Adam Roben  <aroben@apple.com>
+
+        Make WebPreferenceKeysPrivate.h available for client use
+
+        Reviewed by Dave Hyatt.
+
+        Fixes <http://webkit.org/b/28227>.
+
+        * WebKit.vcproj/WebKit.vcproj: Copy WebPreferenceKeysPrivate.h to
+        $WebKitOutputDir, just like we do for a few other headers. Also let VS
+        reorder some XML attributes.
+
+        * WebPreferenceKeysPrivate.h: Touched this file to force a build.
+
+2009-08-11  Adam Roben  <aroben@apple.com>
+
+        Remove support for a window resizer within the WebView
+
+        Starting with Safari 4, there is never a window resizer inside the
+        WebView, so we no longer need to support that functionality.
+
+        Fixes <http://webkit.org/b/28190> Remove support for a window resizer
+        within the WebView
+
+        Reviewed by Dave Hyatt.
+
+        * Interfaces/IWebUIDelegatePrivate.idl: Replaced the delegate
+        functions related to the window resizer with unused*() functions. We
+        can't remove them entirely because we need to keep the vtable
+        unchanged so new versions of WebKit will work with old versions of
+        Safari (e.g., for nightlies and WebKit development).
+
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::windowResizerRect): Now always returns an empty
+        rect.
+
+        * WebView.cpp:
+        (WebView::paint):
+        (WebView::handleMouseEvent):
+        * WebView.h:
+        Removed window-resizer-related code.
+
+2009-08-11  John Gregg  <johnnyg@google.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Move the accessor for notifications presenter from WebUIDelegate
+        to WebUIDelegate2 which extends it.  When making this call from
+        WebCoreSupport, check using QueryInterface before calling.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28198
+
+        * Interfaces/IWebUIDelegate.idl:
+        * Interfaces/IWebUIDelegate2.idl: Added.
+        * Interfaces/WebKit.idl:
+        * WebCoreSupport/WebDesktopNotificationsDelegate.cpp:
+        (WebDesktopNotificationsDelegate::show):
+        (WebDesktopNotificationsDelegate::cancel):
+        (WebDesktopNotificationsDelegate::notificationObjectDestroyed):
+        (WebDesktopNotificationsDelegate::requestPermission):
+        (WebDesktopNotificationsDelegate::checkPermission):
+        (WebDesktopNotificationsDelegate::hasNotificationDelegate):
+        (WebDesktopNotificationsDelegate::notificationDelegate):
+        * WebCoreSupport/WebDesktopNotificationsDelegate.h:
+
+2009-08-11  Drew Wilson  <atwilson@google.com>
+
+        Reviewed by NOBODY (build break).
+
+        Speculative Windows build fix - undo previous unnecessary change.
+
+        * WebCoreSupport/WebDesktopNotificationsDelegate.h:
+
+2009-08-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Steve Falkenburg.
+
+        Refactored MIMETypeforExtension to be a member of IWebViewPrivate
+        instead of IWebView.
+
+        * Interfaces/IWebView.idl:
+        * Interfaces/IWebViewPrivate.idl:
+        * WebView.cpp:
+        (WebView::MIMETypeForExtension):
+        * WebView.h:
+
+2009-08-11  Drew Wilson <atwilson@google.com>
+
+        Reviewed by NOBODY (build break)
+
+        Speculative fix for windows build break.
+
+        * WebKitSupport/WebDesktopNotificationsDelegate.h:
+        WebCore/Notification*.h => WebCore/notifications/Notification*.h
+
+2009-08-11  John Gregg  <johnnyg@google.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Desktop Notifications API
+        https://bugs.webkit.org/show_bug.cgi?id=25643
+
+        Adds test hooks for notification features to WebCoreSupport for
+        use in DumpRenderTree.
+
+        * Interfaces/IWebDesktopNotificationsDelegate.idl: Added.
+        * Interfaces/IWebUIDelegate.idl:
+        * Interfaces/WebKit.idl:
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::WebChromeClient):
+        * WebCoreSupport/WebChromeClient.h:
+        (WebChromeClient::notificationPresenter):
+        * WebCoreSupport/WebDesktopNotificationsDelegate.cpp: Added.
+        (NotificationCOMWrapper::create):
+        (NotificationCOMWrapper::NotificationCOMWrapper):
+        (NotificationCOMWrapper::QueryInterface):
+        (NotificationCOMWrapper::AddRef):
+        (NotificationCOMWrapper::Release):
+        (NotificationCOMWrapper::isHTML):
+        (NotificationCOMWrapper::contentsURL):
+        (NotificationCOMWrapper::iconURL):
+        (NotificationCOMWrapper::title):
+        (NotificationCOMWrapper::text):
+        (NotificationCOMWrapper::notifyDisplay):
+        (NotificationCOMWrapper::notifyError):
+        (NotificationCOMWrapper::notifyClose):
+        (WebDesktopNotificationsDelegate::WebDesktopNotificationsDelegate):
+        (WebDesktopNotificationsDelegate::show):
+        (WebDesktopNotificationsDelegate::cancel):
+        (WebDesktopNotificationsDelegate::notificationObjectDestroyed):
+        (WebDesktopNotificationsDelegate::requestPermission):
+        (WebDesktopNotificationsDelegate::checkPermission):
+        (WebDesktopNotificationsDelegate::notificationDelegate):
+        * WebCoreSupport/WebDesktopNotificationsDelegate.h: Added.
+        * WebCoreSupport/WebInspectorDelegate.h:
+        (WebInspectorDelegate::desktopNotificationsDelegate):
+        * WebKit.vcproj/Interfaces.vcproj:
+        * WebKit.vcproj/WebKit.vcproj:
+
+2009-08-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Fix of <rdar://5016504> SVG file cannot be dragged to webview,
+        but can be opened via Open File.
+        
+        Added a new function to IWebView that gets the MIME type for a given 
+        extension from the MIMETypeRegistry.
+
+        * Interfaces/IWebView.idl:
+        * WebView.cpp:
+        (WebView::MIMETypeForExtension):
+        * WebView.h:
+
+2009-08-11  Dmitry Titov <dimich@chromium.org>
+
+        Reviewed by Adam Roben.
+
+        Originally implemented by Glenn Wilson  <gwilson@chromium.org>.
+
+        Added support for overriding default preferences per-test.
+        See https://bugs.webkit.org/show_bug.cgi?id=20534
+
+        * Interfaces/IWebPreferencesPrivate.idl: added new method setPreferenceForTest
+        * WebPreferences.cpp: same.
+        * WebPreferences.h: same.
+
+2009-08-10  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Link drag images specify Lucida Grande on Windows and end up using Times
+        New Roman
+        <rdar://problem/7117835>
+
+        * WebCoreSupport/WebDragClient.cpp:
+        (dragLabelFont): Added a RenderingMode parameter and changed to use the
+            same typeface as the Windows small caption font.
+        (WebDragClient::createDragImageForLink): Changed to respect the
+            page’s rendering mode.
+
+2009-08-10  Brent Fulgham  <bfulgham@webkit.org>
+
+        Reviewed by Adam Roben.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28048.
+        Move various WinCairo build settings into *.vsprops file.
+
+        * WebKit.vcproj/WebKit.vcproj: Add new cURL.vsprops property sheet
+          (which contains link settings for cURL and its dependencies), and
+          remove the corresponding entries from the vcproj file.  Remove
+          png, jpeg, cairo library linking flags from vcproj, now that they
+          are in the WinCairo.vsprops file.
+
+2009-08-09  Nikolas Zimmermann  <nikolas.zimmermann@torchmobile.com>
+
+        Reviewed by George Staikos.
+
+        [WML] Deck access control is completly broken
+        https://bugs.webkit.org/show_bug.cgi?id=27721
+
+        Synchronize WebFrameLoadType with FrameLoadType enum. Append 'WebFrameLoadTypeBackWMLDeckNotAccessible'.
+
+        * Interfaces/IWebFramePrivate.idl:
+
+2009-08-09  Nikolas Zimmermann  <nikolas.zimmermann@torchmobile.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        FrameLoadType / WebFrameLoadType enums are out of sync
+        https://bugs.webkit.org/show_bug.cgi?id=28132
+
+        Synchronize FrameLoadType <-> WebFrameLoadType enums (append missing 'WebFrameLoadTypeReloadFromOrigin' value)
+
+        * Interfaces/IWebFramePrivate.idl:
+
+2009-08-06  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed revert.
+
+        http://bugs.webkit.org/show_bug.cgi?id=27879
+
+        Revert 46877 because it broke GTK.
+
+        * COMPropertyBag.h:
+
+2009-08-06  Zoltan Horvath  <hzoltan@inf.u-szeged.hu>
+
+        Reviewed by Adam Barth.
+
+        Change Noncopyable inheriting to public
+        http://bugs.webkit.org/show_bug.cgi?id=27879
+
+        Since Noncopyable is inherited from FastAllocBase,
+        Noncopyable's inheriting has been changed to public.
+
+        * COMPropertyBag.h:
+
+2009-08-04  Alice Liu  <alice.liu@apple.com>
+
+        "Shift + Enter" should behave like "Enter" in editable fields.
+        Affects backward search in find-in-page in Safari for Windows
+
+        Reviewed by Jon Honeycutt.
+
+        * WebView.cpp:
+        Register shift+enter as InsertNewline command, similar to other 
+        modifier+Enter combinations.
+
+2009-07-29  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        Part of <rdar://problem/5698113> Safari shouldn't auto-activate
+        plug-ins in background tabs (make Win consistent with Mac)
+
+        https://bugs.webkit.org/show_bug.cgi?id=27855
+
+        Reviewed by Adam Roben and Anders Carlsson.
+
+        * Interfaces/IWebViewPrivate.idl:
+        Add setCanStartPlugins().
+
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::dispatchDidFailToStartPlugin):
+        Added; code moved from createPlugin(). Modified to obtain the plug-in's
+        page URL, the plug-ins "plug-ins page" parameter value, and the
+        plug-in's MIME type by calling getter functions on the passed
+        PluginView.
+        (WebFrameLoaderClient::createPlugin):
+        If the plug-in status is not "success," call
+        dispatchDidFailToStartPlugin().
+
+        * WebCoreSupport/WebFrameLoaderClient.h:
+        Declare an override of dispatchDidFailToStartPlugin().
+
+        * WebView.cpp:
+        (WebViewWndProc):
+        Add a missing ) to a comment.
+        (WebView::setCanStartPlugins):
+        Call the Page's setCanStartPlugins() function.
+
+        * WebView.h:
+
+2009-07-30  Darin Adler  <darin@apple.com>
+
+        Reviewed by David Levin.
+
+        Use checked casts for render tree
+        https://bugs.webkit.org/show_bug.cgi?id=23522
+
+        * DOMHTMLClasses.cpp:
+        (DOMHTMLInputElement::isUserEdited):
+        (DOMHTMLTextAreaElement::isUserEdited):
+        Use checked casts.
+
+2009-07-31  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        -Fix <rdar://problem/7104097>
+
+        Make EmbeddedWidget::create return a PassRefPtr so it will have the correct ref count.
+        
+        * WebCoreSupport/EmbeddedWidget.cpp:
+        (EmbeddedWidget::create):
+        * WebCoreSupport/EmbeddedWidget.h:
+
+2009-07-29  Brian Weinstein  <bweinstein@apple.com>
+
+        Was doing the build fix wrong, NotImplemented.h is in WebCore.
+
+        * WebCoreSupport/WebInspectorClient.cpp:
+
+2009-07-29  Brian Weinstein  <bweinstein@apple.com>
+
+        Windows build fix.
+
+        * WebCoreSupport/WebInspectorClient.cpp:
+
+2009-07-29  Kevin McCullough  <kmccullough@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Added foundation work to allow a testing infrastructure for the Web
+        Inspector.
+
+        * WebCoreSupport/WebInspectorClient.cpp:
+        (WebInspectorClient::inspectorWindowObjectCleared): Empty definition
+        to let Windows compile but we should implement this at some point so
+        that the tests can be run on Windows too.
+        * WebCoreSupport/WebInspectorClient.h:
+
+2009-07-28  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Reviewed by Steve Falkenburg.
+
+        Add output directory for VS pre-build steps to enable out-of-tree builds
+
+        https://bugs.webkit.org/show_bug.cgi?id=27700
+
+        The tmp.obj file is now placed in the intermediate build directory.
+
+        * WebKit.vcproj/WebKit.vcproj:
+
+2009-07-27  Brian Weinstein  <bweinstein@apple.com>
+
+        Build fix for Windows.
+
+        * WebView.cpp:
+        (WebView::stringByEvaluatingJavaScriptFromString):
+
+2009-07-27  Alexey Proskuryakov  <ap@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27735
+        Give a helpful name to JSLock constructor argument
+
+        * WebCoreStatistics.cpp:
+        (WebCoreStatistics::javaScriptObjectsCount):
+        (WebCoreStatistics::javaScriptGlobalObjectsCount):
+        (WebCoreStatistics::javaScriptProtectedObjectsCount):
+        (WebCoreStatistics::javaScriptProtectedGlobalObjectsCount):
+        (WebCoreStatistics::javaScriptProtectedObjectTypeCounts):
+        * WebJavaScriptCollector.cpp:
+        (WebJavaScriptCollector::objectCount):
+        * WebView.cpp:
+        (WebView::stringByEvaluatingJavaScriptFromString):
+
+2009-07-25  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Darin Adler.
+
+        Windows build break due to warning C4819
+        https://bugs.webkit.org/show_bug.cgi?id=27416
+
+        Disable C4819 warning to fix build.
+
+        * WebKit.vcproj/WebKit.vcproj:
+
 2009-07-24  Brent Fulgham  <bfulgham@webkit.org>
 
         Reviewed by Dave Hyatt.
