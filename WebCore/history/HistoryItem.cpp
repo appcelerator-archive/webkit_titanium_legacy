@@ -478,7 +478,7 @@ FormData* HistoryItem::formData()
 bool HistoryItem::isCurrentDocument(Document* doc) const
 {
     // FIXME: We should find a better way to check if this is the current document.
-    return urlString() == doc->url();
+    return equalIgnoringFragmentIdentifier(url(), doc->url());
 }
 
 void HistoryItem::mergeAutoCompleteHints(HistoryItem* otherItem)

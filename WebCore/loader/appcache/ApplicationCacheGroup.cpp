@@ -83,7 +83,11 @@ ApplicationCache* ApplicationCacheGroup::cacheForMainRequest(const ResourceReque
     if (!ApplicationCache::requestIsHTTPOrHTTPSGet(request))
         return 0;
 
-    if (ApplicationCacheGroup* group = cacheStorage().cacheGroupForURL(request.url())) {
+    KURL url(request.url());
+    if (url.hasFragmentIdentifier())
+        url.removeFragmentIdentifier();
+
+    if (ApplicationCacheGroup* group = cacheStorage().cacheGroupForURL(url)) {
         ASSERT(group->newestCache());
         ASSERT(!group->isObsolete());
         
@@ -98,7 +102,11 @@ ApplicationCache* ApplicationCacheGroup::fallbackCacheForMainRequest(const Resou
     if (!ApplicationCache::requestIsHTTPOrHTTPSGet(request))
         return 0;
 
-    if (ApplicationCacheGroup* group = cacheStorage().fallbackCacheGroupForURL(request.url())) {
+    KURL url(request.url());
+    if (url.hasFragmentIdentifier())
+        url.removeFragmentIdentifier();
+
+    if (ApplicationCacheGroup* group = cacheStorage().fallbackCacheGroupForURL(url)) {
         ASSERT(group->newestCache());
         ASSERT(!group->isObsolete());
 
@@ -108,7 +116,7 @@ ApplicationCache* ApplicationCacheGroup::fallbackCacheForMainRequest(const Resou
     return 0;
 }
 
-void ApplicationCacheGroup::selectCache(Frame* frame, const KURL& manifestURL)
+void ApplicationCacheGroup::selectCache(Frame* frame, const KURL& passedManifestURL)
 {
     ASSERT(frame && frame->page());
     
@@ -118,12 +126,16 @@ void ApplicationCacheGroup::selectCache(Frame* frame, const KURL& manifestURL)
     DocumentLoader* documentLoader = frame->loader()->documentLoader();
     ASSERT(!documentLoader->applicationCache());
 
-    if (manifestURL.isNull()) {
+    if (passedManifestURL.isNull()) {
         selectCacheWithoutManifestURL(frame);        
         return;
     }
-    
-    ApplicationCache* mainResourceCache = documentLoader->mainResourceApplicationCache();
+
+    KURL manifestURL(passedManifestURL);
+    if (manifestURL.hasFragmentIdentifier())
+        manifestURL.removeFragmentIdentifier();
+
+    ApplicationCache* mainResourceCache = documentLoader->applicationCacheHost()->mainResourceApplicationCache();
     
     if (mainResourceCache) {
         if (manifestURL == mainResourceCache->group()->m_manifestURL) {
@@ -131,7 +143,10 @@ void ApplicationCacheGroup::selectCache(Frame* frame, const KURL& manifestURL)
             mainResourceCache->group()->update(frame, ApplicationCacheUpdateWithBrowsingContext);
         } else {
             // The main resource was loaded from cache, so the cache must have an entry for it. Mark it as foreign.
-            ApplicationCacheResource* resource = mainResourceCache->resourceForURL(documentLoader->url());
+            KURL documentURL(documentLoader->url());
+            if (documentURL.hasFragmentIdentifier())
+                documentURL.removeFragmentIdentifier();
+            ApplicationCacheResource* resource = mainResourceCache->resourceForURL(documentURL);
             bool inStorage = resource->storageID();
             resource->addType(ApplicationCacheResource::Foreign);
             if (inStorage)
@@ -193,7 +208,9 @@ void ApplicationCacheGroup::finishedLoadingMainResource(DocumentLoader* loader)
 {
     ASSERT(m_pendingMasterResourceLoaders.contains(loader));
     ASSERT(m_completionType == None || m_pendingEntries.isEmpty());
-    const KURL& url = loader->url();
+    KURL url = loader->url();
+    if (url.hasFragmentIdentifier())
+        url.removeFragmentIdentifier();
 
     switch (m_completionType) {
     case None:
@@ -434,7 +451,9 @@ void ApplicationCacheGroup::didReceiveResponse(ResourceHandle* handle, const Res
     
     ASSERT(handle == m_currentHandle);
 
-    const KURL& url = handle->request().url();
+    KURL url(handle->request().url());
+    if (url.hasFragmentIdentifier())
+        url.removeFragmentIdentifier();
     
     ASSERT(!m_currentResource);
     ASSERT(m_pendingEntries.contains(url));
@@ -529,7 +548,9 @@ void ApplicationCacheGroup::didFail(ResourceHandle* handle, const ResourceError&
     }
 
     unsigned type = m_currentResource ? m_currentResource->type() : m_pendingEntries.get(handle->request().url());
-    const KURL& url = handle->request().url();
+    KURL url(handle->request().url());
+    if (url.hasFragmentIdentifier())
+        url.removeFragmentIdentifier();
 
     ASSERT(!m_currentResource || !m_pendingEntries.contains(url));
     m_currentResource = 0;

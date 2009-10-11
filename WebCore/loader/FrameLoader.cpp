@@ -951,7 +951,7 @@ void FrameLoader::begin(const KURL& url, bool dispatch, SecurityOrigin* origin)
     KURL ref(url);
     ref.setUser(String());
     ref.setPass(String());
-    ref.setRef(String());
+    ref.removeFragmentIdentifier();
     m_outgoingReferrer = ref.string();
     m_URL = url;
 
@@ -1215,16 +1215,16 @@ void FrameLoader::gotoAnchor()
     // OTOH If CSS target was set previously, we want to set it to 0, recalc
     // and possibly repaint because :target pseudo class may have been
     // set (see bug 11321).
-    if (!m_URL.hasRef() && !m_frame->document()->cssTarget())
+    if (!m_URL.hasFragmentIdentifier() && !m_frame->document()->cssTarget())
         return;
 
-    String ref = m_URL.ref();
-    if (gotoAnchor(ref))
+    String fragmentIdentifier = m_URL.fragmentIdentifier();
+    if (gotoAnchor(fragmentIdentifier))
         return;
 
     // Try again after decoding the ref, based on the document's encoding.
     if (m_decoder)
-        gotoAnchor(decodeURLEscapeSequences(ref, m_decoder->encoding()));
+        gotoAnchor(decodeURLEscapeSequences(fragmentIdentifier, m_decoder->encoding()));
 }
 
 void FrameLoader::finishedParsing()
@@ -2033,6 +2033,12 @@ void FrameLoader::setFirstPartyForCookies(const KURL& url)
 // that a higher level already checked that the URLs match and the scrolling is the right thing to do.
 void FrameLoader::scrollToAnchor(const KURL& url)
 {
+    ASSERT(equalIgnoringFragmentIdentifier(url, m_URL));
+    if (equalIgnoringFragmentIdentifier(url, m_URL) && !equalIgnoringNullity(url.fragmentIdentifier(), m_URL.fragmentIdentifier())) {
+        Document* currentDocument = frame()->document();
+        currentDocument->postTask(HashChangeEventTask::create(currentDocument));
+    }
+    
     m_URL = url;
     updateHistoryForAnchorScroll();
 
@@ -3017,9 +3023,9 @@ bool FrameLoader::shouldReload(const KURL& currentURL, const KURL& destinationUR
     // This function implements the rule: "Don't reload if navigating by fragment within
     // the same URL, but do reload if going to a new URL or to the same URL with no
     // fragment identifier at all."
-    if (!destinationURL.hasRef())
+    if (!destinationURL.hasFragmentIdentifier())
         return true;
-    return !equalIgnoringRef(currentURL, destinationURL);
+    return !equalIgnoringFragmentIdentifier(currentURL, destinationURL);
 }
 
 void FrameLoader::closeOldDataSources()
@@ -4592,7 +4598,7 @@ void FrameLoader::loadItem(HistoryItem* item, FrameLoadType loadType)
 bool FrameLoader::urlsMatchItem(HistoryItem* item) const
 {
     const KURL& currentURL = documentLoader()->url();
-    if (!equalIgnoringRef(currentURL, item->url()))
+    if (!equalIgnoringFragmentIdentifier(currentURL, item->url()))
         return false;
 
     const HistoryItemVector& childItems = item->children();

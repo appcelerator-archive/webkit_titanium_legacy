@@ -118,8 +118,8 @@ public:
     String path() const;
     String lastPathComponent() const;
     String query() const;
-    String ref() const;
-    bool hasRef() const;
+    String fragmentIdentifier() const;
+    bool hasFragmentIdentifier() const;
 
     String baseAsString() const;
 
@@ -153,10 +153,10 @@ public:
     // URL (with nothing after it). To clear the query, pass a null string.
     void setQuery(const String&);
 
-    void setRef(const String&);
-    void removeRef();
+    void setFragmentIdentifier(const String&);
+    void removeFragmentIdentifier();
 
-    friend bool equalIgnoringRef(const KURL&, const KURL&);
+    friend bool equalIgnoringFragmentIdentifier(const KURL&, const KURL&);
 
     friend bool protocolHostAndPortAreEqual(const KURL&, const KURL&);
 
@@ -242,7 +242,7 @@ bool operator!=(const KURL&, const KURL&);
 bool operator!=(const KURL&, const String&);
 bool operator!=(const String&, const KURL&);
 
-bool equalIgnoringRef(const KURL&, const KURL&);
+bool equalIgnoringFragmentIdentifier(const KURL&, const KURL&);
 bool protocolHostAndPortAreEqual(const KURL&, const KURL&);
     
 const KURL& blankURL();

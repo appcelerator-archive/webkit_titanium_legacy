@@ -438,8 +438,8 @@ void HTMLAnchorElement::setType(const AtomicString& value)
 
 String HTMLAnchorElement::hash() const
 {
-    String ref = href().ref();
-    return ref.isEmpty() ? "" : "#" + ref;
+    String fragmentIdentifier = href().fragmentIdentifier();
+    return fragmentIdentifier.isEmpty() ? "" : "#" + fragmentIdentifier;
 }
 
 String HTMLAnchorElement::host() const

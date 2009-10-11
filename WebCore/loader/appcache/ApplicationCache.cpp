@@ -126,8 +126,12 @@ ApplicationCacheResource* ApplicationCache::resourceForRequest(const ResourceReq
     // We only care about HTTP/HTTPS GET requests.
     if (!requestIsHTTPOrHTTPSGet(request))
         return false;
-    
-    return resourceForURL(request.url());
+
+    KURL url(request.url());
+    if (url.hasFragmentIdentifier())
+        url.removeFragmentIdentifier();
+
+    return resourceForURL(url);
 }
 
 void ApplicationCache::setOnlineWhitelist(const Vector<KURL>& onlineWhitelist)
