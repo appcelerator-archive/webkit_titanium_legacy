@@ -221,6 +221,8 @@ bool equalIgnoringCase(StringImpl*, StringImpl*);
 bool equalIgnoringCase(StringImpl*, const char*);
 inline bool equalIgnoringCase(const char* a, StringImpl* b) { return equalIgnoringCase(b, a); }
 
+bool equalIgnoringNullity(StringImpl*, StringImpl*);
+
 // Golden ratio - arbitrary start value to avoid mapping all 0's to all 0's
 // or anything like that.
 const unsigned phi = 0x9e3779b9U;

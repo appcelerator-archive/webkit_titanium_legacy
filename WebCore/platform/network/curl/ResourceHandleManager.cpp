@@ -137,7 +137,7 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
     if (!d->m_response.responseFired() && !d->m_titaniumURL) {
         const char* hdr;
         err = curl_easy_getinfo(h, CURLINFO_EFFECTIVE_URL, &hdr);
-        d->m_response.setURL(KURL(hdr));
+        d->m_response.setURL(KURL(ParsedURLString, hdr));
     }
 
     if (d->m_titaniumURL) {
@@ -146,7 +146,7 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
         KURL titaniumURL = KURL(KURL(), d->m_titaniumURL);
         KURL normalized(TitaniumProtocols::NormalizeURL(titaniumURL));
 
-        if (equalIgnoringRef(normalized, titaniumURL)) {
+        if (equalIgnoringFragmentIdentifier(normalized, titaniumURL)) {
             d->m_response.setURL(titaniumURL);
             d->m_response.setHTTPStatusCode(200);
             d->m_response.setHTTPStatusText("OK");
@@ -678,7 +678,7 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     KURL kurl = job->request().url();
 
     // Remove any fragment part, otherwise curl will send it as part of the request.
-    kurl.removeRef();
+    kurl.removeFragmentIdentifier();
 
     ResourceHandleInternal* d = job->getInternal();
     String url = kurl.string();

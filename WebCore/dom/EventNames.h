@@ -54,6 +54,7 @@ namespace WebCore {
     macro(drop) \
     macro(error) \
     macro(focus) \
+    macro(hashchange) \
     macro(input) \
     macro(keydown) \
     macro(keypress) \

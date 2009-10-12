@@ -32,8 +32,3 @@ void setPreprocessCallback(PreprocessURLCallback cb)
 {
     WebCore::TitaniumProtocols::PreprocessCallback = cb;
 }
-
-IWebURLRequest* STDMETHODCALLTYPE createWebURLRequest()
-{
-    return WebMutableURLRequest::createInstance();
-}

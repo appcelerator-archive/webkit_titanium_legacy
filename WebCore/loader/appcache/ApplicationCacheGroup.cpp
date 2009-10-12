@@ -135,7 +135,7 @@ void ApplicationCacheGroup::selectCache(Frame* frame, const KURL& passedManifest
     if (manifestURL.hasFragmentIdentifier())
         manifestURL.removeFragmentIdentifier();
 
-    ApplicationCache* mainResourceCache = documentLoader->applicationCacheHost()->mainResourceApplicationCache();
+    ApplicationCache* mainResourceCache = documentLoader->mainResourceApplicationCache();
     
     if (mainResourceCache) {
         if (manifestURL == mainResourceCache->group()->m_manifestURL) {
