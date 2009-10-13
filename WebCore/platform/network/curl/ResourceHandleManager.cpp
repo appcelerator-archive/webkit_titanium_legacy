@@ -729,8 +729,8 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
     curl_easy_setopt(d->m_handle, CURLOPT_DNS_CACHE_TIMEOUT, 60 * 5); // 5 minutes
     // FIXME: Enable SSL verification when we have a way of shipping certs
     // and/or reporting SSL errors to the user.
-    if (ignoreSSLErrors)
-        curl_easy_setopt(d->m_handle, CURLOPT_SSL_VERIFYPEER, false);
+    //if (ignoreSSLErrors)
+    curl_easy_setopt(d->m_handle, CURLOPT_SSL_VERIFYPEER, false);
 
     char *curl_ca_bundle_path = getenv("CURL_CA_BUNDLE_PATH");
     if (curl_ca_bundle_path != NULL) {
