@@ -37,8 +37,25 @@
 #include <wtf/HashSet.h>
 #include <wtf/OwnPtr.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/PassOwnPtr.h>
+
+#ifdef __OBJC__
+@class QTMovie;
+#else
+class QTMovie;
+#endif
 
 namespace WebCore {
+
+// Structure that will hold every native
+// types supported by the current media player.
+// We have to do that has multiple media players
+// backend can live at runtime.
+typedef struct PlatformMedia {
+    QTMovie* qtMovie;
+} PlatformMedia;
+
+static const PlatformMedia NoPlatformMedia = { 0 };
 
 class ContentType;
 class FrameView;
@@ -99,7 +116,11 @@ public:
 
 class MediaPlayer : public Noncopyable {
 public:
-    MediaPlayer(MediaPlayerClient*);
+
+    static PassOwnPtr<MediaPlayer> create(MediaPlayerClient* client)
+    {
+        return new MediaPlayer(client);
+    }
     virtual ~MediaPlayer();
 
     // media engine support
@@ -110,6 +131,8 @@ public:
 
     bool supportsFullscreen() const;
     bool supportsSave() const;
+    PlatformMedia platformMedia() const;
+
     IntSize naturalSize();
     bool hasVideo() const;
     bool hasAudio() const;
@@ -127,6 +150,7 @@ public:
     bool visible() const;
     void setVisible(bool);
     
+    void prepareToPlay();
     void play();
     void pause();    
     
@@ -186,8 +210,10 @@ public:
 
     MediaPlayerClient* mediaPlayerClient() const { return m_mediaPlayerClient; }
 
+    bool canLoadPoster() const;
+    void setPoster(const String&);
+
 #if ENABLE(PLUGIN_PROXY_FOR_VIDEO)
-    void setPoster(const String& url);
     void deliverNotification(MediaPlayerProxyNotificationType notification);
     void setMediaPlayerProxy(WebMediaPlayerProxy* proxy);
 #endif
@@ -202,6 +228,8 @@ public:
     bool hasSingleSecurityOrigin() const;
 
 private:
+    MediaPlayer(MediaPlayerClient*);
+
     static void initializeMediaEngines();
 
     MediaPlayerClient* m_mediaPlayerClient;

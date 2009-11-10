@@ -29,6 +29,7 @@
 #import "LayoutTestController.h"
 
 #import <WebKit/WebNavigationData.h>
+#import <WebKit/WebView.h>
 
 @interface NSURL (DRTExtras)
 - (NSString *)_drt_descriptionSuitableForTestResult;
@@ -64,6 +65,17 @@
     NSURL *source = [NSURL URLWithString:sourceURL];
     NSURL *dest = [NSURL URLWithString:destinationURL];
     printf("WebView performed a server redirect from \"%s\" to \"%s\".\n", [[source _drt_descriptionSuitableForTestResult] UTF8String], [[dest _drt_descriptionSuitableForTestResult] UTF8String]);
+}
+
+- (void)webView:(WebView *)webView updateHistoryTitle:(NSString *)title forURL:(NSString *)url
+{
+    printf("WebView updated the title for history URL \"%s\" to \"%s\".\n", [[[NSURL URLWithString:url]_drt_descriptionSuitableForTestResult] UTF8String], [title UTF8String]);
+}
+
+- (void)populateVisitedLinksForWebView:(WebView *)webView
+{
+    if (gLayoutTestController->dumpVisitedLinksCallback())
+        printf("Asked to populate visited links for WebView \"%s\"\n", [[[NSURL URLWithString:[webView mainFrameURL]] _drt_descriptionSuitableForTestResult] UTF8String]);
 }
 
 @end

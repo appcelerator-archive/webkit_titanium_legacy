@@ -35,36 +35,90 @@
 #include "Document.h"
 #include "Event.h"
 #include "Frame.h"
-#include "Tokenizer.h"
 #include "V8Binding.h"
+#include "V8EventListenerList.h"
+#include "V8Proxy.h"
 #include "V8Utilities.h"
+#include "WorkerContext.h"
+#include "WorkerContextExecutionProxy.h"
 
 namespace WebCore {
 
-V8AbstractEventListener::V8AbstractEventListener(Frame* frame, bool isAttribute)
-    : EventListener(JSEventListenerType)
-    , m_isAttribute(isAttribute)
-    , m_frame(frame)
-    , m_lineNumber(0)
-    , m_columnNumber(0)
+static void weakEventListenerCallback(v8::Persistent<v8::Value>, void* parameter)
 {
-    if (!m_frame)
-        return;
+    V8AbstractEventListener* listener = static_cast<V8AbstractEventListener*>(parameter);
+    listener->disposeListenerObject();
+}
 
-    // We might be called directly from the parser.
+V8AbstractEventListener::V8AbstractEventListener(bool isAttribute)
+    : EventListener(JSEventListenerType)
+    , m_isWeak(true)
+    , m_isAttribute(isAttribute)
+{
+}
+
+V8AbstractEventListener::~V8AbstractEventListener()
+{
+    if (!m_listener.IsEmpty()) {
+        v8::HandleScope scope;
+        v8::Local<v8::Object> listener = v8::Local<v8::Object>::New(m_listener);
+        V8EventListenerList::clearWrapper(listener, m_isAttribute);
+    }
+    disposeListenerObject();
+}
+
+void V8AbstractEventListener::handleEvent(ScriptExecutionContext* context, Event* event)
+{
+    // The callback function on XMLHttpRequest can clear the event listener and destroys 'this' object. Keep a local reference to it.
+    // See issue 889829.
+    RefPtr<V8AbstractEventListener> protect(this);
+
     v8::HandleScope handleScope;
 
-    m_context = V8Proxy::shared_context(m_frame);
+    v8::Local<v8::Context> v8Context = toV8Context(context);
+    if (v8Context.IsEmpty())
+        return;
 
-    // Get the position in the source if any.
-    if (m_isAttribute && m_frame->document()->tokenizer()) {
-        m_lineNumber = m_frame->document()->tokenizer()->lineNumber();
-        m_columnNumber = m_frame->document()->tokenizer()->columnNumber();
+    // Enter the V8 context in which to perform the event handling.
+    v8::Context::Scope scope(v8Context);
+
+    // Get the V8 wrapper for the event object.
+    v8::Handle<v8::Value> jsEvent = V8DOMWrapper::convertEventToV8Object(event);
+
+    invokeEventHandler(context, event, jsEvent);
+
+    Document::updateStyleForAllDocuments();
+}
+
+void V8AbstractEventListener::disposeListenerObject()
+{
+    if (!m_listener.IsEmpty()) {
+#ifndef NDEBUG
+        V8GCController::unregisterGlobalHandle(this, m_listener);
+#endif
+        m_listener.Dispose();
+        m_listener.Clear();
     }
 }
 
-void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Context, Event* event, v8::Handle<v8::Value> jsEvent)
+void V8AbstractEventListener::setListenerObject(v8::Handle<v8::Object> listener)
 {
+    disposeListenerObject();
+    m_listener = v8::Persistent<v8::Object>::New(listener);
+#ifndef NDEBUG
+    V8GCController::registerGlobalHandle(EVENT_LISTENER, this, m_listener);
+#endif
+    if (m_isWeak)
+        m_listener.MakeWeak(this, &weakEventListenerCallback);
+}
+
+void V8AbstractEventListener::invokeEventHandler(ScriptExecutionContext* context, Event* event, v8::Handle<v8::Value> jsEvent)
+{
+
+    v8::Local<v8::Context> v8Context = toV8Context(context);
+    if (v8Context.IsEmpty())
+        return;
+
     // We push the event being processed into the global object, so that it can be exposed by DOMWindow's bindings.
     v8::Local<v8::String> eventSymbol = v8::String::NewSymbol("event");
     v8::Local<v8::Value> returnValue;
@@ -87,8 +141,7 @@ void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Conte
         tryCatch.Reset();
 
         // Call the event handler.
-        tryCatch.SetVerbose(false); // We do not want to report the exception to the inspector console.
-        returnValue = callListenerFunction(jsEvent, event);
+        returnValue = callListenerFunction(context, jsEvent, event);
         if (!tryCatch.CanContinue())
             return;
 
@@ -99,7 +152,6 @@ void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Conte
         }
 
         // Restore the old event. This must be done for all exit paths through this method.
-        tryCatch.SetVerbose(true);
         if (savedEvent.IsEmpty())
             v8Context->Global()->SetHiddenValue(eventSymbol, v8::Undefined());
         else
@@ -122,52 +174,6 @@ void V8AbstractEventListener::invokeEventHandler(v8::Handle<v8::Context> v8Conte
     // FIXME: Add example, and reference to bug entry.
     if (m_isAttribute && returnValue->IsBoolean() && !returnValue->BooleanValue())
         event->preventDefault();
-}
-
-void V8AbstractEventListener::handleEvent(ScriptExecutionContext* scriptExecutionContext, Event* event)
-{
-    // EventListener could be disconnected from the frame.
-    if (disconnected())
-        return;
-
-    // The callback function on XMLHttpRequest can clear the event listener and destroys 'this' object. Keep a local reference to it.
-    // See issue 889829.
-    RefPtr<V8AbstractEventListener> protect(this);
-
-    v8::HandleScope handleScope;
-
-    if (!m_context)
-        return;
-
-    // Create a new local handle since the persistent handle stored in
-    // m_context may be disposed before we're done.
-    v8::Handle<v8::Context> v8Context = v8::Local<v8::Context>::New(m_context->get());
-    if (v8Context.IsEmpty())
-        return;
-
-    // m_frame can removed by the callback function, protect it until the callback function returns.
-    RefPtr<Frame> protectFrame(m_frame);
-
-    // Enter the V8 context in which to perform the event handling.
-    v8::Context::Scope scope(v8Context);
-
-    // Get the V8 wrapper for the event object.
-    v8::Handle<v8::Value> jsEvent = V8DOMWrapper::convertEventToV8Object(event);
-
-    invokeEventHandler(v8Context, event, jsEvent);
-
-    Document::updateStyleForAllDocuments();
-}
-
-void V8AbstractEventListener::disposeListenerObject()
-{
-    if (!m_listener.IsEmpty()) {
-#ifndef NDEBUG
-        V8GCController::unregisterGlobalHandle(this, m_listener);
-#endif
-        m_listener.Dispose();
-        m_listener.Clear();
-    }
 }
 
 v8::Local<v8::Object> V8AbstractEventListener::getReceiverObject(Event* event)

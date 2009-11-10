@@ -8,8 +8,6 @@
     Copyright (C) 2002-2003 Dirk Mueller (mueller@kde.org)
     Copyright (C) 2002 Apple Computer, Inc.
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -211,6 +209,25 @@ bool StyleMiscData::operator==(const StyleMiscData &other) const
            && floodColor == other.floodColor
            && lightingColor == other.lightingColor
            && baselineShiftValue == other.baselineShiftValue;
+}
+
+StyleShadowSVGData::StyleShadowSVGData()
+{
+}
+
+StyleShadowSVGData::StyleShadowSVGData(const StyleShadowSVGData& other)
+    : RefCounted<StyleShadowSVGData>()
+    , shadow(other.shadow ? new ShadowData(*other.shadow) : 0)
+{
+}
+
+bool StyleShadowSVGData::operator==(const StyleShadowSVGData& other) const
+{
+    if ((!shadow && other.shadow) || (shadow && !other.shadow))
+        return false;
+    if (shadow && other.shadow && (*shadow != *other.shadow))
+        return false;
+    return true;
 }
 
 #endif // ENABLE(SVG)

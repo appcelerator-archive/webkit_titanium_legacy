@@ -600,6 +600,8 @@ static WebCoreTextMarkerRange* textMarkerRangeFromVisiblePositions(VisiblePositi
     static NSArray* groupAttrs = nil;
     static NSArray* inputImageAttrs = nil;
     static NSArray* passwordFieldAttrs = nil;
+    static NSArray *tabListAttrs = nil;
+    static NSArray *comboBoxAttrs = nil;
     NSMutableArray* tempArray;
     if (attributes == nil) {
         attributes = [[NSArray alloc] initWithObjects: NSAccessibilityRoleAttribute,
@@ -739,6 +741,12 @@ static WebCoreTextMarkerRange* textMarkerRangeFromVisiblePositions(VisiblePositi
         controlAttrs = [[NSArray alloc] initWithArray:tempArray];
         [tempArray release];
     }
+    if (comboBoxAttrs == nil) {
+        tempArray = [[NSMutableArray alloc] initWithArray:controlAttrs];
+        [tempArray addObject:NSAccessibilityExpandedAttribute];
+        comboBoxAttrs = [[NSArray alloc] initWithArray:tempArray];
+        [tempArray release];        
+    }
     if (tableAttrs == nil) {
         tempArray = [[NSMutableArray alloc] initWithArray:attributes];
         [tempArray addObject:NSAccessibilityRowsAttribute];
@@ -794,6 +802,13 @@ static WebCoreTextMarkerRange* textMarkerRangeFromVisiblePositions(VisiblePositi
         passwordFieldAttrs = [[NSArray alloc] initWithArray:tempArray];
         [tempArray release];
     }
+    if (tabListAttrs == nil) {
+        tempArray = [[NSMutableArray alloc] initWithArray:attributes];
+        [tempArray addObject:NSAccessibilityTabsAttribute];
+        [tempArray addObject:NSAccessibilityContentsAttribute];
+        tabListAttrs = [[NSArray alloc] initWithArray:tempArray];
+        [tempArray release];        
+    }
     
     if (m_object->isPasswordField())
         return passwordFieldAttrs;
@@ -819,6 +834,9 @@ static WebCoreTextMarkerRange* textMarkerRangeFromVisiblePositions(VisiblePositi
     if (m_object->isListBox() || m_object->isList())
         return listBoxAttrs;
 
+    if (m_object->isComboBox())
+        return comboBoxAttrs;
+    
     if (m_object->isProgressIndicator() || m_object->isSlider())
         return rangeAttrs;
 
@@ -830,6 +848,8 @@ static WebCoreTextMarkerRange* textMarkerRangeFromVisiblePositions(VisiblePositi
     
     if (m_object->isGroup())
         return groupAttrs;
+    if (m_object->isTabList())
+        return tabListAttrs;
     
     if (m_object->isMenu())
         return menuAttrs;
@@ -1001,8 +1021,9 @@ static const AccessibilityRoleMap& createAccessibilityRoleMap()
         { DocumentNoteRole, NSAccessibilityGroupRole },
         { DocumentRegionRole, NSAccessibilityGroupRole },
         { UserInterfaceTooltipRole, NSAccessibilityGroupRole },
-        
-
+        { TabRole, NSAccessibilityRadioButtonRole },
+        { TabListRole, NSAccessibilityTabGroupRole },
+        { TabPanelRole, NSAccessibilityGroupRole },
     };
     AccessibilityRoleMap& roleMap = *new AccessibilityRoleMap;
     
@@ -1083,6 +1104,8 @@ static NSString* roleValueToNSString(AccessibilityRole value)
             return @"AXDocumentRegion";
         case UserInterfaceTooltipRole:
             return @"AXUserInterfaceTooltip";
+        case TabPanelRole:
+            return @"AXTabPanel";
         default:
             return nil;
     }
@@ -1102,21 +1125,7 @@ static NSString* roleValueToNSString(AccessibilityRole value)
     if (m_object->isAttachment())
         return [[self attachmentView] accessibilityAttributeValue:NSAccessibilityRoleDescriptionAttribute];
     
-    // FIXME 3447564: It would be better to call some AppKit API to get these strings
-    // (which would be the best way to localize them)
-    
     NSString* axRole = [self role];
-    if ([axRole isEqualToString:NSAccessibilityButtonRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityButtonRole, [self subrole]);
-    
-    if ([axRole isEqualToString:NSAccessibilityPopUpButtonRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityPopUpButtonRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityStaticTextRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityStaticTextRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityImageRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityImageRole, [self subrole]);
     
     if ([axRole isEqualToString:NSAccessibilityGroupRole]) {
         switch (m_object->roleValue()) {
@@ -1154,45 +1163,11 @@ static NSString* roleValueToNSString(AccessibilityRole value)
                 return AXARIAContentGroupText(@"ARIADocumentRegion");
             case UserInterfaceTooltipRole:
                 return AXARIAContentGroupText(@"ARIAUserInterfaceTooltip");
+            case TabPanelRole:
+                return AXARIAContentGroupText(@"ARIATabPanel");
         }
     }        
     
-    if ([axRole isEqualToString:NSAccessibilityCheckBoxRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityCheckBoxRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityRadioButtonRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityRadioButtonRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityRadioGroupRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityRadioGroupRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityTextFieldRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityTextFieldRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityTextAreaRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityTextAreaRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityListRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityListRole, [self subrole]);
-    
-    if ([axRole isEqualToString:NSAccessibilityTableRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityTableRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityRowRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityRowRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityColumnRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityColumnRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityCellRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityCellRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilitySliderRole])
-        return NSAccessibilityRoleDescription(NSAccessibilitySliderRole, [self subrole]);
-
-    if ([axRole isEqualToString:NSAccessibilityValueIndicatorRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityValueIndicatorRole, [self subrole]);
-
     if ([axRole isEqualToString:@"AXWebArea"])
         return AXWebAreaText();
     
@@ -1207,20 +1182,17 @@ static NSString* roleValueToNSString(AccessibilityRole value)
 
     if ([axRole isEqualToString:@"AXHeading"])
         return AXHeadingText();
-        
-    if ([axRole isEqualToString:(NSString*)kAXMenuBarItemRole] ||
-        [axRole isEqualToString:NSAccessibilityMenuRole])
-        return nil;
 
-    if ([axRole isEqualToString:NSAccessibilityMenuButtonRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityMenuButtonRole, [self subrole]);
+    // AppKit also returns AXTab for the role description for a tab item.
+    if (m_object->isTabItem())
+        return NSAccessibilityRoleDescription(@"AXTab", nil);
     
-    if ([axRole isEqualToString:NSAccessibilityToolbarRole])
-        return NSAccessibilityRoleDescription(NSAccessibilityToolbarRole, [self subrole]);
+    // We should try the system default role description for all other roles.
+    // If we get the same string back, then as a last resort, return unknown.
+    NSString* defaultRoleDescription = NSAccessibilityRoleDescription(axRole, [self subrole]);
+    if (![defaultRoleDescription isEqualToString:axRole])
+        return defaultRoleDescription;
 
-    if ([axRole isEqualToString:NSAccessibilitySplitterRole])
-        return NSAccessibilityRoleDescription(NSAccessibilitySplitterRole, [self subrole]);
-    
     return NSAccessibilityRoleDescription(NSAccessibilityUnknownRole, nil);
 }
 
@@ -1375,6 +1347,16 @@ static NSString* roleValueToNSString(AccessibilityRole value)
             return radioButton->wrapper();
         }
         
+        if (m_object->isTabList()) {
+            AccessibilityObject* tabItem = m_object->selectedTabItem();
+            if (!tabItem)
+                return nil;
+            return tabItem->wrapper();
+        }
+        
+        if (m_object->isTabItem())
+            return [NSNumber numberWithInt:m_object->isSelected()];
+        
         return m_object->stringValue();
     }
 
@@ -1415,6 +1397,31 @@ static NSString* roleValueToNSString(AccessibilityRole value)
             return nil;
         return accessKey;
     }
+    
+    if ([attributeName isEqualToString:NSAccessibilityTabsAttribute]) {
+        if (m_object->isTabList()) {
+            AccessibilityObject::AccessibilityChildrenVector tabsChildren;
+            m_object->tabChildren(tabsChildren);
+            return convertToNSArray(tabsChildren);
+        }
+    }
+    
+    if ([attributeName isEqualToString:NSAccessibilityContentsAttribute]) {
+        // The contents of a tab list are all the children except the tabs.
+        if (m_object->isTabList()) {
+            AccessibilityObject::AccessibilityChildrenVector children = m_object->children();
+            AccessibilityObject::AccessibilityChildrenVector tabsChildren;
+            m_object->tabChildren(tabsChildren);
+
+            AccessibilityObject::AccessibilityChildrenVector contents;
+            unsigned childrenSize = children.size();
+            for (unsigned k = 0; k < childrenSize; ++k) {
+                if (tabsChildren.find(children[k]) == WTF::notFound)
+                    contents.append(children[k]);
+            }
+            return convertToNSArray(contents);
+        }
+    }    
     
     if (m_object->isDataTable()) {
         // TODO: distinguish between visible and non-visible rows
@@ -1560,6 +1567,9 @@ static NSString* roleValueToNSString(AccessibilityRole value)
     
     if ([attributeName isEqualToString:NSAccessibilityLanguageAttribute]) 
         return m_object->language();
+    
+    if ([attributeName isEqualToString:NSAccessibilityExpandedAttribute])
+        return [NSNumber numberWithBool:m_object->isExpanded()];
     
     if ([attributeName isEqualToString:NSAccessibilityRequiredAttribute])
         return [NSNumber numberWithBool:m_object->isRequired()];
@@ -1793,9 +1803,13 @@ static NSString* roleValueToNSString(AccessibilityRole value)
 
 - (void)accessibilityPerformShowMenuAction
 {
-    // This needs to be performed in an iteration of the run loop that did not start from an AX call. 
-    // If it's the same run loop iteration, the menu open notification won't be sent
-    [self performSelector:@selector(accessibilityShowContextMenu) withObject:nil afterDelay:0.0];
+    if (m_object->roleValue() == ComboBoxRole)
+        m_object->expandObject();
+    else {
+        // This needs to be performed in an iteration of the run loop that did not start from an AX call. 
+        // If it's the same run loop iteration, the menu open notification won't be sent
+        [self performSelector:@selector(accessibilityShowContextMenu) withObject:nil afterDelay:0.0];
+    }
 }
 
 - (void)accessibilityShowContextMenu

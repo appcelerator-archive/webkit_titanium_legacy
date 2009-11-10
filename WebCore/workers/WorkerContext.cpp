@@ -49,6 +49,7 @@
 #include "WorkerThreadableLoader.h"
 #include "XMLHttpRequestException.h"
 #include <wtf/RefPtr.h>
+#include <wtf/UnusedParam.h>
 
 #if ENABLE(NOTIFICATIONS)
 #include "NotificationCenter.h"
@@ -161,7 +162,7 @@ void WorkerContext::scriptImported(unsigned long, const String&)
     notImplemented();
 }
 
-void WorkerContext::postTask(PassRefPtr<Task> task)
+void WorkerContext::postTask(PassOwnPtr<Task> task)
 {
     thread()->runLoop().postTask(task);
 }

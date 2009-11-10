@@ -3,8 +3,6 @@
                   2004, 2005, 2007 Rob Buis <buis@kde.org>
                   2007 Eric Seidel <eric@webkit.org>
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -33,6 +31,7 @@
 #include "EventNames.h"
 #include "Frame.h"
 #include "FrameLoader.h"
+#include "FrameLoaderTypes.h"
 #include "KeyboardEvent.h"
 #include "MappedAttribute.h"
 #include "MouseEvent.h"
@@ -53,6 +52,8 @@ SVGAElement::SVGAElement(const QualifiedName& tagName, Document *doc)
     , SVGLangSpace()
     , SVGExternalResourcesRequired()
     , m_target(this, SVGNames::targetAttr)
+    , m_href(this, XLinkNames::hrefAttr)
+    , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
 {
 }
 
@@ -152,7 +153,7 @@ void SVGAElement::defaultEventHandler(Event* evt)
             }
 #endif
             if (document()->frame())
-                document()->frame()->loader()->urlSelected(document()->completeURL(url), target, evt, false, false, true);
+                document()->frame()->loader()->urlSelected(document()->completeURL(url), target, evt, false, false, true, SendReferrer);
         }
 
         evt->setDefaultHandled();

@@ -49,12 +49,14 @@
 #import <Foundation/Foundation.h>
 #import <WebCore/BlockExceptions.h>
 #import <WebCore/Console.h>
+#import <WebCore/Element.h>
 #import <WebCore/FileChooser.h>
 #import <WebCore/FloatRect.h>
 #import <WebCore/Frame.h>
 #import <WebCore/FrameLoadRequest.h>
 #import <WebCore/Geolocation.h>
 #import <WebCore/HitTestResult.h>
+#import <WebCore/HTMLNames.h>
 #import <WebCore/IntRect.h>
 #import <WebCore/Page.h>
 #import <WebCore/PlatformScreen.h>
@@ -168,6 +170,10 @@ void WebChromeClient::takeFocus(FocusDirection direction)
             return;
         [[m_webView window] selectKeyViewPrecedingView:m_webView];
     }
+}
+
+void WebChromeClient::focusedNodeChanged(Node*)
+{
 }
 
 Page* WebChromeClient::createWindow(Frame* frame, const FrameLoadRequest& request, const WindowFeatures& features)
@@ -546,6 +552,15 @@ void WebChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
     
 void WebChromeClient::populateVisitedLinks()
 {
+    if ([m_webView historyDelegate]) {
+        WebHistoryDelegateImplementationCache* implementations = WebViewGetHistoryDelegateImplementations(m_webView);
+        
+        if (implementations->populateVisitedLinksFunc)
+            CallHistoryDelegate(implementations->populateVisitedLinksFunc, m_webView, @selector(populateVisitedLinksForWebView:));
+
+        return;
+    }
+
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
     [[WebHistory optionalSharedHistory] _addVisitedLinksToPageGroup:[m_webView page]->group()];
     END_BLOCK_OBJC_EXCEPTIONS;
@@ -711,6 +726,29 @@ void WebChromeClient::scheduleCompositingLayerSync()
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
     [m_webView _scheduleCompositingLayerSync];
     END_BLOCK_OBJC_EXCEPTIONS;
+}
+
+#endif
+
+#if ENABLE(VIDEO)
+
+bool WebChromeClient::supportsFullscreenForNode(const Node* node)
+{
+    return node->hasTagName(WebCore::HTMLNames::videoTag);
+}
+
+void WebChromeClient::enterFullscreenForNode(Node* node)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    [m_webView _enterFullscreenForNode:node];
+    END_BLOCK_OBJC_EXCEPTIONS;
+}
+
+void WebChromeClient::exitFullscreenForNode(Node*)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    [m_webView _exitFullscreen];
+    END_BLOCK_OBJC_EXCEPTIONS;    
 }
 
 #endif

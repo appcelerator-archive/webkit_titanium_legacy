@@ -61,24 +61,28 @@ namespace WebCore {
 
     typedef int ExceptionCode;
 
-    struct FiringEventEndIterator {
-        FiringEventEndIterator(const AtomicString* eventType, size_t* value)
+    struct FiringEventIterator {
+        FiringEventIterator(const AtomicString& eventType, size_t& iterator, size_t& end)
             : eventType(eventType)
-            , value(value)
+            , iterator(iterator)
+            , end(end)
         {
         }
-        
-        const AtomicString* eventType;
-        size_t* value;
+
+        const AtomicString& eventType;
+        size_t& iterator;
+        size_t& end;
     };
-    typedef Vector<FiringEventEndIterator, 1> FiringEventEndIteratorVector;
+    typedef Vector<FiringEventIterator, 1> FiringEventIteratorVector;
 
     typedef Vector<RegisteredEventListener, 1> EventListenerVector;
-    typedef HashMap<AtomicString, EventListenerVector> EventListenerMap;
+    typedef HashMap<AtomicString, EventListenerVector*> EventListenerMap;
 
-    struct EventTargetData {
+    struct EventTargetData : Noncopyable {
+        ~EventTargetData();
+
         EventListenerMap eventListenerMap;
-        FiringEventEndIteratorVector firingEventEndIterators;
+        FiringEventIteratorVector firingEventIterators;
     };
 
     class EventTarget {
@@ -188,7 +192,7 @@ namespace WebCore {
 
         EventListenerMap::iterator end = d->eventListenerMap.end();
         for (EventListenerMap::iterator it = d->eventListenerMap.begin(); it != end; ++it) {
-            EventListenerVector& entry = it->second;
+            EventListenerVector& entry = *it->second;
             for (size_t i = 0; i < entry.size(); ++i)
                 entry[i].listener->markJSFunction(markStack);
         }
@@ -200,6 +204,7 @@ namespace WebCore {
         if (!d)
             return;
 
+        deleteAllValues(d->eventListenerMap);
         d->eventListenerMap.clear();
     }
 #endif
@@ -209,7 +214,7 @@ namespace WebCore {
         EventTargetData* d = eventTargetData();
         if (!d)
             return false;
-        return d->firingEventEndIterators.size() != 0;
+        return d->firingEventIterators.size() != 0;
     }
 
     inline bool EventTarget::hasEventListeners()

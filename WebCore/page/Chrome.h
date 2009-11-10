@@ -42,6 +42,7 @@ namespace WebCore {
     class Geolocation;
     class HitTestResult;
     class IntRect;
+    class Node;
     class Page;
     class String;
 #if ENABLE(NOTIFICATIONS)
@@ -82,6 +83,8 @@ namespace WebCore {
         bool canTakeFocus(FocusDirection) const;
         void takeFocus(FocusDirection) const;
 
+        void focusedNodeChanged(Node*) const;
+
         Page* createWindow(Frame*, const FrameLoadRequest&, const WindowFeatures&) const;
         void show() const;
 
@@ -113,6 +116,9 @@ namespace WebCore {
         bool runJavaScriptPrompt(Frame*, const String& message, const String& defaultValue, String& result);
         void setStatusbarText(Frame*, const String&);
         bool shouldInterruptJavaScript();
+
+        void registerProtocolHandler(const String& scheme, const String& baseURL, const String& url, const String& title);
+        void registerContentHandler(const String& mimeType, const String& baseURL, const String& url, const String& title);
 
         IntRect windowResizerRect() const;
 

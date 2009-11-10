@@ -42,57 +42,18 @@
 
 namespace WebCore {
 
-ACCESSOR_GETTER(DedicatedWorkerContextOnmessage)
-{
-    INC_STATS(L"DOM.DedicatedWorkerContext.onmessage._get");
-    DedicatedWorkerContext* workerContext = V8DOMWrapper::convertToNativeObject<DedicatedWorkerContext>(V8ClassIndex::DEDICATEDWORKERCONTEXT, info.Holder());
-    if (workerContext->onmessage()) {
-        V8WorkerContextEventListener* listener = static_cast<V8WorkerContextEventListener*>(workerContext->onmessage());
-        v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-        return v8Listener;
-    }
-    return v8::Undefined();
-}
-
-ACCESSOR_SETTER(DedicatedWorkerContextOnmessage)
-{
-    INC_STATS(L"DOM.DedicatedWorkerContext.onmessage._set");
-    DedicatedWorkerContext* workerContext = V8DOMWrapper::convertToNativeObject<DedicatedWorkerContext>(V8ClassIndex::DEDICATEDWORKERCONTEXT, info.Holder());
-    V8WorkerContextEventListener* oldListener = static_cast<V8WorkerContextEventListener*>(workerContext->onmessage());
-    if (value->IsNull()) {
-        if (workerContext->onmessage()) {
-            v8::Local<v8::Object> oldV8Listener = oldListener->getListenerObject();
-            removeHiddenDependency(info.Holder(), oldV8Listener, V8Custom::kDedicatedWorkerContextRequestCacheIndex);
-        }
-
-        // Clear the listener.
-        workerContext->setOnmessage(0);
-    } else {
-        RefPtr<V8EventListener> listener = workerContext->script()->proxy()->findOrCreateEventListener(v8::Local<v8::Object>::Cast(value), false, false);
-        if (listener) {
-            if (oldListener) {
-                v8::Local<v8::Object> oldV8Listener = oldListener->getListenerObject();
-                removeHiddenDependency(info.Holder(), oldV8Listener, V8Custom::kDedicatedWorkerContextRequestCacheIndex);
-            }
-
-            workerContext->setOnmessage(listener);
-            createHiddenDependency(info.Holder(), value, V8Custom::kDedicatedWorkerContextRequestCacheIndex);
-        }
-    }
-}
-
 CALLBACK_FUNC_DECL(DedicatedWorkerContextPostMessage)
 {
     INC_STATS(L"DOM.DedicatedWorkerContext.postMessage");
     DedicatedWorkerContext* workerContext = V8DOMWrapper::convertToNativeObject<DedicatedWorkerContext>(V8ClassIndex::DEDICATEDWORKERCONTEXT, args.Holder());
-    String message = v8ValueToWebCoreString(args[0]);
+    RefPtr<SerializedScriptValue> message = SerializedScriptValue::create(v8ValueToWebCoreString(args[0]));
     MessagePortArray portArray;
     if (args.Length() > 1) {
         if (!getMessagePortArray(args[1], portArray))
             return v8::Undefined();
     }
     ExceptionCode ec = 0;
-    workerContext->postMessage(message, &portArray, ec);
+    workerContext->postMessage(message.release(), &portArray, ec);
     return throwError(ec);
 }
 

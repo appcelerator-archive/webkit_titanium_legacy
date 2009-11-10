@@ -193,8 +193,9 @@ void InspectorDOMAgent::handleEvent(ScriptExecutionContext*, Event* event)
             // Re-add frame owner element together with its new children.
             long parentId = m_documentNodeToIdMap.get(innerParentNode(node));
             m_frontend->childNodeRemoved(parentId, frameOwnerId);
-            long prevId = m_documentNodeToIdMap.get(innerPreviousSibling(node));
             ScriptObject value = buildObjectForNode(node, 0, &m_documentNodeToIdMap);
+            Node* previousSibling = innerPreviousSibling(node);
+            long prevId = previousSibling ? m_documentNodeToIdMap.get(previousSibling) : 0;
             m_frontend->childNodeInserted(parentId, prevId, value);
             // Invalidate children requested flag for the element.
             m_childrenRequested.remove(m_childrenRequested.find(frameOwnerId));
@@ -380,8 +381,8 @@ void InspectorDOMAgent::getEventListenersForNode(long callId, long nodeId)
     // Get the list of event types this Node is concerned with
     Vector<AtomicString> eventTypes;
     const EventListenerMap& listenerMap = d->eventListenerMap;
-    HashMap<AtomicString, EventListenerVector>::const_iterator end = listenerMap.end();
-    for (HashMap<AtomicString, EventListenerVector>::const_iterator iter = listenerMap.begin(); iter != end; ++iter)
+    EventListenerMap::const_iterator end = listenerMap.end();
+    for (EventListenerMap::const_iterator iter = listenerMap.begin(); iter != end; ++iter)
         eventTypes.append(iter->first);
 
     // Quick break if no useful listeners
@@ -436,18 +437,6 @@ void InspectorDOMAgent::getEventListenersForNode(long callId, long nodeId)
     }
 
     m_frontend->didGetEventListenersForNode(callId, nodeId, listenersArray);
-}
-
-void InspectorDOMAgent::getCookies(long callId)
-{
-    Document* doc = mainFrameDocument();
-    Vector<Cookie> cookiesList;
-    bool isImplemented = getRawCookies(doc, doc->cookieURL(), cookiesList);
-
-    if (!isImplemented)
-        m_frontend->didGetCookies(callId, m_frontend->newScriptArray(), doc->cookie());
-    else
-        m_frontend->didGetCookies(callId, buildArrayForCookies(cookiesList), String());
 }
 
 ScriptObject InspectorDOMAgent::buildObjectForNode(Node* node, int depth, NodeToIdMap* nodesMap)
@@ -547,32 +536,6 @@ ScriptObject InspectorDOMAgent::buildObjectForEventListener(const RegisteredEven
     value.set("nodeId", static_cast<long long>(pushNodePathToFrontend(node)));
     value.set("listener", getEventListenerHandlerBody(node->document(), m_frontend->scriptState(), eventListener.get()));
     return value;
-}
-
-ScriptObject InspectorDOMAgent::buildObjectForCookie(const Cookie& cookie)
-{
-    ScriptObject value = m_frontend->newScriptObject();
-    value.set("name", cookie.name);
-    value.set("value", cookie.value);
-    value.set("domain", cookie.domain);
-    value.set("path", cookie.path);
-    value.set("expires", cookie.expires);
-    value.set("size", static_cast<int>(cookie.name.length() + cookie.value.length()));
-    value.set("httpOnly", cookie.httpOnly);
-    value.set("secure", cookie.secure);
-    value.set("session", cookie.session);
-    return value;
-}
-
-ScriptArray InspectorDOMAgent::buildArrayForCookies(const Vector<Cookie>& cookiesList)
-{
-    ScriptArray cookies = m_frontend->newScriptArray();
-    unsigned length = cookiesList.size();
-    for (unsigned i = 0; i < length; ++i) {
-        const Cookie& cookie = cookiesList[i];
-        cookies.set(i, buildObjectForCookie(cookie));
-    }
-    return cookies;
 }
 
 Node* InspectorDOMAgent::innerFirstChild(Node* node)

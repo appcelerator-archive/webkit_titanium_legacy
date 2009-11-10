@@ -48,7 +48,7 @@ FontCache::FontCache()
 {
 }
 
-void FontCache::getTraitsInFamily(const AtomicString& familyName, Vector<unsigned>& traitsMasks)
+void FontCache::getTraitsInFamily(const AtomicString&, Vector<unsigned>&)
 {
 }
 
@@ -123,9 +123,9 @@ public:
     {
         unsigned hashCodes[] = {
             CaseFoldingHash::hash(m_familyName),
-            m_size | static_cast<unsigned>(m_bold << sizeof(unsigned) * 8 - 1)
-                | static_cast<unsigned>(m_italic) << sizeof(unsigned) *8 - 2
-                | static_cast<unsigned>(m_smallCaps) << sizeof(unsigned) * 8 - 3
+            m_size | static_cast<unsigned>(m_bold << (sizeof(unsigned) * 8 - 1))
+                | static_cast<unsigned>(m_italic) << (sizeof(unsigned) * 8 - 2)
+                | static_cast<unsigned>(m_smallCaps) << (sizeof(unsigned) * 8 - 3)
         };
         m_hash = StringImpl::computeHash(reinterpret_cast<UChar*>(hashCodes), sizeof(hashCodes) / sizeof(UChar));
     }
@@ -177,7 +177,7 @@ typedef HashMap<FontPlatformDataCacheKey, FontPlatformData*, FontPlatformDataCac
 // using Q_GLOBAL_STATIC leads to crash. TODO investigate the way to fix this.
 static FontPlatformDataCache* gFontPlatformDataCache = 0;
 
-FontPlatformData* FontCache::getCachedFontPlatformData(const FontDescription& description, const AtomicString& family, bool checkingAlternateName)
+FontPlatformData* FontCache::getCachedFontPlatformData(const FontDescription& description, const AtomicString&, bool)
 {
     if (!gFontPlatformDataCache)
         gFontPlatformDataCache = new FontPlatformDataCache;

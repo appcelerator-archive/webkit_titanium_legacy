@@ -162,6 +162,9 @@ public:
 
     void resolveURL(const char* url, const char* target, data_t& resolvedURLData, mach_msg_type_number_t& resolvedURLLength);
     
+    void didDraw();
+    void privateBrowsingModeDidChange(bool isPrivateBrowsingEnabled);
+    
     // Reply structs
     struct Reply {
         enum Type {
@@ -307,6 +310,7 @@ private:
     bool m_shouldStopSoon;
     uint32_t m_currentRequestID;
     bool m_inDestroy;
+    bool m_pluginIsWaitingForDraw;
     
     RefPtr<HostedNetscapePluginStream> m_manualStream;
 };

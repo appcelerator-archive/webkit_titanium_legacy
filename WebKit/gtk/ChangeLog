@@ -1,3 +1,471 @@
+2009-11-10  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Jan Alonzo.
+
+        [GTK] Remove WebSocket configuration from WebKitWebSettings
+        https://bugs.webkit.org/show_bug.cgi?id=31244
+
+        Remove non-functional enable-web-sockets property from WebKitWebSettings.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        (webkit_web_settings_copy):
+
+2009-11-09  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Jan Alonzo.
+
+        [GTK] Expose Page::tabKeyCyclesThroughElements in the API
+        https://bugs.webkit.org/show_bug.cgi?id=30482
+
+        Expose Page::tabKeyCyclesThroughElements as a property of
+        WebKitWebSettings.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_update_settings):
+        (webkit_web_view_settings_notify):
+
+2009-11-04  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Jan Alonzo.
+
+        [GTK] Enable DOM clipboard and drag-and-drop access
+        https://bugs.webkit.org/show_bug.cgi?id=30623
+
+        Move handling of target list to PasteboardHelperGtk.
+
+        * WebCoreSupport/PasteboardHelperGtk.cpp:
+        (WebKit::PasteboardHelperGtk::PasteboardHelperGtk):
+        (WebKit::PasteboardHelperGtk::~PasteboardHelperGtk):
+        (WebKit::PasteboardHelperGtk::fullTargetList):
+        * WebCoreSupport/PasteboardHelperGtk.h:
+        * webkit/webkitprivate.cpp:
+        (WebKit::pasteboardHelperInstance):
+        (webkit_init):
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_dispose):
+        (webkit_web_view_init):
+        (webkit_web_view_get_copy_target_list):
+        (webkit_web_view_get_paste_target_list):
+
+2009-10-30  Evan Stade  <estade@chromium.org>
+
+        Reviewed by David Levin.
+
+        Notify the chrome when the focused node has changed.
+        https://bugs.webkit.org/show_bug.cgi?id=30832
+
+        Added stub implementation for new ChromeClient function.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::focusedNodeChanged):
+        * WebCoreSupport/ChromeClientGtk.h:
+
+2009-10-29  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Trivial fix - move public API declaration into the
+        public subsection of the doc.
+
+        * docs/webkitgtk-sections.txt:
+
+2009-10-28  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Jan Alonzo.
+
+        [GTK] API to start inspector for a WebView
+        https://bugs.webkit.org/show_bug.cgi?id=22551
+
+        Provide a simple, coordinates-based API to start the inspector.
+
+        * WebCoreSupport/InspectorClientGtk.cpp:
+        (WebKit::InspectorClient::createPage): Use files from the source
+        tree when running from the top of the source directory.
+        (WebKit::InspectorClient::localizedStringsURL): Ditto.
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebinspector.cpp:
+        (webkit_web_inspector_inspect_coordinates):
+        (webkit_web_inspector_close):
+        (webkit_web_inspector_execute_script):
+        * webkit/webkitwebinspector.h:
+
+2009-10-27  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Provide a way to get counter values with layoutTestContoller
+        https://bugs.webkit.org/show_bug.cgi?id=30555
+
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebframe.cpp:
+        (webkit_web_frame_counter_value_for_element_by_id):
+
+2009-10-28  Joe Mason  <jmason@rim.com>
+
+        Reviewed by Adam Treat.
+
+        Call the shared FrameLoader::defaultObjectContentType instead of
+        copying code into FrameLoaderClient::objectContentType.  This causes no
+        behavioural change.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::objectContentType):
+
+2009-10-28  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Jan Alonzo.
+
+        [Gtk] Extraneous object of ROLE_PANEL in hierarchy for entries
+        https://bugs.webkit.org/show_bug.cgi?id=25897
+
+        Update test to also check that entries implement the AtkText
+        interface.
+
+        * tests/testatk.c:
+        (run_get_text_tests):
+        (test_webkit_atk_get_text_at_offset_forms):
+        (test_webkit_atk_get_text_at_offset):
+        (main):
+
+2009-10-26  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Update documentation control files for 1.1.16.
+
+        * docs/webkitgtk-docs.sgml:
+        * docs/webkitgtk-sections.txt:
+
+2009-10-26  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30759
+        [GTK] Should use WebKitNetworkResponse, and expose it
+
+        WebKitDownload now uses our WebKitNetworkResponse instead of using
+        ResourceResponse directly. By exposing the response, like we do
+        with the request, we give our users the ability to look at the
+        response headers, status code, and so on, through the SoupMessage
+        object.
+
+        * webkit/webkitdownload.cpp:
+        (webkit_download_dispose):
+        (webkit_download_finalize):
+        (webkit_download_get_property):
+        (webkit_download_set_property):
+        (webkit_download_class_init):
+        (webkit_download_get_network_response):
+        (webkit_download_set_response):
+        (webkit_download_get_total_size):
+        (webkit_download_get_progress):
+        (webkit_download_received_data):
+        * webkit/webkitdownload.h:
+
+2009-10-26  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Update for 1.1.16 release.
+
+        * NEWS:
+
+2009-10-22  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by NOBODY (build fix).
+        Build fix following bug #30696.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::windowObjectCleared):
+        * webkit/webkitwebframe.cpp:
+        (webkit_web_frame_get_global_context):
+
+2009-10-22  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        m_webView should be private attribute of the EditorClientGtk.
+        https://bugs.webkit.org/show_bug.cgi?id=30664
+
+        * WebKit/gtk/WebCoreSupport/EditorClientGtk.h:
+
+2009-10-20  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by David Levin.
+
+        Removed WebSocket runtime settings.
+        https://bugs.webkit.org/show_bug.cgi?id=29896
+
+        WebSocket runtime configuration is supported by chromium/v8 only.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_update_settings):
+        (webkit_web_view_settings_notify):
+
+2009-10-19  Jan Michael Alonzo  <jmalonzo@webkit.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        [Gtk] ApplicationCacheStorage error while compiling WebKit/gtk/webkit/webkitapplicationcache.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=30358
+
+        Guard calls to cacheStorage() with ENABLE(OFFLINE_WEB_APPLICATIONS).
+
+        * webkit/webkitapplicationcache.cpp:
+
+2009-10-19  Zan Dobersek  <zandobersek@gmail.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Add a settings to allow DOM pastes to be performed.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        (webkit_web_settings_copy):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_update_settings):
+        (webkit_web_view_settings_notify):
+
+2009-10-19  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Make WebKitHitTestResult actually appear in the
+        documentation index.
+
+        * docs/webkitgtk-docs.sgml:
+
+2009-10-15  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Protect WebSocket calls in case the feature is not compiled in.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_update_settings):
+        (webkit_web_view_settings_notify):
+
+2009-10-15  Zan Dobersek  <zandobersek@gmail.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Add a settings to enable support for experimental Web Sockets.
+        Currently this comes in handy in layout tests.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        (webkit_web_settings_copy):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_update_settings):
+        (webkit_web_view_settings_notify):
+
+2009-10-15  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        page transition may crash webkit
+        https://bugs.webkit.org/show_bug.cgi?id=29890
+
+        There are actually cases in which a resource may be asked using
+        webkit_web_view_get_resource after a new load has already been
+        started, so protect ourselves from crashes in this case.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::dispatchDidFinishLoading):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_get_resource):
+
+2009-10-12  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Xan Lopez.
+
+        Remove unnecessary self-include.
+
+        * webkit/webkitsecurityorigin.h:
+
+2009-10-12  Christian Dywan  <christian@twotoasts.de>
+
+        Reviewed by Gustavo Noronha.
+
+        [GTK] Crash when right-clicking misspelled word
+        https://bugs.webkit.org/show_bug.cgi?id=29772
+
+        Make sure the dictionary exist before adding it to the list of
+        dictionaries.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::EditorClient::checkSpellingOfString):
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_set_property):
+
+2009-10-08  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Move executeScript from FrameLoader to ScriptController
+        https://bugs.webkit.org/show_bug.cgi?id=30200
+
+        Update API call.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_execute_script):
+
+2009-10-07  Xan Lopez  <xlopez@igalia.com>
+
+        Fix the GTK+ build.
+
+        * webkit/webkitwebpolicydecision.cpp:
+        (webkit_web_policy_decision_use):
+        (webkit_web_policy_decision_ignore):
+        (webkit_web_policy_decision_download):
+
+2009-10-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Factor PolicyChecker out of FrameLoader
+        https://bugs.webkit.org/show_bug.cgi?id=30155
+
+        Move the policy callback to the policy object.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::dispatchWillSubmitForm):
+        (WebKit::FrameLoaderClient::dispatchDecidePolicyForMIMEType):
+        (WebKit::FrameLoaderClient::dispatchDecidePolicyForNewWindowAction):
+        (WebKit::FrameLoaderClient::dispatchDecidePolicyForNavigationAction):
+
+2009-10-07  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        [GTK] Segfault while testing fast/events/keydown-keypress-preventDefault.html
+        https://bugs.webkit.org/show_bug.cgi?id=30121
+
+        Clear previous preedit or pending composition before storing new ones.
+        This can happen when a WebView receives a native keydown event without
+        a matching keyup event or when preventDefault() is called on DOM keydown
+        events.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::setPendingComposition):
+        (WebKit::setPendingPreedit):
+        (WebKit::clearPendingIMData):
+        (WebKit::imContextCommitted):
+        (WebKit::imContextPreeditChanged):
+
+2009-10-06  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=25526
+        [Gtk] Additional support is needed for caret browsing
+
+        Remove special cases for caret browsing, they are now handled in
+        cross-platform code.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::EditorClient::handleKeyboardEvent):
+
+2009-10-06  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: close inspector client view on
+        InspectorController::close API call.
+
+        In order to run batch web inspector layout tests (and not affect 
+        subsequent tests) we should close inspector client's view upon
+        InspectorController::close API call.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30009
+
+        * WebCoreSupport/InspectorClientGtk.cpp:
+        (WebKit::InspectorClient::createPage):
+
+2009-10-06  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        ASSERT executing the webhistory unittest in a debug build
+        https://bugs.webkit.org/show_bug.cgi?id=28947
+
+        We have to call g_object_new first to initialize webkit threading
+        before creating the KURL.
+
+        * WebKit/gtk/webkit/webkitwebhistoryitem.cpp:
+
+2009-10-06  José Millán Soto  <fid@gpul.org>
+
+        Reviewed by Xan Lopez.
+
+        Header files of WebKitGTK do not comply with WebKit coding style (Patch attached)
+        https://bugs.webkit.org/show_bug.cgi?id=30076
+
+        Solves various issues in header files.
+
+        * WebCoreSupport/DocumentLoaderGtk.h: Added "headed guards"
+        * webkit/webkitdefines.h:
+        * webkit/webkitdownload.h:
+        * webkit/webkiterror.h:
+        * webkit/webkithittestresult.h:
+        * webkit/webkitnetworkrequest.h:
+        * webkit/webkitnetworkresponse.h:
+        * webkit/webkitprivate.h:
+        * webkit/webkitsecurityorigin.h:
+        * webkit/webkitsoupauthdialog.h:
+        * webkit/webkitversion.h.in:
+        * webkit/webkitwebbackforwardlist.h:
+        * webkit/webkitwebdatabase.h:
+        * webkit/webkitwebdatasource.h:
+        * webkit/webkitwebframe.h:
+        * webkit/webkitwebhistoryitem.h:
+        * webkit/webkitwebinspector.h:
+        * webkit/webkitwebnavigationaction.h:
+        * webkit/webkitwebpolicydecision.h:
+        * webkit/webkitwebresource.h:
+        * webkit/webkitwebsettings.h:
+        * webkit/webkitwebview.h:
+        * webkit/webkitwebwindowfeatures.h:
+
+2009-10-03  Adam Barth  <abarth@webkit.org>
+
+        More build fixing.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_go_back_or_forward):
+        (webkit_web_view_can_go_back_or_forward):
+
+2009-10-03  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed build fix.
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_go_back_or_forward):
+
+2009-10-03  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Sam Weinig.
+
+        Factor PageController out of FrameLoader and Page
+        https://bugs.webkit.org/show_bug.cgi?id=30037
+
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_can_go_back_or_forward):
+
+2009-10-01  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Set the type for the fake event, otherwise the test ASSERTs in
+        debug builds.
+
+        * tests/testhittestresult.c:
+        (load_status_cb):
+
 2009-10-01  Martin Robinson  <martin.james.robinson@gmail.com>
 
         Reviewed by Xan Lopez.
@@ -1851,7 +2319,7 @@
 
         Refactor how SoupMessage is handled, so that our ResourceRequest
         object doesn't have to store it as a member, which complicates
-        managing ResourceRequest's lifetime.
+        managing ResourceRequest's lifetvime.
 
         * tests/testhttpbackend.c:
         (navigation_policy_decision_requested_cb):

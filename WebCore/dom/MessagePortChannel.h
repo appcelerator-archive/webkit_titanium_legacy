@@ -33,6 +33,8 @@
 
 #include "PlatformString.h"
 
+#include "SerializedScriptValue.h"
+
 #include <wtf/OwnPtr.h>
 #include <wtf/PassOwnPtr.h>
 #include <wtf/PassRefPtr.h>
@@ -45,6 +47,7 @@ namespace WebCore {
     class MessagePortChannel;
     class PlatformMessagePortChannel;
     class ScriptExecutionContext;
+    class SerializedScriptValue;
     class String;
 
     // The overwhelmingly common case is sending a single port, so handle that efficiently with an inline buffer of size 1.
@@ -75,16 +78,16 @@ namespace WebCore {
         // Returns true if the proxy currently contains messages for this port.
         bool hasPendingActivity();
 
-        class EventData {
+        class EventData : public Noncopyable {
         public:
-            static PassOwnPtr<EventData> create(const String&, PassOwnPtr<MessagePortChannelArray>);
+            static PassOwnPtr<EventData> create(PassRefPtr<SerializedScriptValue>, PassOwnPtr<MessagePortChannelArray>);
 
-            const String& message() { return m_message; }
+            SerializedScriptValue* message() { return m_message.get(); }
             PassOwnPtr<MessagePortChannelArray> channels() { return m_channels.release(); }
 
         private:
-            EventData(const String& message, PassOwnPtr<MessagePortChannelArray>);
-            String m_message;
+            EventData(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray>);
+            RefPtr<SerializedScriptValue> m_message;
             OwnPtr<MessagePortChannelArray> m_channels;
         };
 

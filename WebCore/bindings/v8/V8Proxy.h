@@ -35,8 +35,8 @@
 #include "ScriptSourceCode.h" // for WebCore::ScriptSourceCode
 #include "SecurityOrigin.h" // for WebCore::SecurityOrigin
 #include "SharedPersistent.h"
+#include "V8AbstractEventListener.h"
 #include "V8DOMWrapper.h"
-#include "V8EventListenerList.h"
 #include "V8GCController.h"
 #include "V8Index.h"
 #include <v8.h>
@@ -58,7 +58,7 @@ namespace WebCore {
     class ScriptExecutionContext;
     class String;
     class V8EventListener;
-    class V8ObjectEventListener;
+    class V8IsolatedWorld;
 
     // FIXME: use standard logging facilities in WebCore.
     void logInfo(Frame*, const String& message, const String& url);
@@ -81,6 +81,16 @@ namespace WebCore {
     };
 
     void batchConfigureAttributes(v8::Handle<v8::ObjectTemplate>, v8::Handle<v8::ObjectTemplate>, const BatchedAttribute*, size_t attributeCount);
+
+    inline void configureAttribute(v8::Handle<v8::ObjectTemplate> instance, v8::Handle<v8::ObjectTemplate> proto, const BatchedAttribute& attribute)
+    {
+        (attribute.onProto ? proto : instance)->SetAccessor(v8::String::New(attribute.name),
+            attribute.getter,
+            attribute.setter,
+            attribute.data == V8ClassIndex::INVALID_CLASS_INDEX ? v8::Handle<v8::Value>() : v8::Integer::New(V8ClassIndex::ToInt(attribute.data)),
+            attribute.settings,
+            attribute.attribute);
+    }
 
     // BatchedConstant translates into calls to Set() for setting up an object's
     // constants. It sets the constant on both the FunctionTemplate and the
@@ -117,12 +127,7 @@ namespace WebCore {
             GeneralError
         };
 
-        explicit V8Proxy(Frame* frame)
-            : m_frame(frame),
-              m_context(SharedPersistent<v8::Context>::create()),
-              m_inlineCode(false),
-              m_timerCallback(false),
-              m_recursion(0) { }
+        explicit V8Proxy(Frame*);
 
         ~V8Proxy();
 
@@ -158,11 +163,6 @@ namespace WebCore {
         // and clears all timeouts on the DOM window.
         void disconnectFrame();
 
-        bool isEnabled();
-
-        V8EventListenerList* eventListeners() { return &m_eventListeners; }
-        V8EventListenerList* objectListeners() { return &m_objectListeners; }
-
 #if ENABLE(SVG)
         static void setSVGContext(void*, SVGElement*);
         static SVGElement* svgContext(void*);
@@ -175,7 +175,7 @@ namespace WebCore {
         // global scope, its own prototypes for intrinsic JavaScript objects (String,
         // Array, and so-on), and its own wrappers for all DOM nodes and DOM
         // constructors.
-        void evaluateInNewWorld(const Vector<ScriptSourceCode>& sources, int extensionGroup);
+        void evaluateInIsolatedWorld(int worldId, const Vector<ScriptSourceCode>& sources, int extensionGroup);
 
         // Evaluate JavaScript in a new context. The script gets its own global scope
         // and its own prototypes for intrinsic JavaScript objects (String, Array,
@@ -255,7 +255,6 @@ namespace WebCore {
         // Returns V8 Context of a frame. If none exists, creates
         // a new context. It is potentially slow and consumes memory.
         static v8::Local<v8::Context> context(Frame*);
-        static PassRefPtr<SharedPersistent<v8::Context> > shared_context(Frame*);
         static v8::Local<v8::Context> mainWorldContext(Frame*);
         static v8::Local<v8::Context> currentContext();
 
@@ -293,18 +292,15 @@ namespace WebCore {
 
         // Function for retrieving the line number and source name for the top
         // JavaScript stack frame.
-        static int sourceLineNumber();
-        static String sourceName();
+        //
+        // It will return true if the line number was successfully retrieved and written
+        // into the |result| parameter, otherwise the function will return false. It may
+        // fail due to a stck overflow in the underlying JavaScript implentation, handling
+        // of such exception is up to the caller.
+        static bool sourceLineNumber(int& result);
+        static bool sourceName(String& result);
 
-        v8::Handle<v8::Context> context()
-        {
-            return m_context->get();
-        }
-
-        PassRefPtr<SharedPersistent<v8::Context> > shared_context()
-        {
-            return m_context;
-        }
+        v8::Local<v8::Context> context();
 
         bool setContextDebugId(int id);
         static int contextDebugId(v8::Handle<v8::Context>);
@@ -334,7 +330,6 @@ namespace WebCore {
         static const char* kContextDebugDataType;
         static const char* kContextDebugDataValue;
 
-        void disconnectEventListeners();
         void setSecurityToken();
         void clearDocumentWrapper();
 
@@ -351,6 +346,10 @@ namespace WebCore {
         // If m_recursionCount is 0, let LocalStorage know so we can release
         // the storage mutex.
         void releaseStorageMutex();
+
+        void resetIsolatedWorlds();
+
+        void setInjectedScriptContextDebugId(v8::Handle<v8::Context> targetContext);
 
         static bool canAccessPrivate(DOMWindow*);
 
@@ -384,7 +383,7 @@ namespace WebCore {
 
         Frame* m_frame;
 
-        RefPtr<SharedPersistent<v8::Context> > m_context;
+        v8::Persistent<v8::Context> m_context;
 
         // For each possible type of wrapper, we keep a boilerplate object.
         // The boilerplate is used to create additional wrappers of the same
@@ -399,14 +398,6 @@ namespace WebCore {
         static v8::Persistent<v8::Context> m_utilityContext;
 
         int m_handlerLineNumber;
-
-        // A list of event listeners created for this frame,
-        // the list gets cleared when removing all timeouts.
-        V8EventListenerList m_eventListeners;
-
-        // A list of event listeners create for XMLHttpRequest object for this frame,
-        // the list gets cleared when removing all timeouts.
-        V8EventListenerList m_objectListeners;
 
         // True for <a href="javascript:foo()"> and false for <script>foo()</script>.
         // Only valid during execution.
@@ -423,6 +414,16 @@ namespace WebCore {
 
         // All of the extensions registered with the context.
         static V8Extensions m_extensions;
+
+        // The isolated worlds we are tracking for this frame. We hold them alive
+        // here so that they can be used again by future calls to
+        // evaluateInIsolatedWorld().
+        //
+        // Note: although the pointer is raw, the instance is kept alive by a strong
+        // reference to the v8 context it contains, which is not made weak until we
+        // call world->destroy().
+        typedef HashMap<int, V8IsolatedWorld*> IsolatedWorldMap;
+        IsolatedWorldMap m_isolatedWorlds;
     };
 
     template <int tag, typename T>
@@ -440,6 +441,8 @@ namespace WebCore {
         return args.Holder();
     }
 
+
+    v8::Local<v8::Context> toV8Context(ScriptExecutionContext*);
 
     // Used by an interceptor callback that it hasn't found anything to
     // intercept.

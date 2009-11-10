@@ -267,10 +267,13 @@ namespace JSC {
 
         static PassRefPtr<Structure> createStructure(JSValue prototype)
         {
-            return Structure::create(prototype, TypeInfo(ObjectType));
+            return Structure::create(prototype, TypeInfo(ObjectType, StructureFlags));
         }
 
     protected:
+
+        static const unsigned StructureFlags = OverridesGetOwnPropertySlot | OverridesMarkChildren | OverridesGetPropertyNames | JSVariableObject::StructureFlags;
+
         struct GlobalPropertyInfo {
             GlobalPropertyInfo(const Identifier& i, JSValue v, unsigned a)
                 : identifier(i)
@@ -439,7 +442,13 @@ namespace JSC {
             : m_dynamicGlobalObjectSlot(callFrame->globalData().dynamicGlobalObject)
             , m_savedDynamicGlobalObject(m_dynamicGlobalObjectSlot)
         {
-            m_dynamicGlobalObjectSlot = dynamicGlobalObject;
+            if (!m_dynamicGlobalObjectSlot) {
+                m_dynamicGlobalObjectSlot = dynamicGlobalObject;
+
+                // Reset the date cache between JS invocations to force the VM
+                // to observe time zone changes.
+                callFrame->globalData().resetDateCache();
+            }
         }
 
         ~DynamicGlobalObjectScope()

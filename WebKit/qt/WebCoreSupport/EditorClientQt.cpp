@@ -41,6 +41,7 @@
 #include "FocusController.h"
 #include "Frame.h"
 #include "HTMLElement.h"
+#include "HTMLInputElement.h"
 #include "HTMLNames.h"
 #include "KeyboardCodes.h"
 #include "KeyboardEvent.h"
@@ -48,6 +49,7 @@
 #include "Page.h"
 #include "Page.h"
 #include "PlatformKeyboardEvent.h"
+#include "QWebPageClient.h"
 #include "Range.h"
 
 #include <stdio.h>
@@ -405,28 +407,38 @@ void EditorClientQt::handleKeyboardEvent(KeyboardEvent* event)
             case VK_LEFT:
                 if (kevent->shiftKey())
                     frame->editor()->command("MoveLeftAndModifySelection").execute();
-                else frame->editor()->command("MoveLeft").execute();
+                else
+                    frame->editor()->command("MoveLeft").execute();
                 break;
             case VK_RIGHT:
                 if (kevent->shiftKey())
                     frame->editor()->command("MoveRightAndModifySelection").execute();
-                else frame->editor()->command("MoveRight").execute();
+                else
+                    frame->editor()->command("MoveRight").execute();
                 break;
             case VK_UP:
                 if (kevent->shiftKey())
                     frame->editor()->command("MoveUpAndModifySelection").execute();
-                else frame->editor()->command("MoveUp").execute();
+                else
+                    frame->editor()->command("MoveUp").execute();
                 break;
             case VK_DOWN:
                 if (kevent->shiftKey())
                     frame->editor()->command("MoveDownAndModifySelection").execute();
-                else frame->editor()->command("MoveDown").execute();
+                else
+                    frame->editor()->command("MoveDown").execute();
                 break;
             case VK_PRIOR:  // PageUp
-                frame->editor()->command("MovePageUp").execute();
+                if (kevent->shiftKey())
+                    frame->editor()->command("MovePageUpAndModifySelection").execute();
+                else
+                    frame->editor()->command("MovePageUp").execute();
                 break;
             case VK_NEXT:  // PageDown
-                frame->editor()->command("MovePageDown").execute();
+                if (kevent->shiftKey())
+                    frame->editor()->command("MovePageDownAndModifySelection").execute();
+                else
+                    frame->editor()->command("MovePageDown").execute();
                 break;
             case VK_TAB:
                 return;
@@ -596,10 +608,26 @@ bool EditorClientQt::isEditing() const
 
 void EditorClientQt::setInputMethodState(bool active)
 {
-    QWidget *view = m_page->view();
-    if (view)
-        view->setAttribute(Qt::WA_InputMethodEnabled, active);
-
+    QWebPageClient* webPageClient = m_page->d->client;
+    if (webPageClient) {
+#if QT_VERSION >= 0x040600
+        bool isPasswordField = false;
+        if (!active) {
+            // Setting the Qt::WA_InputMethodEnabled attribute true and Qt::ImhHiddenText flag
+            // for password fields. The Qt platform is responsible for determining which widget 
+            // will receive input method events for password fields.
+            Frame* frame = m_page->d->page->focusController()->focusedOrMainFrame();
+            if (frame && frame->document() && frame->document()->focusedNode()) {
+                if (frame->document()->focusedNode()->hasTagName(HTMLNames::inputTag)) {
+                    HTMLInputElement* inputElement = static_cast<HTMLInputElement*>(frame->document()->focusedNode());
+                    active = isPasswordField = inputElement->isPasswordField();
+              }
+            }
+        }
+        webPageClient->setInputMethodHint(Qt::ImhHiddenText, isPasswordField);
+#endif
+        webPageClient->setInputMethodEnabled(active);
+    }
     emit m_page->microFocusChanged();
 }
 

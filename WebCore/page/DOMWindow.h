@@ -52,6 +52,7 @@ namespace WebCore {
     class FloatRect;
     class Frame;
     class History;
+    class InspectorTimelineAgent;
     class Location;
     class Media;
     class Navigator;
@@ -59,6 +60,7 @@ namespace WebCore {
     class NotificationCenter;
     class PostMessageTimer;
     class ScheduledAction;
+    class SerializedScriptValue;
     class Screen;
     class WebKitPoint;
 
@@ -214,9 +216,9 @@ namespace WebCore {
         NotificationCenter* webkitNotifications() const;
 #endif
 
-        void postMessage(const String& message, const MessagePortArray*, const String& targetOrigin, DOMWindow* source, ExceptionCode&);
+        void postMessage(PassRefPtr<SerializedScriptValue> message, const MessagePortArray*, const String& targetOrigin, DOMWindow* source, ExceptionCode&);
         // FIXME: remove this when we update the ObjC bindings (bug #28774).
-        void postMessage(const String& message, MessagePort*, const String& targetOrigin, DOMWindow* source, ExceptionCode&);
+        void postMessage(PassRefPtr<SerializedScriptValue> message, MessagePort*, const String& targetOrigin, DOMWindow* source, ExceptionCode&);
         void postMessageTimerFired(PostMessageTimer*);
 
         void scrollBy(int x, int y) const;
@@ -351,6 +353,7 @@ namespace WebCore {
         virtual void derefEventTarget() { deref(); }
         virtual EventTargetData* eventTargetData();
         virtual EventTargetData* ensureEventTargetData();
+        InspectorTimelineAgent* inspectorTimelineAgent();
 
         RefPtr<SecurityOrigin> m_securityOrigin;
         KURL m_url;

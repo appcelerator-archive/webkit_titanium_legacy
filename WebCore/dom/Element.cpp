@@ -47,6 +47,7 @@
 #include "NodeRenderStyle.h"
 #include "Page.h"
 #include "RenderView.h"
+#include "RenderWidget.h"
 #include "TextIterator.h"
 #include "XMLNames.h"
 
@@ -123,6 +124,7 @@ PassRefPtr<Element> Element::cloneElementWithoutChildren()
 void Element::removeAttribute(const QualifiedName& name, ExceptionCode& ec)
 {
     if (namedAttrMap) {
+        ec = 0;
         namedAttrMap->removeNamedItem(name, ec);
         if (ec == NOT_FOUND_ERR)
             ec = 0;
@@ -515,7 +517,7 @@ void Element::setAttribute(const AtomicString& name, const AtomicString& value, 
         return;
     }
 
-    const AtomicString& localName = (shouldIgnoreAttributeCase(this) && !name.string().impl()->isLower()) ? AtomicString(name.string().lower()) : name;
+    const AtomicString& localName = shouldIgnoreAttributeCase(this) ? name.lower() : name;
 
     // allocate attributemap if necessary
     Attribute* old = attributes(false)->getAttributeItem(localName, false);
@@ -726,6 +728,7 @@ void Element::removedFromDocument()
 void Element::attach()
 {
     suspendPostAttachCallbacks();
+    RenderWidget::suspendWidgetHierarchyUpdates();
 
     createRendererIfNeeded();
     ContainerNode::attach();
@@ -738,20 +741,25 @@ void Element::attach()
         }
     }
 
+    RenderWidget::resumeWidgetHierarchyUpdates();
     resumePostAttachCallbacks();
 }
 
 void Element::detach()
 {
+    RenderWidget::suspendWidgetHierarchyUpdates();
+
     cancelFocusAppearanceUpdate();
     if (hasRareData())
         rareData()->resetComputedStyle();
     ContainerNode::detach();
+
+    RenderWidget::resumeWidgetHierarchyUpdates();
 }
 
 bool Element::pseudoStyleCacheIsInvalid(const RenderStyle* currentStyle, RenderStyle* newStyle)
 {
-    ASSERT(currentStyle = renderStyle());
+    ASSERT(currentStyle == renderStyle());
 
     if (!renderer() || !currentStyle)
         return false;
@@ -1413,7 +1421,7 @@ KURL Element::getURLAttribute(const QualifiedName& name) const
             ASSERT(isURLAttribute(attribute));
     }
 #endif
-    return document()->completeURL(getAttribute(name));
+    return document()->completeURL(deprecatedParseURL(getAttribute(name)));
 }
 
 } // namespace WebCore

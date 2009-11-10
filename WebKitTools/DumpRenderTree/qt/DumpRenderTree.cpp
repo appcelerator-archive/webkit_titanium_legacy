@@ -30,6 +30,9 @@
  */
 
 #include "DumpRenderTree.h"
+#include "EventSenderQt.h"
+#include "LayoutTestControllerQt.h"
+#include "TextInputControllerQt.h"
 #include "jsobjects.h"
 #include "testplugin.h"
 #include "WorkQueue.h"
@@ -43,6 +46,7 @@
 #include <QScrollArea>
 #include <QApplication>
 #include <QUrl>
+#include <QFileInfo>
 #include <QFocusEvent>
 #include <QFontDatabase>
 #include <QNetworkRequest>
@@ -65,6 +69,7 @@ extern void qt_dump_set_accepts_editing(bool b);
 extern void qt_dump_frame_loader(bool b);
 extern void qt_drt_clearFrameName(QWebFrame* qFrame);
 extern void qt_drt_overwritePluginDirectories();
+extern void qt_drt_resetOriginAccessWhiteLists();
 
 namespace WebCore {
 
@@ -83,6 +88,8 @@ public:
     void javaScriptConsoleMessage(const QString& message, int lineNumber, const QString& sourceID);
     bool javaScriptConfirm(QWebFrame *frame, const QString& msg);
     bool javaScriptPrompt(QWebFrame *frame, const QString& msg, const QString& defaultValue, QString* result);
+
+    void resetSettings();
 
 public slots:
     bool shouldInterruptJavaScript() { return false; }
@@ -104,20 +111,40 @@ private:
 WebPage::WebPage(QWidget *parent, DumpRenderTree *drt)
     : QWebPage(parent), m_drt(drt)
 {
-    settings()->setFontSize(QWebSettings::MinimumFontSize, 5);
-    settings()->setFontSize(QWebSettings::MinimumLogicalFontSize, 5);
-    settings()->setFontSize(QWebSettings::DefaultFontSize, 16);
-    settings()->setFontSize(QWebSettings::DefaultFixedFontSize, 13);
-    settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, true);
-    settings()->setAttribute(QWebSettings::JavascriptCanAccessClipboard, true);
-    settings()->setAttribute(QWebSettings::LinksIncludedInFocusChain, false);
-    settings()->setAttribute(QWebSettings::PluginsEnabled, true);
-    settings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
+    QWebSettings* globalSettings = QWebSettings::globalSettings();
+
+    globalSettings->setFontSize(QWebSettings::MinimumFontSize, 5);
+    globalSettings->setFontSize(QWebSettings::MinimumLogicalFontSize, 5);
+    globalSettings->setFontSize(QWebSettings::DefaultFontSize, 16);
+    globalSettings->setFontSize(QWebSettings::DefaultFixedFontSize, 13);
+
+    globalSettings->setAttribute(QWebSettings::JavascriptCanOpenWindows, true);
+    globalSettings->setAttribute(QWebSettings::JavascriptCanAccessClipboard, true);
+    globalSettings->setAttribute(QWebSettings::LinksIncludedInFocusChain, false);
+    globalSettings->setAttribute(QWebSettings::PluginsEnabled, true);
+    globalSettings->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
+    globalSettings->setAttribute(QWebSettings::JavascriptEnabled, true);
+    globalSettings->setAttribute(QWebSettings::PrivateBrowsingEnabled, false);
+    globalSettings->setAttribute(QWebSettings::OfflineWebApplicationCacheEnabled, false);
 
     connect(this, SIGNAL(geometryChangeRequested(const QRect &)),
             this, SLOT(setViewGeometry(const QRect & )));
 
     setPluginFactory(new TestPlugin(this));
+}
+
+void WebPage::resetSettings()
+{
+    // After each layout test, reset the settings that may have been changed by
+    // layoutTestController.overridePreference() or similar.
+
+    settings()->resetFontSize(QWebSettings::DefaultFontSize);
+
+    settings()->resetAttribute(QWebSettings::JavascriptCanOpenWindows);
+    settings()->resetAttribute(QWebSettings::JavascriptEnabled);
+    settings()->resetAttribute(QWebSettings::PrivateBrowsingEnabled);
+    settings()->resetAttribute(QWebSettings::LinksIncludedInFocusChain);
+    settings()->resetAttribute(QWebSettings::OfflineWebApplicationCacheEnabled);
 }
 
 QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
@@ -130,9 +157,27 @@ void WebPage::javaScriptAlert(QWebFrame*, const QString& message)
     fprintf(stdout, "ALERT: %s\n", message.toUtf8().constData());
 }
 
+static QString urlSuitableForTestResult(const QString& url)
+{
+    if (url.isEmpty() || !url.startsWith(QLatin1String("file://")))
+        return url;
+
+    return QFileInfo(url).fileName();
+}
+
 void WebPage::javaScriptConsoleMessage(const QString& message, int lineNumber, const QString&)
 {
-    fprintf (stdout, "CONSOLE MESSAGE: line %d: %s\n", lineNumber, message.toUtf8().constData());
+    QString newMessage;
+    if (!message.isEmpty()) {
+        newMessage = message;
+
+        size_t fileProtocol = newMessage.indexOf(QLatin1String("file://"));
+        if (fileProtocol != -1) {
+            newMessage = newMessage.left(fileProtocol) + urlSuitableForTestResult(newMessage.mid(fileProtocol));
+        }
+    }
+
+    fprintf (stdout, "CONSOLE MESSAGE: line %d: %s\n", lineNumber, newMessage.toUtf8().constData());
 }
 
 bool WebPage::javaScriptConfirm(QWebFrame*, const QString& msg)
@@ -210,6 +255,8 @@ DumpRenderTree::DumpRenderTree()
             SLOT(titleChanged(const QString&)));
     connect(m_page, SIGNAL(databaseQuotaExceeded(QWebFrame*,QString)),
             this, SLOT(dumpDatabaseQuota(QWebFrame*,QString)));
+    connect(m_page, SIGNAL(statusBarMessage(const QString&)),
+            this, SLOT(statusBarMessage(const QString&)));
 
     m_eventSender = new EventSender(m_page);
     m_textInputController = new TextInputController(m_page);
@@ -252,6 +299,17 @@ void DumpRenderTree::resetToConsistentStateBeforeTesting()
     m_page->blockSignals(false);
 
     m_page->mainFrame()->setZoomFactor(1.0);
+
+    // clear leaves current page, so remove it as well by
+    // setting max item count to 0, and then setting it back
+    // to it's original value.
+    QWebHistory* history = m_page->history();
+    history->clear();
+    int itemCount = history->maximumItemCount();
+    history->setMaximumItemCount(0);
+    history->setMaximumItemCount(itemCount);
+
+    static_cast<WebPage*>(m_page)->resetSettings();
     qt_drt_clearFrameName(m_page->mainFrame());
 
     WorkQueue::shared()->clear();
@@ -259,7 +317,10 @@ void DumpRenderTree::resetToConsistentStateBeforeTesting()
     //WorkQueue::shared()->setFrozen(false);
 
     m_controller->reset();
-    QWebSecurityOrigin::resetOriginAccessWhiteLists();
+    qt_drt_resetOriginAccessWhiteLists();
+
+    QLocale qlocale;
+    QLocale::setDefault(qlocale);
 }
 
 void DumpRenderTree::open(const QUrl& aurl)
@@ -284,7 +345,7 @@ void DumpRenderTree::open(const QUrl& aurl)
     int width = isW3CTest ? 480 : maxViewWidth;
     int height = isW3CTest ? 360 : maxViewHeight;
     m_page->view()->resize(QSize(width, height));
-    m_page->setFixedContentsSize(QSize());
+    m_page->setPreferredContentsSize(QSize());
     m_page->setViewportSize(QSize(width, height));
 
     QFocusEvent ev(QEvent::FocusIn);
@@ -367,11 +428,67 @@ QString DumpRenderTree::dumpFramesAsText(QWebFrame* frame)
     return result;
 }
 
-QString DumpRenderTree::dumpBackForwardList()
+static QString dumpHistoryItem(const QWebHistoryItem& item, int indent, bool current)
 {
     QString result;
+
+    int start = 0;
+    if (current) {
+        result.append(QLatin1String("curr->"));
+        start = 6;
+    }
+    for (int i = start; i < indent; i++)
+        result.append(' ');
+
+    QString url = item.url().toString();
+    if (url.contains("file://")) {
+        static QString layoutTestsString("/LayoutTests/");
+        static QString fileTestString("(file test):");
+
+        QString res = url.mid(url.indexOf(layoutTestsString) + layoutTestsString.length());
+        if (res.isEmpty())
+            return result;
+
+        result.append(fileTestString);
+        result.append(res);
+
+        // FIXME: Wrong, need (private?) API for determining this.
+        result.append(QLatin1String("  **nav target**"));
+    }
+    result.append(QLatin1String("\n"));
+
+    return result;
+}
+
+QString DumpRenderTree::dumpBackForwardList()
+{
+    QWebHistory* history = webPage()->history();
+
+    QString result;
     result.append(QLatin1String("\n============== Back Forward List ==============\n"));
-    result.append(QLatin1String("FIXME: Unimplemented!\n"));
+
+    // FORMAT:
+    // "        (file test):fast/loader/resources/click-fragment-link.html  **nav target**"
+    // "curr->  (file test):fast/loader/resources/click-fragment-link.html#testfragment  **nav target**"
+
+    int maxItems = history->maximumItemCount();
+
+    foreach (const QWebHistoryItem item, history->backItems(maxItems)) {
+        if (!item.isValid())
+            continue;
+        result.append(dumpHistoryItem(item, 8, false));
+    }
+
+    QWebHistoryItem item = history->currentItem();
+    if (item.isValid())
+        result.append(dumpHistoryItem(item, 8, true));
+
+    foreach (const QWebHistoryItem item, history->forwardItems(maxItems)) {
+        if (!item.isValid())
+            continue;
+        result.append(dumpHistoryItem(item, 8, false));
+    }
+
     result.append(QLatin1String("===============================================\n"));
     return result;
 }
@@ -506,6 +623,14 @@ void DumpRenderTree::dumpDatabaseQuota(QWebFrame* frame, const QString& dbName)
     origin.setDatabaseQuota(5 * 1024 * 1024);
 }
 
+void DumpRenderTree::statusBarMessage(const QString& message)
+{
+    if (!m_controller->shouldDumpStatusCallbacks())
+        return;
+
+    printf("UI DELEGATE STATUS CALLBACK: setStatusText:%s\n", message.toUtf8().constData());
+}
+
 QWebPage *DumpRenderTree::createWindow()
 {
     if (!m_controller->canOpenWindows())
@@ -555,7 +680,8 @@ void DumpRenderTree::initializeFonts()
         exit(1);
     }
     char currentPath[PATH_MAX+1];
-    getcwd(currentPath, PATH_MAX);
+    if (!getcwd(currentPath, PATH_MAX))
+        qFatal("Couldn't get current working directory");
     QByteArray configFile = currentPath;
     FcConfig *config = FcConfigCreate();
     configFile += "/WebKitTools/DumpRenderTree/qt/fonts.conf";

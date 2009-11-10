@@ -340,7 +340,7 @@ void FrameLoaderClientWx::dispatchWillSubmitForm(FramePolicyFunction function,
     // FIXME: Send an event to allow for alerts and cancellation
     if (!m_webFrame)
         return;
-    (m_frame->loader()->*function)(PolicyUse);
+    (m_frame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 
@@ -709,7 +709,7 @@ void FrameLoaderClientWx::dispatchDecidePolicyForMIMEType(FramePolicyFunction fu
         return;
     
     notImplemented();
-    (m_frame->loader()->*function)(PolicyUse);
+    (m_frame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 void FrameLoaderClientWx::dispatchDecidePolicyForNewWindowAction(FramePolicyFunction function, const NavigationAction&, const ResourceRequest& request, PassRefPtr<FormState>, const String& targetName)
@@ -724,12 +724,12 @@ void FrameLoaderClientWx::dispatchDecidePolicyForNewWindowAction(FramePolicyFunc
         if (m_webView->GetEventHandler()->ProcessEvent(wkEvent)) {
             // if the app handles and doesn't skip the event, 
             // from WebKit's perspective treat it as blocked / ignored
-            (m_frame->loader()->*function)(PolicyIgnore);
+            (m_frame->loader()->policyChecker()->*function)(PolicyIgnore);
             return;
         }
     }
     
-    (m_frame->loader()->*function)(PolicyUse);
+    (m_frame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 void FrameLoaderClientWx::dispatchDecidePolicyForNavigationAction(FramePolicyFunction function, const NavigationAction& action, const ResourceRequest& request, PassRefPtr<FormState>)
@@ -744,9 +744,9 @@ void FrameLoaderClientWx::dispatchDecidePolicyForNavigationAction(FramePolicyFun
         
         m_webView->GetEventHandler()->ProcessEvent(wkEvent);
         if (wkEvent.IsCancelled())
-            (m_frame->loader()->*function)(PolicyIgnore);
+            (m_frame->loader()->policyChecker()->*function)(PolicyIgnore);
         else
-            (m_frame->loader()->*function)(PolicyUse);
+            (m_frame->loader()->policyChecker()->*function)(PolicyUse);
         
     }
 }
@@ -836,8 +836,8 @@ void FrameLoaderClientWx::windowObjectCleared()
     if (m_webView) {
         wxWebViewWindowObjectClearedEvent wkEvent(m_webView);
         Frame* coreFrame = m_webView->GetMainFrame()->GetFrame();
-        JSGlobalContextRef context = toGlobalRef(coreFrame->script()->globalObject()->globalExec());
-        JSObjectRef windowObject = toRef(coreFrame->script()->globalObject());
+        JSGlobalContextRef context = toGlobalRef(coreFrame->script()->globalObject(mainThreadNormalWorld())->globalExec());
+        JSObjectRef windowObject = toRef(coreFrame->script()->globalObject(mainThreadNormalWorld()));
         wkEvent.SetJSContext(context);
         wkEvent.SetWindowObject(windowObject);
         m_webView->GetEventHandler()->ProcessEvent(wkEvent);

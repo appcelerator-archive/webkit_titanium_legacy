@@ -52,11 +52,23 @@
 #include "RenderTheme.h"
 #include "RenderView.h"
 #include "Settings.h"
+#include "TextResourceDecoder.h"
 #include <wtf/CurrentTime.h>
 
 #if USE(ACCELERATED_COMPOSITING)
 #include "RenderLayerCompositor.h"
 #endif
+
+#if ENABLE(SVG)
+#include "SVGDocument.h"
+#include "SVGLocatable.h"
+#include "SVGNames.h"
+#include "SVGPreserveAspectRatio.h"
+#include "SVGSVGElement.h"
+#include "SVGViewElement.h"
+#include "SVGViewSpec.h"
+#endif
+
 
 namespace WebCore {
 
@@ -93,6 +105,7 @@ struct ScheduledEvent {
 
 FrameView::FrameView(Frame* frame)
     : m_frame(frame)
+    , m_canHaveScrollbars(true)
     , m_slowRepaintObjectCount(0)
     , m_layoutTimer(this, &FrameView::layoutTimerFired)
     , m_layoutRoot(0)
@@ -207,7 +220,10 @@ void FrameView::resetScrollbars()
     // Reset the document's scrollbars back to our defaults before we yield the floor.
     m_firstLayout = true;
     setScrollbarsSuppressed(true);
-    setScrollbarModes(ScrollbarAuto, ScrollbarAuto);
+    if (m_canHaveScrollbars)
+        setScrollbarModes(ScrollbarAuto, ScrollbarAuto);
+    else
+        setScrollbarModes(ScrollbarAlwaysOff, ScrollbarAlwaysOff);
     setScrollbarsSuppressed(false);
 }
 
@@ -302,6 +318,23 @@ void FrameView::setMarginHeight(int h)
 {
     // make it update the rendering area when set
     m_margins.setHeight(h);
+}
+
+void FrameView::setCanHaveScrollbars(bool canHaveScrollbars)
+{
+    m_canHaveScrollbars = canHaveScrollbars;
+    ScrollView::setCanHaveScrollbars(canHaveScrollbars);
+}
+
+void FrameView::updateCanHaveScrollbars()
+{
+    ScrollbarMode hMode;
+    ScrollbarMode vMode;
+    scrollbarModes(hMode, vMode);
+    if (hMode == ScrollbarAlwaysOff && vMode == ScrollbarAlwaysOff)
+        m_canHaveScrollbars = false;
+    else
+        m_canHaveScrollbars = true;
 }
 
 PassRefPtr<Scrollbar> FrameView::createScrollbar(ScrollbarOrientation orientation)
@@ -492,9 +525,8 @@ void FrameView::layout(bool allowSubtree)
     if (isPainting())
         return;
 
-#if ENABLE(INSPECTOR)
-    InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent();
-    if (timelineAgent)
+#if ENABLE(INSPECTOR)    
+    if (InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent())
         timelineAgent->willLayout();
 #endif
 
@@ -551,7 +583,13 @@ void FrameView::layout(bool allowSubtree)
 
     ScrollbarMode hMode;
     ScrollbarMode vMode;
-    scrollbarModes(hMode, vMode);
+    if (m_canHaveScrollbars) {
+        hMode = ScrollbarAuto;
+        vMode = ScrollbarAuto;
+    } else {
+        hMode = ScrollbarAlwaysOff;
+        vMode = ScrollbarAlwaysOff;
+    }
 
     if (!subtree) {
         RenderObject* rootRenderer = document->documentElement() ? document->documentElement()->renderer() : 0;
@@ -640,6 +678,7 @@ void FrameView::layout(bool allowSubtree)
     beginDeferredRepaints();
     layer->updateLayerPositions((m_doFullRepaint ? RenderLayer::DoFullRepaint : 0)
                                 | RenderLayer::CheckForRepaint
+                                | RenderLayer::IsCompositingUpdateRoot
                                 | RenderLayer::UpdateCompositingLayers);
     endDeferredRepaints();
 
@@ -683,7 +722,7 @@ void FrameView::layout(bool allowSubtree)
     }
 
 #if ENABLE(INSPECTOR)
-    if (timelineAgent)
+    if (InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent())
         timelineAgent->didLayout();
 #endif
 
@@ -723,6 +762,11 @@ String FrameView::mediaType() const
 bool FrameView::useSlowRepaints() const
 {
     return m_useSlowRepaints || m_slowRepaintObjectCount > 0 || m_isOverlapped || !m_contentIsOpaque;
+}
+
+bool FrameView::useSlowRepaintsIfNotOverlapped() const
+{
+    return m_useSlowRepaints || m_slowRepaintObjectCount > 0 || !m_contentIsOpaque;
 }
 
 void FrameView::setUseSlowRepaints()
@@ -767,6 +811,72 @@ void FrameView::setContentIsOpaque(bool contentIsOpaque)
 void FrameView::restoreScrollbar()
 {
     setScrollbarsSuppressed(false);
+}
+
+bool FrameView::scrollToFragment(const KURL& url)
+{
+    // If our URL has no ref, then we have no place we need to jump to.
+    // OTOH If CSS target was set previously, we want to set it to 0, recalc
+    // and possibly repaint because :target pseudo class may have been
+    // set (see bug 11321).
+    if (!url.hasFragmentIdentifier() && !m_frame->document()->cssTarget())
+        return false;
+
+    String fragmentIdentifier = url.fragmentIdentifier();
+    if (scrollToAnchor(fragmentIdentifier))
+        return true;
+
+    // Try again after decoding the ref, based on the document's encoding.
+    if (TextResourceDecoder* decoder = m_frame->document()->decoder())
+        return scrollToAnchor(decodeURLEscapeSequences(fragmentIdentifier, decoder->encoding()));
+
+    return false;
+}
+
+bool FrameView::scrollToAnchor(const String& name)
+{
+    ASSERT(m_frame->document());
+
+    if (!m_frame->document()->haveStylesheetsLoaded()) {
+        m_frame->document()->setGotoAnchorNeededAfterStylesheetsLoad(true);
+        return false;
+    }
+
+    m_frame->document()->setGotoAnchorNeededAfterStylesheetsLoad(false);
+
+    Element* anchorNode = m_frame->document()->findAnchor(name);
+
+#if ENABLE(SVG)
+    if (m_frame->document()->isSVGDocument()) {
+        if (name.startsWith("xpointer(")) {
+            // We need to parse the xpointer reference here
+        } else if (name.startsWith("svgView(")) {
+            RefPtr<SVGSVGElement> svg = static_cast<SVGDocument*>(m_frame->document())->rootElement();
+            if (!svg->currentView()->parseViewSpec(name))
+                return false;
+            svg->setUseCurrentView(true);
+        } else {
+            if (anchorNode && anchorNode->hasTagName(SVGNames::viewTag)) {
+                RefPtr<SVGViewElement> viewElement = anchorNode->hasTagName(SVGNames::viewTag) ? static_cast<SVGViewElement*>(anchorNode) : 0;
+                if (viewElement.get()) {
+                    RefPtr<SVGSVGElement> svg = static_cast<SVGSVGElement*>(SVGLocatable::nearestViewportElement(viewElement.get()));
+                    svg->inheritViewAttributes(viewElement.get());
+                }
+            }
+        }
+        // FIXME: need to decide which <svg> to focus on, and zoom to that one
+        // FIXME: need to actually "highlight" the viewTarget(s)
+    }
+#endif
+
+    m_frame->document()->setCSSTarget(anchorNode); // Setting to null will clear the current target.
+  
+    // Implement the rule that "" and "top" both mean top of page as in other browsers.
+    if (!anchorNode && !(name.isEmpty() || equalIgnoringCase(name, "top")))
+        return false;
+
+    maintainScrollPositionAtAnchor(anchorNode ? static_cast<Node*>(anchorNode) : m_frame->document());
+    return true;
 }
 
 void FrameView::maintainScrollPositionAtAnchor(Node* anchorNode)
@@ -1367,6 +1477,7 @@ void FrameView::valueChanged(Scrollbar* bar)
     ScrollView::valueChanged(bar);
     if (offset != scrollOffset())
         frame()->eventHandler()->sendScrollEvent();
+    frame()->loader()->client()->didChangeScrollOffset();
 }
 
 void FrameView::invalidateScrollbarRect(Scrollbar* scrollbar, const IntRect& rect)
@@ -1531,9 +1642,8 @@ void FrameView::paintContents(GraphicsContext* p, const IntRect& rect)
         return;
 
 #if ENABLE(INSPECTOR)
-    InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent();
-    if (timelineAgent)
-        timelineAgent->willPaint();
+    if (InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent())
+        timelineAgent->willPaint(rect);
 #endif
 
     Document* document = frame()->document();
@@ -1601,7 +1711,7 @@ void FrameView::paintContents(GraphicsContext* p, const IntRect& rect)
         sCurrentPaintTimeStamp = 0;
 
 #if ENABLE(INSPECTOR)
-    if (timelineAgent)
+    if (InspectorTimelineAgent* timelineAgent = inspectorTimelineAgent())
         timelineAgent->didPaint();
 #endif
 }

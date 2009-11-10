@@ -40,10 +40,15 @@ BEGIN {
     $VERSION     = 1.00;
     @ISA         = qw(Exporter);
     @EXPORT      = qw(
+        &canonicalizePath
+        &changeLogEmailAddress
+        &changeLogName
         &chdirReturningRelativePath
         &determineSVNRoot
         &determineVCSRoot
+        &fixChangeLogPatch
         &gitBranch
+        &gitdiff2svndiff
         &isGit
         &isGitBranchBuild
         &isGitDirectory
@@ -51,8 +56,10 @@ BEGIN {
         &isSVNDirectory
         &isSVNVersion16OrNewer
         &makeFilePathRelative
+        &normalizePath
         &pathRelativeToSVNRepositoryRootForPath
         &svnRevisionForDirectory
+        &svnStatus
     );
     %EXPORT_TAGS = ( );
     @EXPORT_OK   = ();
@@ -70,7 +77,7 @@ my $svnVersion;
 sub isGitDirectory($)
 {
     my ($dir) = @_;
-    return system("cd $dir && git rev-parse > /dev/null 2>&1") == 0;
+    return system("cd $dir && git rev-parse > " . File::Spec->devnull() . " 2>&1") == 0;
 }
 
 sub isGit()
@@ -159,7 +166,6 @@ sub determineGitRoot()
 
 sub determineSVNRoot()
 {
-    my $devNull = File::Spec->devnull();
     my $last = '';
     my $path = '.';
     my $parent = '..';
@@ -169,7 +175,7 @@ sub determineSVNRoot()
         my $thisRoot;
         my $thisUUID;
         # Ignore error messages in case we've run past the root of the checkout.
-        open INFO, "svn info '$path' 2> $devNull |" or die;
+        open INFO, "svn info '$path' 2> " . File::Spec->devnull() . " |" or die;
         while (<INFO>) {
             if (/^Repository Root: (.+)/) {
                 $thisRoot = $1;
@@ -266,6 +272,206 @@ sub makeFilePathRelative($)
         chomp($gitRoot = `git rev-parse --show-cdup`);
     }
     return $gitRoot . $path;
+}
+
+sub normalizePath($)
+{
+    my ($path) = @_;
+    $path =~ s/\\/\//g;
+    return $path;
+}
+
+sub canonicalizePath($)
+{
+    my ($file) = @_;
+
+    # Remove extra slashes and '.' directories in path
+    $file = File::Spec->canonpath($file);
+
+    # Remove '..' directories in path
+    my @dirs = ();
+    foreach my $dir (File::Spec->splitdir($file)) {
+        if ($dir eq '..' && $#dirs >= 0 && $dirs[$#dirs] ne '..') {
+            pop(@dirs);
+        } else {
+            push(@dirs, $dir);
+        }
+    }
+    return ($#dirs >= 0) ? File::Spec->catdir(@dirs) : ".";
+}
+
+sub removeEOL($)
+{
+    my ($line) = @_;
+
+    $line =~ s/[\r\n]+$//g;
+    return $line;
+}
+
+sub svnStatus($)
+{
+    my ($fullPath) = @_;
+    my $svnStatus;
+    open SVN, "svn status --non-interactive --non-recursive '$fullPath' |" or die;
+    if (-d $fullPath) {
+        # When running "svn stat" on a directory, we can't assume that only one
+        # status will be returned (since any files with a status below the
+        # directory will be returned), and we can't assume that the directory will
+        # be first (since any files with unknown status will be listed first).
+        my $normalizedFullPath = File::Spec->catdir(File::Spec->splitdir($fullPath));
+        while (<SVN>) {
+            # Input may use a different EOL sequence than $/, so avoid chomp.
+            $_ = removeEOL($_);
+            my $normalizedStatPath = File::Spec->catdir(File::Spec->splitdir(substr($_, 7)));
+            if ($normalizedFullPath eq $normalizedStatPath) {
+                $svnStatus = "$_\n";
+                last;
+            }
+        }
+        # Read the rest of the svn command output to avoid a broken pipe warning.
+        local $/ = undef;
+        <SVN>;
+    }
+    else {
+        # Files will have only one status returned.
+        $svnStatus = removeEOL(<SVN>) . "\n";
+    }
+    close SVN;
+    return $svnStatus;
+}
+
+sub gitdiff2svndiff($)
+{
+    $_ = shift @_;
+    if (m#^diff --git a/(.+) b/(.+)#) {
+        return "Index: $1";
+    } elsif (m/^new file.*/) {
+        return "";
+    } elsif (m#^index [0-9a-f]{7}\.\.[0-9a-f]{7} [0-9]{6}#) {
+        return "===================================================================";
+    } elsif (m#^--- a/(.+)#) {
+        return "--- $1";
+    } elsif (m#^\+\+\+ b/(.+)#) {
+        return "+++ $1";
+    }
+    return $_;
+}
+
+# The diff(1) command is greedy when matching lines, so a new ChangeLog entry will
+# have lines of context at the top of a patch when the existing entry has the same
+# date and author as the new entry.  Alter the ChangeLog patch so
+# that the added lines ("+") in the patch always start at the beginning of the
+# patch and there are no initial lines of context.
+sub fixChangeLogPatch($)
+{
+    my $patch = shift; # $patch will only contain patch fragments for ChangeLog.
+
+    $patch =~ /(\r?\n)/;
+    my $lineEnding = $1;
+    my @patchLines = split(/$lineEnding/, $patch);
+
+    # e.g. 2009-06-03  Eric Seidel  <eric@webkit.org>
+    my $dateLineRegexpString = '^\+(\d{4}-\d{2}-\d{2})' # Consume the leading '+' and the date.
+                             . '\s+(.+)\s+' # Consume the name.
+                             . '<([^<>]+)>$'; # And finally the email address.
+
+    # Figure out where the patch contents start and stop.
+    my $patchHeaderIndex;
+    my $firstContentIndex;
+    my $trailingContextIndex;
+    my $dateIndex;
+    my $patchEndIndex = scalar(@patchLines);
+    for (my $index = 0; $index < @patchLines; ++$index) {
+        my $line = $patchLines[$index];
+        if ($line =~ /^\@\@ -\d+,\d+ \+\d+,\d+ \@\@$/) { # e.g. @@ -1,5 +1,18 @@
+            if ($patchHeaderIndex) {
+                $patchEndIndex = $index; # We only bother to fix up the first patch fragment.
+                last;
+            }
+            $patchHeaderIndex = $index;
+        }
+        $firstContentIndex = $index if ($patchHeaderIndex && !$firstContentIndex && $line =~ /^\+[^+]/); # Only match after finding patchHeaderIndex, otherwise we'd match "+++".
+        $dateIndex = $index if ($line =~ /$dateLineRegexpString/);
+        $trailingContextIndex = $index if ($firstContentIndex && !$trailingContextIndex && $line =~ /^ /);
+    }
+    my $contentLineCount = $trailingContextIndex - $firstContentIndex;
+    my $trailingContextLineCount = $patchEndIndex - $trailingContextIndex;
+
+    # If we didn't find a date line in the content then this is not a patch we should try and fix.
+    return $patch if (!$dateIndex);
+
+    # We only need to do anything if the date line is not the first content line.
+    return $patch if ($dateIndex == $firstContentIndex);
+
+    # Write the new patch.
+    my $totalNewContentLines = $contentLineCount + $trailingContextLineCount;
+    $patchLines[$patchHeaderIndex] = "@@ -1,$trailingContextLineCount +1,$totalNewContentLines @@"; # Write a new header.
+    my @repeatedLines = splice(@patchLines, $dateIndex, $trailingContextIndex - $dateIndex); # The date line and all the content after it that diff saw as repeated.
+    splice(@patchLines, $firstContentIndex, 0, @repeatedLines); # Move the repeated content to the top.
+    foreach my $line (@repeatedLines) {
+        $line =~ s/^\+/ /;
+    }
+    splice(@patchLines, $trailingContextIndex, $patchEndIndex, @repeatedLines); # Replace trailing context with the repeated content.
+    splice(@patchLines, $patchHeaderIndex + 1, $firstContentIndex - $patchHeaderIndex - 1); # Remove any leading context.
+
+    return join($lineEnding, @patchLines) . "\n"; # patch(1) expects an extra trailing newline.
+}
+
+sub gitConfig($)
+{
+    return unless $isGit;
+
+    my ($config) = @_;
+
+    my $result = `git config $config`;
+    if (($? >> 8)) {
+        $result = `git repo-config $config`;
+    }
+    chomp $result;
+    return $result;
+}
+
+sub changeLogNameError($)
+{
+    my ($message) = @_;
+    print STDERR "$message\nEither:\n";
+    print STDERR "  set CHANGE_LOG_NAME in your environment\n";
+    print STDERR "  OR pass --name= on the command line\n";
+    print STDERR "  OR set REAL_NAME in your environment";
+    print STDERR "  OR git users can set 'git config user.name'\n";
+    exit(1);
+}
+
+sub changeLogName()
+{
+    my $name = $ENV{CHANGE_LOG_NAME} || $ENV{REAL_NAME} || gitConfig("user.name") || (split /\s*,\s*/, (getpwuid $<)[6])[0];
+
+    changeLogNameError("Failed to determine ChangeLog name.") unless $name;
+    # getpwuid seems to always succeed on windows, returning the username instead of the full name.  This check will catch that case.
+    changeLogNameError("'$name' does not contain a space!  ChangeLogs should contain your full name.") unless ($name =~ /\w \w/);
+
+    return $name;
+}
+
+sub changeLogEmailAddressError($)
+{
+    my ($message) = @_;
+    print STDERR "$message\nEither:\n";
+    print STDERR "  set CHANGE_LOG_EMAIL_ADDRESS in your environment\n";
+    print STDERR "  OR pass --email= on the command line\n";
+    print STDERR "  OR set EMAIL_ADDRESS in your environment\n";
+    print STDERR "  OR git users can set 'git config user.email'\n";
+    exit(1);
+}
+
+sub changeLogEmailAddress()
+{
+    my $emailAddress = $ENV{CHANGE_LOG_EMAIL_ADDRESS} || $ENV{EMAIL_ADDRESS} || gitConfig("user.email");
+
+    changeLogEmailAddressError("Failed to determine email address for ChangeLog.") unless $emailAddress;
+    changeLogEmailAddressError("Email address '$emailAddress' does not contain '\@' and is likely invalid.") unless ($emailAddress =~ /\@/);
+
+    return $emailAddress;
 }
 
 1;

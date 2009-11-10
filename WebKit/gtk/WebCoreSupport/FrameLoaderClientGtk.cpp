@@ -4,6 +4,7 @@
  *  Copyright (C) 2007 Christian Dywan <christian@twotoasts.de>
  *  Copyright (C) 2008, 2009 Collabora Ltd.  All rights reserved.
  *  Copyright (C) 2009 Gustavo Noronha Silva <gns@gnome.org>
+ *  Copyright (C) Research In Motion Limited 2009. All rights reserved.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -131,7 +132,7 @@ void FrameLoaderClient::dispatchWillSubmitForm(FramePolicyFunction policyFunctio
     ASSERT(policyFunction);
     if (!policyFunction)
         return;
-    (core(m_frame)->loader()->*policyFunction)(PolicyUse);
+    (core(m_frame)->loader()->policyChecker()->*policyFunction)(PolicyUse);
 }
 
 
@@ -282,7 +283,7 @@ void FrameLoaderClient::dispatchDecidePolicyForMIMEType(FramePolicyFunction poli
         return;
 
     if (resourceRequest.isNull()) {
-        (core(m_frame)->loader()->*policyFunction)(PolicyIgnore);
+        (core(m_frame)->loader()->policyChecker()->*policyFunction)(PolicyIgnore);
         return;
     }
 
@@ -349,7 +350,7 @@ void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFuncti
         return;
 
     if (resourceRequest.isNull()) {
-        (core(m_frame)->loader()->*policyFunction)(PolicyIgnore);
+        (core(m_frame)->loader()->policyChecker()->*policyFunction)(PolicyIgnore);
         return;
     }
 
@@ -372,7 +373,7 @@ void FrameLoaderClient::dispatchDecidePolicyForNewWindowAction(FramePolicyFuncti
     // FIXME: I think Qt version marshals this to another thread so when we
     // have multi-threaded download, we might need to do the same
     if (!isHandled)
-        (core(m_frame)->loader()->*policyFunction)(PolicyUse);
+        (core(m_frame)->loader()->policyChecker()->*policyFunction)(PolicyUse);
 }
 
 void FrameLoaderClient::dispatchDecidePolicyForNavigationAction(FramePolicyFunction policyFunction, const NavigationAction& action, const ResourceRequest& resourceRequest, PassRefPtr<FormState>)
@@ -382,7 +383,7 @@ void FrameLoaderClient::dispatchDecidePolicyForNavigationAction(FramePolicyFunct
         return;
 
     if (resourceRequest.isNull()) {
-        (core(m_frame)->loader()->*policyFunction)(PolicyIgnore);
+        (core(m_frame)->loader()->policyChecker()->*policyFunction)(PolicyIgnore);
         return;
     }
 
@@ -399,7 +400,7 @@ void FrameLoaderClient::dispatchDecidePolicyForNavigationAction(FramePolicyFunct
     g_signal_emit_by_name(webView, "navigation-requested", m_frame, request, &response);
 
     if (response == WEBKIT_NAVIGATION_RESPONSE_IGNORE) {
-        (core(m_frame)->loader()->*policyFunction)(PolicyIgnore);
+        (core(m_frame)->loader()->policyChecker()->*policyFunction)(PolicyIgnore);
         g_object_unref(request);
         return;
     }
@@ -492,24 +493,7 @@ PassRefPtr<Widget> FrameLoaderClient::createJavaAppletWidget(const IntSize&, HTM
 
 ObjectContentType FrameLoaderClient::objectContentType(const KURL& url, const String& mimeType)
 {
-    String type = mimeType;
-    // We don't use MIMETypeRegistry::getMIMETypeForPath() because it returns "application/octet-stream" upon failure
-    if (type.isEmpty())
-        type = MIMETypeRegistry::getMIMETypeForExtension(url.path().substring(url.path().reverseFind('.') + 1));
-
-    if (type.isEmpty())
-        return WebCore::ObjectContentFrame;
-
-    if (MIMETypeRegistry::isSupportedImageMIMEType(type))
-        return WebCore::ObjectContentImage;
-
-    if (PluginDatabase::installedPlugins()->isMIMETypeRegistered(mimeType))
-        return WebCore::ObjectContentNetscapePlugin;
-
-    if (MIMETypeRegistry::isSupportedNonImageMIMEType(type))
-        return WebCore::ObjectContentFrame;
-
-    return WebCore::ObjectContentNone;
+    return FrameLoader::defaultObjectContentType(url, mimeType);
 }
 
 String FrameLoaderClient::overrideMediaType() const
@@ -532,8 +516,8 @@ void FrameLoaderClient::windowObjectCleared()
 
     // TODO: Consider using g_signal_has_handler_pending() to avoid the overhead
     // when there are no handlers.
-    JSGlobalContextRef context = toGlobalRef(coreFrame->script()->globalObject()->globalExec());
-    JSObjectRef windowObject = toRef(coreFrame->script()->globalObject());
+    JSGlobalContextRef context = toGlobalRef(coreFrame->script()->globalObject(mainThreadNormalWorld())->globalExec());
+    JSObjectRef windowObject = toRef(coreFrame->script()->globalObject(mainThreadNormalWorld()));
     ASSERT(windowObject);
 
     WebKitWebView* webView = getViewFromFrame(m_frame);
@@ -848,6 +832,11 @@ void FrameLoaderClient::dispatchDidFinishLoading(WebCore::DocumentLoader* loader
     WebKitWebView* webView = getViewFromFrame(m_frame);
     GOwnPtr<gchar> identifierString(toString(identifier));
     WebKitWebResource* webResource = webkit_web_view_get_resource(webView, identifierString.get());
+
+    // A NULL WebResource means the load has been interrupted, and
+    // replaced by another one while this resource was being loaded.
+    if (!webResource)
+        return;
 
     const char* uri = webkit_web_resource_get_uri(webResource);
     RefPtr<ArchiveResource> coreResource(loader->subresource(KURL(KURL(), uri)));

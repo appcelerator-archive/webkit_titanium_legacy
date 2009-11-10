@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-WebInspector.CookieItemsView = function()
+WebInspector.CookieItemsView = function(cookieDomain)
 {
     WebInspector.View.call(this);
 
@@ -40,6 +40,8 @@ WebInspector.CookieItemsView = function()
 
     this.refreshButton = new WebInspector.StatusBarButton(WebInspector.UIString("Refresh"), "refresh-storage-status-bar-item");
     this.refreshButton.addEventListener("click", this._refreshButtonClicked.bind(this), false);
+    
+    this._cookieDomain = cookieDomain;
 }
 
 WebInspector.CookieItemsView.prototype = {
@@ -70,6 +72,7 @@ WebInspector.CookieItemsView.prototype = {
             if (dataGrid) {
                 self._dataGrid = dataGrid;
                 self.element.appendChild(dataGrid.element);
+                self._dataGrid.updateWidths();
                 if (isAdvanced)
                     self.deleteButton.visible = true;
             } else {
@@ -82,7 +85,7 @@ WebInspector.CookieItemsView.prototype = {
             }
         }
 
-        WebInspector.Cookies.getCookiesAsync(callback);
+        WebInspector.Cookies.getCookiesAsync(callback, this._cookieDomain);
     },
 
     dataGridForCookies: function(cookies)
@@ -182,7 +185,7 @@ WebInspector.CookieItemsView.prototype = {
         for (var columnIdentifier in columns)
             columns[columnIdentifier].width += "%";
 
-        var dataGrid = new WebInspector.DataGrid(columns);
+        var dataGrid = new WebInspector.DataGrid(columns, null, this._deleteCookieCallback.bind(this));
         var length = nodes.length;
         for (var i = 0; i < length; ++i)
             dataGrid.appendChild(nodes[i]);
@@ -246,14 +249,25 @@ WebInspector.CookieItemsView.prototype = {
 
         return dataGrid;
     },
+    
+    resize: function()
+    {
+        if (this._dataGrid)
+            this._dataGrid.updateWidths();
+    },
 
     _deleteButtonClicked: function(event)
     {
-        if (!this._dataGrid)
+        if (!this._dataGrid || !this._dataGrid.selectedNode)
             return;
 
-        var cookie = this._dataGrid.selectedNode.cookie;
-        InspectorController.deleteCookie(cookie.name);
+        this._deleteCookieCallback(this._dataGrid.selectedNode);
+    },
+    
+    _deleteCookieCallback: function(node)
+    {
+        var cookie = node.cookie;
+        InspectorController.deleteCookie(cookie.name, this._cookieDomain);
         this.update();
     },
 

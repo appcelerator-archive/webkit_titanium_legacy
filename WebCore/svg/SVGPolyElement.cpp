@@ -2,8 +2,6 @@
     Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
                   2004, 2005, 2006, 2007 Rob Buis <buis@kde.org>
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -42,6 +40,7 @@ SVGPolyElement::SVGPolyElement(const QualifiedName& tagName, Document* doc)
     , SVGLangSpace()
     , SVGExternalResourcesRequired()
     , SVGAnimatedPoints()
+    , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
 {
 }
 
@@ -117,7 +116,7 @@ void SVGPolyElement::updateAnimatedSVGAttribute(const String& name) const
     if (name == SVGNames::pointsAttr.localName()) {
         m_synchronizingSVGAttributes = true;
 
-        synchronizeProperty<SVGPolyElement, SVGPointList*>(this, SVGNames::pointsAttr, m_points.get());
+        PropertySynchronizer<SVGPolyElement, SVGPointList*, true>::synchronize(this, SVGNames::pointsAttr, m_points.get());
         setSynchronizedSVGAttributes(true);
         m_synchronizingSVGAttributes = false;
         return;

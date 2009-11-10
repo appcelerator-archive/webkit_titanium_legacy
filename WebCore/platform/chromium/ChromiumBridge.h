@@ -32,11 +32,12 @@
 #define ChromiumBridge_h
 
 #include "FileSystem.h"
+#include "ImageSource.h"
 #include "LinkHash.h"
 #include "PassRefPtr.h"
 #include "PasteboardPrivate.h"
 
-class NativeImageSkia;
+#include <wtf/Vector.h>
 
 typedef struct NPObject NPObject;
 typedef struct _NPP NPP_t;
@@ -59,6 +60,7 @@ namespace WebCore {
     class String;
     class Widget;
 
+    struct Cookie;
     struct PluginInfo;
 
     // An interface to the embedding layer, which has the ability to answer
@@ -78,11 +80,13 @@ namespace WebCore {
         static void clipboardWriteSelection(const String&, const KURL&, const String&, bool);
         static void clipboardWritePlainText(const String&);
         static void clipboardWriteURL(const KURL&, const String&);
-        static void clipboardWriteImage(const NativeImageSkia*, const KURL&, const String&);
+        static void clipboardWriteImage(NativeImagePtr, const KURL&, const String&);
 
         // Cookies ------------------------------------------------------------
         static void setCookies(const KURL& url, const KURL& firstPartyForCookies, const String& value);
         static String cookies(const KURL& url, const KURL& firstPartyForCookies);
+        static bool rawCookies(const KURL& url, const KURL& firstPartyForCookies, Vector<Cookie>*);
+        static void deleteCookie(const KURL& url, const String& cookieName);
 
         // DNS ----------------------------------------------------------------
         static void prefetchDNS(const String& hostname);
@@ -127,11 +131,19 @@ namespace WebCore {
         static void notifyJSOutOfMemory(Frame*);
         static bool allowScriptDespiteSettings(const KURL& documentURL);
 
+        // Keygen -------------------------------------------------------------
+        static String signedPublicKeyAndChallengeString(unsigned keySizeIndex, const String& challenge, const KURL& url);
+
         // Language -----------------------------------------------------------
         static String computedDefaultLanguage();
 
         // LayoutTestMode -----------------------------------------------------
         static bool layoutTestMode();
+
+        // Memory -------------------------------------------------------------
+        // Returns the current space allocated for the pagefile, in MB.
+        // That is committed size for Windows and virtual memory size for POSIX
+        static int memoryUsageMB();
 
         // MimeType -----------------------------------------------------------
         static bool isSupportedImageMIMEType(const String& mimeType);
@@ -145,9 +157,6 @@ namespace WebCore {
         static bool plugins(bool refresh, Vector<PluginInfo*>*);
         static NPObject* pluginScriptableObject(Widget*);
         static bool popupsAllowed(NPP);
-
-        // Protocol -----------------------------------------------------------
-        static String uiResourceProtocol();  // deprecated
 
         // Resources ----------------------------------------------------------
         static PassRefPtr<Image> loadPlatformImageResource(const char* name);

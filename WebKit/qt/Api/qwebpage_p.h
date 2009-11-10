@@ -111,6 +111,7 @@ public:
     void shortcutOverrideEvent(QKeyEvent*);
     void leaveEvent(QEvent*);
     void handleClipboard(QEvent*, Qt::MouseButton);
+    void handleSoftwareInputPanel(Qt::MouseButton);
     bool handleScrolling(QKeyEvent*, WebCore::Frame*);
 
     void setInspector(QWebInspector*);
@@ -134,7 +135,12 @@ public:
 #ifndef QT_NO_UNDOSTACK
     QUndoStack *undoStack;
 #endif
+
+#if QT_VERSION >= 0x040600
+    QWeakPointer<QWidget> view;
+#else
     QWidget* view;
+#endif
 
     bool insideOpenCall;
     quint64 m_totalBytes;

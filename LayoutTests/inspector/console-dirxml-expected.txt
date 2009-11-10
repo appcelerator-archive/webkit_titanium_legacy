@@ -1,0 +1,5 @@
+CONSOLE MESSAGE: line 9: [object HTMLDocument]
+Tests that console logging dumps proper messages.
+
+console-dirxml.html:9Document
+

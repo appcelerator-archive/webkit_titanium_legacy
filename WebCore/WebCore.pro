@@ -12,6 +12,9 @@ symbian: {
     DEPLOYMENT += webkitlibs
 
     TARGET.UID3 = 0x200267C2
+    # RO text (code) section in qtwebkit.dll exceeds allocated space for gcce udeb target.
+    # Move RW-section base address to start from 0xE00000 instead of the toolchain default 0x400000.
+    MMP_RULES += "LINKEROPTION  armcc --rw-base 0xE00000"
 }
 
 include($$PWD/../WebKit.pri)
@@ -147,9 +150,6 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
     DEFINES += ENABLE_SVG_FONTS=0 ENABLE_SVG_FOREIGN_OBJECT=0 ENABLE_SVG_ANIMATION=0 ENABLE_SVG_AS_IMAGE=0 ENABLE_SVG_USE=0
 }
 
-# HTML5 ruby support
-!contains(DEFINES, ENABLE_RUBY=.): DEFINES += ENABLE_RUBY=1
-
 # HTML5 media support
 !contains(DEFINES, ENABLE_VIDEO=.) {
     contains(QT_CONFIG, phonon):DEFINES += ENABLE_VIDEO=1
@@ -161,7 +161,7 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 
 # Nescape plugins support (NPAPI)
 !contains(DEFINES, ENABLE_NETSCAPE_PLUGIN_API=.) {
-    unix|win32-*:!embedded:!wince*:!symbian {
+    unix|win32-*:!embedded:!wince*: {
         DEFINES += ENABLE_NETSCAPE_PLUGIN_API=1
     } else {
         DEFINES += ENABLE_NETSCAPE_PLUGIN_API=0
@@ -293,7 +293,8 @@ STYLESHEETS_EMBED = \
     $$PWD/css/svg.css \
     $$PWD/css/view-source.css \
     $$PWD/css/wml.css \
-    $$PWD/css/mediaControls.css
+    $$PWD/css/mediaControls.css \
+    $$PWD/css/mediaControlsQt.css
 
 DOMLUT_FILES += \
     bindings/js/JSDOMWindowBase.cpp \
@@ -327,6 +328,7 @@ IDL_BINDINGS += \
     css/WebKitCSSMatrix.idl \
     css/WebKitCSSTransformValue.idl \
     dom/Attr.idl \
+    dom/BeforeLoadEvent.idl \
     dom/CharacterData.idl \
     dom/ClientRect.idl \
     dom/ClientRectList.idl \
@@ -371,24 +373,25 @@ IDL_BINDINGS += \
     dom/WebKitAnimationEvent.idl \
     dom/WebKitTransitionEvent.idl \
     dom/WheelEvent.idl \
-    html/canvas/CanvasArray.idl \
-    html/canvas/CanvasArrayBuffer.idl \
-    html/canvas/CanvasByteArray.idl \
-    html/canvas/CanvasFloatArray.idl \
+    html/canvas/WebGLArray.idl \
+    html/canvas/WebGLArrayBuffer.idl \
+    html/canvas/WebGLByteArray.idl \
+    html/canvas/WebGLFloatArray.idl \
     html/canvas/CanvasGradient.idl \
-    html/canvas/CanvasIntArray.idl \
+    html/canvas/WebGLIntArray.idl \
     html/canvas/CanvasPattern.idl \
     html/canvas/CanvasRenderingContext.idl \
     html/canvas/CanvasRenderingContext2D.idl \
-    html/canvas/CanvasRenderingContext3D.idl \
-    html/canvas/CanvasShortArray.idl \
-    html/canvas/CanvasUnsignedByteArray.idl \
-    html/canvas/CanvasUnsignedIntArray.idl \
-    html/canvas/CanvasUnsignedShortArray.idl \
+    html/canvas/WebGLRenderingContext.idl \
+    html/canvas/WebGLShortArray.idl \
+    html/canvas/WebGLUnsignedByteArray.idl \
+    html/canvas/WebGLUnsignedIntArray.idl \
+    html/canvas/WebGLUnsignedShortArray.idl \
     html/DataGridColumn.idl \
     html/DataGridColumnList.idl \
     html/File.idl \
     html/FileList.idl \
+    html/HTMLAllCollection.idl \
     html/HTMLAudioElement.idl \
     html/HTMLAnchorElement.idl \
     html/HTMLAppletElement.idl \
@@ -542,6 +545,7 @@ IDL_BINDINGS += \
     svg/SVGFEImageElement.idl \
     svg/SVGFEMergeElement.idl \
     svg/SVGFEMergeNodeElement.idl \
+    svg/SVGFEMorphologyElement.idl \
     svg/SVGFEOffsetElement.idl \
     svg/SVGFEPointLightElement.idl \
     svg/SVGFESpecularLightingElement.idl \
@@ -666,6 +670,7 @@ SOURCES += \
     accessibility/AccessibilityTableRow.cpp \    
     accessibility/AXObjectCache.cpp \
     bindings/js/GCController.cpp \
+    bindings/js/JSCallbackData.cpp \
     bindings/js/JSAttrCustom.cpp \
     bindings/js/JSCDATASectionCustom.cpp \
     bindings/js/JSCanvasRenderingContextCustom.cpp \
@@ -694,11 +699,12 @@ SOURCES += \
     bindings/js/JSEventSourceConstructor.cpp \
     bindings/js/JSEventSourceCustom.cpp \
     bindings/js/JSEventTarget.cpp \
+    bindings/js/JSExceptionBase.cpp \
     bindings/js/JSGeolocationCustom.cpp \
-    bindings/js/JSHTMLAllCollection.cpp \
     bindings/js/JSHistoryCustom.cpp \
     bindings/js/JSHTMLAppletElementCustom.cpp \
     bindings/js/JSHTMLCanvasElementCustom.cpp \
+    bindings/js/JSHTMLAllCollectionCustom.cpp \
     bindings/js/JSHTMLCollectionCustom.cpp \
     bindings/js/JSHTMLDataGridElementCustom.cpp \
     bindings/js/JSHTMLDocumentCustom.cpp \
@@ -760,6 +766,8 @@ SOURCES += \
     bindings/js/ScriptState.cpp \
     bindings/js/ScriptValue.cpp \
     bindings/js/ScheduledAction.cpp \
+    bindings/js/SerializedScriptValue.cpp \
+    bindings/ScriptControllerBase.cpp \
     bridge/IdentifierRep.cpp \
     bridge/NP_jsobject.cpp \
     bridge/npruntime.cpp \
@@ -980,6 +988,7 @@ SOURCES += \
     html/File.cpp \
     html/FileList.cpp \
     html/FormDataList.cpp \
+    html/HTMLAllCollection.cpp \
     html/HTMLAnchorElement.cpp \
     html/HTMLAppletElement.cpp \
     html/HTMLAreaElement.cpp \
@@ -1065,7 +1074,6 @@ SOURCES += \
     html/PreloadScanner.cpp \
     html/ValidityState.cpp \
     inspector/ConsoleMessage.cpp \
-    inspector/DOMDispatchTimelineItem.cpp \
     inspector/InspectorBackend.cpp \
     inspector/InspectorController.cpp \
     inspector/InspectorDatabaseResource.cpp \
@@ -1074,7 +1082,7 @@ SOURCES += \
     inspector/InspectorFrontend.cpp \
     inspector/InspectorResource.cpp \
     inspector/InspectorTimelineAgent.cpp \
-    inspector/TimelineItem.cpp \
+    inspector/TimelineRecordFactory.cpp \
     loader/archive/ArchiveFactory.cpp \
     loader/archive/ArchiveResource.cpp \
     loader/archive/ArchiveResourceCollection.cpp \
@@ -1094,6 +1102,7 @@ SOURCES += \
     loader/DocumentThreadableLoader.cpp \
     loader/FormState.cpp \
     loader/FrameLoader.cpp \
+    loader/HistoryController.cpp \
     loader/FTPDirectoryDocument.cpp \
     loader/FTPDirectoryParser.cpp \
     loader/icon/IconLoader.cpp \
@@ -1106,9 +1115,13 @@ SOURCES += \
     loader/NetscapePlugInStreamLoader.cpp \
     loader/PlaceholderDocument.cpp \
     loader/PluginDocument.cpp \
+    loader/PolicyCallback.cpp \
+    loader/PolicyChecker.cpp \
     loader/ProgressTracker.cpp \
+    loader/RedirectScheduler.cpp \
     loader/Request.cpp \
     loader/ResourceLoader.cpp \
+    loader/ResourceLoadNotifier.cpp \
     loader/SubresourceLoader.cpp \
     loader/TextDocument.cpp \
     loader/TextResourceDecoder.cpp \
@@ -1171,6 +1184,8 @@ SOURCES += \
     platform/DragImage.cpp \
     platform/FileChooser.cpp \
     platform/GeolocationService.cpp \
+    platform/image-decoders/qt/RGBA32BufferQt.cpp \
+    platform/graphics/filters/FEGaussianBlur.cpp \
     platform/graphics/FontDescription.cpp \
     platform/graphics/FontFamily.cpp \
     platform/graphics/BitmapImage.cpp \
@@ -1293,6 +1308,10 @@ SOURCES += \
     rendering/RenderPartObject.cpp \
     rendering/RenderReplaced.cpp \
     rendering/RenderReplica.cpp \
+    rendering/RenderRuby.cpp \
+    rendering/RenderRubyBase.cpp \
+    rendering/RenderRubyRun.cpp \
+    rendering/RenderRubyText.cpp \
     rendering/RenderScrollbar.cpp \
     rendering/RenderScrollbarPart.cpp \
     rendering/RenderScrollbarTheme.cpp \
@@ -1364,6 +1383,7 @@ HEADERS += \
     bindings/js/CachedScriptSourceProvider.h \
     bindings/js/DOMObjectWithSVGContext.h \
     bindings/js/GCController.h \
+    bindings/js/JSCallbackData.h \
     bindings/js/JSAudioConstructor.h \
     bindings/js/JSCSSStyleDeclarationCustom.h \
     bindings/js/JSCustomPositionCallback.h \
@@ -1385,7 +1405,6 @@ HEADERS += \
     bindings/js/JSEventSourceConstructor.h \
     bindings/js/JSEventTarget.h \
     bindings/js/JSHistoryCustom.h \
-    bindings/js/JSHTMLAllCollection.h \
     bindings/js/JSHTMLAppletElementCustom.h \
     bindings/js/JSHTMLEmbedElementCustom.h \
     bindings/js/JSHTMLInputElementCustom.h \
@@ -1424,6 +1443,7 @@ HEADERS += \
     bindings/js/ScriptSourceProvider.h \
     bindings/js/ScriptState.h \
     bindings/js/ScriptValue.h \
+    bindings/js/SerializedScriptValue.h \
     bindings/js/StringSourceProvider.h \
     bindings/js/WorkerScriptController.h \
     bridge/c/c_class.h \
@@ -1645,6 +1665,7 @@ HEADERS += \
     html/File.h \
     html/FileList.h \
     html/FormDataList.h \
+    html/HTMLAllCollection.h \
     html/HTMLAnchorElement.h \
     html/HTMLAppletElement.h \
     html/HTMLAreaElement.h \
@@ -1734,7 +1755,6 @@ HEADERS += \
     html/TimeRanges.h \
     html/ValidityState.h \
     inspector/ConsoleMessage.h \
-    inspector/DOMDispatchTimelineItem.h \
     inspector/InspectorBackend.h \
     inspector/InspectorController.h \
     inspector/InspectorDatabaseResource.h \
@@ -1746,7 +1766,7 @@ HEADERS += \
     inspector/JavaScriptDebugServer.h \
     inspector/JavaScriptProfile.h \
     inspector/JavaScriptProfileNode.h \
-    inspector/TimelineItem.h \
+    inspector/TimelineRecordFactory.h \
     loader/appcache/ApplicationCacheGroup.h \
     loader/appcache/ApplicationCacheHost.h \
     loader/appcache/ApplicationCache.h \
@@ -1847,6 +1867,7 @@ HEADERS += \
     platform/DragImage.h \
     platform/FileChooser.h \
     platform/GeolocationService.h \
+    platform/image-decoders/ImageDecoder.h \
     platform/mock/GeolocationServiceMock.h \
     platform/graphics/BitmapImage.h \
     platform/graphics/Color.h \
@@ -1854,6 +1875,7 @@ HEADERS += \
     platform/graphics/filters/FEColorMatrix.h \
     platform/graphics/filters/FEComponentTransfer.h \
     platform/graphics/filters/FEComposite.h \
+    platform/graphics/filters/FEGaussianBlur.h \
     platform/graphics/filters/FilterEffect.h \
     platform/graphics/filters/SourceAlpha.h \
     platform/graphics/filters/SourceGraphic.h \
@@ -2004,6 +2026,10 @@ HEADERS += \
     rendering/RenderPath.h \
     rendering/RenderReplaced.h \
     rendering/RenderReplica.h \
+    rendering/RenderRuby.h \
+    rendering/RenderRubyBase.h \
+    rendering/RenderRubyRun.h \
+    rendering/RenderRubyText.h \
     rendering/RenderScrollbar.h \
     rendering/RenderScrollbarPart.h \
     rendering/RenderScrollbarTheme.h \
@@ -2082,7 +2108,6 @@ HEADERS += \
     svg/graphics/filters/SVGFEDiffuseLighting.h \
     svg/graphics/filters/SVGFEDisplacementMap.h \
     svg/graphics/filters/SVGFEFlood.h \
-    svg/graphics/filters/SVGFEGaussianBlur.h \
     svg/graphics/filters/SVGFEImage.h \
     svg/graphics/filters/SVGFEMerge.h \
     svg/graphics/filters/SVGFEMorphology.h \
@@ -2146,6 +2171,7 @@ HEADERS += \
     svg/SVGFELightElement.h \
     svg/SVGFEMergeElement.h \
     svg/SVGFEMergeNodeElement.h \
+    svg/SVGFEMorphologyElement.h \
     svg/SVGFEOffsetElement.h \
     svg/SVGFEPointLightElement.h \
     svg/SVGFESpecularLightingElement.h \
@@ -2233,6 +2259,7 @@ HEADERS += \
     svg/SVGViewSpec.h \
     svg/SVGZoomAndPan.h \
     svg/SVGZoomEvent.h \
+    svg/SynchronizablePropertyController.h \
     wml/WMLAccessElement.h \
     wml/WMLAElement.h \
     wml/WMLAnchorElement.h \
@@ -2305,6 +2332,7 @@ HEADERS += \
     xml/XSLTExtensions.h \
     xml/XSLTProcessor.h \
     xml/XSLTUnicodeSort.h \
+    $$PWD/../WebKit/qt/Api/qwebplugindatabase_p.h \
     $$PWD/../WebKit/qt/WebCoreSupport/FrameLoaderClientQt.h \
     $$PWD/platform/network/qt/DnsPrefetchHelper.h
 
@@ -2330,7 +2358,6 @@ SOURCES += \
     platform/graphics/qt/ImageBufferQt.cpp \
     platform/graphics/qt/ImageDecoderQt.cpp \
     platform/graphics/qt/ImageQt.cpp \
-    platform/graphics/qt/ImageSourceQt.cpp \
     platform/graphics/qt/IntPointQt.cpp \
     platform/graphics/qt/IntRectQt.cpp \
     platform/graphics/qt/IntSizeQt.cpp \
@@ -2411,7 +2438,9 @@ SOURCES += \
     mac {
         SOURCES += \
             platform/text/cf/StringCF.cpp \
-            platform/text/cf/StringImplCF.cpp
+            platform/text/cf/StringImplCF.cpp \
+            platform/cf/SharedBufferCF.cpp \
+            editing/SmartReplaceCF.cpp
         LIBS_PRIVATE += -framework Carbon -framework AppKit
     }
 
@@ -2440,46 +2469,63 @@ contains(DEFINES, ENABLE_NETSCAPE_PLUGIN_API=1) {
 
     SOURCES += plugins/npapi.cpp
 
-    unix {
-        DEFINES += ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH=1
+    symbian {
+        SOURCES += \
+        plugins/symbian/PluginPackageSymbian.cpp \
+        plugins/symbian/PluginDatabaseSymbian.cpp \
+        plugins/symbian/PluginViewSymbian.cpp \
+        plugins/symbian/PluginContainerSymbian.cpp
 
-        mac {
-            SOURCES += \
-                plugins/mac/PluginPackageMac.cpp \
-                plugins/mac/PluginViewMac.cpp
-            OBJECTIVE_SOURCES += \
-                platform/text/mac/StringImplMac.mm \
-                platform/mac/WebCoreNSStringExtras.mm
-            INCLUDEPATH += platform/mac
-            # Note: XP_MACOSX is defined in npapi.h
-        } else {
-            !embedded: CONFIG += x11
-            SOURCES += \
-                plugins/qt/PluginContainerQt.cpp \
-                plugins/qt/PluginPackageQt.cpp \
-                plugins/qt/PluginViewQt.cpp
-            HEADERS += \
-                plugins/qt/PluginContainerQt.h
-            DEFINES += XP_UNIX
+        HEADERS += \
+        plugins/symbian/PluginContainerSymbian.h \
+        plugins/symbian/npinterface.h
+
+        LIBS += -lefsrv
+
+    } else {
+
+        unix {
+    
+            mac {
+                SOURCES += \
+                    plugins/mac/PluginPackageMac.cpp \
+                    plugins/mac/PluginViewMac.cpp
+                OBJECTIVE_SOURCES += \
+                    platform/text/mac/StringImplMac.mm \
+                    platform/mac/WebCoreNSStringExtras.mm
+                INCLUDEPATH += platform/mac
+                # Note: XP_MACOSX is defined in npapi.h
+            } else {
+                !embedded: CONFIG += x11
+                SOURCES += \
+                    plugins/qt/PluginContainerQt.cpp \
+                    plugins/qt/PluginPackageQt.cpp \
+                    plugins/qt/PluginViewQt.cpp
+                HEADERS += \
+                    plugins/qt/PluginContainerQt.h
+                DEFINES += XP_UNIX
+            }
         }
-    }
-
-    win32-* {
-        INCLUDEPATH += $$PWD/plugins/win
-
-        SOURCES += page/win/PageWin.cpp \
-                   plugins/win/PluginDatabaseWin.cpp \
-                   plugins/win/PluginPackageWin.cpp \
-                   plugins/win/PluginMessageThrottlerWin.cpp \
-                   plugins/win/PluginViewWin.cpp
-
-        LIBS += \
-            -ladvapi32 \
-            -lgdi32 \
-            -lshell32 \
-            -lshlwapi \
-            -luser32 \
-            -lversion
+    
+        win32-* {
+            INCLUDEPATH += $$PWD/plugins/win \
+                           $$PWD/platform/win
+    
+            SOURCES += page/win/PageWin.cpp \
+                       plugins/win/PluginDatabaseWin.cpp \
+                       plugins/win/PluginPackageWin.cpp \
+                       plugins/win/PluginMessageThrottlerWin.cpp \
+                       plugins/win/PluginViewWin.cpp \
+                       platform/win/BitmapInfo.cpp
+    
+            LIBS += \
+                -ladvapi32 \
+                -lgdi32 \
+                -lshell32 \
+                -lshlwapi \
+                -luser32 \
+                -lversion
+        }
     }
 
 } else {
@@ -2524,8 +2570,7 @@ contains(DEFINES, ENABLE_SQLITE=1) {
             LIBS *= $$QT_LFLAGS_SQLITE
         } else {
             INCLUDEPATH += $${SQLITE3SRCDIR}
-            symbian: LIBS += -lsqlite3.lib
-            else: LIBS += -lsqlite3
+            LIBS += -lsqlite3
         }
     }
 
@@ -2743,6 +2788,7 @@ contains(DEFINES, ENABLE_FILTERS=1) {
         platform/graphics/filters/FEColorMatrix.cpp \
         platform/graphics/filters/FEComponentTransfer.cpp \
         platform/graphics/filters/FEComposite.cpp \
+        platform/graphics/filters/FEGaussianBlur.cpp \
         platform/graphics/filters/FilterEffect.cpp \
         platform/graphics/filters/SourceAlpha.cpp \
         platform/graphics/filters/SourceGraphic.cpp
@@ -2887,6 +2933,7 @@ contains(DEFINES, ENABLE_SVG=1) {
         svg/SVGFELightElement.cpp \
         svg/SVGFEMergeElement.cpp \
         svg/SVGFEMergeNodeElement.cpp \
+        svg/SVGFEMorphologyElement.cpp \
         svg/SVGFEOffsetElement.cpp \
         svg/SVGFEPointLightElement.cpp \
         svg/SVGFESpecularLightingElement.cpp \
@@ -2973,6 +3020,7 @@ contains(DEFINES, ENABLE_SVG=1) {
         svg/SVGViewElement.cpp \
         svg/SVGViewSpec.cpp \
         svg/SVGZoomAndPan.cpp \
+        svg/SynchronizablePropertyController.cpp \
         svg/animation/SMILTime.cpp \
         svg/animation/SMILTimeContainer.cpp \
         svg/animation/SVGSMILElement.cpp \
@@ -2980,7 +3028,6 @@ contains(DEFINES, ENABLE_SVG=1) {
         svg/graphics/filters/SVGFEDiffuseLighting.cpp \
         svg/graphics/filters/SVGFEDisplacementMap.cpp \
         svg/graphics/filters/SVGFEFlood.cpp \
-        svg/graphics/filters/SVGFEGaussianBlur.cpp \
         svg/graphics/filters/SVGFEImage.cpp \
         svg/graphics/filters/SVGFEMerge.cpp \
         svg/graphics/filters/SVGFEMorphology.cpp \

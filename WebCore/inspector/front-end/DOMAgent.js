@@ -61,9 +61,10 @@ WebInspector.DOMNode = function(doc, payload) {
     this._matchedCSSRules = [];
 
     if (this.nodeType == Node.ELEMENT_NODE) {
-        if (this.nodeName == "HTML")
+        // HTML and BODY from internal iframes should not overwrite top-level ones.
+        if (!this.ownerDocument.documentElement && this.nodeName === "HTML")
             this.ownerDocument.documentElement = this;
-        if (this.nodeName == "BODY")
+        if (!this.ownerDocument.body && this.nodeName === "BODY")
             this.ownerDocument.body = this;
     }
 }
@@ -307,13 +308,6 @@ WebInspector.DOMAgent = function() {
     this._window = new WebInspector.DOMWindow(this);
     this._idToDOMNode = null;
     this.document = null;
-
-    // TODO: update ElementsPanel to not track embedded iframes - it is already being handled
-    // in the agent backend.
-
-    // Whitespace is ignored in InspectorDOMAgent already -> no need to filter.
-    // TODO: Either remove all of its usages or push value into the agent backend.
-    Preferences.ignoreWhitespace = false;
 }
 
 WebInspector.DOMAgent.prototype = {
@@ -417,10 +411,8 @@ WebInspector.DOMAgent.prototype = {
         node._childNodeCount = newValue;
         var outline = WebInspector.panels.elements.treeOutline;
         var treeElement = outline.findTreeElement(node);
-        if (treeElement) {
+        if (treeElement)
             treeElement.hasChildren = newValue;
-            treeElement.whitespaceIgnored = Preferences.ignoreWhitespace;
-        }
     },
 
     _childNodeInserted: function(parentId, prevId, payload)
@@ -446,7 +438,7 @@ WebInspector.DOMAgent.prototype = {
 
 WebInspector.Cookies = {}
 
-WebInspector.Cookies.getCookiesAsync = function(callback)
+WebInspector.Cookies.getCookiesAsync = function(callback, cookieDomain)
 {
     function mycallback(cookies, cookiesString) {
         if (cookiesString)
@@ -455,7 +447,7 @@ WebInspector.Cookies.getCookiesAsync = function(callback)
             callback(cookies, true);
     }
     var callId = WebInspector.Callback.wrap(mycallback);
-    InspectorController.getCookies(callId);
+    InspectorController.getCookies(callId, cookieDomain);
 }
 
 WebInspector.Cookies.buildCookiesFromString = function(rawCookieString)

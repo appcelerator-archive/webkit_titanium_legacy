@@ -53,6 +53,8 @@ public:
     virtual bool canTakeFocus(WebCore::FocusDirection);
     virtual void takeFocus(WebCore::FocusDirection);
 
+    virtual void focusedNodeChanged(WebCore::Node*);
+
     virtual WebCore::Page* createWindow(WebCore::Frame*, const WebCore::FrameLoadRequest&, const WebCore::WindowFeatures&);
     virtual void show();
 
@@ -149,6 +151,10 @@ public:
     virtual void setNeedsOneShotDrawingSynchronization();
     virtual void scheduleCompositingLayerSync();
 #endif
+
+    virtual bool supportsFullscreenForNode(const WebCore::Node*);
+    virtual void enterFullscreenForNode(WebCore::Node*);
+    virtual void exitFullscreenForNode(WebCore::Node*);
 
     virtual void requestGeolocationPermissionForFrame(WebCore::Frame*, WebCore::Geolocation*);
 

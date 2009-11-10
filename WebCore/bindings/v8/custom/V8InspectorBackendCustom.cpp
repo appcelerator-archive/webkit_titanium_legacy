@@ -31,6 +31,7 @@
 #include "config.h"
 #include "InspectorBackend.h"
 
+#include "Database.h"
 #include "DOMWindow.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -102,11 +103,17 @@ CALLBACK_FUNC_DECL(InspectorBackendSearch)
 }
 
 #if ENABLE(DATABASE)
-CALLBACK_FUNC_DECL(InspectorBackendDatabaseTableNames)
+CALLBACK_FUNC_DECL(InspectorBackendDatabaseForId)
 {
-    INC_STATS("InspectorBackend.databaseTableNames()");
-    v8::Local<v8::Array> result = v8::Array::New(0);
-    return result;
+    INC_STATS("InspectorBackend.databaseForId()");
+    if (args.Length() < 1)
+        return v8::Undefined();
+
+    InspectorBackend* inspectorBackend = V8DOMWrapper::convertToNativeObject<InspectorBackend>(V8ClassIndex::INSPECTORBACKEND, args.Holder());
+    Database* database = inspectorBackend->databaseForId(args[0]->ToInt32()->Value());
+    if (!database)
+        return v8::Undefined();
+    return V8DOMWrapper::convertToV8Object<Database>(V8ClassIndex::DATABASE, database);
 }
 #endif
 
@@ -232,11 +239,11 @@ CALLBACK_FUNC_DECL(InspectorBackendNodeForId)
 CALLBACK_FUNC_DECL(InspectorBackendWrapObject)
 {
     INC_STATS("InspectorBackend.wrapObject()");
-    if (args.Length() < 1)
+    if (args.Length() < 2)
         return v8::Undefined();
 
     InspectorBackend* inspectorBackend = V8DOMWrapper::convertToNativeObject<InspectorBackend>(V8ClassIndex::INSPECTORBACKEND, args.Holder());
-    return inspectorBackend->wrapObject(ScriptValue(args[0])).v8Value();
+    return inspectorBackend->wrapObject(ScriptValue(args[0]), toWebCoreStringWithNullCheck(args[1])).v8Value();
 }
 
 CALLBACK_FUNC_DECL(InspectorBackendUnwrapObject)

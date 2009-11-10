@@ -131,6 +131,11 @@ NSURLProtectionSpace *mac(const ProtectionSpace& coreSpace)
         case ProtectionSpaceAuthenticationSchemeHTMLForm:
             method = NSURLAuthenticationMethodHTMLForm;
             break;
+#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
+        case ProtectionSpaceAuthenticationSchemeNTLM:
+            method = NSURLAuthenticationMethodNTLM;
+            break;
+#endif
         default:
             ASSERT_NOT_REACHED();
     }
@@ -150,6 +155,9 @@ NSURLProtectionSpace *mac(const ProtectionSpace& coreSpace)
 
 NSURLCredential *mac(const Credential& coreCredential)
 {
+    if (coreCredential.isEmpty())
+        return nil;
+
     NSURLCredentialPersistence persistence = NSURLCredentialPersistenceNone;
     switch (coreCredential.persistence()) {
         case CredentialPersistenceNone:
@@ -215,6 +223,10 @@ ProtectionSpace core(NSURLProtectionSpace *macSpace)
         scheme = ProtectionSpaceAuthenticationSchemeHTTPDigest;
     else if ([method isEqualToString:NSURLAuthenticationMethodHTMLForm])
         scheme = ProtectionSpaceAuthenticationSchemeHTMLForm;
+#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
+    else if ([method isEqualToString:NSURLAuthenticationMethodNTLM])
+        scheme = ProtectionSpaceAuthenticationSchemeNTLM;
+#endif
     else
         ASSERT_NOT_REACHED();
         

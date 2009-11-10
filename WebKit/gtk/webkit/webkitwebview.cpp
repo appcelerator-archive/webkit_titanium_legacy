@@ -67,7 +67,9 @@
 #include "FrameLoader.h"
 #include "FrameView.h"
 #include "MouseEventWithHitTestResults.h"
+#include "Pasteboard.h"
 #include "PasteboardHelper.h"
+#include "PasteboardHelperGtk.h"
 #include "PlatformKeyboardEvent.h"
 #include "PlatformWheelEvent.h"
 #include "ProgressTracker.h"
@@ -2465,7 +2467,7 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
         enableScripts, enablePlugins, enableDeveloperExtras, resizableTextAreas,
         enablePrivateBrowsing, enableCaretBrowsing, enableHTML5Database, enableHTML5LocalStorage,
         enableXSSAuditor, javascriptCanOpenWindows, enableOfflineWebAppCache,
-        enableUniversalAccessFromFileURI;
+        enableUniversalAccessFromFileURI, enableDOMPaste, tabKeyCyclesThroughElements;
 
     WebKitEditingBehavior editingBehavior;
 
@@ -2494,6 +2496,8 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
                  "enable-offline-web-application-cache", &enableOfflineWebAppCache,
                  "editing-behavior", &editingBehavior,
                  "enable-universal-access-from-file-uris", &enableUniversalAccessFromFileURI,
+                 "enable-dom-paste", &enableDOMPaste,
+                 "tab-key-cycles-through-elements", &tabKeyCyclesThroughElements,
                  NULL);
 
     settings->setDefaultTextEncodingName(defaultEncoding);
@@ -2520,6 +2524,11 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     settings->setOfflineWebApplicationCacheEnabled(enableOfflineWebAppCache);
     settings->setEditingBehavior(core(editingBehavior));
     settings->setAllowUniversalAccessFromFileURLs(enableUniversalAccessFromFileURI);
+    settings->setDOMPasteAllowed(enableDOMPaste);
+
+    Page* page = core(webView);
+    if (page)
+        page->setTabKeyCyclesThroughElements(tabKeyCyclesThroughElements);
 
     g_free(defaultEncoding);
     g_free(cursiveFontFamily);
@@ -2606,6 +2615,13 @@ static void webkit_web_view_settings_notify(WebKitWebSettings* webSettings, GPar
         settings->setEditingBehavior(core(static_cast<WebKitEditingBehavior>(g_value_get_enum(&value))));
     else if (name == g_intern_string("enable-universal-access-from-file-uris"))
         settings->setAllowUniversalAccessFromFileURLs(g_value_get_boolean(&value));
+    else if (name == g_intern_string("enable-dom-paste"))
+        settings->setDOMPasteAllowed(g_value_get_boolean(&value));
+    else if (name == g_intern_string("tab-key-cycles-through-elements")) {
+        Page* page = core(webView);
+        if (page)
+            page->setTabKeyCyclesThroughElements(g_value_get_boolean(&value));
+    }
     else if (!g_object_class_find_property(G_OBJECT_GET_CLASS(webSettings), name))
         g_warning("Unexpected setting '%s'", name);
     g_value_unset(&value);
@@ -2890,8 +2906,7 @@ void webkit_web_view_go_back_or_forward(WebKitWebView* webView, gint steps)
 {
     g_return_if_fail(WEBKIT_IS_WEB_VIEW(webView));
 
-    Frame* frame = core(webView)->mainFrame();
-    frame->loader()->goBackOrForward(steps);
+    core(webView)->goBackOrForward(steps);
 }
 
 /**
@@ -2940,8 +2955,7 @@ gboolean webkit_web_view_can_go_back_or_forward(WebKitWebView* webView, gint ste
 {
     g_return_val_if_fail(WEBKIT_IS_WEB_VIEW(webView), FALSE);
 
-    Frame* frame = core(webView)->mainFrame();
-    return frame->loader()->canGoBackOrForward(steps);
+    return core(webView)->canGoBackOrForward(steps);
 }
 
 /**
@@ -3215,8 +3229,7 @@ void webkit_web_view_execute_script(WebKitWebView* webView, const gchar* script)
     g_return_if_fail(WEBKIT_IS_WEB_VIEW(webView));
     g_return_if_fail(script);
 
-    if (FrameLoader* loader = core(webView)->mainFrame()->loader())
-        loader->executeScript(String::fromUTF8(script), true);
+    core(webView)->mainFrame()->script()->executeScript(String::fromUTF8(script), true);
 }
 
 /**
@@ -3949,8 +3962,12 @@ WebKitWebResource* webkit_web_view_get_resource(WebKitWebView* webView, char* id
 
     gboolean resourceFound = g_hash_table_lookup_extended(priv->subResources, identifier, NULL, &webResource);
 
-    // The only resource we do not store in this hash table is the main!
-    g_return_val_if_fail(resourceFound || g_str_equal(identifier, priv->mainResourceIdentifier), NULL);
+    // The only resource we do not store in this hash table is the
+    // main!  If we did not find a request, it probably means the load
+    // has been interrupted while while a resource was still being
+    // loaded.
+    if (!resourceFound && !g_str_equal(identifier, priv->mainResourceIdentifier))
+        return NULL;
 
     if (!webResource)
         return webkit_web_view_get_main_resource(webView);

@@ -60,10 +60,11 @@ namespace WebCore {
     class KURL;
     class NavigationAction;
     class PluginView;
+    class PolicyChecker;
     class ResourceError;
     class ResourceHandle;
     class ResourceLoader;
-    struct ResourceRequest;
+    class ResourceRequest;
     class ResourceResponse;
     class ScriptString;
     class SecurityOrigin;
@@ -72,7 +73,7 @@ namespace WebCore {
     class String;
     class Widget;
 
-    typedef void (FrameLoader::*FramePolicyFunction)(PolicyAction);
+    typedef void (PolicyChecker::*FramePolicyFunction)(PolicyAction);
 
     class FrameLoaderClient {
     public:
@@ -245,6 +246,10 @@ namespace WebCore {
 
         virtual bool shouldUsePluginDocument(const String& /*mimeType*/) const { return false; }
         virtual bool shouldLoadMediaElementURL(const KURL&) const { return true; }
+
+        virtual void didChangeScrollOffset() { }
+
+        virtual bool allowJavaScript(bool enabledPerSettings) { return enabledPerSettings; }
     };
 
 } // namespace WebCore

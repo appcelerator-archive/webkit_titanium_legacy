@@ -34,6 +34,7 @@
 #import "DOMNodeInternal.h"
 #import "DOMRangeInternal.h"
 #import "WebBackForwardListInternal.h"
+#import "WebBaseNetscapePluginView.h"
 #import "WebCache.h"
 #import "WebChromeClient.h"
 #import "WebContextMenuClient.h"
@@ -84,6 +85,7 @@
 #import "WebPanelAuthenticationHandler.h"
 #import "WebPasteboardHelper.h"
 #import "WebPluginDatabase.h"
+#import "WebPluginHalterClient.h"
 #import "WebPolicyDelegate.h"
 #import "WebPreferenceKeysPrivate.h"
 #import "WebPreferencesPrivate.h"
@@ -93,6 +95,7 @@
 #import "WebTextIterator.h"
 #import "WebUIDelegate.h"
 #import "WebUIDelegatePrivate.h"
+#import "WebVideoFullscreenController.h"
 #import <CoreFoundation/CFSet.h>
 #import <Foundation/NSURLConnection.h>
 #import <WebCore/ApplicationCacheStorage.h>
@@ -122,6 +125,7 @@
 #import <WebCore/PageGroup.h>
 #import <WebCore/PlatformMouseEvent.h>
 #import <WebCore/ProgressTracker.h>
+#import <WebCore/RenderWidget.h>
 #import <WebCore/ResourceHandle.h>
 #import <WebCore/RuntimeApplicationChecks.h>
 #import <WebCore/ScriptController.h>
@@ -155,12 +159,6 @@
 #if ENABLE(DASHBOARD_SUPPORT)
 #import <WebKit/WebDashboardRegion.h>
 #endif
-
-@class NSTextInputContext;
-
-@interface NSResponder (WebNSResponderDetails)
-- (NSTextInputContext *)inputContext;
-@end
 
 @interface NSSpellChecker (WebNSSpellCheckerDetails)
 - (void)_preflightChosenSpellServer;
@@ -328,17 +326,8 @@ macro(yankAndSelect) \
 static BOOL s_didSetCacheModel;
 static WebCacheModel s_cacheModel = WebCacheModelDocumentViewer;
 
-static WebView *lastMouseoverView;
-
 #ifndef NDEBUG
 static const char webViewIsOpen[] = "At least one WebView is still open.";
-#endif
-
-#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
-@interface NSObject (NSTextInputContextDetails)
-- (BOOL)wantsToHandleMouseEvents;
-- (BOOL)handleMouseEvent:(NSEvent *)event;
-@end
 #endif
 
 @interface NSObject (WebValidateWithoutDelegate)
@@ -355,7 +344,6 @@ static const char webViewIsOpen[] = "At least one WebView is still open.";
 @end
 
 @interface WebView (WebFileInternal)
-- (WebFrame *)_selectedOrMainFrame;
 - (BOOL)_isLoading;
 - (WebFrameView *)_frameViewAtWindowPoint:(NSPoint)point;
 - (WebFrame *)_focusedFrame;
@@ -619,7 +607,7 @@ static bool runningTigerMail()
         didOneTimeInitialization = true;
     }
 
-    _private->page = new Page(new WebChromeClient(self), new WebContextMenuClient(self), new WebEditorClient(self), new WebDragClient(self), new WebInspectorClient(self), 0);
+    _private->page = new Page(new WebChromeClient(self), new WebContextMenuClient(self), new WebEditorClient(self), new WebDragClient(self), new WebInspectorClient(self), new WebPluginHalterClient(self));
 
     _private->page->settings()->setLocalStorageDatabasePath([[self preferences] _localStorageDatabasePath]);
 
@@ -661,11 +649,11 @@ static bool runningTigerMail()
 
     if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITH_LOCAL_RESOURCE_SECURITY_RESTRICTION)) {
         // Originally, we allowed all local loads.
-        FrameLoader::setLocalLoadPolicy(FrameLoader::AllowLocalLoadsForAll);
+        SecurityOrigin::setLocalLoadPolicy(SecurityOrigin::AllowLocalLoadsForAll);
     } else if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITH_MORE_STRICT_LOCAL_RESOURCE_SECURITY_RESTRICTION)) {
         // Later, we allowed local loads for local URLs and documents loaded
         // with substitute data.
-        FrameLoader::setLocalLoadPolicy(FrameLoader::AllowLocalLoadsForLocalAndSubstituteData);
+        SecurityOrigin::setLocalLoadPolicy(SecurityOrigin::AllowLocalLoadsForLocalAndSubstituteData);
     }
 
     if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITHOUT_CONTENT_SNIFFING_FOR_FILE_URLS))
@@ -983,8 +971,7 @@ static bool fastDocumentTeardownEnabled()
     if (!_private || _private->closed)
         return;
 
-    if (lastMouseoverView == self)
-        lastMouseoverView = nil;
+    [self _closingEventHandling];
 
 #ifndef NDEBUG
     WTF::RefCountedLeakCounter::cancelMessageSuppression(webViewIsOpen);
@@ -996,6 +983,8 @@ static bool fastDocumentTeardownEnabled()
         [self _closeWithFastTeardown];
         return;
     }
+
+    [self _exitFullscreen];
 
     if (Frame* mainFrame = [self _mainCoreFrame])
         mainFrame->loader()->detachFromParent();
@@ -1183,7 +1172,7 @@ static bool fastDocumentTeardownEnabled()
             // If this item is showing , save away its current scroll and form state,
             // since that might have changed since loading and it is normally not saved
             // until we leave that page.
-            otherView->_private->page->mainFrame()->loader()->saveDocumentAndScrollState();
+            otherView->_private->page->mainFrame()->loader()->history()->saveDocumentAndScrollState();
         }
         RefPtr<HistoryItem> newItem = otherBackForwardList->itemAtIndex(i)->copy();
         if (i == 0) 
@@ -1278,7 +1267,6 @@ static bool fastDocumentTeardownEnabled()
     settings->setDatabasesEnabled([preferences databasesEnabled]);
     settings->setLocalStorageEnabled([preferences localStorageEnabled]);
     settings->setExperimentalNotificationsEnabled([preferences experimentalNotificationsEnabled]);
-    settings->setExperimentalWebSocketsEnabled([preferences experimentalWebSocketsEnabled]);
     settings->setPrivateBrowsingEnabled([preferences privateBrowsingEnabled]);
     settings->setSansSerifFontFamily([preferences sansSerifFontFamily]);
     settings->setSerifFontFamily([preferences serifFontFamily]);
@@ -1313,9 +1301,8 @@ static bool fastDocumentTeardownEnabled()
     settings->setXSSAuditorEnabled([preferences isXSSAuditorEnabled]);
     settings->setEnforceCSSMIMETypeInStrictMode(!WKAppVersionCheckLessThan(@"com.apple.iWeb", -1, 2.1));
     settings->setAcceleratedCompositingEnabled([preferences acceleratedCompositingEnabled]);
-#if ENABLE(3D_CANVAS)
-    settings->setExperimentalWebGLEnabled(true);
-#endif  // ENABLE(3D_CANVAS)
+    settings->setPluginAllowedRunTime([preferences pluginAllowedRunTime]);
+    settings->setWebGLEnabled([preferences webGLEnabled]);
 }
 
 static inline IMP getMethod(id o, SEL s)
@@ -1416,6 +1403,8 @@ static inline IMP getMethod(id o, SEL s)
     cache->navigatedFunc = getMethod(delegate, @selector(webView:didNavigateWithNavigationData:inFrame:));
     cache->clientRedirectFunc = getMethod(delegate, @selector(webView:didPerformClientRedirectFromURL:toURL:inFrame:));
     cache->serverRedirectFunc = getMethod(delegate, @selector(webView:didPerformServerRedirectFromURL:toURL:inFrame:));
+    cache->setTitleFunc = getMethod(delegate, @selector(webView:updateHistoryTitle:forURL:));
+    cache->populateVisitedLinksFunc = getMethod(delegate, @selector(populateVisitedLinksForWebView:));
 }
 
 - (id)_policyDelegateForwarder
@@ -2109,6 +2098,47 @@ static inline IMP getMethod(id o, SEL s)
 #endif
 }
 
+static WebBaseNetscapePluginView *_pluginViewForNode(DOMNode *node)
+{
+    if (!node)
+        return nil;
+    
+    Node* coreNode = core(node);
+    if (!coreNode)
+        return nil;
+    
+    RenderObject* renderer = coreNode->renderer();
+    if (!renderer || !renderer->isWidget())
+        return nil;
+    
+    Widget* widget = toRenderWidget(renderer)->widget();
+    if (!widget || !widget->platformWidget())
+        return nil;
+    
+    NSView *view = widget->platformWidget();
+    if (![view isKindOfClass:[WebBaseNetscapePluginView class]])
+        return nil;
+    
+    return (WebBaseNetscapePluginView *)view;
+}
+
++ (BOOL)_isNodeHaltedPlugin:(DOMNode *)node
+{
+    return [_pluginViewForNode(node) isHalted];
+}
+
++ (BOOL)_hasPluginForNodeBeenHalted:(DOMNode *)node
+{
+    return [_pluginViewForNode(node) hasBeenHalted];
+}
++ (void)_restartHaltedPluginForNode:(DOMNode *)node
+{
+    if (!node)
+        return;
+    
+    [_pluginViewForNode(node) resumeFromHalt];
+}
+
 - (NSPasteboard *)_insertionPasteboard
 {
     return _private ? _private->insertionPasteboard : nil;
@@ -2130,7 +2160,23 @@ static inline IMP getMethod(id o, SEL s)
         _private->page->focusController()->setActive([[self window] isKeyWindow]);
 }
 
-+ (void)_addUserScriptToGroup:(NSString *)groupName source:(NSString *)source url:(NSURL *)url worldID:(unsigned)worldID patterns:(NSArray *)patterns injectionTime:(WebUserScriptInjectionTime)injectionTime
+static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
+{
+    // Convert the patterns into Vectors.
+    NSUInteger count = [patterns count];
+    if (count == 0)
+        return 0;
+    Vector<String>* patternsVector = new Vector<String>;
+    for (NSUInteger i = 0; i < count; ++i) {
+        id entry = [patterns objectAtIndex:i];
+        if ([entry isKindOfClass:[NSString class]])
+            patternsVector->append(String((NSString*)entry));
+    }
+    return patternsVector;
+}
+
++ (void)_addUserScriptToGroup:(NSString *)groupName worldID:(unsigned)worldID source:(NSString *)source url:(NSURL *)url
+                    whitelist:(NSArray *)whitelist blacklist:(NSArray *)blacklist injectionTime:(WebUserScriptInjectionTime)injectionTime
 {
     String group(groupName);
     if (group.isEmpty() || worldID == UINT_MAX)
@@ -2140,20 +2186,12 @@ static inline IMP getMethod(id o, SEL s)
     if (!pageGroup)
         return;
     
-    // Convert the patterns into a Vector.
-    Vector<String> patternsVector;
-    NSUInteger count = [patterns count];
-    for (NSUInteger i = 0; i < count; ++i) {
-        id entry = [patterns objectAtIndex: i];
-        if ([entry isKindOfClass:[NSString class]])
-            patternsVector.append(String((NSString*)entry));
-    }
-    
-    pageGroup->addUserScript(source, url, patternsVector, worldID, 
-                             injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
+    pageGroup->addUserScriptToWorld(worldID, source, url, toStringVector(whitelist), toStringVector(blacklist), 
+                                    injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
 }
 
-+ (void)_addUserStyleSheetToGroup:(NSString *)groupName source:(NSString *)source url:(NSURL *)url worldID:(unsigned)worldID patterns:(NSArray *)patterns
++ (void)_addUserStyleSheetToGroup:(NSString *)groupName worldID:(unsigned)worldID source:(NSString *)source url:(NSURL *)url
+                        whitelist:(NSArray *)whitelist blacklist:(NSArray *)blacklist
 {
     String group(groupName);
     if (group.isEmpty() || worldID == UINT_MAX)
@@ -2162,20 +2200,11 @@ static inline IMP getMethod(id o, SEL s)
     PageGroup* pageGroup = PageGroup::pageGroup(group);
     if (!pageGroup)
         return;
-    
-    // Convert the patterns into a Vector.
-    Vector<String> patternsVector;
-    NSUInteger count = [patterns count];
-    for (NSUInteger i = 0; i < count; ++i) {
-        id entry = [patterns objectAtIndex: i];
-        if ([entry isKindOfClass:[NSString class]])
-            patternsVector.append(String((NSString*)entry));
-    }
-    
-    pageGroup->addUserStyleSheet(source, url, patternsVector, worldID);
+
+    pageGroup->addUserStyleSheetToWorld(worldID, source, url, toStringVector(whitelist), toStringVector(blacklist));
 }
 
-+ (void)_removeUserContentFromGroup:(NSString *)groupName url:(NSURL *)url worldID:(unsigned)worldID
++ (void)_removeUserScriptFromGroup:(NSString *)groupName worldID:(unsigned)worldID url:(NSURL *)url
 {
     String group(groupName);
     if (group.isEmpty())
@@ -2185,10 +2214,10 @@ static inline IMP getMethod(id o, SEL s)
     if (!pageGroup)
         return;
 
-    pageGroup->removeUserContentWithURLForWorld(url, worldID);
+    pageGroup->removeUserScriptFromWorld(worldID, url);
 }
 
-+ (void)_removeUserContentFromGroup:(NSString *)groupName worldID:(unsigned)worldID
++ (void)_removeUserStyleSheetFromGroup:(NSString *)groupName worldID:(unsigned)worldID url:(NSURL *)url
 {
     String group(groupName);
     if (group.isEmpty())
@@ -2198,7 +2227,33 @@ static inline IMP getMethod(id o, SEL s)
     if (!pageGroup)
         return;
 
-    pageGroup->removeUserContentForWorld(worldID);
+    pageGroup->removeUserStyleSheetFromWorld(worldID, url);
+}
+
++ (void)_removeUserScriptsFromGroup:(NSString *)groupName worldID:(unsigned)worldID
+{
+    String group(groupName);
+    if (group.isEmpty())
+        return;
+    
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    if (!pageGroup)
+        return;
+
+    pageGroup->removeUserScriptsFromWorld(worldID);
+}
+
++ (void)_removeUserStyleSheetsFromGroup:(NSString *)groupName worldID:(unsigned)worldID
+{
+    String group(groupName);
+    if (group.isEmpty())
+        return;
+    
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    if (!pageGroup)
+        return;
+
+    pageGroup->removeUserStyleSheetsFromWorld(worldID);
 }
 
 + (void)_removeAllUserContentFromGroup:(NSString *)groupName
@@ -2213,6 +2268,26 @@ static inline IMP getMethod(id o, SEL s)
     
     pageGroup->removeAllUserContent();
 }
+
+- (BOOL)cssAnimationsSuspended
+{
+    return _private->cssAnimationsSuspended;
+}
+
+- (void)setCSSAnimationsSuspended:(BOOL)suspended
+{
+    if (suspended == _private->cssAnimationsSuspended)
+        return;
+        
+    _private->cssAnimationsSuspended = suspended;
+    
+    Frame* frame = core([self mainFrame]);
+    if (suspended)
+        frame->animation()->suspendAnimations(frame->document());
+    else
+        frame->animation()->resumeAnimations(frame->document());
+}
+
 @end
 
 @implementation _WebSafeForwarder
@@ -3545,87 +3620,6 @@ static WebFrame *incrementFrame(WebFrame *frame, BOOL forward, BOOL wrapFlag)
     return [previousView previousValidKeyView];
 }
 
-- (void)mouseDown:(NSEvent *)event
-{
-    // FIXME (Viewless): This method should be shared with WebHTMLView, which needs to
-    // do the same work in the usesDocumentViews case. We don't want to maintain two
-    // duplicate copies of this method.
-
-    if (_private->usesDocumentViews) {
-        [super mouseDown:event];
-        return;
-    }
-    
-    // There's a chance that responding to this event will run a nested event loop, and
-    // fetching a new event might release the old one. Retaining and then autoreleasing
-    // the current event prevents that from causing a problem inside WebKit or AppKit code.
-    [[event retain] autorelease];
-
-    RetainPtr<WebView> protector = self;
-    if ([[self inputContext] wantsToHandleMouseEvents] && [[self inputContext] handleMouseEvent:event])
-        return;
-
-    _private->handlingMouseDownEvent = YES;
-
-    // Record the mouse down position so we can determine drag hysteresis.
-    [self _setMouseDownEvent:event];
-
-    NSInputManager *currentInputManager = [NSInputManager currentInputManager];
-    if ([currentInputManager wantsToHandleMouseEvents] && [currentInputManager handleMouseEvent:event])
-        goto done;
-
-    [_private->completionController endRevertingChange:NO moveLeft:NO];
-
-    // If the web page handles the context menu event and menuForEvent: returns nil, we'll get control click events here.
-    // We don't want to pass them along to KHTML a second time.
-    if (!([event modifierFlags] & NSControlKeyMask)) {
-        _private->ignoringMouseDraggedEvents = NO;
-
-        // Don't do any mouseover while the mouse is down.
-        [self _cancelUpdateMouseoverTimer];
-
-        // Let WebCore get a chance to deal with the event. This will call back to us
-        // to start the autoscroll timer if appropriate.
-        if (Frame* frame = [self _mainCoreFrame])
-            frame->eventHandler()->mouseDown(event);
-    }
-
-done:
-    _private->handlingMouseDownEvent = NO;
-}
-
-- (void)mouseUp:(NSEvent *)event
-{
-    // FIXME (Viewless): This method should be shared with WebHTMLView, which needs to
-    // do the same work in the usesDocumentViews case. We don't want to maintain two
-    // duplicate copies of this method.
-
-    if (_private->usesDocumentViews) {
-        [super mouseUp:event];
-        return;
-    }
-
-    // There's a chance that responding to this event will run a nested event loop, and
-    // fetching a new event might release the old one. Retaining and then autoreleasing
-    // the current event prevents that from causing a problem inside WebKit or AppKit code.
-    [[event retain] autorelease];
-
-    [self _setMouseDownEvent:nil];
-
-    NSInputManager *currentInputManager = [NSInputManager currentInputManager];
-    if ([currentInputManager wantsToHandleMouseEvents] && [currentInputManager handleMouseEvent:event])
-        return;
-
-    [self retain];
-
-    [self _stopAutoscrollTimer];
-    if (Frame* frame = [self _mainCoreFrame])
-        frame->eventHandler()->mouseUp(event);
-    [self _updateMouseoverWithFakeEvent];
-
-    [self release];
-}
-
 @end
 
 @implementation WebView (WebIBActions)
@@ -4027,9 +4021,8 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSValue jsValu
         JSObject* object = jsValue.getObject();
         if (object->inherits(&DateInstance::info)) {
             DateInstance* date = static_cast<DateInstance*>(object);
-            double ms = 0;
-            int tzOffset = 0;
-            if (date->getTime(ms, tzOffset)) {
+            double ms = date->internalNumber();
+            if (!isnan(ms)) {
                 CFAbsoluteTime utcSeconds = ms / 1000 - kCFAbsoluteTimeIntervalSince1970;
                 LongDateTime ldt;
                 if (noErr == UCConvertCFAbsoluteTimeToLongDateTime(utcSeconds, &ldt))
@@ -4071,11 +4064,11 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSValue jsValu
         return nil;
     if (!coreFrame->document())
         return nil;
-    JSValue result = coreFrame->loader()->executeScript(script, true).jsValue();
+    JSValue result = coreFrame->script()->executeScript(script, true).jsValue();
     if (!result) // FIXME: pass errors
         return 0;
     JSLock lock(SilenceAssertionsOnly);
-    return aeDescFromJSValue(coreFrame->script()->globalObject()->globalExec(), result);
+    return aeDescFromJSValue(coreFrame->script()->globalObject(mainThreadNormalWorld())->globalExec(), result);
 }
 
 - (BOOL)canMarkAllTextMatches
@@ -4231,6 +4224,24 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSValue jsValu
         return 0;
 
     return _private->page->mediaVolume();
+}
+
+- (void)addVisitedLinks:(NSArray *)visitedLinks
+{
+    PageGroup& group = core(self)->group();
+    
+    NSEnumerator *enumerator = [visitedLinks objectEnumerator];
+    while (NSString *url = [enumerator nextObject]) {
+        size_t length = [url length];
+        const UChar* characters = CFStringGetCharactersPtr(reinterpret_cast<CFStringRef>(url));
+        if (characters)
+            group.addVisitedLink(characters, length);
+        else {
+            Vector<UChar, 512> buffer(length);
+            [url getCharacters:buffer.data()];
+            group.addVisitedLink(buffer.data(), length);
+        }
+    }
 }
 
 @end
@@ -5099,14 +5110,6 @@ static WebFrameView *containingFrameView(NSView *view)
     return nil;
 }
 
-- (WebFrame *)_selectedOrMainFrame
-{
-    WebFrame *result = [self selectedFrame];
-    if (result == nil)
-        result = [self mainFrame];
-    return result;
-}
-
 - (BOOL)_isLoading
 {
     WebFrame *mainFrame = [self mainFrame];
@@ -5377,102 +5380,6 @@ static WebFrameView *containingFrameView(NSView *view)
     _private->insertionPasteboard = pasteboard;
 }
 
-- (void)_setMouseDownEvent:(NSEvent *)event
-{
-    ASSERT(!event || [event type] == NSLeftMouseDown || [event type] == NSRightMouseDown || [event type] == NSOtherMouseDown);
-
-    if (event == _private->mouseDownEvent)
-        return;
-
-    [event retain];
-    [_private->mouseDownEvent release];
-    _private->mouseDownEvent = event;
-}
-
-- (void)_cancelUpdateMouseoverTimer
-{
-    if (_private->updateMouseoverTimer) {
-        CFRunLoopTimerInvalidate(_private->updateMouseoverTimer);
-        CFRelease(_private->updateMouseoverTimer);
-        _private->updateMouseoverTimer = NULL;
-    }
-}
-
-- (void)_stopAutoscrollTimer
-{
-    NSTimer *timer = _private->autoscrollTimer;
-    _private->autoscrollTimer = nil;
-    [_private->autoscrollTriggerEvent release];
-    _private->autoscrollTriggerEvent = nil;
-    [timer invalidate];
-    [timer release];
-}
-
-+ (void)_updateMouseoverWithEvent:(NSEvent *)event
-{
-    WebView *oldView = lastMouseoverView;
-
-    lastMouseoverView = nil;
-
-    NSView *contentView = [[event window] contentView];
-    NSPoint locationForHitTest = [[contentView superview] convertPoint:[event locationInWindow] fromView:nil];
-    for (NSView *hitView = [contentView hitTest:locationForHitTest]; hitView; hitView = [hitView superview]) {
-        if ([hitView isKindOfClass:[WebView class]]) {
-            lastMouseoverView = static_cast<WebView *>(hitView);
-            break;
-        }
-    }
-
-    if (lastMouseoverView && lastMouseoverView->_private->hoverFeedbackSuspended)
-        lastMouseoverView = nil;
-
-    if (lastMouseoverView != oldView) {
-        if (Frame* oldCoreFrame = [oldView _mainCoreFrame]) {
-            NSEvent *oldViewEvent = [NSEvent mouseEventWithType:NSMouseMoved
-                location:NSMakePoint(-1, -1)
-                modifierFlags:[[NSApp currentEvent] modifierFlags]
-                timestamp:[NSDate timeIntervalSinceReferenceDate]
-                windowNumber:[[oldView window] windowNumber]
-                context:[[NSApp currentEvent] context]
-                eventNumber:0 clickCount:0 pressure:0];
-            oldCoreFrame->eventHandler()->mouseMoved(oldViewEvent);
-        }
-    }
-
-    if (!lastMouseoverView)
-        return;
-
-    if (Frame* coreFrame = core([lastMouseoverView mainFrame]))
-        coreFrame->eventHandler()->mouseMoved(event);
-}
-
-- (void)_updateMouseoverWithFakeEvent
-{
-    [self _cancelUpdateMouseoverTimer];
-    
-    NSEvent *fakeEvent = [NSEvent mouseEventWithType:NSMouseMoved
-        location:[[self window] convertScreenToBase:[NSEvent mouseLocation]]
-        modifierFlags:[[NSApp currentEvent] modifierFlags]
-        timestamp:[NSDate timeIntervalSinceReferenceDate]
-        windowNumber:[[self window] windowNumber]
-        context:[[NSApp currentEvent] context]
-        eventNumber:0 clickCount:0 pressure:0];
-    
-    [[self class] _updateMouseoverWithEvent:fakeEvent];
-}
-
-- (void)_setToolTip:(NSString *)toolTip
-{
-    if (_private->usesDocumentViews) {
-        id documentView = [[[self _selectedOrMainFrame] frameView] documentView];
-        if ([documentView isKindOfClass:[WebHTMLView class]])
-            [documentView _setToolTip:toolTip];
-        return;
-    }
-
-    // FIXME (Viewless): Code to handle tooltips needs to move into WebView.
-}
-
 - (void)_selectionChanged
 {
     if (_private->usesDocumentViews) {
@@ -5488,6 +5395,14 @@ static WebFrameView *containingFrameView(NSView *view)
 - (Frame*)_mainCoreFrame
 {
     return (_private && _private->page) ? _private->page->mainFrame() : 0;
+}
+
+- (WebFrame *)_selectedOrMainFrame
+{
+    WebFrame *result = [self selectedFrame];
+    if (result == nil)
+        result = [self mainFrame];
+    return result;
 }
 
 #if USE(ACCELERATED_COMPOSITING)
@@ -5593,6 +5508,47 @@ static void layerSyncRunLoopObserverCallBack(CFRunLoopObserverRef, CFRunLoopActi
         runLoopOrder, layerSyncRunLoopObserverCallBack, &context);
 
     CFRunLoopAddObserver(CFRunLoopGetCurrent(), _private->layerSyncRunLoopObserver, kCFRunLoopCommonModes);
+}
+
+#endif
+
+#if ENABLE(VIDEO)
+
+- (void)_enterFullscreenForNode:(WebCore::Node*)node
+{
+    ASSERT(node->hasTagName(WebCore::HTMLNames::videoTag));
+    HTMLMediaElement* videoElement = static_cast<HTMLMediaElement*>(node);
+
+    if (_private->fullscreenController) {
+        if ([_private->fullscreenController mediaElement] == videoElement) {
+            // The backend may just warn us that the underlaying plaftormMovie()
+            // has changed. Just force an update.
+            [_private->fullscreenController setMediaElement:videoElement];
+            return; // No more to do.
+        }
+
+        // First exit Fullscreen for the old mediaElement.
+        [_private->fullscreenController mediaElement]->exitFullscreen();
+        // This previous call has to trigger _exitFullscreen,
+        // which has to clear _private->fullscreenController.
+        ASSERT(!_private->fullscreenController);
+    }
+    if (!_private->fullscreenController) {
+        _private->fullscreenController = [[WebVideoFullscreenController alloc] init];
+        [_private->fullscreenController setMediaElement:videoElement];
+        [_private->fullscreenController enterFullscreen:[[self window] screen]];        
+    }
+    else
+        [_private->fullscreenController setMediaElement:videoElement];
+}
+
+- (void)_exitFullscreen
+{
+    if (!_private->fullscreenController)
+        return;
+    [_private->fullscreenController exitFullscreen];
+    [_private->fullscreenController release];
+    _private->fullscreenController = nil;
 }
 
 #endif

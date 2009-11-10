@@ -1,14 +1,14 @@
 <html>
 <body>
 
-    <video src=content/test.mp4 controls></video>
+    <video controls></video>
     
     <p>Test that setting currentTime changes the time, and that 'ended' event is fired in a reasonable amount of time</p>
     
     <script src=media-file.js></script>
     <script src=video-test.js></script>
     <script>
-    waitForEvent('load',  
+    waitForEvent('canplaythrough',  
     function () { 
         waitForEventAndEnd('ended');
     
@@ -18,8 +18,8 @@
         run("video.play()"); 
         consoleWrite("");
     
-        var timeout = 800;
-        setTimeout(function () { logResult("No 'ended' event in " + timeout/1000  + "seconds", false); }, timeout);
+        var timeout = 2000;
+        setTimeout(function () { logResult(false, "No 'ended' event in " + timeout/1000  + " seconds"); }, timeout);
     });
     video.src = findMediaFile("video", "content/test");
     </script>

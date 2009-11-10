@@ -35,7 +35,7 @@ namespace WebCore {
 
 class Document;
 class File;
-struct ResourceRequest;
+class ResourceRequest;
 class TextResourceDecoder;
 class ThreadableLoader;
 
@@ -182,7 +182,7 @@ private:
     unsigned m_lastSendLineNumber;
     String m_lastSendURL;
     ExceptionCode m_exceptionCode;
-    
+
     EventTargetData m_eventTargetData;
 };
 

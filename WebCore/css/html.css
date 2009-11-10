@@ -354,6 +354,11 @@ input[type="search"]::-webkit-search-results-button {
     display: inline-block;
 }
 
+input::-webkit-input-list-button {
+    -webkit-appearance: list-button;
+    display: inline-block;
+}
+
 textarea {
     -webkit-appearance: textarea;
     background-color: white;
@@ -600,6 +605,18 @@ a:-webkit-any-link {
 
 a:-webkit-any-link:active {
     color: -webkit-activelink
+}
+
+/* HTML5 ruby elements */
+
+ruby > rt {
+    display: block;
+    font-size: 60%;         /* make slightly larger than 50% for better readability */
+    text-align: center;
+}
+
+ruby > rp {
+    display: none;
 }
 
 /* other elements */

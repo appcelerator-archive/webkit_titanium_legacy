@@ -36,10 +36,10 @@
 
 #include "ExceptionCode.h"
 #include "Frame.h"
+#include "SerializedScriptValue.h"
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
 #include "V8MessagePortCustom.h"
-#include "V8ObjectEventListener.h"
 #include "V8Proxy.h"
 #include "V8Utilities.h"
 #include "WorkerContext.h"
@@ -87,74 +87,18 @@ CALLBACK_FUNC_DECL(WorkerConstructor)
     return wrapperObject;
 }
 
-PassRefPtr<EventListener> getEventListener(Worker* worker, v8::Local<v8::Value> value, bool isAttribute, bool findOnly)
-{
-    if (worker->scriptExecutionContext()->isWorkerContext()) {
-        WorkerContextExecutionProxy* workerContextProxy = WorkerContextExecutionProxy::retrieve();
-        ASSERT(workerContextProxy);
-        return workerContextProxy->findOrCreateObjectEventListener(value, isAttribute, findOnly);
-    }
-
-    V8Proxy* proxy = V8Proxy::retrieve(worker->scriptExecutionContext());
-    if (proxy) {
-        V8EventListenerList* list = proxy->objectListeners();
-        return findOnly ? list->findWrapper(value, isAttribute) : list->findOrCreateWrapper<V8ObjectEventListener>(proxy->frame(), value, isAttribute);
-    }
-
-    return 0;
-}
-
-ACCESSOR_GETTER(WorkerOnmessage)
-{
-    INC_STATS(L"DOM.Worker.onmessage._get");
-    Worker* worker = V8DOMWrapper::convertToNativeObject<Worker>(V8ClassIndex::WORKER, info.Holder());
-    if (worker->onmessage()) {
-        V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(worker->onmessage());
-        v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-        return v8Listener;
-    }
-    return v8::Undefined();
-}
-
-ACCESSOR_SETTER(WorkerOnmessage)
-{
-    INC_STATS(L"DOM.Worker.onmessage._set");
-    Worker* worker = V8DOMWrapper::convertToNativeObject<Worker>(V8ClassIndex::WORKER, info.Holder());
-    V8ObjectEventListener* oldListener = static_cast<V8ObjectEventListener*>(worker->onmessage());
-    if (value->IsNull()) {
-        if (oldListener) {
-            v8::Local<v8::Object> oldV8Listener = oldListener->getListenerObject();
-            removeHiddenDependency(info.Holder(), oldV8Listener, V8Custom::kWorkerRequestCacheIndex);
-        }
-
-        // Clear the listener.
-        worker->setOnmessage(0);
-    } else {
-        RefPtr<EventListener> listener = getEventListener(worker, value, true, false);
-        if (listener) {
-            if (oldListener) {
-                v8::Local<v8::Object> oldV8Listener = oldListener->getListenerObject();
-                removeHiddenDependency(info.Holder(), oldV8Listener, V8Custom::kWorkerRequestCacheIndex);
-            }
-
-            worker->setOnmessage(listener);
-            createHiddenDependency(info.Holder(), value, V8Custom::kWorkerRequestCacheIndex);
-        }
-    }
-}
-
 CALLBACK_FUNC_DECL(WorkerPostMessage)
 {
     INC_STATS("DOM.Worker.postMessage");
     Worker* worker = V8DOMWrapper::convertToNativeObject<Worker>(V8ClassIndex::WORKER, args.Holder());
-    String message = toWebCoreString(args[0]);
+    RefPtr<SerializedScriptValue> message = SerializedScriptValue::create(toWebCoreString(args[0]));
     MessagePortArray portArray;
     if (args.Length() > 1) {
         if (!getMessagePortArray(args[1], portArray))
             return v8::Undefined();
     }
     ExceptionCode ec = 0;
-    worker->postMessage(message, &portArray, ec);
+    worker->postMessage(message.release(), &portArray, ec);
     return throwError(ec);
 }
 

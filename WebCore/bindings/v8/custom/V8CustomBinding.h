@@ -78,6 +78,8 @@ struct NPObject;
     bool V8Custom::v8##NAME##IndexedSecurityCheck(v8::Local<v8::Object> host, \
         uint32_t index, v8::AccessType type, v8::Local<v8::Value> data)
 
+#define ACCESSOR_RUNTIME_ENABLER(NAME) bool V8Custom::v8##NAME##Enabled()
+
 namespace WebCore {
 
     class DOMWindow;
@@ -122,22 +124,35 @@ namespace WebCore {
         static const int kMessagePortInternalFieldCount = kDefaultWrapperInternalFieldCount + 2;
 
 #if ENABLE(WORKERS)
-        static const int kWorkerRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
-        static const int kWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+        static const int kAbstractWorkerRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kAbstractWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+
+        static const int kWorkerRequestCacheIndex = kAbstractWorkerInternalFieldCount + 0;
+        static const int kWorkerInternalFieldCount = kAbstractWorkerInternalFieldCount + 1;
 
         static const int kWorkerContextRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
         static const int kWorkerContextMinimumInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
 
         static const int kDedicatedWorkerContextRequestCacheIndex = kWorkerContextMinimumInternalFieldCount + 0;
         static const int kDedicatedWorkerContextInternalFieldCount = kWorkerContextMinimumInternalFieldCount + 1;
+#endif
 
-        static const int kAbstractWorkerRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
-        static const int kAbstractWorkerInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+#if ENABLE(SHARED_WORKERS)
+        static const int kSharedWorkerRequestCacheIndex = kAbstractWorkerInternalFieldCount + 0;
+        static const int kSharedWorkerInternalFieldCount = kAbstractWorkerInternalFieldCount + 1;
+
+        static const int kSharedWorkerContextRequestCacheIndex = kWorkerContextMinimumInternalFieldCount + 0;
+        static const int kSharedWorkerContextInternalFieldCount = kWorkerContextMinimumInternalFieldCount + 1;
 #endif
 
 #if ENABLE(NOTIFICATIONS)
         static const int kNotificationRequestCacheIndex = kDefaultWrapperInternalFieldCount + 0;
         static const int kNotificationInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
+#endif
+
+#if ENABLE(SVG)
+        static const int kSVGElementInstanceEventListenerCacheIndex = kDefaultWrapperInternalFieldCount + 0;
+        static const int kSVGElementInstanceInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
 #endif
 
         static const int kDOMWindowConsoleIndex = kDefaultWrapperInternalFieldCount + 0;
@@ -153,7 +168,8 @@ namespace WebCore {
         static const int kDOMWindowToolbarIndex = kDefaultWrapperInternalFieldCount + 10;
         static const int kDOMWindowLocationIndex = kDefaultWrapperInternalFieldCount + 11;
         static const int kDOMWindowDOMSelectionIndex = kDefaultWrapperInternalFieldCount + 12;
-        static const int kDOMWindowInternalFieldCount = kDefaultWrapperInternalFieldCount + 13;
+        static const int kDOMWindowEventListenerCacheIndex = kDefaultWrapperInternalFieldCount + 13;
+        static const int kDOMWindowInternalFieldCount = kDefaultWrapperInternalFieldCount + 14;
 
         static const int kStyleSheetOwnerNodeIndex = kDefaultWrapperInternalFieldCount + 0;
         static const int kStyleSheetInternalFieldCount = kDefaultWrapperInternalFieldCount + 1;
@@ -226,6 +242,8 @@ namespace WebCore {
     static bool v8##NAME##IndexedSecurityCheck(v8::Local<v8::Object> host, \
         uint32_t index, v8::AccessType type, v8::Local<v8::Value> data)
 
+#define DECLARE_ACCESSOR_RUNTIME_ENABLER(NAME) static bool v8##NAME##Enabled()
+
         DECLARE_PROPERTY_ACCESSOR(CanvasRenderingContext2DStrokeStyle);
         DECLARE_PROPERTY_ACCESSOR(CanvasRenderingContext2DFillStyle);
         DECLARE_PROPERTY_ACCESSOR(DOMWindowEvent);
@@ -235,6 +253,11 @@ namespace WebCore {
 
 #if ENABLE(VIDEO)
         DECLARE_PROPERTY_ACCESSOR_GETTER(DOMWindowAudio);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowAudio);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLMediaElement);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLAudioElement);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLVideoElement);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowMediaError);
 #endif
 
         DECLARE_PROPERTY_ACCESSOR_GETTER(DOMWindowImage);
@@ -273,6 +296,10 @@ namespace WebCore {
         DECLARE_CALLBACK(HTMLCollectionItem);
         DECLARE_CALLBACK(HTMLCollectionNamedItem);
         DECLARE_CALLBACK(HTMLCollectionCallAsFunction);
+
+        DECLARE_CALLBACK(HTMLAllCollectionItem);
+        DECLARE_CALLBACK(HTMLAllCollectionNamedItem);
+        DECLARE_CALLBACK(HTMLAllCollectionCallAsFunction);
 
         DECLARE_CALLBACK(HTMLSelectElementRemove);
 
@@ -336,35 +363,35 @@ namespace WebCore {
         DECLARE_CALLBACK(CanvasRenderingContext2DPutImageData);
 
 #if ENABLE(3D_CANVAS)
-        DECLARE_CALLBACK(CanvasRenderingContext3DBufferData);
-        DECLARE_CALLBACK(CanvasRenderingContext3DBufferSubData);
-        DECLARE_CALLBACK(CanvasRenderingContext3DSizeof);
-        DECLARE_CALLBACK(CanvasRenderingContext3DTexImage2D);
-        DECLARE_CALLBACK(CanvasRenderingContext3DTexSubImage2D);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform1fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform1iv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform2fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform2iv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform3fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform3iv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform4fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniform4iv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniformMatrix2fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniformMatrix3fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DUniformMatrix4fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DVertexAttrib1fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DVertexAttrib2fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DVertexAttrib3fv);
-        DECLARE_CALLBACK(CanvasRenderingContext3DVertexAttrib4fv);
+        DECLARE_CALLBACK(WebGLRenderingContextBufferData);
+        DECLARE_CALLBACK(WebGLRenderingContextBufferSubData);
+        DECLARE_CALLBACK(WebGLRenderingContextSizeof);
+        DECLARE_CALLBACK(WebGLRenderingContextTexImage2D);
+        DECLARE_CALLBACK(WebGLRenderingContextTexSubImage2D);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform1fv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform1iv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform2fv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform2iv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform3fv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform3iv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform4fv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniform4iv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniformMatrix2fv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniformMatrix3fv);
+        DECLARE_CALLBACK(WebGLRenderingContextUniformMatrix4fv);
+        DECLARE_CALLBACK(WebGLRenderingContextVertexAttrib1fv);
+        DECLARE_CALLBACK(WebGLRenderingContextVertexAttrib2fv);
+        DECLARE_CALLBACK(WebGLRenderingContextVertexAttrib3fv);
+        DECLARE_CALLBACK(WebGLRenderingContextVertexAttrib4fv);
 
-        DECLARE_CALLBACK(CanvasArrayBufferConstructor);
-        DECLARE_CALLBACK(CanvasByteArrayConstructor);
-        DECLARE_CALLBACK(CanvasFloatArrayConstructor);
-        DECLARE_CALLBACK(CanvasIntArrayConstructor);
-        DECLARE_CALLBACK(CanvasShortArrayConstructor);
-        DECLARE_CALLBACK(CanvasUnsignedByteArrayConstructor);
-        DECLARE_CALLBACK(CanvasUnsignedIntArrayConstructor);
-        DECLARE_CALLBACK(CanvasUnsignedShortArrayConstructor);
+        DECLARE_CALLBACK(WebGLArrayBufferConstructor);
+        DECLARE_CALLBACK(WebGLByteArrayConstructor);
+        DECLARE_CALLBACK(WebGLFloatArrayConstructor);
+        DECLARE_CALLBACK(WebGLIntArrayConstructor);
+        DECLARE_CALLBACK(WebGLShortArrayConstructor);
+        DECLARE_CALLBACK(WebGLUnsignedByteArrayConstructor);
+        DECLARE_CALLBACK(WebGLUnsignedIntArrayConstructor);
+        DECLARE_CALLBACK(WebGLUnsignedShortArrayConstructor);
 #endif
 
         DECLARE_PROPERTY_ACCESSOR_GETTER(ClipboardTypes);
@@ -442,12 +469,12 @@ namespace WebCore {
         DECLARE_CALLBACK(TreeWalkerNextSibling);
         DECLARE_CALLBACK(TreeWalkerPreviousSibling);
 
-        DECLARE_CALLBACK(InspectorBackendProfiles);
         DECLARE_CALLBACK(InspectorBackendHighlightDOMNode);
         DECLARE_CALLBACK(InspectorBackendAddResourceSourceToFrame);
         DECLARE_CALLBACK(InspectorBackendAddSourceToFrame);
         DECLARE_CALLBACK(InspectorBackendSearch);
         DECLARE_CALLBACK(InspectorBackendSetting);
+        DECLARE_CALLBACK(InspectorBackendDatabaseForId);
         DECLARE_CALLBACK(InspectorBackendInspectedWindow);
         DECLARE_CALLBACK(InspectorBackendSetSetting);
         DECLARE_CALLBACK(InspectorBackendCurrentCallFrame);
@@ -459,7 +486,6 @@ namespace WebCore {
         DECLARE_CALLBACK(InspectorBackendUnwrapObject);
         DECLARE_CALLBACK(InspectorBackendPushNodePathToFrontend);
 #if ENABLE(DATABASE)
-        DECLARE_CALLBACK(InspectorBackendDatabaseTableNames);
         DECLARE_CALLBACK(InspectorBackendSelectDatabase);
 #endif
 #if ENABLE(DOM_STORAGE)
@@ -499,34 +525,35 @@ namespace WebCore {
         DECLARE_INDEXED_PROPERTY_SETTER(HTMLOptionsCollection);
         DECLARE_NAMED_PROPERTY_GETTER(HTMLSelectElementCollection);
         DECLARE_INDEXED_PROPERTY_SETTER(HTMLSelectElementCollection);
+        DECLARE_NAMED_PROPERTY_GETTER(HTMLAllCollection);
         DECLARE_NAMED_PROPERTY_GETTER(HTMLCollection);
 
 #if ENABLE(3D_CANVAS)
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasByteArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasByteArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLByteArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLByteArray);
 
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasFloatArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasFloatArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLFloatArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLFloatArray);
 
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasIntArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasIntArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLIntArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLIntArray);
 #endif
 
         DECLARE_INDEXED_PROPERTY_GETTER(CanvasPixelArray);
         DECLARE_INDEXED_PROPERTY_SETTER(CanvasPixelArray);
 
 #if ENABLE(3D_CANVAS)
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasShortArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasShortArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLShortArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLShortArray);
 
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasUnsignedByteArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasUnsignedByteArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLUnsignedByteArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLUnsignedByteArray);
 
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasUnsignedIntArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasUnsignedIntArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLUnsignedIntArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLUnsignedIntArray);
 
-        DECLARE_INDEXED_PROPERTY_GETTER(CanvasUnsignedShortArray);
-        DECLARE_INDEXED_PROPERTY_SETTER(CanvasUnsignedShortArray);
+        DECLARE_INDEXED_PROPERTY_GETTER(WebGLUnsignedShortArray);
+        DECLARE_INDEXED_PROPERTY_SETTER(WebGLUnsignedShortArray);
 #endif
 
         DECLARE_PROPERTY_ACCESSOR_GETTER(MessageEventPorts);
@@ -547,14 +574,20 @@ namespace WebCore {
 
         DECLARE_INDEXED_PROPERTY_GETTER(ClientRectList);
         DECLARE_INDEXED_PROPERTY_GETTER(FileList);
-  
+
 #if ENABLE(DATAGRID)
         DECLARE_PROPERTY_ACCESSOR(HTMLDataGridElementDataSource);
         DECLARE_INDEXED_PROPERTY_GETTER(DataGridColumnList);
         DECLARE_NAMED_PROPERTY_GETTER(DataGridColumnList);
-#endif      
+#endif
+
+#if ENABLE(DATABASE)
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowOpenDatabase);
+#endif
 
 #if ENABLE(DOM_STORAGE)
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowLocalStorage);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowSessionStorage);
         DECLARE_INDEXED_PROPERTY_GETTER(Storage);
         DECLARE_INDEXED_PROPERTY_SETTER(Storage);
         DECLARE_INDEXED_PROPERTY_DELETER(Storage);
@@ -567,6 +600,7 @@ namespace WebCore {
 #if ENABLE(SVG)
         DECLARE_PROPERTY_ACCESSOR_GETTER(SVGLengthValue);
         DECLARE_CALLBACK(SVGLengthConvertToSpecifiedUnits);
+        DECLARE_CALLBACK(SVGMatrixMultiply);
         DECLARE_CALLBACK(SVGMatrixInverse);
         DECLARE_CALLBACK(SVGMatrixRotateFromVector);
         DECLARE_CALLBACK(SVGElementInstanceAddEventListener);
@@ -594,6 +628,10 @@ namespace WebCore {
         DECLARE_CALLBACK(WorkerContextClearInterval);
         DECLARE_CALLBACK(WorkerContextAddEventListener);
         DECLARE_CALLBACK(WorkerContextRemoveEventListener);
+
+#if ENABLE(NOTIFICATIONS)
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(WorkerContextWebkitNotifications);
+#endif
 #endif // ENABLE(WORKERS)
 
 #if ENABLE(NOTIFICATIONS)
@@ -607,6 +645,7 @@ namespace WebCore {
 #endif // ENABLE(NOTIFICATIONS)
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowApplicationCache);
         DECLARE_PROPERTY_ACCESSOR(DOMApplicationCacheEventHandler);
         DECLARE_CALLBACK(DOMApplicationCacheAddEventListener);
         DECLARE_CALLBACK(DOMApplicationCacheRemoveEventListener);
@@ -614,6 +653,11 @@ namespace WebCore {
 
 #if ENABLE(SHARED_WORKERS)
         DECLARE_CALLBACK(SharedWorkerConstructor);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowSharedWorker);
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowWebkitNotifications);
 #endif
 
 #if ENABLE(WEB_SOCKETS)
@@ -621,8 +665,11 @@ namespace WebCore {
         DECLARE_PROPERTY_ACCESSOR(WebSocketOnmessage);
         DECLARE_PROPERTY_ACCESSOR(WebSocketOnclose);
         DECLARE_CALLBACK(WebSocketConstructor);
+        DECLARE_CALLBACK(WebSocketAddEventListener);
+        DECLARE_CALLBACK(WebSocketRemoveEventListener);
         DECLARE_CALLBACK(WebSocketSend);
         DECLARE_CALLBACK(WebSocketClose);
+        DECLARE_ACCESSOR_RUNTIME_ENABLER(DOMWindowWebSocket);
 #endif
 
 #undef DECLARE_INDEXED_ACCESS_CHECK

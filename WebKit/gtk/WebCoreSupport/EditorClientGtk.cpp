@@ -55,29 +55,37 @@ namespace WebKit {
 static gchar* pendingComposition = 0;
 static gchar* pendingPreedit = 0;
 
-static void clearPendingIMData()
+static void setPendingComposition(gchar* newComposition)
 {
     g_free(pendingComposition);
-    pendingComposition = 0;
+    pendingComposition = newComposition;
+}
+
+static void setPendingPreedit(gchar* newPreedit)
+{
     g_free(pendingPreedit);
-    pendingPreedit = 0;
+    pendingPreedit = newPreedit;
+}
+
+static void clearPendingIMData()
+{
+    setPendingComposition(0);
+    setPendingPreedit(0);
 }
 static void imContextCommitted(GtkIMContext* context, const gchar* str, EditorClient* client)
 {
-    ASSERT(!pendingComposition);
-
     // This signal will fire during a keydown event. We want the contents of the
     // field to change right before the keyup event, so we wait until then to actually
     // commit this composition.
-    pendingComposition = g_strdup(str);
+    setPendingComposition(g_strdup(str));
 }
 
 static void imContextPreeditChanged(GtkIMContext* context, EditorClient* client)
 {
-    ASSERT(!pendingPreedit);
-
     // We ignore the provided PangoAttrList for now.
-    gtk_im_context_get_preedit_string(context, &pendingPreedit, NULL, NULL);
+    gchar* newPreedit = 0;
+    gtk_im_context_get_preedit_string(context, &newPreedit, NULL, NULL);
+    setPendingPreedit(newPreedit);
 }
 
 void EditorClient::setInputMethodState(bool active)
@@ -437,38 +445,6 @@ static const char* interpretEditorCommandKeyEvent(const KeyboardEvent* evt)
     return mapKey ? keyPressCommandsMap->get(mapKey) : 0;
 }
 
-static bool handleCaretBrowsingKeyboardEvent(Frame* frame, const PlatformKeyboardEvent* keyEvent)
-{
-    switch (keyEvent->windowsVirtualKeyCode()) {
-        case VK_LEFT:
-            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                    SelectionController::LEFT,
-                    keyEvent->ctrlKey() ? WordGranularity : CharacterGranularity,
-                    true);
-            return true;
-        case VK_RIGHT:
-            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                    SelectionController::RIGHT,
-                    keyEvent->ctrlKey() ? WordGranularity : CharacterGranularity,
-                    true);
-            return true;
-        case VK_UP:
-            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                    SelectionController::BACKWARD,
-                    keyEvent->ctrlKey() ? ParagraphGranularity : LineGranularity,
-                    true);
-            return true;
-        case VK_DOWN:
-            frame->selection()->modify(keyEvent->shiftKey() ? SelectionController::EXTEND : SelectionController::MOVE,
-                    SelectionController::FORWARD,
-                    keyEvent->ctrlKey() ? ParagraphGranularity : LineGranularity,
-                    true);
-            return true;
-        default:
-            return false; // Not a caret browswing keystroke, so continue processing.
-    }
-}
-
 void EditorClient::handleKeyboardEvent(KeyboardEvent* event)
 {
     Node* node = event->target()->toNode();
@@ -480,15 +456,9 @@ void EditorClient::handleKeyboardEvent(KeyboardEvent* event)
     if (!platformEvent)
         return;
 
-    bool caretBrowsing = frame->settings()->caretBrowsingEnabled();
-    if (caretBrowsing && handleCaretBrowsingKeyboardEvent(frame, platformEvent)) {
-        // This was a caret browsing key event, so prevent it from bubbling up to the DOM.
-        event->setDefaultHandled();
-        return;
-    }
-
-    // Don't allow editor commands or text insertion for nodes that cannot edit.
-    if (!frame->editor()->canEdit())
+    // Don't allow editor commands or text insertion for nodes that
+    // cannot edit, unless we are in caret mode.
+    if (!frame->editor()->canEdit() && !(frame->settings() && frame->settings()->caretBrowsingEnabled()))
         return;
 
     const gchar* editorCommandString = interpretEditorCommandKeyEvent(event);
@@ -629,6 +599,10 @@ void EditorClient::learnWord(const String& text)
 
 void EditorClient::checkSpellingOfString(const UChar* text, int length, int* misspellingLocation, int* misspellingLength)
 {
+    GSList* langs = webkit_web_settings_get_spell_languages(m_webView);
+    if (!langs)
+        return;
+
     gchar* ctext = g_utf16_to_utf8(const_cast<gunichar2*>(text), length, 0, 0, 0);
     int utflen = g_utf8_strlen(ctext, -1);
 
@@ -646,7 +620,6 @@ void EditorClient::checkSpellingOfString(const UChar* text, int length, int* mis
             int start = i;
             int end = i;
             int wordLength;
-            GSList* langs = webkit_web_settings_get_spell_languages(m_webView);
 
             while (attrs[end].is_word_end < 1)
                 end++;

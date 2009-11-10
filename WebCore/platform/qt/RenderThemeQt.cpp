@@ -44,6 +44,8 @@
 #include "Page.h"
 #include "RenderBox.h"
 #include "RenderTheme.h"
+#include "UserAgentStyleSheets.h"
+#include "QWebPageClient.h"
 #include "qwebpage.h"
 
 #include <QApplication>
@@ -172,7 +174,7 @@ bool RenderThemeQt::supportsHover(const RenderStyle*) const
     return true;
 }
 
-bool RenderThemeQt::supportsFocusRing(const RenderStyle* style) const
+bool RenderThemeQt::supportsFocusRing(const RenderStyle*) const
 {
     return true; // Qt provides this through the style
 }
@@ -274,7 +276,7 @@ Color RenderThemeQt::platformInactiveSelectionForegroundColor() const
     return pal.brush(QPalette::Inactive, QPalette::HighlightedText).color();
 }
 
-void RenderThemeQt::systemFont(int propId, FontDescription& fontDescription) const
+void RenderThemeQt::systemFont(int, FontDescription&) const
 {
     // no-op
 }
@@ -387,7 +389,7 @@ bool RenderThemeQt::paintRadio(RenderObject* o, const RenderObject::PaintInfo& i
     return paintButton(o, i, r);
 }
 
-void RenderThemeQt::adjustButtonStyle(CSSStyleSelector* selector, RenderStyle* style, Element* e) const
+void RenderThemeQt::adjustButtonStyle(CSSStyleSelector* selector, RenderStyle* style, Element*) const
 {
     // Ditch the border.
     style->resetBorder();
@@ -584,8 +586,7 @@ bool RenderThemeQt::paintMenuList(RenderObject* o, const RenderObject::PaintInfo
     return false;
 }
 
-void RenderThemeQt::adjustMenuListButtonStyle(CSSStyleSelector* selector, RenderStyle* style,
-                                              Element* e) const
+void RenderThemeQt::adjustMenuListButtonStyle(CSSStyleSelector*, RenderStyle* style, Element*) const
 {
     // WORKAROUND because html.css specifies -webkit-border-radius for <select> so we override it here
     // see also http://bugs.webkit.org/show_bug.cgi?id=18399
@@ -757,12 +758,13 @@ ControlPart RenderThemeQt::applyTheme(QStyleOption& option, RenderObject* o) con
     if (result == RadioPart || result == CheckboxPart)
         option.state |= (isChecked(o) ? QStyle::State_On : QStyle::State_Off);
 
-    // If the webview has a custom palette, use it
+    // If the owner widget has a custom palette, use it
     Page* page = o->document()->page();
     if (page) {
-        QWidget* view = static_cast<ChromeClientQt*>(page->chrome()->client())->m_webPage->view();
-        if (view)
-            option.palette = view->palette();
+        ChromeClient* client = page->chrome()->client();
+        QWebPageClient* pageClient = client->platformPageClient();
+        if (pageClient)
+            option.palette = pageClient->palette();
     }
 
     return result;
@@ -772,13 +774,7 @@ ControlPart RenderThemeQt::applyTheme(QStyleOption& option, RenderObject* o) con
 
 String RenderThemeQt::extraMediaControlsStyleSheet()
 {
-    QFile platformStyleSheet(QLatin1String(":/webcore/css/mediaControls-extras.css"));
-    if (platformStyleSheet.open(QFile::ReadOnly)) {
-        QByteArray sheetData = platformStyleSheet.readAll();
-        return QString::fromUtf8(sheetData.constData(), sheetData.length());
-    }
-
-    return String();
+    return String(mediaControlsQtUserAgentStyleSheet, sizeof(mediaControlsQtUserAgentStyleSheet));
 }
 
 // Helper class to transform the painter's world matrix to the object's content area, scaled to 0,0,100,100
@@ -887,13 +883,13 @@ bool RenderThemeQt::paintMediaPlayButton(RenderObject* o, const RenderObject::Pa
     return false;
 }
 
-bool RenderThemeQt::paintMediaSeekBackButton(RenderObject* o, const RenderObject::PaintInfo& paintInfo, const IntRect& r)
+bool RenderThemeQt::paintMediaSeekBackButton(RenderObject*, const RenderObject::PaintInfo&, const IntRect&)
 {
     // We don't want to paint this at the moment.
     return false;
 }
 
-bool RenderThemeQt::paintMediaSeekForwardButton(RenderObject* o, const RenderObject::PaintInfo& paintInfo, const IntRect& r)
+bool RenderThemeQt::paintMediaSeekForwardButton(RenderObject*, const RenderObject::PaintInfo&, const IntRect&)
 {
     // We don't want to paint this at the moment.
     return false;

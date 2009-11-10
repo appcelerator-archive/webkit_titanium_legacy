@@ -91,13 +91,8 @@ void* DatabaseThread::databaseThread()
     }
 
     AutodrainedPool pool;
-    while (true) {
-        RefPtr<DatabaseTask> task;
-        if (!m_queue.waitForMessage(task))
-            break;
-
+    while (OwnPtr<DatabaseTask> task = m_queue.waitForMessage()) {
         task->performTask();
-
         pool.cycle();
     }
 
@@ -142,32 +137,30 @@ void DatabaseThread::recordDatabaseClosed(Database* database)
     m_openDatabaseSet.remove(database);
 }
 
-void DatabaseThread::scheduleTask(PassRefPtr<DatabaseTask> task)
+void DatabaseThread::scheduleTask(PassOwnPtr<DatabaseTask> task)
 {
     m_queue.append(task);
 }
 
-void DatabaseThread::scheduleImmediateTask(PassRefPtr<DatabaseTask> task)
+void DatabaseThread::scheduleImmediateTask(PassOwnPtr<DatabaseTask> task)
 {
     m_queue.prepend(task);
 }
+
+class SameDatabasePredicate {
+public:
+    SameDatabasePredicate(const Database* database) : m_database(database) { }
+    bool operator()(DatabaseTask* task) const { return task->database() == m_database; }
+private:
+    const Database* m_database;
+};
 
 void DatabaseThread::unscheduleDatabaseTasks(Database* database)
 {
     // Note that the thread loop is running, so some tasks for the database
     // may still be executed. This is unavoidable.
-
-    Deque<RefPtr<DatabaseTask> > filteredReverseQueue;
-    RefPtr<DatabaseTask> task;
-    while (m_queue.tryGetMessage(task)) {
-        if (task->database() != database)
-            filteredReverseQueue.append(task);
-    }
-
-    while (!filteredReverseQueue.isEmpty()) {
-        m_queue.append(filteredReverseQueue.first());
-        filteredReverseQueue.removeFirst();
-    }
+    SameDatabasePredicate predicate(database);
+    m_queue.removeIf(predicate);
 }
 
 } // namespace WebCore

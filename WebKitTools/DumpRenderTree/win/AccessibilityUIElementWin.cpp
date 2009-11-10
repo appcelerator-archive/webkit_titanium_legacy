@@ -151,10 +151,24 @@ JSStringRef AccessibilityUIElement::role()
     VARIANT vRole;
     if (FAILED(m_element->get_accRole(self(), &vRole)))
         return JSStringCreateWithCharacters(0, 0);
-    ASSERT(V_VT(&vRole) == VT_I4);
-    TCHAR roleText[64] = {0};
-    ::GetRoleText(V_I4(&vRole), roleText, ARRAYSIZE(roleText));
-    return JSStringCreateWithCharacters(roleText, _tcslen(roleText));
+
+    ASSERT(V_VT(&vRole) == VT_I4 || V_VT(&vRole) == VT_BSTR);
+
+    wstring result;
+    if (V_VT(&vRole) == VT_I4) {
+        unsigned roleTextLength = ::GetRoleText(V_I4(&vRole), 0, 0) + 1;
+
+        Vector<TCHAR> roleText(roleTextLength);
+
+        ::GetRoleText(V_I4(&vRole), roleText.data(), roleTextLength);
+
+        result = roleText.data();
+    } else if (V_VT(&vRole) == VT_BSTR)
+        result = wstring(V_BSTR(&vRole), ::SysStringLen(V_BSTR(&vRole)));
+
+    ::VariantClear(&vRole);
+
+    return JSStringCreateWithCharacters(result.data(), result.length());
 }
 
 JSStringRef AccessibilityUIElement::subrole()
@@ -175,11 +189,16 @@ JSStringRef AccessibilityUIElement::title()
 JSStringRef AccessibilityUIElement::description()
 {
     BSTR descriptionBSTR;
-    if (FAILED(m_element->get_accName(self(), &descriptionBSTR)) || !descriptionBSTR)
+    if (FAILED(m_element->get_accDescription(self(), &descriptionBSTR)) || !descriptionBSTR)
         return JSStringCreateWithCharacters(0, 0);
     wstring description(descriptionBSTR, SysStringLen(descriptionBSTR));
     ::SysFreeString(descriptionBSTR);
     return JSStringCreateWithCharacters(description.data(), description.length());
+}
+
+JSStringRef AccessibilityUIElement::stringValue()
+{
+    return JSStringCreateWithCharacters(0, 0);
 }
 
 JSStringRef AccessibilityUIElement::language()
@@ -233,6 +252,15 @@ JSStringRef AccessibilityUIElement::valueDescription()
 {
     return 0;
 }
+bool AccessibilityUIElement::isSelected() const
+{
+    return false;
+}
+
+bool AccessibilityUIElement::isExpanded() const
+{
+    return false;
+}
 
 double AccessibilityUIElement::intValue()
 {
@@ -269,6 +297,7 @@ bool AccessibilityUIElement::isRequired() const
 {
     return false;
 }
+
 
 int AccessibilityUIElement::insertionPointLineNumber()
 {
@@ -365,4 +394,20 @@ void AccessibilityUIElement::increment()
 
 void AccessibilityUIElement::decrement()
 {
+}
+
+void AccessibilityUIElement::showMenu()
+{
+}
+
+JSStringRef AccessibilityUIElement::accessibilityValue() const
+{
+    BSTR valueBSTR;
+    if (FAILED(m_element->get_accValue(self(), &valueBSTR)) || !valueBSTR)
+        return JSStringCreateWithCharacters(0, 0);
+
+    wstring value(valueBSTR, SysStringLen(valueBSTR));
+    ::SysFreeString(valueBSTR);
+
+    return JSStringCreateWithCharacters(value.data(), value.length());
 }

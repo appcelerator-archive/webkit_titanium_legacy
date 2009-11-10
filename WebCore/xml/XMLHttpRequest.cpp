@@ -33,6 +33,7 @@
 #include "EventNames.h"
 #include "File.h"
 #include "HTTPParsers.h"
+#include "InspectorTimelineAgent.h"
 #include "ResourceError.h"
 #include "ResourceRequest.h"
 #include "SecurityOrigin.h"
@@ -47,7 +48,9 @@
 #include <wtf/RefCountedLeakCounter.h>
 
 #if USE(JSC)
+#include "JSDOMBinding.h"
 #include "JSDOMWindow.h"
+#include <runtime/Protect.h>
 #endif
 
 namespace WebCore {
@@ -248,10 +251,35 @@ void XMLHttpRequest::callReadyStateChangeListener()
     if (!scriptExecutionContext())
         return;
 
+#if ENABLE(INSPECTOR)
+    InspectorTimelineAgent* timelineAgent = InspectorTimelineAgent::retrieve(scriptExecutionContext());
+    bool callTimelineAgentOnReadyStateChange = timelineAgent && hasEventListeners(eventNames().readystatechangeEvent);
+    if (callTimelineAgentOnReadyStateChange)
+        timelineAgent->willChangeXHRReadyState(m_url.string(), m_state);
+#endif
+
     dispatchEvent(XMLHttpRequestProgressEvent::create(eventNames().readystatechangeEvent));
 
-    if (m_state == DONE && !m_error)
+#if ENABLE(INSPECTOR)
+    if (callTimelineAgentOnReadyStateChange && (timelineAgent = InspectorTimelineAgent::retrieve(scriptExecutionContext())))
+        timelineAgent->didChangeXHRReadyState();
+#endif
+
+    if (m_state == DONE && !m_error) {
+#if ENABLE(INSPECTOR)
+        timelineAgent = InspectorTimelineAgent::retrieve(scriptExecutionContext());
+        bool callTimelineAgentOnLoad = timelineAgent && hasEventListeners(eventNames().loadEvent);
+        if (callTimelineAgentOnLoad)
+            timelineAgent->willLoadXHR(m_url.string());
+#endif
+
         dispatchEvent(XMLHttpRequestProgressEvent::create(eventNames().loadEvent));
+
+#if ENABLE(INSPECTOR)
+        if (callTimelineAgentOnLoad && (timelineAgent = InspectorTimelineAgent::retrieve(scriptExecutionContext())))
+            timelineAgent->didLoadXHR();
+#endif
+    }
 }
 
 void XMLHttpRequest::setWithCredentials(bool value, ExceptionCode& ec)
@@ -604,10 +632,8 @@ void XMLHttpRequest::dropProtection()
     // out. But it is protected from GC while loading, so this
     // can't be recouped until the load is done, so only
     // report the extra cost at that point.
-
-    if (JSDOMGlobalObject* globalObject = toJSDOMGlobalObject(scriptExecutionContext()))
-        if (DOMObject* wrapper = getCachedDOMObjectWrapper(*globalObject->globalData(), this))
-            JSC::Heap::heap(wrapper)->reportExtraMemoryCost(m_responseText.size() * 2);
+    if (DOMObject* wrapper = getCachedDOMObjectWrapper(*scriptExecutionContext()->globalData(), this))
+        JSC::Heap::heap(wrapper)->reportExtraMemoryCost(m_responseText.size() * 2);
 #endif
 
     unsetPendingActivity(this);

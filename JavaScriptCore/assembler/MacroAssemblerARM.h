@@ -38,6 +38,9 @@
 namespace JSC {
 
 class MacroAssemblerARM : public AbstractMacroAssembler<ARMAssembler> {
+    static const int DoubleConditionMask = 0x0f;
+    static const int DoubleConditionBitSpecial = 0x10;
+    COMPILE_ASSERT(!(DoubleConditionBitSpecial & DoubleConditionMask), DoubleConditionBitSpecial_should_not_interfere_with_ARMAssembler_Condition_codes);
 public:
     enum Condition {
         Equal = ARMAssembler::EQ,
@@ -57,14 +60,24 @@ public:
     };
 
     enum DoubleCondition {
+        // These conditions will only evaluate to true if the comparison is ordered - i.e. neither operand is NaN.
         DoubleEqual = ARMAssembler::EQ,
+        DoubleNotEqual = ARMAssembler::NE | DoubleConditionBitSpecial,
         DoubleGreaterThan = ARMAssembler::GT,
         DoubleGreaterThanOrEqual = ARMAssembler::GE,
-        DoubleLessThan = ARMAssembler::LT,
-        DoubleLessThanOrEqual = ARMAssembler::LE,
+        DoubleLessThan = ARMAssembler::CC,
+        DoubleLessThanOrEqual = ARMAssembler::LS,
+        // If either operand is NaN, these conditions always evaluate to true.
+        DoubleEqualOrUnordered = ARMAssembler::EQ | DoubleConditionBitSpecial,
+        DoubleNotEqualOrUnordered = ARMAssembler::NE,
+        DoubleGreaterThanOrUnordered = ARMAssembler::HI,
+        DoubleGreaterThanOrEqualOrUnordered = ARMAssembler::CS,
+        DoubleLessThanOrUnordered = ARMAssembler::LT,
+        DoubleLessThanOrEqualOrUnordered = ARMAssembler::LE,
     };
 
     static const RegisterID stackPointerRegister = ARMRegisters::sp;
+    static const RegisterID linkRegister = ARMRegisters::lr;
 
     static const Scale ScalePtr = TimesFour;
 
@@ -105,14 +118,18 @@ public:
             m_assembler.ands_r(dest, dest, w);
     }
 
+    void lshift32(RegisterID shift_amount, RegisterID dest)
+    {
+        ARMWord w = m_assembler.getImm(0x1f, ARMRegisters::S0, true);
+        ASSERT(!(w & ARMAssembler::OP2_INV_IMM));
+        m_assembler.ands_r(ARMRegisters::S0, shift_amount, w);
+
+        m_assembler.movs_r(dest, m_assembler.lsl_r(dest, ARMRegisters::S0));
+    }
+
     void lshift32(Imm32 imm, RegisterID dest)
     {
         m_assembler.movs_r(dest, m_assembler.lsl(dest, imm.m_value & 0x1f));
-    }
-
-    void lshift32(RegisterID shift_amount, RegisterID dest)
-    {
-        m_assembler.movs_r(dest, m_assembler.lsl_r(dest, shift_amount));
     }
 
     void mul32(RegisterID src, RegisterID dest)
@@ -147,7 +164,11 @@ public:
 
     void rshift32(RegisterID shift_amount, RegisterID dest)
     {
-        m_assembler.movs_r(dest, m_assembler.asr_r(dest, shift_amount));
+        ARMWord w = m_assembler.getImm(0x1f, ARMRegisters::S0, true);
+        ASSERT(!(w & ARMAssembler::OP2_INV_IMM));
+        m_assembler.ands_r(ARMRegisters::S0, shift_amount, w);
+
+        m_assembler.movs_r(dest, m_assembler.asr_r(dest, ARMRegisters::S0));
     }
 
     void rshift32(Imm32 imm, RegisterID dest)
@@ -530,7 +551,7 @@ public:
 
     void ret()
     {
-        pop(ARMRegisters::pc);
+        m_assembler.mov_r(ARMRegisters::pc, linkRegister);
     }
 
     void set32(Condition cond, RegisterID left, RegisterID right, RegisterID dest)
@@ -713,7 +734,9 @@ public:
     {
         m_assembler.fcmpd_r(left, right);
         m_assembler.fmstat();
-        return Jump(m_assembler.jmp(static_cast<ARMAssembler::Condition>(cond)));
+        if (cond & DoubleConditionBitSpecial)
+            m_assembler.cmp_r(ARMRegisters::S0, ARMRegisters::S0, ARMAssembler::VS);
+        return Jump(m_assembler.jmp(static_cast<ARMAssembler::Condition>(cond & ~DoubleConditionMask)));
     }
 
     // Truncates 'src' to an integer, and places the resulting 'dest'.
@@ -726,6 +749,23 @@ public:
         UNUSED_PARAM(dest);
         ASSERT_NOT_REACHED();
         return jump();
+    }
+
+    // Convert 'src' to an integer, and places the resulting 'dest'.
+    // If the result is not representable as a 32 bit value, branch.
+    // May also branch for some values that are representable in 32 bits
+    // (specifically, in this case, 0).
+    void branchConvertDoubleToInt32(FPRegisterID src, RegisterID dest, JumpList& failureCases, FPRegisterID fpTemp)
+    {
+        m_assembler.ftosid_r(src, ARMRegisters::SD0);
+        m_assembler.fmrs_r(ARMRegisters::SD0, dest);
+
+        // Convert the integer result back to float & compare to the original value - if not equal or unordered (NaN) then jump.
+        m_assembler.fsitod_r(ARMRegisters::SD0, ARMRegisters::SD0);
+        failureCases.append(branchDouble(DoubleNotEqual, src, ARMRegisters::SD0));
+
+        // If the result is zero, it might have been -0.0, and 0.0 equals to -0.0
+        failureCases.append(branchTest32(Zero, dest));
     }
 
 protected:
@@ -746,11 +786,9 @@ protected:
 
     void prepareCall()
     {
-        ensureSpace(3 * sizeof(ARMWord), sizeof(ARMWord));
+        ensureSpace(2 * sizeof(ARMWord), sizeof(ARMWord));
 
-        // S0 might be used for parameter passing
-        m_assembler.add_r(ARMRegisters::S1, ARMRegisters::pc, ARMAssembler::OP2_IMM | 0x4);
-        m_assembler.push_r(ARMRegisters::S1);
+        m_assembler.mov_r(linkRegister, ARMRegisters::pc);
     }
 
     void call32(RegisterID base, int32_t offset)

@@ -32,68 +32,22 @@
 
 #include "ExceptionCode.h"
 #include "MessagePort.h"
+#include "SerializedScriptValue.h"
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
 #include "V8MessagePortCustom.h"
 #include "V8MessagePort.h"
-#include "V8ObjectEventListener.h"
 #include "V8Proxy.h"
 #include "V8Utilities.h"
 #include "WorkerContextExecutionProxy.h"
 
 namespace WebCore {
 
-PassRefPtr<EventListener> getEventListener(MessagePort* messagePort, v8::Local<v8::Value> value, bool findOnly, bool createObjectEventListener)
-{
-    V8Proxy* proxy = V8Proxy::retrieve(messagePort->scriptExecutionContext());
-    if (proxy) {
-        V8EventListenerList* list = proxy->objectListeners();
-        return findOnly ? list->findWrapper(value, false) : list->findOrCreateWrapper<V8ObjectEventListener>(proxy->frame(), value, false);
-    }
-
-#if ENABLE(WORKERS)
-    WorkerContextExecutionProxy* workerContextProxy = WorkerContextExecutionProxy::retrieve();
-    if (workerContextProxy)
-        return workerContextProxy->findOrCreateEventListenerHelper(value, false, findOnly, createObjectEventListener);
-#endif
-
-    return PassRefPtr<EventListener>();
-}
-
-ACCESSOR_GETTER(MessagePortOnmessage)
-{
-    INC_STATS("DOM.MessagePort.onmessage._get");
-    MessagePort* messagePort = V8DOMWrapper::convertToNativeObject<MessagePort>(V8ClassIndex::MESSAGEPORT, info.Holder());
-    return V8DOMWrapper::convertEventListenerToV8Object(messagePort->onmessage());
-}
-
-ACCESSOR_SETTER(MessagePortOnmessage)
-{
-    INC_STATS("DOM.MessagePort.onmessage._set");
-    MessagePort* messagePort = V8DOMWrapper::convertToNativeObject<MessagePort>(V8ClassIndex::MESSAGEPORT, info.Holder());
-    if (value->IsNull()) {
-        if (messagePort->onmessage()) {
-            V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(messagePort->onmessage());
-            removeHiddenDependency(info.Holder(), listener->getListenerObject(), V8Custom::kMessagePortRequestCacheIndex);
-        }
-
-        // Clear the listener.
-        messagePort->setOnmessage(0);
-
-    } else {
-        RefPtr<EventListener> listener = getEventListener(messagePort, value, false, false);
-        if (listener) {
-            messagePort->setOnmessage(listener);
-            createHiddenDependency(info.Holder(), value, V8Custom::kMessagePortRequestCacheIndex);
-        }
-    }
-}
-
 CALLBACK_FUNC_DECL(MessagePortAddEventListener)
 {
     INC_STATS("DOM.MessagePort.addEventListener()");
     MessagePort* messagePort = V8DOMWrapper::convertToNativeObject<MessagePort>(V8ClassIndex::MESSAGEPORT, args.Holder());
-    RefPtr<EventListener> listener = getEventListener(messagePort, args[1], false, true);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(messagePort, args[1], false, ListenerFindOrCreate);
     if (listener) {
         String type = toWebCoreString(args[0]);
         bool useCapture = args[2]->BooleanValue();
@@ -108,7 +62,7 @@ CALLBACK_FUNC_DECL(MessagePortRemoveEventListener)
 {
     INC_STATS("DOM.MessagePort.removeEventListener()");
     MessagePort* messagePort = V8DOMWrapper::convertToNativeObject<MessagePort>(V8ClassIndex::MESSAGEPORT, args.Holder());
-    RefPtr<EventListener> listener = getEventListener(messagePort, args[1], true, true);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(messagePort, args[1], false, ListenerFindOnly);
     if (listener) {
         String type = toWebCoreString(args[0]);
         bool useCapture = args[2]->BooleanValue();
@@ -124,14 +78,14 @@ CALLBACK_FUNC_DECL(MessagePortPostMessage)
 {
     INC_STATS("DOM.MessagePort.postMessage");
     MessagePort* messagePort = V8DOMWrapper::convertToNativeObject<MessagePort>(V8ClassIndex::MESSAGEPORT, args.Holder());
-    String message = toWebCoreString(args[0]);
+    RefPtr<SerializedScriptValue> message = SerializedScriptValue::create(toWebCoreString(args[0]));
     MessagePortArray portArray;
     if (args.Length() > 1) {
         if (!getMessagePortArray(args[1], portArray))
             return v8::Undefined();
     }
     ExceptionCode ec = 0;
-    messagePort->postMessage(message, &portArray, ec);
+    messagePort->postMessage(message.release(), &portArray, ec);
     return throwError(ec);
 }
 

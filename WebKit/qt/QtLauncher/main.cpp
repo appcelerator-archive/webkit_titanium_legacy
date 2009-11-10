@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies)
+ * Copyright (C) 2009 Girish Ramakrishnan <girish@forwardbias.in>
  * Copyright (C) 2006 George Staikos <staikos@kde.org>
  * Copyright (C) 2006 Dirk Mueller <mueller@kde.org>
  * Copyright (C) 2006 Zack Rusin <zack@kde.org>
@@ -56,6 +57,15 @@
 void QWEBKIT_EXPORT qt_drt_garbageCollector_collect();
 #endif
 
+static QUrl urlFromUserInput(const QString& input)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    return QUrl::fromUserInput(input);
+#else
+    return QUrl(input);
+#endif
+}
+
 class WebPage : public QWebPage
 {
 public:
@@ -78,6 +88,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QString url = QString()): currentZoom(100) {
         setAttribute(Qt::WA_DeleteOnClose);
+        if (qgetenv("QTLAUNCHER_USE_ARGB_VISUALS").toInt() == 1)
+            setAttribute(Qt::WA_TranslucentBackground);
 
         QSplitter* splitter = new QSplitter(Qt::Vertical, this);
         setCentralWidget(splitter);
@@ -97,12 +109,12 @@ public:
         inspector->setPage(page);
         inspector->hide();
         connect(this, SIGNAL(destroyed()), inspector, SLOT(deleteLater()));
-        connect(page, SIGNAL(webInspectorTriggered(const QWebElement&)), inspector, SLOT(show()));
 
         setupUI();
 
         // set the proxy to the http_proxy env variable - if present
-        QUrl proxyUrl = view->guessUrlFromString(qgetenv("http_proxy"));
+        QUrl proxyUrl = urlFromUserInput(qgetenv("http_proxy"));
+
         if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
             int proxyPort = (proxyUrl.port() > 0)  ? proxyUrl.port() : 8080;
             page->networkAccessManager()->setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort));
@@ -112,7 +124,7 @@ public:
         if (fi.exists() && fi.isRelative())
             url = fi.absoluteFilePath();
 
-        QUrl qurl = view->guessUrlFromString(url);
+        QUrl qurl = urlFromUserInput(url);
         if (qurl.isValid()) {
             urlEdit->setText(qurl.toEncoded());
             view->load(qurl);
@@ -137,7 +149,7 @@ protected slots:
 
     void changeLocation() {
         QString string = urlEdit->text();
-        QUrl url = view->guessUrlFromString(string);
+        QUrl url = urlFromUserInput(string);
         if (!url.isValid())
             url = QUrl("http://" + string + "/");
         urlEdit->setText(url.toEncoded());
@@ -208,10 +220,38 @@ protected slots:
 #endif
     }
 
+    void screenshot()
+    {
+        QPixmap pixmap = QPixmap::grabWidget(view);
+        QLabel* label = new QLabel;
+        label->setAttribute(Qt::WA_DeleteOnClose);
+        label->setWindowTitle("Screenshot - Preview");
+        label->setPixmap(pixmap);
+        label->show();
+
+        QString fileName = QFileDialog::getSaveFileName(label, "Screenshot");
+        if (!fileName.isEmpty()) {
+            pixmap.save(fileName, "png");
+            label->setWindowTitle(QString("Screenshot - Saved at %1").arg(fileName));
+        }
+    }
+
     void setEditable(bool on) {
         view->page()->setContentEditable(on);
         formatMenuAction->setVisible(on);
     }
+
+    /*
+    void dumpPlugins() {
+        QList<QWebPluginInfo> plugins = QWebSettings::pluginDatabase()->plugins();
+        foreach (const QWebPluginInfo plugin, plugins) {
+            qDebug() << "Plugin:" << plugin.name();
+            foreach (const QWebPluginInfo::MimeType mime, plugin.mimeTypes()) {
+                qDebug() << "   " << mime.name;
+            }
+        }
+    }
+    */
 
     void dumpHtml() {
         qDebug() << "HTML: " << view->page()->mainFrame()->toHtml();
@@ -223,7 +263,7 @@ protected slots:
                                             QLineEdit::Normal, "a", &ok);
 
         if (ok && !str.isEmpty()) {
-            QList<QWebElement> result =  view->page()->mainFrame()->findAllElements(str);
+            QWebElementCollection result =  view->page()->mainFrame()->findAllElements(str);
             foreach (QWebElement e, result)
                 e.setStyleProperty("background-color", "yellow");
             statusBar()->showMessage(QString("%1 element(s) selected").arg(result.count()), 5000);
@@ -273,8 +313,9 @@ private:
         QMenu *fileMenu = menuBar()->addMenu("&File");
         QAction *newWindow = fileMenu->addAction("New Window", this, SLOT(newWindow()));
 #if QT_VERSION >= 0x040400
-        fileMenu->addAction(tr("Print"), this, SLOT(print()));
+        fileMenu->addAction(tr("Print"), this, SLOT(print()), QKeySequence::Print);
 #endif
+        QAction* screenshot = fileMenu->addAction("Screenshot", this, SLOT(screenshot()));
         fileMenu->addAction("Close", this, SLOT(close()));
 
         QMenu *editMenu = menuBar()->addMenu("&Edit");
@@ -300,6 +341,7 @@ private:
         zoomTextOnly->setChecked(false);
         viewMenu->addSeparator();
         viewMenu->addAction("Dump HTML", this, SLOT(dumpHtml()));
+        //viewMenu->addAction("Dump plugins", this, SLOT(dumpPlugins()));
 
         QMenu *formatMenu = new QMenu("F&ormat", this);
         formatMenuAction = menuBar()->addMenu(formatMenu);
@@ -313,6 +355,7 @@ private:
         writingMenu->addAction(view->pageAction(QWebPage::SetTextDirectionRightToLeft));
 
         newWindow->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
+        screenshot->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
         view->pageAction(QWebPage::Back)->setShortcut(QKeySequence::Back);
         view->pageAction(QWebPage::Stop)->setShortcut(Qt::Key_Escape);
         view->pageAction(QWebPage::Forward)->setShortcut(QKeySequence::Forward);
@@ -384,6 +427,7 @@ public:
     URLLoader(QWebView* view, const QString& inputFileName)
         : m_view(view)
         , m_stdOut(stdout)
+        , m_loaded(0)
     {
         init(inputFileName);
     }
@@ -395,7 +439,7 @@ public slots:
         if (getUrl(qstr)) {
             QUrl url(qstr, QUrl::StrictMode);
             if (url.isValid()) {
-                m_stdOut << "Loading " << qstr << " ......" << endl;
+                m_stdOut << "Loading " << qstr << " ......" << ++m_loaded << endl;
                 m_view->load(url);
             } else
                 loadNext();
@@ -438,6 +482,7 @@ private:
     int m_index;
     QWebView* m_view;
     QTextStream m_stdOut;
+    int m_loaded;
 };
 
 #include "main.moc"

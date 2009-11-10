@@ -46,6 +46,7 @@
 
 #include "ScriptCallStack.h"
 #include <stdio.h>
+#include <wtf/UnusedParam.h>
 
 namespace WebCore {
 
@@ -247,8 +248,7 @@ void Console::assertCondition(bool condition, ScriptCallStack* callStack)
     if (condition)
         return;
 
-    // FIXME: <https://bugs.webkit.org/show_bug.cgi?id=19135> It would be nice to prefix assertion failures with a message like "Assertion failed: ".
-    addMessage(LogMessageType, ErrorMessageLevel, callStack, true);
+    addMessage(AssertMessageType, ErrorMessageLevel, callStack, true);
 }
 
 void Console::count(ScriptCallStack* callStack)
@@ -265,6 +265,23 @@ void Console::count(ScriptCallStack* callStack)
     getFirstArgumentAsString(callStack->state(), lastCaller, title);
 
     page->inspectorController()->count(title, lastCaller.lineNumber(), lastCaller.sourceURL().string());
+#else
+    UNUSED_PARAM(callStack);
+#endif
+}
+
+void Console::markTimeline(ScriptCallStack* callStack)
+{
+#if ENABLE(INSPECTOR)
+    Page* page = this->page();
+    if (!page)
+        return;
+
+    const ScriptCallFrame& lastCaller = callStack->at(0);
+    String message;
+    getFirstArgumentAsString(callStack->state(), lastCaller, message);
+
+    page->inspectorController()->markTimeline(message);
 #else
     UNUSED_PARAM(callStack);
 #endif

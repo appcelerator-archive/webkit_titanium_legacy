@@ -1,6 +1,4 @@
 /*
- * This file is part of the DOM implementation for KDE.
- *
  * Copyright (C) 1999 Lars Knoll (knoll@kde.org)
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
@@ -67,6 +65,11 @@ bool eventDispatchForbidden()
     return gEventDispatchForbidden > 0;
 }
 #endif // NDEBUG
+
+EventTargetData::~EventTargetData()
+{
+    deleteAllValues(eventListenerMap);
+}
 
 EventTarget::~EventTarget()
 {
@@ -157,16 +160,19 @@ bool EventTarget::addEventListener(const AtomicString& eventType, PassRefPtr<Eve
 {
     EventTargetData* d = ensureEventTargetData();
 
-    pair<EventListenerMap::iterator, bool> result = d->eventListenerMap.add(eventType, EventListenerVector());
-    EventListenerVector& entry = result.first->second;
+    pair<EventListenerMap::iterator, bool> result = d->eventListenerMap.add(eventType, 0);
+    EventListenerVector*& entry = result.first->second;
+    const bool isNewEntry = result.second;
+    if (isNewEntry)
+        entry = new EventListenerVector();
 
     RegisteredEventListener registeredListener(listener, useCapture);
-    if (!result.second) { // pre-existing entry
-        if (entry.find(registeredListener) != notFound) // duplicate listener
+    if (!isNewEntry) {
+        if (entry->find(registeredListener) != notFound) // duplicate listener
             return false;
     }
 
-    entry.append(registeredListener);
+    entry->append(registeredListener);
     return true;
 }
 
@@ -179,22 +185,31 @@ bool EventTarget::removeEventListener(const AtomicString& eventType, EventListen
     EventListenerMap::iterator result = d->eventListenerMap.find(eventType);
     if (result == d->eventListenerMap.end())
         return false;
-    EventListenerVector& entry = result->second;
+    EventListenerVector* entry = result->second;
 
     RegisteredEventListener registeredListener(listener, useCapture);
-    size_t index = entry.find(registeredListener);
+    size_t index = entry->find(registeredListener);
     if (index == notFound)
         return false;
 
-    entry.remove(index);
-    if (!entry.size())
+    entry->remove(index);
+    if (entry->isEmpty()) {
+        delete entry;
         d->eventListenerMap.remove(result);
+    }
 
     // Notify firing events planning to invoke the listener at 'index' that
     // they have one less listener to invoke.
-    for (size_t i = 0; i < d->firingEventEndIterators.size(); ++i) {
-        if (eventType == *d->firingEventEndIterators[i].eventType && index < *d->firingEventEndIterators[i].value)
-            --*d->firingEventEndIterators[i].value;
+    for (size_t i = 0; i < d->firingEventIterators.size(); ++i) {
+        if (eventType != d->firingEventIterators[i].eventType)
+            continue;
+
+        if (index >= d->firingEventIterators[i].end)
+            continue;
+
+        --d->firingEventIterators[i].end;
+        if (index <= d->firingEventIterators[i].iterator)
+            --d->firingEventIterators[i].iterator;
     }
 
     return true;
@@ -232,6 +247,10 @@ bool EventTarget::dispatchEvent(PassRefPtr<Event> event, ExceptionCode& ec)
         ec = EventException::UNSPECIFIED_EVENT_TYPE_ERR;
         return false;
     }
+
+    if (!scriptExecutionContext())
+        return false;
+
     return dispatchEvent(event);
 }
 
@@ -255,13 +274,19 @@ bool EventTarget::fireEventListeners(Event* event)
     EventListenerMap::iterator result = d->eventListenerMap.find(event->type());
     if (result == d->eventListenerMap.end())
         return false;
-    EventListenerVector& entry = result->second;
+    EventListenerVector& entry = *result->second;
 
     RefPtr<EventTarget> protect = this;
 
+    // Fire all listeners registered for this event. Don't fire listeners removed
+    // during event dispatch. Also, don't fire event listeners added during event
+    // dispatch. Conveniently, all new event listeners will be added after 'end',
+    // so iterating to 'end' naturally excludes new event listeners.
+
+    size_t i = 0;
     size_t end = entry.size();
-    d->firingEventEndIterators.append(FiringEventEndIterator(&event->type(), &end));
-    for (size_t i = 0; i < end; ++i) {
+    d->firingEventIterators.append(FiringEventIterator(event->type(), i, end));
+    for ( ; i < end; ++i) {
         RegisteredEventListener& registeredListener = entry[i];
         if (event->eventPhase() == Event::CAPTURING_PHASE && !registeredListener.useCapture)
             continue;
@@ -271,7 +296,7 @@ bool EventTarget::fireEventListeners(Event* event)
         // event listeners, even though that violates some versions of the DOM spec.
         registeredListener.listener->handleEvent(scriptExecutionContext(), event);
     }
-    d->firingEventEndIterators.removeLast();
+    d->firingEventIterators.removeLast();
 
     return !event->defaultPrevented();
 }
@@ -286,7 +311,7 @@ const EventListenerVector& EventTarget::getEventListeners(const AtomicString& ev
     EventListenerMap::iterator it = d->eventListenerMap.find(eventType);
     if (it == d->eventListenerMap.end())
         return emptyVector;
-    return it->second;
+    return *it->second;
 }
 
 void EventTarget::removeAllEventListeners()
@@ -294,12 +319,15 @@ void EventTarget::removeAllEventListeners()
     EventTargetData* d = eventTargetData();
     if (!d)
         return;
+    deleteAllValues(d->eventListenerMap);
     d->eventListenerMap.clear();
 
     // Notify firing events planning to invoke the listener at 'index' that
     // they have one less listener to invoke.
-    for (size_t i = 0; i < d->firingEventEndIterators.size(); ++i)
-        *d->firingEventEndIterators[i].value = 0;
+    for (size_t i = 0; i < d->firingEventIterators.size(); ++i) {
+        d->firingEventIterators[i].iterator = 0;
+        d->firingEventIterators[i].end = 0;
+    }
 }
 
 } // namespace WebCore

@@ -33,6 +33,8 @@
 
 #include "V8Attr.h"
 #include "V8BarInfo.h"
+#include "V8BeforeLoadEvent.h"
+#include "V8WebGLActiveInfo.h"
 #include "V8CanvasRenderingContext.h"
 #include "V8CanvasRenderingContext2D.h"
 #include "V8CanvasGradient.h"
@@ -63,7 +65,6 @@
 #include "V8CSSVariablesRule.h"
 #include "V8DataGridColumn.h"
 #include "V8DataGridColumnList.h"
-#include "V8Database.h"
 #include "V8Document.h"
 #include "V8DocumentFragment.h"
 #include "V8DocumentType.h"
@@ -142,7 +143,6 @@
 #include "V8HTMLTitleElement.h"
 #include "V8HTMLUListElement.h"
 #include "V8ImageData.h"
-#include "V8InspectorBackend.h"
 #include "V8Media.h"
 #include "V8MediaList.h"
 #include "V8MessageChannel.h"
@@ -190,26 +190,16 @@
 #include "V8Range.h"
 #include "V8RangeException.h"
 #include "V8Rect.h"
-#include "V8SQLError.h"
-#include "V8SQLResultSet.h"
-#include "V8SQLResultSetRowList.h"
-#include "V8SQLTransaction.h"
 #include "V8NodeIterator.h"
 #include "V8TextMetrics.h"
 #include "V8TreeWalker.h"
 #include "V8StyleSheetList.h"
 #include "V8DOMImplementation.h"
-#include "V8XPathResult.h"
-#include "V8XPathException.h"
-#include "V8XPathExpression.h"
-#include "V8XPathNSResolver.h"
 #include "V8XMLHttpRequest.h"
 #include "V8XMLHttpRequestException.h"
 #include "V8XMLHttpRequestProgressEvent.h"
 #include "V8XMLHttpRequestUpload.h"
 #include "V8XMLSerializer.h"
-#include "V8XPathEvaluator.h"
-#include "V8XSLTProcessor.h"
 #include "V8RGBColor.h"
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
@@ -366,7 +356,6 @@
 #include "V8SVGTransform.h"
 #include "V8SVGTransformList.h"
 #include "V8SVGUnitTypes.h"
-#include "V8SVGURIReference.h"
 #include "V8SVGZoomEvent.h"
 #endif
 
@@ -400,25 +389,50 @@
 
 #if ENABLE(SHARED_WORKERS)
 #include "V8SharedWorker.h"
+#include "V8SharedWorkerContext.h"
 #endif
 
 #if ENABLE(3D_CANVAS)
-#include "V8CanvasRenderingContext3D.h"
-#include "V8CanvasArrayBuffer.h"
-#include "V8CanvasArray.h"
-#include "V8CanvasByteArray.h"
-#include "V8CanvasBuffer.h"
-#include "V8CanvasFloatArray.h"
-#include "V8CanvasFramebuffer.h"
-#include "V8CanvasIntArray.h"
-#include "V8CanvasProgram.h"
-#include "V8CanvasRenderbuffer.h"
-#include "V8CanvasShader.h"
-#include "V8CanvasShortArray.h"
-#include "V8CanvasTexture.h"
-#include "V8CanvasUnsignedByteArray.h"
-#include "V8CanvasUnsignedIntArray.h"
-#include "V8CanvasUnsignedShortArray.h"
+#include "V8WebGLRenderingContext.h"
+#include "V8WebGLArrayBuffer.h"
+#include "V8WebGLArray.h"
+#include "V8WebGLByteArray.h"
+#include "V8WebGLBuffer.h"
+#include "V8WebGLFloatArray.h"
+#include "V8WebGLFramebuffer.h"
+#include "V8WebGLIntArray.h"
+#include "V8WebGLProgram.h"
+#include "V8WebGLRenderbuffer.h"
+#include "V8WebGLShader.h"
+#include "V8WebGLShortArray.h"
+#include "V8WebGLTexture.h"
+#include "V8WebGLUnsignedByteArray.h"
+#include "V8WebGLUnsignedIntArray.h"
+#include "V8WebGLUnsignedShortArray.h"
+#endif
+
+#if ENABLE(DATABASE)
+#include "V8Database.h"
+#include "V8SQLError.h"
+#include "V8SQLResultSet.h"
+#include "V8SQLResultSetRowList.h"
+#include "V8SQLTransaction.h"
+#endif
+
+#if ENABLE(XPATH)
+#include "V8XPathResult.h"
+#include "V8XPathException.h"
+#include "V8XPathExpression.h"
+#include "V8XPathNSResolver.h"
+#include "V8XPathEvaluator.h"
+#endif
+
+#if ENABLE(XSLT)
+#include "V8XSLTProcessor.h"
+#endif
+
+#if ENABLE(INSPECTOR)
+#include "V8InspectorBackend.h"
 #endif
 
 namespace WebCore {

@@ -31,31 +31,32 @@
 #ifndef DOMObjectsInclude_h
 #define DOMObjectsInclude_h
 
-#include "AbstractWorker.h"
 #include "BarInfo.h"
-#include "CanvasArray.h"
-#include "CanvasArrayBuffer.h"
-#include "CanvasBuffer.h"
-#include "CanvasByteArray.h"
-#include "CanvasFloatArray.h"
-#include "CanvasFramebuffer.h"
+#include "BeforeLoadEvent.h"
+#include "WebGLActiveInfo.h"
+#include "WebGLArray.h"
+#include "WebGLArrayBuffer.h"
+#include "WebGLBuffer.h"
+#include "WebGLByteArray.h"
+#include "WebGLFloatArray.h"
+#include "WebGLFramebuffer.h"
 #include "CanvasGradient.h"
-#include "CanvasIntArray.h"
+#include "WebGLIntArray.h"
 #include "CanvasObject.h"
 #include "CanvasPattern.h"
 #include "CanvasPixelArray.h"
-#include "CanvasProgram.h"
-#include "CanvasRenderbuffer.h"
+#include "WebGLProgram.h"
+#include "WebGLRenderbuffer.h"
 #include "CanvasRenderingContext.h"
 #include "CanvasRenderingContext2D.h"
-#include "CanvasRenderingContext3D.h"
-#include "CanvasShader.h"
-#include "CanvasShortArray.h"
-#include "CanvasUnsignedByteArray.h"
-#include "CanvasUnsignedIntArray.h"
-#include "CanvasUnsignedShortArray.h"
+#include "WebGLRenderingContext.h"
+#include "WebGLShader.h"
+#include "WebGLShortArray.h"
+#include "WebGLUnsignedByteArray.h"
+#include "WebGLUnsignedIntArray.h"
+#include "WebGLUnsignedShortArray.h"
 #include "CanvasStyle.h"
-#include "CanvasTexture.h"
+#include "WebGLTexture.h"
 #include "CharacterData.h"
 #include "ClientRect.h"
 #include "ClientRectList.h"
@@ -75,7 +76,6 @@
 #include "CSSValueList.h"
 #include "CSSVariablesDeclaration.h"
 #include "CSSVariablesRule.h"
-#include "Database.h"
 #include "DocumentType.h"
 #include "DocumentFragment.h"
 #include "DOMCoreException.h"
@@ -104,7 +104,6 @@
 #include "HTMLSelectElement.h"
 #include "HTMLOptionsCollection.h"
 #include "ImageData.h"
-#include "InspectorBackend.h"
 #include "KeyboardEvent.h"
 #include "Location.h"
 #include "Media.h"
@@ -137,27 +136,18 @@
 #include "ScriptExecutionContext.h"
 #include "SecurityOrigin.h"
 #include "Settings.h"
-#include "SharedWorker.h"
-#include "SharedWorkerContext.h"
-#include "SQLTransaction.h"
-#include "SQLResultSet.h"
-#include "SQLResultSetRowList.h"
 #include "StyleSheet.h"
 #include "StyleSheetList.h"
-#include "SVGColor.h"
-#include "SVGPaint.h"
 #include "TextEvent.h"
 #include "TextMetrics.h"
 #include "TimeRanges.h"
 #include "TreeWalker.h"
-#include "XSLTProcessor.h"
 #include "V8AbstractEventListener.h"
 #include "V8CustomEventListener.h"
 #include "V8DOMWindow.h"
 #include "V8HTMLElement.h"
 #include "V8LazyEventListener.h"
 #include "V8NodeFilterCondition.h"
-#include "V8ObjectEventListener.h"
 #include "ValidityState.h"
 #include "WebKitAnimationEvent.h"
 #include "WebKitCSSKeyframeRule.h"
@@ -172,14 +162,17 @@
 #include "XMLHttpRequestProgressEvent.h"
 #include "XMLHttpRequestUpload.h"
 #include "XMLSerializer.h"
-#include "XPathException.h"
-#include "XPathExpression.h"
-#include "XPathNSResolver.h"
-#include "XPathResult.h"
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
 #include "DOMApplicationCache.h"
 #endif
+
+#if ENABLE(DATABASE)
+#include "Database.h"
+#include "SQLTransaction.h"
+#include "SQLResultSet.h"
+#include "SQLResultSetRowList.h"
+#endif // DATABASE
 
 #if ENABLE(DATAGRID)
 #include "DataGridColumn.h"
@@ -194,6 +187,7 @@
 #if ENABLE(SVG)
 #include "SVGAngle.h"
 #include "SVGAnimatedPoints.h"
+#include "SVGColor.h"
 #include "SVGElement.h"
 #include "SVGElementInstance.h"
 #include "SVGElementInstanceList.h"
@@ -201,6 +195,7 @@
 #include "SVGLength.h"
 #include "SVGLengthList.h"
 #include "SVGNumberList.h"
+#include "SVGPaint.h"
 #include "SVGPathSeg.h"
 #include "SVGPathSegArc.h"
 #include "SVGPathSegClosePath.h"
@@ -230,12 +225,18 @@
 #endif
 
 #if ENABLE(WORKERS)
+#include "AbstractWorker.h"
 #include "DedicatedWorkerContext.h"
 #include "Worker.h"
 #include "WorkerContext.h"
 #include "WorkerLocation.h"
 #include "WorkerNavigator.h"
 #endif // WORKERS
+
+#if ENABLE(SHARED_WORKERS)
+#include "SharedWorker.h"
+#include "SharedWorkerContext.h"
+#endif  // SHARED_WORKERS
 
 #if ENABLE(NOTIFICATIONS)
 #include "Notification.h"
@@ -244,7 +245,19 @@
 
 #if ENABLE(XPATH)
 #include "XPathEvaluator.h"
+#include "XPathException.h"
+#include "XPathExpression.h"
+#include "XPathNSResolver.h"
+#include "XPathResult.h"
 #endif // XPATH
+
+#if ENABLE(XSLT)
+#include "XSLTProcessor.h"
+#endif // XSLT
+
+#if ENABLE(INSPECTOR)
+#include "InspectorBackend.h"
+#endif // INSPECTOR
 
 namespace WebCore {
 

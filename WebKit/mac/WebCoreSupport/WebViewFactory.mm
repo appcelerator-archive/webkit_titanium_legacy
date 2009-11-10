@@ -587,6 +587,8 @@
         return UI_STRING("search", "An ARIA accessibility group that contains a search feature of a website.");    
     if ([ariaType isEqualToString:@"ARIAUserInterfaceTooltip"])
         return UI_STRING("tooltip", "An ARIA accessibility group that acts as a tooltip.");    
+    if ([ariaType isEqualToString:@"ARIATabPanel"])
+        return UI_STRING("tab panel", "An ARIA accessibility group that contenst the content of a tab.");
     return nil;
 }
 
@@ -651,6 +653,10 @@
         return UI_STRING("audio element controller", "accessibility role description for audio element controller");
     if ([name isEqualToString:@"VideoElement"])
         return UI_STRING("video element controller", "accessibility role description for video element controller");
+
+    // FIXME: the ControlsPanel container should never be visible in the accessibility hierarchy.
+    if ([name isEqualToString:@"ControlsPanel"])
+        return @"";
 
     if ([name isEqualToString:@"MuteButton"])
         return UI_STRING("mute", "accessibility role description for mute button");
@@ -726,7 +732,7 @@
 - (NSString*)localizedMediaTimeDescription:(float)time
 {
     if (!isfinite(time))
-        return UI_STRING("indefinite time", "string for an indefinite movie time");
+        return UI_STRING("indefinite time", "accessibility help text for an indefinite media controller time value");
 
     int seconds = (int)fabsf(time); 
     int days = seconds / (60 * 60 * 24);
@@ -735,13 +741,13 @@
     seconds %= 60;
 
     if (days)
-        return [NSString stringWithFormat:UI_STRING("date.format.for.days", "string for days, hours, minutes & seconds"), days, hours, minutes, seconds];
+        return [NSString stringWithFormat:UI_STRING("%1$d days %2$d hours %3$d minutes %4$d seconds", "accessibility help text for media controller time value >= 1 day"), days, hours, minutes, seconds];
     else if (hours)
-        return [NSString stringWithFormat:UI_STRING("date.format.for.hours", "string for hours, minutes & seconds"), hours, minutes, seconds];
+        return [NSString stringWithFormat:UI_STRING("%1$d hours %2$d minutes %3$d seconds", "accessibility help text for media controller time value >= 60 minutes"), hours, minutes, seconds];
     else if (minutes)
-        return [NSString stringWithFormat:UI_STRING("date.format.for.minutes", "string for minutes & seconds"), minutes, seconds];
+        return [NSString stringWithFormat:UI_STRING("%1$d minutes %2$d seconds", "accessibility help text for media controller time value >= 60 seconds"), minutes, seconds];
 
-    return [NSString stringWithFormat:UI_STRING("date.format.for.seconds", "string for seconds"), seconds];
+    return [NSString stringWithFormat:UI_STRING("%1$d seconds", "accessibility help text for media controller time value < 60 seconds"), seconds];
 }
 
 @end

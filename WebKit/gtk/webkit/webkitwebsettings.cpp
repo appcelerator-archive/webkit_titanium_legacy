@@ -96,6 +96,8 @@ struct _WebKitWebSettingsPrivate {
     gboolean enable_offline_web_application_cache;
     WebKitEditingBehavior editing_behavior;
     gboolean enable_universal_access_from_file_uris;
+    gboolean enable_dom_paste;
+    gboolean tab_key_cycles_through_elements;
 };
 
 #define WEBKIT_WEB_SETTINGS_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE((obj), WEBKIT_TYPE_WEB_SETTINGS, WebKitWebSettingsPrivate))
@@ -135,7 +137,9 @@ enum {
     PROP_JAVASCRIPT_CAN_OPEN_WINDOWS_AUTOMATICALLY,
     PROP_ENABLE_OFFLINE_WEB_APPLICATION_CACHE,
     PROP_EDITING_BEHAVIOR,
-    PROP_ENABLE_UNIVERSAL_ACCESS_FROM_FILE_URIS
+    PROP_ENABLE_UNIVERSAL_ACCESS_FROM_FILE_URIS,
+    PROP_ENABLE_DOM_PASTE,
+    PROP_TAB_KEY_CYCLES_THROUGH_ELEMENTS
 };
 
 // Create a default user agent string
@@ -647,6 +651,41 @@ static void webkit_web_settings_class_init(WebKitWebSettingsClass* klass)
                                                          FALSE,
                                                          flags));
 
+    /**
+     * WebKitWebSettings:enable-dom-paste
+     *
+     * Whether to enable DOM paste. If set to %TRUE, document.execCommand("Paste")
+     * will correctly execute and paste content of the clipboard.
+     *
+     * Since: 1.1.16
+     */
+    g_object_class_install_property(gobject_class,
+                                    PROP_ENABLE_DOM_PASTE,
+                                    g_param_spec_boolean("enable-dom-paste",
+                                                         _("Enable DOM paste"),
+                                                         _("Whether to enable DOM paste"),
+                                                         FALSE,
+                                                         flags));
+    /**
+    * WebKitWebView:tab-key-cycles-through-elements:
+    *
+    * Whether the tab key cycles through elements on the page.
+    *
+    * If @flag is %TRUE, pressing the tab key will focus the next element in
+    * the @web_view. If @flag is %FALSE, the @web_view will interpret tab
+    * key presses as normal key presses. If the selected element is editable, the
+    * tab key will cause the insertion of a tab character.
+    *
+    * Since: 1.1.16
+    */
+    g_object_class_install_property(gobject_class,
+                                    PROP_TAB_KEY_CYCLES_THROUGH_ELEMENTS,
+                                    g_param_spec_boolean("tab-key-cycles-through-elements",
+                                                         "Tab key cycles through elements",
+                                                         "Whether the tab key cycles through elements on the page.",
+                                                         TRUE,
+                                                         WEBKIT_PARAM_READWRITE));
+
     g_type_class_add_private(klass, sizeof(WebKitWebSettingsPrivate));
 }
 
@@ -694,6 +733,7 @@ static void webkit_web_settings_set_property(GObject* object, guint prop_id, con
 {
     WebKitWebSettings* web_settings = WEBKIT_WEB_SETTINGS(object);
     WebKitWebSettingsPrivate* priv = web_settings->priv;
+    EnchantBroker* broker;
     SpellLanguage* lang;
     GSList* spellLanguages = NULL;
 
@@ -787,26 +827,32 @@ static void webkit_web_settings_set_property(GObject* object, guint prop_id, con
     case PROP_SPELL_CHECKING_LANGUAGES:
         priv->spell_checking_languages = g_strdup(g_value_get_string(value));
 
+        broker = enchant_broker_init();
         if (priv->spell_checking_languages) {
             char** langs = g_strsplit(priv->spell_checking_languages, ",", -1);
             for (int i = 0; langs[i]; i++) {
-                lang = g_slice_new0(SpellLanguage);
-                lang->config = enchant_broker_init();
-                lang->speller = enchant_broker_request_dict(lang->config, langs[i]);
+                if (enchant_broker_dict_exists(broker, langs[i])) {
+                    lang = g_slice_new0(SpellLanguage);
+                    lang->config = enchant_broker_init();
+                    lang->speller = enchant_broker_request_dict(lang->config, langs[i]);
 
-                spellLanguages = g_slist_append(spellLanguages, lang);
+                    spellLanguages = g_slist_append(spellLanguages, lang);
+                }
             }
 
             g_strfreev(langs);
         } else {
             const char* language = pango_language_to_string(gtk_get_default_language());
 
-            lang = g_slice_new0(SpellLanguage);
-            lang->config = enchant_broker_init();
-            lang->speller = enchant_broker_request_dict(lang->config, language);
+            if (enchant_broker_dict_exists(broker, language)) {
+                lang = g_slice_new0(SpellLanguage);
+                lang->config = enchant_broker_init();
+                lang->speller = enchant_broker_request_dict(lang->config, language);
 
-            spellLanguages = g_slist_append(spellLanguages, lang);
+                spellLanguages = g_slist_append(spellLanguages, lang);
+            }
         }
+        enchant_broker_free(broker);
         g_slist_foreach(priv->spell_checking_languages_list, free_spell_checking_language, NULL);
         g_slist_free(priv->spell_checking_languages_list);
         priv->spell_checking_languages_list = spellLanguages;
@@ -832,6 +878,12 @@ static void webkit_web_settings_set_property(GObject* object, guint prop_id, con
         break;
     case PROP_ENABLE_UNIVERSAL_ACCESS_FROM_FILE_URIS:
         priv->enable_universal_access_from_file_uris = g_value_get_boolean(value);
+        break;
+    case PROP_ENABLE_DOM_PASTE:
+        priv->enable_dom_paste = g_value_get_boolean(value);
+        break;
+    case PROP_TAB_KEY_CYCLES_THROUGH_ELEMENTS:
+        priv->tab_key_cycles_through_elements =  g_value_get_boolean(value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -944,6 +996,12 @@ static void webkit_web_settings_get_property(GObject* object, guint prop_id, GVa
    case PROP_ENABLE_UNIVERSAL_ACCESS_FROM_FILE_URIS:
         g_value_set_boolean(value, priv->enable_universal_access_from_file_uris);
         break;
+    case PROP_ENABLE_DOM_PASTE:
+        g_value_set_boolean(value, priv->enable_dom_paste);
+        break;
+    case PROP_TAB_KEY_CYCLES_THROUGH_ELEMENTS:
+        g_value_set_boolean(value, priv->tab_key_cycles_through_elements);
+        break;
    default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
         break;
@@ -1008,6 +1066,7 @@ WebKitWebSettings* webkit_web_settings_copy(WebKitWebSettings* web_settings)
                  "enable-offline-web-application-cache", priv->enable_offline_web_application_cache,
                  "editing-behavior", priv->editing_behavior,
                  "enable-universal-access-from-file-uris", priv->enable_universal_access_from_file_uris,
+                 "enable-dom-paste", priv->enable_dom_paste,
                  NULL));
 
     return copy;

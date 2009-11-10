@@ -72,6 +72,9 @@ public:
     void setMarginWidth(int);
     void setMarginHeight(int);
 
+    virtual void setCanHaveScrollbars(bool);
+    void updateCanHaveScrollbars();
+
     virtual PassRefPtr<Scrollbar> createScrollbar(ScrollbarOrientation);
 
     virtual void setContentsSize(const IntSize&);
@@ -183,6 +186,8 @@ public:
 
     void adjustPageHeight(float* newBottom, float oldTop, float oldBottom, float bottomLimit);
 
+    bool scrollToFragment(const KURL&);
+    bool scrollToAnchor(const String&);
     void maintainScrollPositionAtAnchor(Node*);
 
     // Methods to convert points and rects between the coordinate space of the renderer, and this view.
@@ -204,6 +209,7 @@ private:
 
     friend class RenderWidget;
     bool useSlowRepaints() const;
+    bool useSlowRepaintsIfNotOverlapped() const;
 
     void applyOverflowToViewport(RenderObject*, ScrollbarMode& hMode, ScrollbarMode& vMode);
 
@@ -255,6 +261,7 @@ private:
 
     bool m_doFullRepaint;
     
+    bool m_canHaveScrollbars;
     bool m_useSlowRepaints;
     bool m_isOverlapped;
     bool m_contentIsOpaque;

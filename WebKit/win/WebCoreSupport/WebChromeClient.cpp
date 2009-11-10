@@ -156,6 +156,10 @@ void WebChromeClient::takeFocus(FocusDirection direction)
     }
 }
 
+void WebChromeClient::focusedNodeChanged(Node*)
+{
+}
+
 static COMPtr<IPropertyBag> createWindowFeaturesPropertyBag(const WindowFeatures& features)
 {
     HashMap<String, COMVariant> map;
@@ -594,6 +598,13 @@ void WebChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
 
 void WebChromeClient::populateVisitedLinks()
 {
+    COMPtr<IWebHistoryDelegate> historyDelegate;
+    m_webView->historyDelegate(&historyDelegate);
+    if (historyDelegate) {
+        historyDelegate->populateVisitedLinksForWebView(m_webView);
+        return;
+    }
+
     WebHistory* history = WebHistory::sharedHistory();
     if (!history)
         return;

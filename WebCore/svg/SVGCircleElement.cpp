@@ -2,8 +2,6 @@
     Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
                   2004, 2005, 2006, 2007 Rob Buis <buis@kde.org>
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -41,6 +39,7 @@ SVGCircleElement::SVGCircleElement(const QualifiedName& tagName, Document* doc)
     , m_cx(this, SVGNames::cxAttr, LengthModeWidth)
     , m_cy(this, SVGNames::cyAttr, LengthModeHeight)
     , m_r(this, SVGNames::rAttr, LengthModeOther)
+    , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
 {
 }
 

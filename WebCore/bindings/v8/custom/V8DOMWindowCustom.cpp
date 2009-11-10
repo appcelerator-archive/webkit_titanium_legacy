@@ -45,11 +45,19 @@
 #include "FrameLoadRequest.h"
 #include "FrameView.h"
 #include "HTMLCollection.h"
+#include "MediaPlayer.h"
 #include "Page.h"
 #include "PlatformScreen.h"
+#include "RuntimeEnabledFeatures.h"
 #include "ScheduledAction.h"
 #include "ScriptSourceCode.h"
+#include "SerializedScriptValue.h"
 #include "Settings.h"
+#include "SharedWorkerRepository.h"
+#include "Storage.h"
+#if ENABLE(WEB_SOCKETS)
+#include "WebSocket.h"
+#endif
 #include "WindowFeatures.h"
 
 // Horizontal and vertical offset, from the parent content area, around newly
@@ -197,11 +205,7 @@ ACCESSOR_GETTER(DOMWindowCrypto)
 
 ACCESSOR_SETTER(DOMWindowLocation)
 {
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return;
-
-    DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
+    DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     WindowSetLocation(imp, toWebCoreString(value));
 }
 
@@ -238,6 +242,78 @@ ACCESSOR_GETTER(DOMWindowAudio)
     return V8DOMWrapper::getConstructor(V8ClassIndex::AUDIO, window);
 }
 
+ACCESSOR_RUNTIME_ENABLER(DOMWindowAudio)
+{
+    return MediaPlayer::isAvailable();
+}
+
+ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLMediaElement)
+{
+    return MediaPlayer::isAvailable();
+}
+
+ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLAudioElement)
+{
+    return MediaPlayer::isAvailable();
+}
+
+ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLVideoElement)
+{
+    return MediaPlayer::isAvailable();
+}
+
+ACCESSOR_RUNTIME_ENABLER(DOMWindowMediaError)
+{
+    return MediaPlayer::isAvailable();
+}
+
+#endif
+
+#if ENABLE(SHARED_WORKERS)
+ACCESSOR_RUNTIME_ENABLER(DOMWindowSharedWorker)
+{
+    return SharedWorkerRepository::isAvailable();
+}
+#endif
+
+#if ENABLE(WEB_SOCKETS)
+ACCESSOR_RUNTIME_ENABLER(DOMWindowWebSocket)
+{
+    return WebSocket::isAvailable();
+}
+#endif
+
+#if ENABLE(DATABASE)
+ACCESSOR_RUNTIME_ENABLER(DOMWindowOpenDatabase)
+{
+    return WebCore::RuntimeEnabledFeatures::databaseEnabled();
+}
+#endif
+
+#if ENABLE(DOM_STORAGE)
+ACCESSOR_RUNTIME_ENABLER(DOMWindowLocalStorage)
+{
+    return RuntimeEnabledFeatures::localStorageEnabled();
+}
+
+ACCESSOR_RUNTIME_ENABLER(DOMWindowSessionStorage)
+{
+    return RuntimeEnabledFeatures::sessionStorageEnabled();
+}
+#endif
+
+#if ENABLE(NOTIFICATIONS)
+ACCESSOR_RUNTIME_ENABLER(DOMWindowWebkitNotifications)
+{
+    return RuntimeEnabledFeatures::notificationsEnabled();
+}
+#endif
+
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+ACCESSOR_RUNTIME_ENABLER(DOMWindowApplicationCache)
+{
+    return RuntimeEnabledFeatures::applicationCacheEnabled();
+}
 #endif
 
 ACCESSOR_GETTER(DOMWindowImage)
@@ -274,10 +350,12 @@ CALLBACK_FUNC_DECL(DOMWindowAddEventListener)
     if (!proxy)
         return v8::Undefined();
 
-    RefPtr<EventListener> listener = proxy->eventListeners()->findOrCreateWrapper<V8EventListener>(proxy->frame(), args[1], false);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(proxy, args[1], false, ListenerFindOrCreate);
 
-    if (listener)
+    if (listener) {
         imp->addEventListener(eventType, listener, useCapture);
+        createHiddenDependency(args.Holder(), args[1], V8Custom::kDOMWindowEventListenerCacheIndex);
+    }
 
     return v8::Undefined();
 }
@@ -304,10 +382,12 @@ CALLBACK_FUNC_DECL(DOMWindowRemoveEventListener)
     if (!proxy)
         return v8::Undefined();
 
-    RefPtr<EventListener> listener = proxy->eventListeners()->findWrapper(args[1], false);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(proxy, args[1], false, ListenerFindOnly);
 
-    if (listener)
+    if (listener) {
         imp->removeEventListener(eventType, listener.get(), useCapture);
+        removeHiddenDependency(args.Holder(), args[1], V8Custom::kDOMWindowEventListenerCacheIndex);
+    }
 
     return v8::Undefined();
 }
@@ -321,7 +401,7 @@ CALLBACK_FUNC_DECL(DOMWindowPostMessage)
     ASSERT(source->frame());
 
     v8::TryCatch tryCatch;
-    String message = toWebCoreString(args[0]);
+    RefPtr<SerializedScriptValue> message = SerializedScriptValue::create(toWebCoreString(args[0]));
     MessagePortArray portArray;
     String targetOrigin;
 
@@ -341,7 +421,7 @@ CALLBACK_FUNC_DECL(DOMWindowPostMessage)
         return v8::Undefined();
 
     ExceptionCode ec = 0;
-    window->postMessage(message, &portArray, targetOrigin, source, ec);
+    window->postMessage(message.release(), &portArray, targetOrigin, source, ec);
     return throwError(ec);
 }
 
@@ -400,82 +480,6 @@ CALLBACK_FUNC_DECL(DOMWindowNOP)
 {
     INC_STATS("DOM.DOMWindow.nop()");
     return v8::Undefined();
-}
-
-static String eventNameFromAttributeName(const String& name)
-{
-    ASSERT(name.startsWith("on"));
-    String eventType = name.substring(2);
-
-    if (eventType.startsWith("w")) {
-        switch(eventType[eventType.length() - 1]) {
-        case 't':
-            eventType = "webkitAnimationStart";
-            break;
-        case 'n':
-            eventType = "webkitAnimationIteration";
-            break;
-        case 'd':
-            ASSERT(eventType.length() > 7);
-            if (eventType[7] == 'a')
-                eventType = "webkitAnimationEnd";
-            else
-                eventType = "webkitTransitionEnd";
-            break;
-        }
-    }
-
-    return eventType;
-}
-
-ACCESSOR_SETTER(DOMWindowEventHandler)
-{
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return;
-
-    DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
-
-    Document* doc = imp->document();
-
-    if (!doc)
-        return;
-
-    String key = toWebCoreString(name);
-    String eventType = eventNameFromAttributeName(key);
-
-    if (value->IsNull()) {
-        // Clear the event listener
-        imp->clearAttributeEventListener(eventType);
-    } else {
-        V8Proxy* proxy = V8Proxy::retrieve(imp->frame());
-        if (!proxy)
-            return;
-
-        RefPtr<EventListener> listener = proxy->eventListeners()->findOrCreateWrapper<V8EventListener>(proxy->frame(), value, true);
-        if (listener)
-            imp->setAttributeEventListener(eventType, listener);
-    }
-}
-
-ACCESSOR_GETTER(DOMWindowEventHandler)
-{
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return v8::Undefined();
-
-    DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
-
-    Document* doc = imp->document();
-
-    if (!doc)
-        return v8::Undefined();
-
-    String key = toWebCoreString(name);
-    String eventType = eventNameFromAttributeName(key);
-
-    EventListener* listener = imp->getAttributeEventListener(eventType);
-    return V8DOMWrapper::convertEventListenerToV8Object(listener);
 }
 
 static bool canShowModalDialogNow(const Frame* frame)
@@ -568,7 +572,7 @@ static Frame* createWindow(Frame* callingFrame,
         return 0;
 
     newFrame->loader()->setOpener(openerFrame);
-    newFrame->loader()->setOpenedByDOM();
+    newFrame->page()->setOpenedByDOM();
 
     // Set dialog arguments on the global object of the new frame.
     if (!dialogArgs.IsEmpty()) {
@@ -587,7 +591,7 @@ static Frame* createWindow(Frame* callingFrame,
         if (created)
             newFrame->loader()->changeLocation(completedUrl, referrer, false, false, userGesture);
         else if (!url.isEmpty())
-            newFrame->loader()->scheduleLocationChange(completedUrl.string(), referrer, false, userGesture);
+            newFrame->redirectScheduler()->scheduleLocationChange(completedUrl.string(), referrer, false, userGesture);
     }
 
     return newFrame;
@@ -698,13 +702,14 @@ CALLBACK_FUNC_DECL(DOMWindowOpen)
     if (!V8Proxy::canAccessFrame(frame, true))
         return v8::Undefined();
 
-    Frame* callingFrame = V8Proxy::retrieveFrameForCallingContext();
-    if (!callingFrame)
-        return v8::Undefined();
-
     Frame* enteredFrame = V8Proxy::retrieveFrameForEnteredContext();
     if (!enteredFrame)
         return v8::Undefined();
+
+    Frame* callingFrame = V8Proxy::retrieveFrameForCallingContext();
+    // We may not have a calling context if we are invoked by a plugin via NPAPI.
+    if (!callingFrame)
+        callingFrame = enteredFrame;
 
     Page* page = frame->page();
     if (!page)
@@ -745,7 +750,7 @@ CALLBACK_FUNC_DECL(DOMWindowOpen)
             // the outgoingReferrer.  We replicate that behavior here.
             String referrer = enteredFrame->loader()->outgoingReferrer();
 
-            frame->loader()->scheduleLocationChange(completedUrl, referrer, false, userGesture);
+            frame->redirectScheduler()->scheduleLocationChange(completedUrl, referrer, false, userGesture);
         }
         return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, frame->domWindow());
     }
@@ -814,11 +819,8 @@ CALLBACK_FUNC_DECL(DOMWindowOpen)
 INDEXED_PROPERTY_GETTER(DOMWindow)
 {
     INC_STATS("DOM.DOMWindow.IndexedPropertyGetter");
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return notHandledByInterceptor();
 
-    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
+    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     if (!window)
         return notHandledByInterceptor();
 
@@ -838,11 +840,8 @@ NAMED_PROPERTY_GETTER(DOMWindow)
 {
     INC_STATS("DOM.DOMWindow.NamedPropertyGetter");
 
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return notHandledByInterceptor();
-
-    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
+    // TODO(antonm): investigate what convertToNativeObject does for the case of DOMWINDOW.
+    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     if (!window)
         return notHandledByInterceptor();
 
@@ -858,7 +857,7 @@ NAMED_PROPERTY_GETTER(DOMWindow)
         return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, child->domWindow());
 
     // Search IDL functions defined in the prototype
-    v8::Handle<v8::Value> result = holder->GetRealNamedPropertyInPrototypeChain(name);
+    v8::Handle<v8::Value> result = info.Holder()->GetRealNamedProperty(name);
     if (!result.IsEmpty())
         return result;
 

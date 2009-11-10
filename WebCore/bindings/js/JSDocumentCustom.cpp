@@ -26,7 +26,7 @@
 #include "HTMLDocument.h"
 #include "JSCanvasRenderingContext2D.h"
 #if ENABLE(3D_CANVAS)
-#include "JSCanvasRenderingContext3D.h"
+#include "JSWebGLRenderingContext.h"
 #endif
 #include "JSDOMWindowCustom.h"
 #include "JSHTMLDocument.h"
@@ -88,7 +88,7 @@ void JSDocument::setLocation(ExecState* exec, JSValue value)
         str = activeFrame->document()->completeURL(str).string();
 
     bool userGesture = activeFrame->script()->processingUserGesture();
-    frame->loader()->scheduleLocationChange(str, activeFrame->loader()->outgoingReferrer(), !activeFrame->script()->anyPageIsProcessingUserGesture(), false, userGesture);
+    frame->redirectScheduler()->scheduleLocationChange(str, activeFrame->loader()->outgoingReferrer(), !activeFrame->script()->anyPageIsProcessingUserGesture(), false, userGesture);
 }
 
 JSValue toJS(ExecState* exec, JSDOMGlobalObject* globalObject, Document* document)

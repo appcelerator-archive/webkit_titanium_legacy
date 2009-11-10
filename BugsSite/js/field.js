@@ -325,6 +325,14 @@ function setResolutionToDuplicate(e, duplicate_or_move_bug_status) {
     status.value = duplicate_or_move_bug_status;
     resolution.value = "DUPLICATE";
     showHideStatusItems("", ["",""]);
+
+    // Show edit field for bug number, so that the user doesn't have to click on "(edit)".
+    YAHOO.util.Dom.setStyle('dup_id', 'display', 'inline');
+    YAHOO.util.Dom.setStyle('dup_id_container', 'display', 'none');
+    var dup_id = document.getElementById('dup_id');
+    dup_id.focus();
+    dup_id.select();
+
     YAHOO.util.Event.preventDefault(e);
 }
 

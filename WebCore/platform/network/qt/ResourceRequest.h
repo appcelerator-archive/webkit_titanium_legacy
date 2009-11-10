@@ -31,12 +31,13 @@
 
 QT_BEGIN_NAMESPACE
 class QNetworkRequest;
+class QObject;
 QT_END_NAMESPACE
 
 namespace WebCore {
 
-    struct ResourceRequest : ResourceRequestBase {
-
+    class ResourceRequest : public ResourceRequestBase {
+    public:
         ResourceRequest(const String& url) 
             : ResourceRequestBase(KURL(ParsedURLString, url), UseProtocolCachePolicy)
         {
@@ -59,7 +60,7 @@ namespace WebCore {
         }
 
 #if QT_VERSION >= 0x040400
-        QNetworkRequest toNetworkRequest() const;
+        QNetworkRequest toNetworkRequest(QObject* originatingObject) const;
 #endif
 
     private:

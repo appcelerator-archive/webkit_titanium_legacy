@@ -64,12 +64,8 @@ namespace WebCore {
         WorkerContextExecutionProxy(WorkerContext*);
         ~WorkerContextExecutionProxy();
 
-        void removeEventListener(V8EventListener*);
-
         // Finds/creates event listener wrappers.
         PassRefPtr<V8EventListener> findOrCreateEventListener(v8::Local<v8::Value> listener, bool isInline, bool findOnly);
-        PassRefPtr<V8EventListener> findOrCreateObjectEventListener(v8::Local<v8::Value> object, bool isInline, bool findOnly);
-        PassRefPtr<V8EventListener> findOrCreateEventListenerHelper(v8::Local<v8::Value> object, bool isInline, bool findOnly, bool createObjectEventListener);
 
         // Track the event so that we can detach it from the JS wrapper when a worker
         // terminates. This is needed because we need to be able to dispose these
@@ -111,11 +107,12 @@ namespace WebCore {
 
         static bool forgetV8EventObject(Event*);
 
+        static const int kWorkerMaxStackSize = 500 * 1024;
+
         WorkerContext* m_workerContext;
         v8::Persistent<v8::Context> m_context;
         int m_recursion;
 
-        OwnPtr<V8EventListenerList> m_listeners;
         Vector<Event*> m_events;
     };
 

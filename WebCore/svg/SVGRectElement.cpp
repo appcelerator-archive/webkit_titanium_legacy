@@ -2,8 +2,6 @@
     Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
                   2004, 2005, 2006, 2007 Rob Buis <buis@kde.org>
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -43,6 +41,7 @@ SVGRectElement::SVGRectElement(const QualifiedName& tagName, Document *doc)
     , m_height(this, SVGNames::heightAttr, LengthModeHeight)
     , m_rx(this, SVGNames::rxAttr, LengthModeWidth)
     , m_ry(this, SVGNames::ryAttr, LengthModeHeight)
+    , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
 {
 }
 

@@ -30,6 +30,7 @@
 
 #include "ExceptionCode.h"
 #include "Frame.h"
+#include "Page.h"
 #include "Settings.h"
 #include "StorageAreaSync.h"
 #include "StorageEventDispatcher.h"
@@ -43,15 +44,15 @@ StorageAreaImpl::~StorageAreaImpl()
     ASSERT(isMainThread());
 }
 
-PassRefPtr<StorageAreaImpl> StorageAreaImpl::create(StorageType storageType, PassRefPtr<SecurityOrigin> origin, PassRefPtr<StorageSyncManager> syncManager)
+PassRefPtr<StorageAreaImpl> StorageAreaImpl::create(StorageType storageType, PassRefPtr<SecurityOrigin> origin, PassRefPtr<StorageSyncManager> syncManager, unsigned quota)
 {
-    return adoptRef(new StorageAreaImpl(storageType, origin, syncManager));
+    return adoptRef(new StorageAreaImpl(storageType, origin, syncManager, quota));
 }
 
-StorageAreaImpl::StorageAreaImpl(StorageType storageType, PassRefPtr<SecurityOrigin> origin, PassRefPtr<StorageSyncManager> syncManager)
+StorageAreaImpl::StorageAreaImpl(StorageType storageType, PassRefPtr<SecurityOrigin> origin, PassRefPtr<StorageSyncManager> syncManager, unsigned quota)
     : m_storageType(storageType)
     , m_securityOrigin(origin)
-    , m_storageMap(StorageMap::create())
+    , m_storageMap(StorageMap::create(quota))
     , m_storageSyncManager(syncManager)
 #ifndef NDEBUG
     , m_isShutdown(false)
@@ -64,7 +65,7 @@ StorageAreaImpl::StorageAreaImpl(StorageType storageType, PassRefPtr<SecurityOri
     // FIXME: If there's no backing storage for LocalStorage, the default WebKit behavior should be that of private browsing,
     // not silently ignoring it.  https://bugs.webkit.org/show_bug.cgi?id=25894
     if (m_storageSyncManager) {
-        m_storageAreaSync = StorageAreaSync::create(m_storageSyncManager, this);
+        m_storageAreaSync = StorageAreaSync::create(m_storageSyncManager, this, m_securityOrigin->databaseIdentifier());
         ASSERT(m_storageAreaSync);
     }
 }
@@ -106,6 +107,8 @@ static bool privateBrowsingEnabled(Frame* frame)
 unsigned StorageAreaImpl::length() const
 {
     ASSERT(!m_isShutdown);
+    blockUntilImportComplete();
+
     return m_storageMap->length();
 }
 
@@ -113,6 +116,7 @@ String StorageAreaImpl::key(unsigned index) const
 {
     ASSERT(!m_isShutdown);
     blockUntilImportComplete();
+
     return m_storageMap->key(index);
 }
 
@@ -135,25 +139,23 @@ void StorageAreaImpl::setItem(const String& key, const String& value, ExceptionC
         return;
     }
 
-    // FIXME: For LocalStorage where a disk quota will be enforced, here is where we need to do quota checking.
-    //        If we decide to enforce a memory quota for SessionStorage, this is where we'd do that, also.
-    // if (<over quota>) {
-    //     ec = QUOTA_EXCEEDED_ERR;
-    //     return;
-    // }
-
     String oldValue;
-    RefPtr<StorageMap> newMap = m_storageMap->setItem(key, value, oldValue);
-
+    bool quotaException;
+    RefPtr<StorageMap> newMap = m_storageMap->setItem(key, value, oldValue, quotaException);
     if (newMap)
         m_storageMap = newMap.release();
 
-    // Only notify the client if an item was actually changed
-    if (oldValue != value) {
-        if (m_storageAreaSync)
-            m_storageAreaSync->scheduleItemForSync(key, value);
-        StorageEventDispatcher::dispatch(key, oldValue, value, m_storageType, m_securityOrigin.get(), frame);
+    if (quotaException) {
+        ec = QUOTA_EXCEEDED_ERR;
+        return;
     }
+
+    if (oldValue == value)
+        return;
+
+    if (m_storageAreaSync)
+        m_storageAreaSync->scheduleItemForSync(key, value);
+    StorageEventDispatcher::dispatch(key, oldValue, value, m_storageType, m_securityOrigin.get(), frame);
 }
 
 void StorageAreaImpl::removeItem(const String& key, Frame* frame)
@@ -169,12 +171,12 @@ void StorageAreaImpl::removeItem(const String& key, Frame* frame)
     if (newMap)
         m_storageMap = newMap.release();
 
-    // Only notify the client if an item was actually removed
-    if (!oldValue.isNull()) {
-        if (m_storageAreaSync)
-            m_storageAreaSync->scheduleItemForSync(key, String());
-        StorageEventDispatcher::dispatch(key, oldValue, String(), m_storageType, m_securityOrigin.get(), frame);
-    }
+    if (oldValue.isNull())
+        return;
+
+    if (m_storageAreaSync)
+        m_storageAreaSync->scheduleItemForSync(key, String());
+    StorageEventDispatcher::dispatch(key, oldValue, String(), m_storageType, m_securityOrigin.get(), frame);
 }
 
 void StorageAreaImpl::clear(Frame* frame)
@@ -185,7 +187,11 @@ void StorageAreaImpl::clear(Frame* frame)
     if (privateBrowsingEnabled(frame))
         return;
 
-    m_storageMap = StorageMap::create();
+    if (!m_storageMap->length())
+        return;
+
+    unsigned quota = m_storageMap->quota();
+    m_storageMap = StorageMap::create(quota);
 
     if (m_storageAreaSync)
         m_storageAreaSync->scheduleClear();
@@ -204,11 +210,6 @@ void StorageAreaImpl::importItem(const String& key, const String& value)
 {
     ASSERT(!m_isShutdown);
     m_storageMap->importItem(key, value);
-}
-
-SecurityOrigin* StorageAreaImpl::securityOrigin()
-{
-    return m_securityOrigin.get();
 }
 
 void StorageAreaImpl::close()

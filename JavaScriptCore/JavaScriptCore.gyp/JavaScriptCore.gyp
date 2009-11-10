@@ -80,10 +80,6 @@
           }],
           ['OS=="mac"', {
             'defines': [
-              # Ensure that only Leopard features are used when doing the
-              # Mac build.
-              'BUILDING_ON_LEOPARD',
-
               # Use USE_NEW_THEME on Mac.
               'WTF_USE_NEW_THEME=1',
             ],
@@ -121,6 +117,7 @@
         # GLib/GTK, even though its name doesn't really indicate.
         ['exclude', '/(GOwnPtr|glib/.*)\\.(cpp|h)$'],
         ['exclude', '(Default|Gtk|Mac|None|Qt|Win|Wx)\\.(cpp|mm)$'],
+        ['exclude', 'wtf/CurrentTime\\.cpp$'],
       ],
       'direct_dependent_settings': {
         'include_dirs': [

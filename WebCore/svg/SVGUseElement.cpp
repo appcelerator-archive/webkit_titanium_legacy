@@ -3,8 +3,6 @@
                   2004, 2005, 2006, 2007 Rob Buis <buis@kde.org>
     Copyright (C) Research In Motion Limited 2009. All rights reserved.
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -65,6 +63,8 @@ SVGUseElement::SVGUseElement(const QualifiedName& tagName, Document* doc)
     , m_y(this, SVGNames::yAttr, LengthModeHeight)
     , m_width(this, SVGNames::widthAttr, LengthModeWidth)
     , m_height(this, SVGNames::heightAttr, LengthModeHeight)
+    , m_href(this, XLinkNames::hrefAttr)
+    , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
 {
 }
 
@@ -482,13 +482,7 @@ void SVGUseElement::buildInstanceTree(SVGElement* target, SVGElementInstance* ta
         targetInstance->appendChild(instancePtr.get());
 
         // Enter recursion, appending new instance tree nodes to the "instance" object.
-        if (element->hasChildNodes())
-            buildInstanceTree(element, instancePtr.get(), foundProblem);
-
-        // Spec: If the referenced object is itself a 'use', or if there are 'use' subelements within the referenced
-        // object, the instance tree will contain recursive expansion of the indirect references to form a complete tree.
-        if (element->hasTagName(SVGNames::useTag))
-            handleDeepUseReferencing(static_cast<SVGUseElement*>(element), instancePtr.get(), foundProblem);
+        buildInstanceTree(element, instancePtr.get(), foundProblem);
     }
 
     // Spec: If the referenced object is itself a 'use', or if there are 'use' subelements within the referenced
@@ -776,7 +770,7 @@ void SVGUseElement::transferEventListenersToShadowTree(SVGElementInstance* targe
             EventListenerMap& map = d->eventListenerMap;
             EventListenerMap::iterator end = map.end();
             for (EventListenerMap::iterator it = map.begin(); it != end; ++it) {
-                EventListenerVector& entry = it->second;
+                EventListenerVector& entry = *it->second;
                 for (size_t i = 0; i < entry.size(); ++i) {
                     // Event listeners created from markup have already been transfered to the shadow tree during cloning.
                     if (entry[i].listener->wasCreatedFromMarkup())

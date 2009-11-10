@@ -60,7 +60,7 @@ void PopupMenu::clear()
     m_popup->clear();
 }
 
-void PopupMenu::populate(const IntRect& r)
+void PopupMenu::populate(const IntRect&)
 {
     clear();
     Q_ASSERT(client());
@@ -92,7 +92,7 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
     rect.moveTopLeft(v->contentsToWindow(r.topLeft()));
     rect.setHeight(m_popup->sizeHint().height());
 
-    m_popup->setParent(QWidget::find(client->winId()));
+    m_popup->setParent(client->ownerWidget());
     m_popup->setGeometry(rect);
     m_popup->setCurrentIndex(index);
     m_popup->exec();

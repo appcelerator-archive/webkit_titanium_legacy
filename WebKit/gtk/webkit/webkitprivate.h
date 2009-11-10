@@ -19,8 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef WEBKIT_PRIVATE_H
-#define WEBKIT_PRIVATE_H
+#ifndef webkitprivate_h
+#define webkitprivate_h
 
 /*
  * This file knows the shared secret of WebKitWebView, WebKitWebFrame,
@@ -71,6 +71,7 @@ class DownloadClient;
 namespace WebKit {
 
     class DocumentLoader;
+    class PasteboardHelperGtk;
 
     WebKitWebView* getViewFromFrame(WebKitWebFrame*);
 
@@ -98,6 +99,8 @@ namespace WebKit {
     WebCore::SecurityOrigin* core(WebKitSecurityOrigin*);
 
     WebKitHitTestResult* kit(const WebCore::HitTestResult&);
+
+    WebKit::PasteboardHelperGtk* pasteboardHelperInstance();
 }
 
 typedef struct {
@@ -224,6 +227,10 @@ extern "C" {
     void
     webkit_web_inspector_set_inspected_uri(WebKitWebInspector* web_inspector, const gchar* inspected_uri);
 
+    WEBKIT_API void
+    webkit_web_inspector_execute_script(WebKitWebInspector* inspector, long callId, const gchar* script);
+
+
     WebKitWebWindowFeatures*
     webkit_web_window_features_new_from_core_features (const WebCore::WindowFeatures& features);
 
@@ -284,6 +291,9 @@ extern "C" {
 
     WEBKIT_API gchar*
     webkit_web_frame_dump_render_tree (WebKitWebFrame* frame);
+
+    WEBKIT_API gchar*
+    webkit_web_frame_counter_value_for_element_by_id (WebKitWebFrame* frame, const gchar* id);
 
     WEBKIT_API guint
     webkit_web_frame_get_pending_unload_event_count(WebKitWebFrame* frame);

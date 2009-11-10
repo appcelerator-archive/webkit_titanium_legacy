@@ -35,6 +35,8 @@ import subprocess
 import tempfile
 import unittest
 import urllib
+
+from datetime import date
 from modules.scm import detect_scm_system, SCM, ScriptError, CheckoutNeedsUpdate, ignore_error, commit_error_handler
 
 
@@ -95,8 +97,6 @@ class SVNTestRepository:
 
     @classmethod
     def setup(cls, test_object):
-        test_object.original_path = os.path.abspath('.')
-
         # Create an test SVN repository
         test_object.svn_repo_path = tempfile.mkdtemp(suffix="svn_test_repo")
         test_object.svn_repo_url = "file://%s" % test_object.svn_repo_path # Not sure this will work on windows
@@ -115,23 +115,30 @@ class SVNTestRepository:
         run(['rm', '-rf', test_object.svn_repo_path])
         run(['rm', '-rf', test_object.svn_checkout_path])
 
+# For testing the SCM baseclass directly.
+class SCMClassTests(unittest.TestCase):
+    def setUp(self):
+        self.dev_null = open(os.devnull, "w") # Used to make our Popen calls quiet.
 
-class SCMTest(unittest.TestCase):
-    def _create_patch(self, patch_contents):
-        patch_path = os.path.join(self.svn_checkout_path, 'patch.diff')
-        write_into_file_at_path(patch_path, patch_contents)
-        patch = {}
-        patch['reviewer'] = 'Joe Cool'
-        patch['bug_id'] = '12345'
-        patch['url'] = 'file://%s' % urllib.pathname2url(patch_path)
-        return patch
+    def tearDown(self):
+        self.dev_null.close()
 
-    def _setup_webkittools_scripts_symlink(self, local_scm):
-        webkit_scm = detect_scm_system(self.original_path)
-        webkit_scripts_directory = webkit_scm.scripts_directory()
-        local_scripts_directory = local_scm.scripts_directory()
-        os.mkdir(os.path.dirname(local_scripts_directory))
-        os.symlink(webkit_scripts_directory, local_scripts_directory)
+    def test_run_command_with_pipe(self):
+        input_process = subprocess.Popen(['/bin/echo', 'foo\nbar'], stdout=subprocess.PIPE, stderr=self.dev_null)
+        self.assertEqual(SCM.run_command(['/usr/bin/grep', 'bar'], input=input_process.stdout), "bar")
+
+        # Test the non-pipe case too:
+        self.assertEqual(SCM.run_command(['/usr/bin/grep', 'bar'], input="foo\nbar"), "bar")
+
+        command_returns_non_zero = ['/bin/sh', '--invalid-option']
+        # Test when the input pipe process fails.
+        input_process = subprocess.Popen(command_returns_non_zero, stdout=subprocess.PIPE, stderr=self.dev_null)
+        self.assertTrue(input_process.poll() != 0)
+        self.assertRaises(ScriptError, SCM.run_command, ['/usr/bin/grep', 'bar'], input=input_process.stdout)
+
+        # Test when the run_command process fails.
+        input_process = subprocess.Popen(['/bin/echo', 'foo\nbar'], stdout=subprocess.PIPE, stderr=self.dev_null) # grep shows usage and calls exit(2) when called w/o arguments.
+        self.assertRaises(ScriptError, SCM.run_command, command_returns_non_zero, input=input_process.stdout)
 
     def test_error_handlers(self):
         git_failure_message="Merge conflict during commit: Your file or directory 'WebCore/ChangeLog' is probably out-of-date: resource out of date; try updating at /usr/local/libexec/git-core//git-svn line 469"
@@ -151,6 +158,24 @@ svn: resource out of date; try updating
         self.assertRaises(CheckoutNeedsUpdate, commit_error_handler, ScriptError(output=svn_failure_message))
         self.assertRaises(ScriptError, commit_error_handler, ScriptError(output='blah blah blah'))
 
+
+# GitTest and SVNTest inherit from this so any test_ methods here will be run once for this class and then once for each subclass.
+class SCMTest(unittest.TestCase):
+    def _create_patch(self, patch_contents):
+        patch_path = os.path.join(self.svn_checkout_path, 'patch.diff')
+        write_into_file_at_path(patch_path, patch_contents)
+        patch = {}
+        patch['reviewer'] = 'Joe Cool'
+        patch['bug_id'] = '12345'
+        patch['url'] = 'file://%s' % urllib.pathname2url(patch_path)
+        return patch
+
+    def _setup_webkittools_scripts_symlink(self, local_scm):
+        webkit_scm = detect_scm_system(os.path.dirname(os.path.abspath(__file__)))
+        webkit_scripts_directory = webkit_scm.scripts_directory()
+        local_scripts_directory = local_scm.scripts_directory()
+        os.mkdir(os.path.dirname(local_scripts_directory))
+        os.symlink(webkit_scripts_directory, local_scripts_directory)
 
     # Tests which both GitTest and SVNTest should run.
     # FIXME: There must be a simpler way to add these w/o adding a wrapper method to both subclasses
@@ -181,6 +206,105 @@ svn: resource out of date; try updating
 
 class SVNTest(SCMTest):
 
+    @staticmethod
+    def _set_date_and_reviewer(changelog_entry):
+        # Joe Cool matches the reviewer set in SCMTest._create_patch
+        changelog_entry = changelog_entry.replace('REVIEWER_HERE', 'Joe Cool')
+        # svn-apply will update ChangeLog entries with today's date.
+        return changelog_entry.replace('DATE_HERE', date.today().isoformat())
+
+    def test_svn_apply(self):
+        first_entry = """2009-10-26  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Foo Bar.
+
+        Most awesome change ever.
+
+        * scm_unittest.py:
+"""
+        intermediate_entry = """2009-10-27  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Baz Bar.
+
+        A more awesomer change yet!
+
+        * scm_unittest.py:
+"""
+        one_line_overlap_patch = """Index: ChangeLog
+===================================================================
+--- ChangeLog	(revision 5)
++++ ChangeLog	(working copy)
+@@ -1,5 +1,13 @@
+ 2009-10-26  Eric Seidel  <eric@webkit.org>
+
++        Reviewed by NOBODY (OOPS!).
++
++        Second most awsome change ever.
++
++        * scm_unittest.py:
++
++2009-10-26  Eric Seidel  <eric@webkit.org>
++
+         Reviewed by Foo Bar.
+
+         Most awesome change ever.
+"""
+        one_line_overlap_entry = """DATE_HERE  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by REVIEWER_HERE.
+
+        Second most awsome change ever.
+
+        * scm_unittest.py:
+"""
+        two_line_overlap_patch = """Index: ChangeLog
+===================================================================
+--- ChangeLog	(revision 5)
++++ ChangeLog	(working copy)
+@@ -2,6 +2,14 @@
+
+         Reviewed by Foo Bar.
+
++        Second most awsome change ever.
++
++        * scm_unittest.py:
++
++2009-10-26  Eric Seidel  <eric@webkit.org>
++
++        Reviewed by Foo Bar.
++
+         Most awesome change ever.
+
+         * scm_unittest.py:
+"""
+        two_line_overlap_entry = """DATE_HERE  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Foo Bar.
+
+        Second most awsome change ever.
+
+        * scm_unittest.py:
+"""
+        write_into_file_at_path('ChangeLog', first_entry)
+        run(['svn', 'add', 'ChangeLog'])
+        run(['svn', 'commit', '--quiet', '--message', 'ChangeLog commit'])
+
+        # Patch files were created against just 'first_entry'.
+        # Add a second commit to make svn-apply have to apply the patches with fuzz.
+        changelog_contents = "%s\n%s" % (intermediate_entry, first_entry)
+        write_into_file_at_path('ChangeLog', changelog_contents)
+        run(['svn', 'commit', '--quiet', '--message', 'Intermediate commit'])
+
+        self._setup_webkittools_scripts_symlink(self.scm)
+        self.scm.apply_patch(self._create_patch(one_line_overlap_patch))
+        expected_changelog_contents = "%s\n%s" % (self._set_date_and_reviewer(one_line_overlap_entry), changelog_contents)
+        self.assertEquals(read_from_path('ChangeLog'), expected_changelog_contents)
+
+        self.scm.revert_files(['ChangeLog'])
+        self.scm.apply_patch(self._create_patch(two_line_overlap_patch))
+        expected_changelog_contents = "%s\n%s" % (self._set_date_and_reviewer(two_line_overlap_entry), changelog_contents)
+        self.assertEquals(read_from_path('ChangeLog'), expected_changelog_contents)
+
     def setUp(self):
         SVNTestRepository.setup(self)
         os.chdir(self.svn_checkout_path)
@@ -188,7 +312,6 @@ class SVNTest(SCMTest):
 
     def tearDown(self):
         SVNTestRepository.tear_down(self)
-        os.chdir(self.original_path)
 
     def test_create_patch_is_full_patch(self):
         test_dir_path = os.path.join(self.svn_checkout_path, 'test_dir')
@@ -284,7 +407,6 @@ class GitTest(SCMTest):
     def tearDown(self):
         SVNTestRepository.tear_down(self)
         self._tear_down_git_clone_of_svn_repository()
-        os.chdir(self.original_path)
 
     def test_detection(self):
         scm = detect_scm_system(self.git_checkout_path)

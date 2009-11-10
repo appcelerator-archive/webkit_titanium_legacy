@@ -110,8 +110,8 @@ extern NSString *WebPreferencesRemovedNotification;
 - (BOOL)experimentalNotificationsEnabled;
 - (void)setExperimentalNotificationsEnabled:(BOOL)notificationsEnabled;
 
-- (BOOL)experimentalWebSocketsEnabled;
-- (void)setExperimentalWebSocketsEnabled:(BOOL)websocketsEnabled;
+- (unsigned)pluginAllowedRunTime;
+- (void)setPluginAllowedRunTime:(unsigned)allowedRunTime;
 
 // zero means do AutoScale
 - (float)PDFScaleFactor;
@@ -148,6 +148,9 @@ extern NSString *WebPreferencesRemovedNotification;
 
 - (BOOL)acceleratedCompositingEnabled;
 - (void)setAcceleratedCompositingEnabled:(BOOL)enabled;
+
+- (BOOL)webGLEnabled;
+- (void)setWebGLEnabled:(BOOL)enabled;
 
 // Other private methods
 - (void)_postPreferencesChangesNotification;

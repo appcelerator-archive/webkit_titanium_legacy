@@ -67,9 +67,9 @@ void AccessibilityUIElement::getChildren(Vector<AccessibilityUIElement>& childre
     }
 }
 
-void AccessibilityUIElement::getChildrenWithRange(Vector<AccessibilityUIElement>& elementVector, unsigned location, unsigned length)
+void AccessibilityUIElement::getChildrenWithRange(Vector<AccessibilityUIElement>& elementVector, unsigned start, unsigned end)
 {
-    for (unsigned i = location; i < length; i++) {
+    for (unsigned i = start; i < end; i++) {
         AtkObject* child = atk_object_ref_accessible_child(ATK_OBJECT(m_element), i);
         elementVector.append(AccessibilityUIElement(child));
     }
@@ -94,7 +94,7 @@ AccessibilityUIElement AccessibilityUIElement::elementAtPoint(int x, int y)
 AccessibilityUIElement AccessibilityUIElement::getChildAtIndex(unsigned index)
 {
     Vector<AccessibilityUIElement> children;
-    getChildrenWithRange(children, index, 1);
+    getChildrenWithRange(children, index, index + 1);
 
     if (children.size() == 1)
         return children.at(0);
@@ -179,6 +179,12 @@ JSStringRef AccessibilityUIElement::description()
         return JSStringCreateWithCharacters(0, 0);
 
     return JSStringCreateWithUTF8CString(description);
+}
+
+JSStringRef AccessibilityUIElement::stringValue()
+{
+    // FIXME: implement
+    return JSStringCreateWithCharacters(0, 0);
 }
 
 JSStringRef AccessibilityUIElement::language()
@@ -316,6 +322,18 @@ bool AccessibilityUIElement::isRequired() const
     return false;
 }
 
+bool AccessibilityUIElement::isSelected() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isExpanded() const
+{
+    // FIXME: implement
+    return false;
+}
+
 JSStringRef AccessibilityUIElement::attributesOfColumnHeaders()
 {
     // FIXME: implement
@@ -425,4 +443,15 @@ void AccessibilityUIElement::increment()
 void AccessibilityUIElement::decrement()
 {
     // FIXME: implement
+}
+
+void AccessibilityUIElement::showMenu()
+{
+    // FIXME: implement
+}
+
+JSStringRef AccessibilityUIElement::accessibilityValue() const
+{
+    // FIXME: implement
+    return JSStringCreateWithCharacters(0, 0);
 }

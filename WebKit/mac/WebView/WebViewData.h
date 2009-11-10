@@ -43,6 +43,9 @@ namespace WebCore {
 @class WebPreferences;
 @class WebTextCompletionController;
 @protocol WebFormDelegate;
+#if ENABLE(VIDEO)
+@class WebVideoFullscreenController;
+#endif
 
 extern BOOL applicationIsTerminating;
 extern int pluginDatabaseClientCount;
@@ -102,6 +105,7 @@ extern int pluginDatabaseClientCount;
     BOOL hoverFeedbackSuspended;
     BOOL usesPageCache;
     BOOL catchesDelegateExceptions;
+    BOOL cssAnimationsSuspended;
 
     NSColor *backgroundColor;
 
@@ -159,5 +163,8 @@ extern int pluginDatabaseClientCount;
     NSEvent *autoscrollTriggerEvent;
 
     CFRunLoopTimerRef updateMouseoverTimer;
+#if ENABLE(VIDEO)
+    WebVideoFullscreenController *fullscreenController;
+#endif
 }
 @end

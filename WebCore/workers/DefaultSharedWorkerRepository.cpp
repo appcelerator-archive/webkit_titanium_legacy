@@ -63,13 +63,18 @@ public:
     void setThread(PassRefPtr<SharedWorkerThread> thread) { m_thread = thread; }
     SharedWorkerThread* thread() { return m_thread.get(); }
     bool isClosing() const { return m_closing; }
-    KURL url() const { return m_url.copy(); }
-    String name() const { return m_name.copy(); }
+    KURL url() const
+    {
+        // Don't use m_url.copy() because it isn't a threadsafe method.
+        return KURL(ParsedURLString, m_url.string().threadsafeCopy());
+    }
+
+    String name() const { return m_name.threadsafeCopy(); }
     bool matches(const String& name, PassRefPtr<SecurityOrigin> origin, const KURL& urlToMatch) const;
 
     // WorkerLoaderProxy
-    virtual void postTaskToLoader(PassRefPtr<ScriptExecutionContext::Task>);
-    virtual void postTaskForModeToWorkerContext(PassRefPtr<ScriptExecutionContext::Task>, const String&);
+    virtual void postTaskToLoader(PassOwnPtr<ScriptExecutionContext::Task>);
+    virtual void postTaskForModeToWorkerContext(PassOwnPtr<ScriptExecutionContext::Task>, const String&);
 
     // WorkerReportingProxy
     virtual void postExceptionToWorkerObject(const String& errorMessage, int lineNumber, const String& sourceURL);
@@ -102,7 +107,7 @@ private:
 
 SharedWorkerProxy::SharedWorkerProxy(const String& name, const KURL& url, PassRefPtr<SecurityOrigin> origin)
     : m_closing(false)
-    , m_name(name.copy())
+    , m_name(name.crossThreadString())
     , m_url(url.copy())
     , m_origin(origin)
 {
@@ -123,7 +128,7 @@ bool SharedWorkerProxy::matches(const String& name, PassRefPtr<SecurityOrigin> o
     return name == m_name;
 }
 
-void SharedWorkerProxy::postTaskToLoader(PassRefPtr<ScriptExecutionContext::Task> task)
+void SharedWorkerProxy::postTaskToLoader(PassOwnPtr<ScriptExecutionContext::Task> task)
 {
     MutexLocker lock(m_workerDocumentsLock);
 
@@ -139,7 +144,7 @@ void SharedWorkerProxy::postTaskToLoader(PassRefPtr<ScriptExecutionContext::Task
     document->postTask(task);
 }
 
-void SharedWorkerProxy::postTaskForModeToWorkerContext(PassRefPtr<ScriptExecutionContext::Task> task, const String& mode)
+void SharedWorkerProxy::postTaskForModeToWorkerContext(PassOwnPtr<ScriptExecutionContext::Task> task, const String& mode)
 {
     if (isClosing())
         return;
@@ -216,9 +221,9 @@ void SharedWorkerProxy::close()
 
 class SharedWorkerConnectTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<SharedWorkerConnectTask> create(PassOwnPtr<MessagePortChannel> channel)
+    static PassOwnPtr<SharedWorkerConnectTask> create(PassOwnPtr<MessagePortChannel> channel)
     {
-        return adoptRef(new SharedWorkerConnectTask(channel));
+        return new SharedWorkerConnectTask(channel);
     }
 
 private:
@@ -311,6 +316,12 @@ void DefaultSharedWorkerRepository::workerScriptLoaded(SharedWorkerProxy& proxy,
     proxy.thread()->runLoop().postTask(SharedWorkerConnectTask::create(port));
 }
 
+bool SharedWorkerRepository::isAvailable()
+{
+    // SharedWorkers are enabled on the default WebKit platform.
+    return true;
+}
+
 void SharedWorkerRepository::connect(PassRefPtr<SharedWorker> worker, PassOwnPtr<MessagePortChannel> port, const KURL& url, const String& name, ExceptionCode& ec)
 {
     DefaultSharedWorkerRepository::instance().connectToWorker(worker, port, url, name, ec);
@@ -379,8 +390,9 @@ void DefaultSharedWorkerRepository::connectToWorker(PassRefPtr<SharedWorker> wor
 PassRefPtr<SharedWorkerProxy> DefaultSharedWorkerRepository::getProxy(const String& name, const KURL& url)
 {
     // Look for an existing worker, and create one if it doesn't exist.
-    // Items in the cache are freed on another thread, so copy the URL before creating the origin, to make sure no references to external strings linger.
-    RefPtr<SecurityOrigin> origin = SecurityOrigin::create(url.copy());
+    // Items in the cache are freed on another thread, so do a threadsafe copy of the URL before creating the origin,
+    // to make sure no references to external strings linger.
+    RefPtr<SecurityOrigin> origin = SecurityOrigin::create(KURL(ParsedURLString, url.string().threadsafeCopy()));
     for (unsigned i = 0; i < m_proxies.size(); i++) {
         if (!m_proxies[i]->isClosing() && m_proxies[i]->matches(name, origin, url))
             return m_proxies[i];

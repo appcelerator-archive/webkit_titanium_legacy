@@ -2,8 +2,6 @@
     Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
                   2004, 2005, 2007, 2008 Rob Buis <buis@kde.org>
 
-    This file is part of the KDE project
-
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
@@ -34,7 +32,6 @@ namespace WebCore {
 
 SVGFEFloodElement::SVGFEFloodElement(const QualifiedName& tagName, Document* doc)
     : SVGFilterPrimitiveStandardAttributes(tagName, doc)
-    , m_in1(this, SVGNames::inAttr)
 {
 }
 
@@ -42,28 +39,14 @@ SVGFEFloodElement::~SVGFEFloodElement()
 {
 }
 
-void SVGFEFloodElement::parseMappedAttribute(MappedAttribute* attr)
-{
-    const String& value = attr->value();
-    if (attr->name() == SVGNames::inAttr)
-        setIn1BaseValue(value);
-    else
-        SVGFilterPrimitiveStandardAttributes::parseMappedAttribute(attr);
-}
-
 bool SVGFEFloodElement::build(SVGResourceFilter* filterResource)
 {
-    FilterEffect* input = filterResource->builder()->getEffectById(in1());
-
-    if (!input)
-        return false;
-
     RefPtr<RenderStyle> filterStyle = styleForRenderer();
 
     Color color = filterStyle->svgStyle()->floodColor();
     float opacity = filterStyle->svgStyle()->floodOpacity();
 
-    RefPtr<FilterEffect> effect = FEFlood::create(input, color, opacity);
+    RefPtr<FilterEffect> effect = FEFlood::create(color, opacity);
     filterResource->addFilterEffect(this, effect.release());
     
     return true;
@@ -71,6 +54,6 @@ bool SVGFEFloodElement::build(SVGResourceFilter* filterResource)
 
 }
 
-#endif // ENABLE(SVG)
+#endif // ENABLE(SVG) && ENABLE(FILTERS)
 
 // vim:ts=4:noet

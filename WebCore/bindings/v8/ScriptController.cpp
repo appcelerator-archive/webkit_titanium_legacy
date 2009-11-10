@@ -40,12 +40,14 @@
 #include "EventListener.h"
 #include "EventNames.h"
 #include "Frame.h"
+#include "FrameLoaderClient.h"
 #include "Node.h"
 #include "NotImplemented.h"
 #include "npruntime_impl.h"
 #include "npruntime_priv.h"
 #include "NPV8Object.h"
 #include "ScriptSourceCode.h"
+#include "Settings.h"
 #include "Widget.h"
 #include "XSSAuditor.h"
 
@@ -54,6 +56,15 @@
 #include "V8Proxy.h"
 
 namespace WebCore {
+
+void ScriptController::initializeThreading()
+{
+    static bool initializedThreading = false;
+    if (!initializedThreading) {
+        WTF::initializeThreading();
+        initializedThreading = true;
+    }
+}
 
 void ScriptController::setFlags(const char* string, int length)
 {
@@ -88,6 +99,7 @@ void ScriptController::gcUnprotectJSWrapper(void* domObject)
 ScriptController::ScriptController(Frame* frame)
     : m_frame(frame)
     , m_sourceURL(0)
+    , m_inExecuteScript(false)
     , m_processingTimerCallback(false)
     , m_paused(false)
     , m_proxy(new V8Proxy(frame))
@@ -159,6 +171,9 @@ bool ScriptController::processingUserGesture() const
     // Based on code from kjs_bindings.cpp.
     // Note: This is more liberal than Firefox's implementation.
     if (event) {
+        if (event->createdByDOM())
+            return false;
+
         const AtomicString& type = event->type();
         bool eventOk =
             // mouse events
@@ -181,13 +196,12 @@ bool ScriptController::processingUserGesture() const
 
 void ScriptController::evaluateInIsolatedWorld(unsigned worldID, const Vector<ScriptSourceCode>& sources)
 {
-    // FIXME: Get rid of extensionGroup here.
-    m_proxy->evaluateInNewWorld(sources, 1);
+    m_proxy->evaluateInIsolatedWorld(worldID, sources, 0);
 }
 
-void ScriptController::evaluateInNewWorld(const Vector<ScriptSourceCode>& sources, int extensionGroup)
+void ScriptController::evaluateInIsolatedWorld(unsigned worldID, const Vector<ScriptSourceCode>& sources, int extensionGroup)
 {
-    m_proxy->evaluateInNewWorld(sources, extensionGroup);
+    m_proxy->evaluateInIsolatedWorld(worldID, sources, extensionGroup);
 }
 
 void ScriptController::evaluateInNewContext(const Vector<ScriptSourceCode>& sources, int extensionGroup)
@@ -278,7 +292,8 @@ bool ScriptController::haveInterpreter() const
 
 bool ScriptController::isEnabled() const
 {
-    return m_proxy->isEnabled();
+    Settings* settings = m_proxy->frame()->settings();
+    return m_proxy->frame()->loader()->client()->allowJavaScript(settings && settings->isJavaScriptEnabled());
 }
 
 PassScriptInstance ScriptController::createScriptInstanceForWidget(Widget* widget)
@@ -410,6 +425,12 @@ void ScriptController::attachDebugger(void*)
 void ScriptController::updateDocument()
 {
     m_proxy->updateDocument();
+}
+
+// FIXME: Stub method so we compile.  Currently called from FrameLoader.cpp.
+DOMWrapperWorld* mainThreadNormalWorld()
+{
+    return 0;
 }
 
 } // namespace WebCore

@@ -2173,6 +2173,15 @@ static void _updateMouseoverTimerCallback(CFRunLoopTimerRef timer, void *info)
 #endif
 }
 
+- (NSView *)_compositingLayersHostingView
+{
+#if USE(ACCELERATED_COMPOSITING)
+    return _private->layerHostingView;
+#else
+    return 0;
+#endif
+}
+
 @end
 
 @implementation NSView (WebHTMLViewFileInternal)
@@ -2657,7 +2666,10 @@ WEBCORE_COMMAND(yankAndSelect)
     
     if (action == @selector(_lookUpInDictionaryFromMenu:))
         return [self _hasSelection];
-    
+
+    if (action == @selector(stopSpeaking:))
+        return [NSApp isSpeaking];
+
 #ifndef BUILDING_ON_TIGER
     if (action == @selector(toggleGrammarChecking:)) {
         // FIXME 4799134: WebView is the bottleneck for this grammar-checking logic, but we must validate 
@@ -3178,7 +3190,8 @@ WEBCORE_COMMAND(yankAndSelect)
     double start = CFAbsoluteTimeGetCurrent();
 #endif
 
-    if ([[self _webView] _mustDrawUnionedRect:rect singleRects:rects count:count])
+    WebView *webView = [self _webView];
+    if ([webView _mustDrawUnionedRect:rect singleRects:rects count:count])
         [self drawSingleRect:rect];
     else
         for (int i = 0; i < count; ++i)
@@ -3193,16 +3206,19 @@ WEBCORE_COMMAND(yankAndSelect)
         [self _setAsideSubviews];
         
 #if USE(ACCELERATED_COMPOSITING)
-    if ([[self _webView] _needsOneShotDrawingSynchronization]) {
+    if ([webView _needsOneShotDrawingSynchronization]) {
         // Disable screen updates so that any layer changes committed here
         // don't show up on the screen before the window flush at the end
-        // of the current window display.
-        [[self window] disableScreenUpdatesUntilFlush];
+        // of the current window display, but only if a window flush is actually
+        // going to happen.
+        NSWindow *window = [self window];
+        if ([window viewsNeedDisplay])
+            [window disableScreenUpdatesUntilFlush];
         
         // Make sure any layer changes that happened as a result of layout
         // via -viewWillDraw are committed.
         [CATransaction flush];
-        [[self _webView] _setNeedsOneShotDrawingSynchronization:NO];
+        [webView _setNeedsOneShotDrawingSynchronization:NO];
     }
 #endif
 }
@@ -3424,10 +3440,6 @@ done:
     Page* page = core([self _webView]);
     if (!page)
         return NSDragOperationNone;
-
-    // FIXME: Why do we override the source provided operation here?  Why not in DragController::startDrag
-    if (page->dragController()->sourceDragOperation() == DragOperationNone)
-        return NSDragOperationGeneric | NSDragOperationCopy;
 
     return (NSDragOperation)page->dragController()->sourceDragOperation();
 }

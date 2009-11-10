@@ -75,17 +75,17 @@ inline char* strdup(const char* strSource)
 
 inline int strncasecmp(const char* s1, const char* s2, size_t len)
 {
-    return strnicmp(s1, s2, len);
+    return _strnicmp(s1, s2, len);
 }
 
 inline int strcasecmp(const char* s1, const char* s2)
 {
-    return stricmp(s1, s2);
+    return _stricmp(s1, s2);
 }
 
 #endif
 
-#if PLATFORM(WIN_OS) || PLATFORM(LINUX)
+#if PLATFORM(WIN_OS) || PLATFORM(LINUX) || PLATFORM(SOLARIS)
 
 inline char* strnstr(const char* buffer, const char* target, size_t bufferLength)
 {

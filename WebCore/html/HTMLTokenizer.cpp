@@ -43,6 +43,7 @@
 #include "HTMLParser.h"
 #include "HTMLScriptElement.h"
 #include "HTMLViewSourceDocument.h"
+#include "ImageLoader.h"
 #include "InspectorTimelineAgent.h"
 #include "MappedAttribute.h"
 #include "Page.h"
@@ -420,13 +421,13 @@ HTMLTokenizer::State HTMLTokenizer::parseNonHTMLText(SegmentedString& src, State
 
     return state;
 }
-
+    
 HTMLTokenizer::State HTMLTokenizer::scriptHandler(State state)
 {
     // We are inside a <script>
     bool doScriptExec = false;
     int startLine = m_currentScriptTagStartLineNumber + 1; // Script line numbers are 1 based, HTMLTokenzier line numbers are 0 based
-
+    
     // Reset m_currentScriptTagStartLineNumber to indicate that we've finished parsing the current script element
     m_currentScriptTagStartLineNumber = 0;
 
@@ -446,7 +447,8 @@ HTMLTokenizer::State HTMLTokenizer::scriptHandler(State state)
 #endif
                 // The parser might have been stopped by for example a window.close call in an earlier script.
                 // If so, we don't want to load scripts.
-                if (!m_parserStopped && (cs = m_doc->docLoader()->requestScript(m_scriptTagSrcAttrValue, m_scriptTagCharsetAttrValue)))
+                if (!m_parserStopped && m_scriptNode->dispatchBeforeLoadEvent(m_scriptTagSrcAttrValue) &&
+                    (cs = m_doc->docLoader()->requestScript(m_scriptTagSrcAttrValue, m_scriptTagCharsetAttrValue)))
                     m_pendingScripts.append(cs);
                 else
                     m_scriptNode = 0;
@@ -557,7 +559,7 @@ HTMLTokenizer::State HTMLTokenizer::scriptExecution(const ScriptSourceCode& sour
     if (m_fragment || !m_doc->frame())
         return state;
     m_executingScript++;
-
+    
     SegmentedString* savedPrependingSrc = m_currentPrependingSrc;
     SegmentedString prependingSrc;
     m_currentPrependingSrc = &prependingSrc;
@@ -569,9 +571,9 @@ HTMLTokenizer::State HTMLTokenizer::scriptExecution(const ScriptSourceCode& sour
 
     m_state = state;
     if (!m_scriptEvaluator || m_scriptMimeType.length() == 0 || !m_scriptEvaluator->matchesMimeType(m_scriptMimeType)) {
-        m_doc->frame()->loader()->executeScript(sourceCode);
+        m_doc->frame()->script()->executeScript(sourceCode);
     } else {
-        m_doc->frame()->loader()->executeScript(sourceCode, m_scriptMimeType, m_scriptEvaluator);
+        m_doc->frame()->script()->executeScript(sourceCode, m_scriptMimeType, m_scriptEvaluator);
         m_scriptMimeType = "";
     }
     state = m_state;
@@ -619,7 +621,7 @@ HTMLTokenizer::State HTMLTokenizer::scriptExecution(const ScriptSourceCode& sour
     }
 
     m_currentPrependingSrc = savedPrependingSrc;
-
+    
     return state;
 }
 
@@ -1624,7 +1626,7 @@ inline bool HTMLTokenizer::continueProcessing(int& processedCount, double startT
     processedCount++;
     return true;
 }
-
+    
 void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 {
     if (!m_buffer)
@@ -1677,8 +1679,7 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
     double startTime = currentTime();
 
 #if ENABLE(INSPECTOR)
-    InspectorTimelineAgent* timelineAgent = m_doc->inspectorTimelineAgent();
-    if (timelineAgent)
+    if (InspectorTimelineAgent* timelineAgent = m_doc->inspectorTimelineAgent())
         timelineAgent->willWriteHTML();
 #endif
   
@@ -1686,7 +1687,7 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 
     State state = m_state;
 
-    while (!m_src.isEmpty() && (!frame || !frame->loader()->isScheduledLocationChangePending())) {
+    while (!m_src.isEmpty() && (!frame || !frame->redirectScheduler()->locationChangePending())) {
         if (!continueProcessing(processedCount, startTime, state))
             break;
 
@@ -1804,7 +1805,7 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 #endif
 
 #if ENABLE(INSPECTOR)
-    if (timelineAgent)
+    if (InspectorTimelineAgent* timelineAgent = m_doc->inspectorTimelineAgent())
         timelineAgent->didWriteHTML();
 #endif
 
@@ -1814,6 +1815,9 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 
     if (m_noMoreData && !m_inWrite && !state.loadingExtScript() && !m_executingScript && !m_timer.isActive())
         end(); // this actually causes us to be deleted
+    
+    // After parsing, go ahead and dispatch image beforeload/load events.
+    ImageLoader::dispatchPendingEvents();
 }
 
 void HTMLTokenizer::stopParsing()
@@ -1994,6 +1998,14 @@ void HTMLTokenizer::enlargeScriptBuffer(int len)
         CRASH();
 
     int newSize = m_scriptCodeCapacity + delta;
+    // If we allow fastRealloc(ptr, 0), it will call CRASH(). We run into this
+    // case if the HTML being parsed begins with "<!--" and there's more data
+    // coming.
+    if (!newSize) {
+        ASSERT(!m_scriptCode);
+        return;
+    }
+
     m_scriptCode = static_cast<UChar*>(fastRealloc(m_scriptCode, newSize * sizeof(UChar)));
     m_scriptCodeCapacity = newSize;
 }

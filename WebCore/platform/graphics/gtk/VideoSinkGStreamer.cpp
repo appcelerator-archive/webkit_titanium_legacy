@@ -21,8 +21,9 @@
  * SECTION:webkit-video-sink
  * @short_description: GStreamer video sink
  *
- * #WebKitVideoSink is a GStreamer sink element that sends
- * data to a #cairo_surface_t.
+ * #WebKitVideoSink is a GStreamer sink element that triggers
+ * repaints in the WebKit GStreamer media player for the
+ * current video buffer.
  */
 
 #include "config.h"
@@ -33,17 +34,17 @@
 #include <gst/video/video.h>
 
 static GstStaticPadTemplate sinktemplate = GST_STATIC_PAD_TEMPLATE("sink",
-        GST_PAD_SINK, GST_PAD_ALWAYS,
-        GST_STATIC_CAPS(GST_VIDEO_CAPS_RGBx ";" GST_VIDEO_CAPS_BGRx));
+                                                                   GST_PAD_SINK, GST_PAD_ALWAYS,
+// CAIRO_FORMAT_RGB24 used to render the video buffers is little/big endian dependant.
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+                                                                   GST_STATIC_CAPS(GST_VIDEO_CAPS_BGRx ";" GST_VIDEO_CAPS_BGRA)
+#else
+                                                                   GST_STATIC_CAPS(GST_VIDEO_CAPS_xRGB ";" GST_VIDEO_CAPS_ARGB)
+#endif
+);
 
 GST_DEBUG_CATEGORY_STATIC(webkit_video_sink_debug);
 #define GST_CAT_DEFAULT webkit_video_sink_debug
-
-static GstElementDetails webkit_video_sink_details =
-    GST_ELEMENT_DETAILS((gchar*) "WebKit video sink",
-                        (gchar*) "Sink/Video",
-                        (gchar*) "Sends video data from a GStreamer pipeline to a Cairo surface",
-                        (gchar*) "Alp Toker <alp@atoker.com>");
 
 enum {
     REPAINT_REQUESTED,
@@ -51,22 +52,26 @@ enum {
 };
 
 enum {
-    PROP_0,
-    PROP_SURFACE
+    PROP_0
 };
 
 static guint webkit_video_sink_signals[LAST_SIGNAL] = { 0, };
 
 struct _WebKitVideoSinkPrivate {
-    cairo_surface_t* surface;
-    GAsyncQueue* async_queue;
-    gboolean rgb_ordering;
-    int width;
-    int height;
-    int fps_n;
-    int fps_d;
-    int par_n;
-    int par_d;
+    GstBuffer* buffer;
+    guint timeout_id;
+    GMutex* buffer_mutex;
+    GCond* data_cond;
+
+    // If this is TRUE all processing should finish ASAP
+    // This is necessary because there could be a race between
+    // unlock() and render(), where unlock() wins, signals the
+    // GCond, then render() tries to render a frame although
+    // everything else isn't running anymore. This will lead
+    // to deadlocks because render() holds the stream lock.
+    //
+    // Protected by the buffer mutex
+    gboolean unlocked;
 };
 
 #define _do_init(bla) \
@@ -77,8 +82,8 @@ struct _WebKitVideoSinkPrivate {
 
 GST_BOILERPLATE_FULL(WebKitVideoSink,
                      webkit_video_sink,
-                     GstBaseSink,
-                     GST_TYPE_BASE_SINK,
+                     GstVideoSink,
+                     GST_TYPE_VIDEO_SINK,
                      _do_init);
 
 static void
@@ -87,7 +92,9 @@ webkit_video_sink_base_init(gpointer g_class)
     GstElementClass* element_class = GST_ELEMENT_CLASS(g_class);
 
     gst_element_class_add_pad_template(element_class, gst_static_pad_template_get(&sinktemplate));
-    gst_element_class_set_details(element_class, &webkit_video_sink_details);
+    gst_element_class_set_details_simple(element_class, "WebKit video sink",
+            "Sink/Video", "Sends video data from a GStreamer pipeline to a Cairo surface",
+            "Alp Toker <alp@atoker.com>");
 }
 
 static void
@@ -96,37 +103,32 @@ webkit_video_sink_init(WebKitVideoSink* sink, WebKitVideoSinkClass* klass)
     WebKitVideoSinkPrivate* priv;
 
     sink->priv = priv = G_TYPE_INSTANCE_GET_PRIVATE(sink, WEBKIT_TYPE_VIDEO_SINK, WebKitVideoSinkPrivate);
-    priv->async_queue = g_async_queue_new();
+    priv->data_cond = g_cond_new();
+    priv->buffer_mutex = g_mutex_new();
 }
 
 static gboolean
-webkit_video_sink_idle_func(gpointer data)
+webkit_video_sink_timeout_func(gpointer data)
 {
     WebKitVideoSink* sink = reinterpret_cast<WebKitVideoSink*>(data);
     WebKitVideoSinkPrivate* priv = sink->priv;
     GstBuffer* buffer;
-    if (!priv->async_queue)
+
+    g_mutex_lock(priv->buffer_mutex);
+    buffer = priv->buffer;
+    priv->buffer = 0;
+    priv->timeout_id = 0;
+
+    if (!buffer || priv->unlocked || G_UNLIKELY(!GST_IS_BUFFER(buffer))) {
+        g_cond_signal(priv->data_cond);
+        g_mutex_unlock(priv->buffer_mutex);
         return FALSE;
+    }
 
-    buffer = (GstBuffer*)g_async_queue_try_pop(priv->async_queue);
-    if (!buffer || G_UNLIKELY(!GST_IS_BUFFER(buffer)))
-        return FALSE;
-
-    // TODO: consider priv->rgb_ordering?
-    cairo_surface_t* src = cairo_image_surface_create_for_data(GST_BUFFER_DATA(buffer), CAIRO_FORMAT_RGB24, priv->width, priv->height, (4 * priv->width + 3) & ~3);
-
-    // TODO: We copy the data twice right now. This could be easily improved.
-    cairo_t* cr = cairo_create(priv->surface);
-    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_surface(cr, src, 0, 0);
-    cairo_surface_destroy(src);
-    cairo_rectangle(cr, 0, 0, priv->width, priv->height);
-    cairo_fill(cr);
-    cairo_destroy(cr);
+    g_signal_emit(sink, webkit_video_sink_signals[REPAINT_REQUESTED], 0, buffer);
     gst_buffer_unref(buffer);
-    g_async_queue_unref(priv->async_queue);
-
-    g_signal_emit(sink, webkit_video_sink_signals[REPAINT_REQUESTED], 0);
+    g_cond_signal(priv->data_cond);
+    g_mutex_unlock(priv->buffer_mutex);
 
     return FALSE;
 }
@@ -137,61 +139,89 @@ webkit_video_sink_render(GstBaseSink* bsink, GstBuffer* buffer)
     WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(bsink);
     WebKitVideoSinkPrivate* priv = sink->priv;
 
-    g_async_queue_ref(priv->async_queue);
-    g_async_queue_push(priv->async_queue, gst_buffer_ref(buffer));
-    g_idle_add_full(G_PRIORITY_HIGH_IDLE, webkit_video_sink_idle_func, sink, 0);
+    g_mutex_lock(priv->buffer_mutex);
 
+    if (priv->unlocked) {
+        g_mutex_unlock(priv->buffer_mutex);
+        return GST_FLOW_OK;
+    }
+
+    priv->buffer = gst_buffer_ref(buffer);
+
+    // For the unlikely case where the buffer has no caps, the caps
+    // are implicitely the caps of the pad. This shouldn't happen.
+    if (G_UNLIKELY(!GST_BUFFER_CAPS(buffer))) {
+        buffer = priv->buffer = gst_buffer_make_metadata_writable(priv->buffer);
+        gst_buffer_set_caps(priv->buffer, GST_PAD_CAPS(GST_BASE_SINK_PAD(bsink)));
+    }
+
+    GstCaps *caps = GST_BUFFER_CAPS(buffer);
+    GstVideoFormat format;
+    int width, height;
+    if (G_UNLIKELY(!gst_video_format_parse_caps(caps, &format, &width, &height))) {
+        gst_buffer_unref(buffer);
+        g_mutex_unlock(priv->buffer_mutex);
+        return GST_FLOW_ERROR;
+    }
+
+    // Cairo's ARGB has pre-multiplied alpha while GStreamer's doesn't.
+    // Here we convert to Cairo's ARGB.
+    if (format == GST_VIDEO_FORMAT_ARGB || format == GST_VIDEO_FORMAT_BGRA) {
+        // Because GstBaseSink::render() only owns the buffer reference in the
+        // method scope we can't use gst_buffer_make_writable() here. Also
+        // The buffer content should not be changed here because the same buffer
+        // could be passed multiple times to this method (in theory)
+        GstBuffer *newBuffer = gst_buffer_try_new_and_alloc(GST_BUFFER_SIZE(buffer));
+
+        // Check if allocation failed
+        if (G_UNLIKELY(!newBuffer)) {
+            gst_buffer_unref(buffer);
+            g_mutex_unlock(priv->buffer_mutex);
+            return GST_FLOW_ERROR;
+        }
+
+        gst_buffer_copy_metadata(newBuffer, buffer, (GstBufferCopyFlags) GST_BUFFER_COPY_ALL);
+
+        // We don't use Color::premultipliedARGBFromColor() here because
+        // one function call per video pixel is just too expensive:
+        // For 720p/PAL for example this means 1280*720*25=23040000
+        // function calls per second!
+        unsigned short alpha;
+        const guint8 *source = GST_BUFFER_DATA(buffer);
+        guint8 *destination = GST_BUFFER_DATA(newBuffer);
+
+        for (int x = 0; x < height; x++) {
+            for (int y = 0; y < width; y++) {
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+                alpha = source[3];
+                destination[0] = (source[0] * alpha + 128) / 255;
+                destination[1] = (source[1] * alpha + 128) / 255;
+                destination[2] = (source[2] * alpha + 128) / 255;
+                destination[3] = alpha;
+#else
+                alpha = source[0];
+                destination[0] = alpha;
+                destination[1] = (source[1] * alpha + 128) / 255;
+                destination[2] = (source[2] * alpha + 128) / 255;
+                destination[3] = (source[3] * alpha + 128) / 255;
+#endif
+                source += 4;
+                destination += 4;
+            }
+        }
+        gst_buffer_unref(buffer);
+        buffer = priv->buffer = newBuffer;
+    }
+
+    // Use HIGH_IDLE+20 priority, like Gtk+ for redrawing operations.
+    priv->timeout_id = g_timeout_add_full(G_PRIORITY_HIGH_IDLE + 20, 0,
+                                          webkit_video_sink_timeout_func,
+                                          gst_object_ref(sink),
+                                          (GDestroyNotify)gst_object_unref);
+
+    g_cond_wait(priv->data_cond, priv->buffer_mutex);
+    g_mutex_unlock(priv->buffer_mutex);
     return GST_FLOW_OK;
-}
-
-static gboolean
-webkit_video_sink_set_caps(GstBaseSink* bsink, GstCaps* caps)
-{
-    WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(bsink);
-    WebKitVideoSinkPrivate* priv = sink->priv;
-    GstStructure* structure;
-    gboolean ret;
-    const GValue* fps;
-    const GValue* par;
-    gint width, height;
-    int red_mask;
-
-    GstCaps* intersection = gst_caps_intersect(gst_static_pad_template_get_caps(&sinktemplate), caps);
-
-    if (gst_caps_is_empty(intersection))
-        return FALSE;
-
-    gst_caps_unref(intersection);
-
-    structure = gst_caps_get_structure(caps, 0);
-
-    ret = gst_structure_get_int(structure, "width", &width);
-    ret &= gst_structure_get_int(structure, "height", &height);
-    fps = gst_structure_get_value(structure, "framerate");
-    ret &= (fps != 0);
-
-    par = gst_structure_get_value(structure, "pixel-aspect-ratio");
-
-    if (!ret)
-        return FALSE;
-
-    priv->width = width;
-    priv->height = height;
-
-    /* We dont yet use fps or pixel aspect into but handy to have */
-    priv->fps_n = gst_value_get_fraction_numerator(fps);
-    priv->fps_d = gst_value_get_fraction_denominator(fps);
-
-    if (par) {
-        priv->par_n = gst_value_get_fraction_numerator(par);
-        priv->par_d = gst_value_get_fraction_denominator(par);
-    } else
-        priv->par_n = priv->par_d = 1;
-
-    gst_structure_get_int(structure, "red_mask", &red_mask);
-    priv->rgb_ordering = (red_mask == static_cast<int>(0xff000000));
-
-    return TRUE;
 }
 
 static void
@@ -200,56 +230,58 @@ webkit_video_sink_dispose(GObject* object)
     WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(object);
     WebKitVideoSinkPrivate* priv = sink->priv;
 
-    if (priv->surface) {
-        cairo_surface_destroy(priv->surface);
-        priv->surface = 0;
+    if (priv->data_cond) {
+        g_cond_free(priv->data_cond);
+        priv->data_cond = 0;
     }
 
-    if (priv->async_queue) {
-        g_async_queue_unref(priv->async_queue);
-        priv->async_queue = 0;
+    if (priv->buffer_mutex) {
+        g_mutex_free(priv->buffer_mutex);
+        priv->buffer_mutex = 0;
     }
 
     G_OBJECT_CLASS(parent_class)->dispose(object);
 }
 
 static void
-webkit_video_sink_finalize(GObject* object)
+unlock_buffer_mutex(WebKitVideoSinkPrivate* priv)
 {
-    G_OBJECT_CLASS(parent_class)->finalize(object);
+    g_mutex_lock(priv->buffer_mutex);
+
+    if (priv->buffer) {
+        gst_buffer_unref(priv->buffer);
+        priv->buffer = 0;
+    }
+
+    priv->unlocked = TRUE;
+
+    g_cond_signal(priv->data_cond);
+    g_mutex_unlock(priv->buffer_mutex);
 }
 
-static void
-webkit_video_sink_set_property(GObject* object, guint prop_id, const GValue* value, GParamSpec* pspec)
+static gboolean
+webkit_video_sink_unlock(GstBaseSink* object)
+{
+    WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(object);
+
+    unlock_buffer_mutex(sink->priv);
+
+    return GST_CALL_PARENT_WITH_DEFAULT(GST_BASE_SINK_CLASS, unlock,
+                                        (object), TRUE);
+}
+
+static gboolean
+webkit_video_sink_unlock_stop(GstBaseSink* object)
 {
     WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(object);
     WebKitVideoSinkPrivate* priv = sink->priv;
 
-    switch (prop_id) {
-    case PROP_SURFACE:
-        if (priv->surface)
-            cairo_surface_destroy(priv->surface);
-        priv->surface = cairo_surface_reference((cairo_surface_t*)g_value_get_pointer(value));
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
-        break;
-    }
-}
+    g_mutex_lock(priv->buffer_mutex);
+    priv->unlocked = FALSE;
+    g_mutex_unlock(priv->buffer_mutex);
 
-static void
-webkit_video_sink_get_property(GObject* object, guint prop_id, GValue* value, GParamSpec* pspec)
-{
-    WebKitVideoSink* sink = WEBKIT_VIDEO_SINK(object);
-
-    switch (prop_id) {
-    case PROP_SURFACE:
-        g_value_set_pointer(value, sink->priv->surface);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
-        break;
-    }
+    return GST_CALL_PARENT_WITH_DEFAULT(GST_BASE_SINK_CLASS, unlock_stop,
+                                        (object), TRUE);
 }
 
 static gboolean
@@ -257,17 +289,43 @@ webkit_video_sink_stop(GstBaseSink* base_sink)
 {
     WebKitVideoSinkPrivate* priv = WEBKIT_VIDEO_SINK(base_sink)->priv;
 
-    g_async_queue_lock(priv->async_queue);
-
-    /* Remove all remaining objects from the queue */
-    while (GstBuffer* buffer = (GstBuffer*)g_async_queue_try_pop_unlocked(priv->async_queue))
-        gst_buffer_unref(buffer);
-
-    g_async_queue_unlock(priv->async_queue);
-
-    g_idle_remove_by_data(base_sink);
-
+    unlock_buffer_mutex(priv);
     return TRUE;
+}
+
+static gboolean
+webkit_video_sink_start(GstBaseSink* base_sink)
+{
+    WebKitVideoSinkPrivate* priv = WEBKIT_VIDEO_SINK(base_sink)->priv;
+
+    g_mutex_lock(priv->buffer_mutex);
+    priv->unlocked = FALSE;
+    g_mutex_unlock(priv->buffer_mutex);
+    return TRUE;
+}
+
+static void
+marshal_VOID__MINIOBJECT(GClosure * closure, GValue * return_value,
+                         guint n_param_values, const GValue * param_values,
+                         gpointer invocation_hint, gpointer marshal_data)
+{
+  typedef void (*marshalfunc_VOID__MINIOBJECT) (gpointer obj, gpointer arg1, gpointer data2);
+  marshalfunc_VOID__MINIOBJECT callback;
+  GCClosure *cc = (GCClosure *) closure;
+  gpointer data1, data2;
+
+  g_return_if_fail(n_param_values == 2);
+
+  if (G_CCLOSURE_SWAP_DATA(closure)) {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer(param_values + 0);
+  } else {
+      data1 = g_value_peek_pointer(param_values + 0);
+      data2 = closure->data;
+  }
+  callback = (marshalfunc_VOID__MINIOBJECT) (marshal_data ? marshal_data : cc->callback);
+
+  callback(data1, gst_value_get_mini_object(param_values + 1), data2);
 }
 
 static void
@@ -278,16 +336,14 @@ webkit_video_sink_class_init(WebKitVideoSinkClass* klass)
 
     g_type_class_add_private(klass, sizeof(WebKitVideoSinkPrivate));
 
-    gobject_class->set_property = webkit_video_sink_set_property;
-    gobject_class->get_property = webkit_video_sink_get_property;
-
     gobject_class->dispose = webkit_video_sink_dispose;
-    gobject_class->finalize = webkit_video_sink_finalize;
 
+    gstbase_sink_class->unlock = webkit_video_sink_unlock;
+    gstbase_sink_class->unlock_stop = webkit_video_sink_unlock_stop;
     gstbase_sink_class->render = webkit_video_sink_render;
     gstbase_sink_class->preroll = webkit_video_sink_render;
     gstbase_sink_class->stop = webkit_video_sink_stop;
-    gstbase_sink_class->set_caps = webkit_video_sink_set_caps;
+    gstbase_sink_class->start = webkit_video_sink_start;
 
     webkit_video_sink_signals[REPAINT_REQUESTED] = g_signal_new("repaint-requested",
             G_TYPE_FROM_CLASS(klass),
@@ -295,37 +351,20 @@ webkit_video_sink_class_init(WebKitVideoSinkClass* klass)
             0,
             0,
             0,
-            g_cclosure_marshal_VOID__VOID,
-            G_TYPE_NONE, 0);
-
-    g_object_class_install_property(
-        gobject_class, PROP_SURFACE,
-        g_param_spec_pointer("surface", "surface", "Target cairo_surface_t*",
-                             (GParamFlags)(G_PARAM_READWRITE)));
+            marshal_VOID__MINIOBJECT,
+            G_TYPE_NONE, 1, GST_TYPE_BUFFER);
 }
 
 /**
  * webkit_video_sink_new:
- * @surface: a #cairo_surface_t
  *
- * Creates a new GStreamer video sink which uses @surface as the target
- * for sinking a video stream from GStreamer.
+ * Creates a new GStreamer video sink.
  *
  * Return value: a #GstElement for the newly created video sink
  */
 GstElement*
-webkit_video_sink_new(cairo_surface_t* surface)
+webkit_video_sink_new(void)
 {
-    return (GstElement*)g_object_new(WEBKIT_TYPE_VIDEO_SINK, "surface", surface, 0);
+    return (GstElement*)g_object_new(WEBKIT_TYPE_VIDEO_SINK, 0);
 }
 
-void
-webkit_video_sink_set_surface(WebKitVideoSink* sink, cairo_surface_t* surface)
-{
-    WebKitVideoSinkPrivate* priv;
-
-    sink->priv = priv = G_TYPE_INSTANCE_GET_PRIVATE(sink, WEBKIT_TYPE_VIDEO_SINK, WebKitVideoSinkPrivate);
-    if (priv->surface)
-        cairo_surface_destroy(priv->surface);
-    priv->surface = cairo_surface_reference(surface);
-}

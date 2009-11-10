@@ -83,7 +83,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #endif
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
-#define APPLICATIONCACHE_NONNODE_WRAPPER_TYPES(V)                      \
+#define APPLICATIONCACHE_NONNODE_WRAPPER_TYPES(V)                       \
   V(DOMAPPLICATIONCACHE, DOMApplicationCache)
 #else
 #define APPLICATIONCACHE_NONNODE_WRAPPER_TYPES(V)
@@ -100,7 +100,9 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #if ENABLE(SHARED_WORKERS)
 #define SHARED_WORKER_ACTIVE_OBJECT_WRAPPER_TYPES(V)                    \
     V(SHAREDWORKER, SharedWorker)
-#define SHARED_WORKER_NONNODE_WRAPPER_TYPES(V)
+
+#define SHARED_WORKER_NONNODE_WRAPPER_TYPES(V)                          \
+    V(SHAREDWORKERCONTEXT, SharedWorkerContext)
 #else
 #define SHARED_WORKER_ACTIVE_OBJECT_WRAPPER_TYPES(V)
 #define SHARED_WORKER_NONNODE_WRAPPER_TYPES(V)
@@ -321,6 +323,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 // DOM_OBJECT_TYPES are non-node DOM types.
 #define DOM_OBJECT_TYPES_1(V)                                           \
     V(BARINFO, BarInfo)                                                 \
+    V(BEFORELOADEVENT, BeforeLoadEvent)                                 \
     V(CANVASGRADIENT, CanvasGradient)                                   \
     V(CANVASPATTERN, CanvasPattern)                                     \
     V(CANVASRENDERINGCONTEXT, CanvasRenderingContext)                   \
@@ -360,10 +363,9 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(HTMLOPTIONSCOLLECTION, HTMLOptionsCollection)                     \
     V(IMAGEDATA, ImageData)                                             \
     V(CANVASPIXELARRAY, CanvasPixelArray)                               \
-    V(INSPECTORBACKEND, InspectorBackend)                               \
     V(KEYBOARDEVENT, KeyboardEvent)                                     \
     V(LOCATION, Location)                                               \
-    V(MEDIA, Media)                                               \
+    V(MEDIA, Media)                                                     \
     V(MEDIALIST, MediaList)
 
 #define DOM_OBJECT_TYPES_2(V)                                           \
@@ -407,12 +409,6 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(XMLHTTPREQUESTEXCEPTION, XMLHttpRequestException)                 \
     V(XMLHTTPREQUESTPROGRESSEVENT, XMLHttpRequestProgressEvent)         \
     V(XMLSERIALIZER, XMLSerializer)                                     \
-    V(XPATHEVALUATOR, XPathEvaluator)                                   \
-    V(XPATHEXCEPTION, XPathException)                                   \
-    V(XPATHEXPRESSION, XPathExpression)                                 \
-    V(XPATHNSRESOLVER, XPathNSResolver)                                 \
-    V(XPATHRESULT, XPathResult)                                         \
-    V(XSLTPROCESSOR, XSLTProcessor)                                     \
     ACTIVE_DOM_OBJECT_TYPES(V)                                          \
     APPLICATIONCACHE_NONNODE_WRAPPER_TYPES(V)                           \
     DATAGRID_NONNODE_TYPES(V)                                           \
@@ -449,24 +445,50 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 #if ENABLE(3D_CANVAS)
 #define DOM_OBJECT_3D_CANVAS_TYPES(V)                                   \
-    V(CANVASARRAY, CanvasArray)                                         \
-    V(CANVASARRAYBUFFER, CanvasArrayBuffer)                             \
-    V(CANVASBUFFER, CanvasBuffer)                                       \
-    V(CANVASBYTEARRAY, CanvasByteArray)                                 \
-    V(CANVASFLOATARRAY, CanvasFloatArray)                               \
-    V(CANVASFRAMEBUFFER, CanvasFramebuffer)                             \
-    V(CANVASINTARRAY, CanvasIntArray)                                   \
-    V(CANVASPROGRAM, CanvasProgram)                                     \
-    V(CANVASRENDERBUFFER, CanvasRenderbuffer)                           \
-    V(CANVASRENDERINGCONTEXT3D, CanvasRenderingContext3D)               \
-    V(CANVASSHADER, CanvasShader)                                       \
-    V(CANVASSHORTARRAY, CanvasShortArray)                               \
-    V(CANVASTEXTURE, CanvasTexture)                                     \
-    V(CANVASUNSIGNEDBYTEARRAY, CanvasUnsignedByteArray)                 \
-    V(CANVASUNSIGNEDINTARRAY, CanvasUnsignedIntArray)                   \
-    V(CANVASUNSIGNEDSHORTARRAY, CanvasUnsignedShortArray)
+    V(WEBGLACTIVEINFO, WebGLActiveInfo)                                 \
+    V(WEBGLARRAY, WebGLArray)                                           \
+    V(WEBGLARRAYBUFFER, WebGLArrayBuffer)                               \
+    V(WEBGLBUFFER, WebGLBuffer)                                         \
+    V(WEBGLBYTEARRAY, WebGLByteArray)                                   \
+    V(WEBGLFLOATARRAY, WebGLFloatArray)                                 \
+    V(WEBGLFRAMEBUFFER, WebGLFramebuffer)                               \
+    V(WEBGLINTARRAY, WebGLIntArray)                                     \
+    V(WEBGLPROGRAM, WebGLProgram)                                       \
+    V(WEBGLRENDERBUFFER, WebGLRenderbuffer)                             \
+    V(WEBGLRENDERINGCONTEXT, WebGLRenderingContext)                     \
+    V(WEBGLSHADER, WebGLShader)                                         \
+    V(WEBGLSHORTARRAY, WebGLShortArray)                                 \
+    V(WEBGLTEXTURE, WebGLTexture)                                       \
+    V(WEBGLUNSIGNEDBYTEARRAY, WebGLUnsignedByteArray)                   \
+    V(WEBGLUNSIGNEDINTARRAY, WebGLUnsignedIntArray)                     \
+    V(WEBGLUNSIGNEDSHORTARRAY, WebGLUnsignedShortArray)
 #else
 #define DOM_OBJECT_3D_CANVAS_TYPES(V)
+#endif
+
+#if ENABLE(XPATH)
+#define DOM_OBJECT_XPATH_TYPES(V)                                       \
+    V(XPATHEVALUATOR, XPathEvaluator)                                   \
+    V(XPATHEXCEPTION, XPathException)                                   \
+    V(XPATHEXPRESSION, XPathExpression)                                 \
+    V(XPATHNSRESOLVER, XPathNSResolver)                                 \
+    V(XPATHRESULT, XPathResult)
+#else
+#define DOM_OBJECT_XPATH_TYPES(V)
+#endif
+
+#if ENABLE(XSLT)
+#define DOM_OBJECT_XSLT_TYPES(V)                                        \
+    V(XSLTPROCESSOR, XSLTProcessor)
+#else
+#define DOM_OBJECT_XSLT_TYPES(V)
+#endif
+
+#if ENABLE(INSPECTOR)
+#define DOM_OBJECT_INSPECTOR_TYPES(V)                                   \
+    V(INSPECTORBACKEND, InspectorBackend)
+#else
+#define DOM_OBJECT_INSPECTOR_TYPES(V)
 #endif
 
 #define DOM_OBJECT_TYPES(V)                                             \
@@ -475,7 +497,10 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     DOM_OBJECT_DATABASE_TYPES(V)                                        \
     DOM_OBJECT_STORAGE_TYPES(V)                                         \
     DOM_OBJECT_WORKERS_TYPES(V)                                         \
-    DOM_OBJECT_3D_CANVAS_TYPES(V)
+    DOM_OBJECT_3D_CANVAS_TYPES(V)                                       \
+    DOM_OBJECT_XPATH_TYPES(V)                                           \
+    DOM_OBJECT_XSLT_TYPES(V)                                            \
+    DOM_OBJECT_INSPECTOR_TYPES(V)
 
 #if ENABLE(SVG)
 // SVG_OBJECT_TYPES are svg non-node, non-pod types.

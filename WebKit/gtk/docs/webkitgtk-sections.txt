@@ -132,6 +132,7 @@ webkit_download_get_current_size
 webkit_download_get_destination_uri
 webkit_download_get_elapsed_time
 webkit_download_get_network_request
+webkit_download_get_network_response
 webkit_download_get_progress
 webkit_download_get_status
 webkit_download_get_suggested_filename
@@ -348,6 +349,7 @@ WebKitWebPolicyDecisionPrivate
 <FILE>webkitnetworkrequest</FILE>
 <TITLE>WebKitNetworkRequest</TITLE>
 WebKitNetworkRequest
+webkit_network_request_new
 webkit_network_request_get_uri
 webkit_network_request_get_message
 webkit_network_request_set_uri
@@ -360,7 +362,6 @@ WEBKIT_IS_NETWORK_REQUEST_CLASS
 WEBKIT_NETWORK_REQUEST_GET_CLASS
 <SUBSECTION Private>
 webkit_network_request_get_type
-webkit_network_request_new
 WebKitNetworkRequestPrivate
 WebKitNetworkRequest
 WebKitNetworkRequestClass

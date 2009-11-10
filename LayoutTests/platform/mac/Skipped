@@ -38,6 +38,9 @@ svg/batik/text/smallFonts.svg
 # see bug https://bugs.webkit.org/show_bug.cgi?id=20011 -- Printing tests should use ImageDiff
 printing
 
+# Skip because fix for https://bugs.webkit.org/show_bug.cgi?id=26770 was reverted
+compositing/animation/animated-composited-inside-hidden.html
+
 # https://bugs.webkit.org/show_bug.cgi?id=20342 REGRESSION: fast/dom/cssTarget-crash.html fails
 fast/dom/cssTarget-crash.html
 
@@ -67,29 +70,6 @@ svg/hixie/perf/002.xml
 # <rdar://problem/6710625> Test media/video-error-abort.html doesn't work
 media/video-error-abort.html
 
-# This port doesn't support isolated worlds yet.
-http/tests/security/isolatedWorld/all-window-properties.html
-http/tests/security/isolatedWorld/all-window-prototypes.html
-http/tests/security/isolatedWorld/body-properties.html
-http/tests/security/isolatedWorld/body-prototype.html
-http/tests/security/isolatedWorld/click-event.html
-http/tests/security/isolatedWorld/document-open.html
-http/tests/security/isolatedWorld/document-properties.html
-http/tests/security/isolatedWorld/document-prototype.html
-http/tests/security/isolatedWorld/global-variables.html
-http/tests/security/isolatedWorld/image-properties.html
-http/tests/security/isolatedWorld/image-prototype.html
-http/tests/security/isolatedWorld/location-properties.html
-http/tests/security/isolatedWorld/location-prototype.html
-http/tests/security/isolatedWorld/window-setTimeout-function.html
-http/tests/security/isolatedWorld/window-setTimeout-string.html
-http/tests/security/isolatedWorld/storage-properties.html
-http/tests/security/isolatedWorld/storage-prototype.html
-http/tests/security/isolatedWorld/number-prototype.html
-http/tests/security/isolatedWorld/object-prototype.html
-http/tests/security/isolatedWorld/string-prototype.html
-http/tests/security/isolatedWorld/window-properties.html
-
 # New test with questionable results
 # See https://bugs.webkit.org/show_bug.cgi?id=28079 for explanation.
 fast/forms/menulist-style-color.html
@@ -104,9 +84,15 @@ media/audio-delete-while-step-button-clicked.html
 media/video-controls-transformed.html
 media/video-controls-zoomed.html
 
-# As long as pages with unload handlers are put in the Page Cache, this test doesn't make any sense for Mac.
-# <rdar://problem/7196485> and https://bugs.webkit.org/show_bug.cgi?id=29021
-fast/loader/frames-with-unload-handlers-in-page-cache.html
+# This test requires media controls has a volume slider.
+media/video-volume-slider.html
 
 # This port doesn't support detecting slow unload handlers.
 fast/dom/Window/slow_unload_handler.html
+
+# Skipped until we have a fix for <rdar://problem/6563117> WebKit should tell QuickTime to exclude the text importer
+media/video-empty-source.html
+
+# Ruby layout tests somehow cause http/tests/security/mixedContent/about-blank-iframe-in-main-frame.html to fail
+fast/ruby
+

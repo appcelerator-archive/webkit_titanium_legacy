@@ -105,7 +105,7 @@ void navigateIfAllowed(Frame* frame, const KURL& url, bool lockHistory, bool loc
         return;
 
     if (!protocolIsJavaScript(url) || ScriptController::isSafeScript(frame))
-        frame->loader()->scheduleLocationChange(url.string(), callingFrame->loader()->outgoingReferrer(), lockHistory, lockBackForwardList, processingUserGesture());
+        frame->redirectScheduler()->scheduleLocationChange(url.string(), callingFrame->loader()->outgoingReferrer(), lockHistory, lockBackForwardList, processingUserGesture());
 }
 
 ScriptExecutionContext* getScriptExecutionContext(ScriptState* scriptState)
@@ -135,15 +135,23 @@ void reportException(ScriptState* scriptState, v8::TryCatch& exceptionCatcher)
 
     // There can be a situation that an exception is thrown without setting a message.
     v8::Local<v8::Message> message = exceptionCatcher.Message();
-    if (message.IsEmpty())
-        errorMessage = toWebCoreString(exceptionCatcher.Exception()->ToString());
-    else {
+    if (message.IsEmpty()) {
+        v8::Local<v8::String> exceptionString = exceptionCatcher.Exception()->ToString();
+        // Conversion of the exception object to string can fail if an
+        // exception is thrown during conversion.
+        if (!exceptionString.IsEmpty())
+            errorMessage = toWebCoreString(exceptionString);
+    } else {
         errorMessage = toWebCoreString(message->Get());
         lineNumber = message->GetLineNumber();
         sourceURL = toWebCoreString(message->GetScriptResourceName());
     }
 
-    getScriptExecutionContext(scriptState)->reportException(errorMessage, lineNumber, sourceURL);
+    // Do not report the exception if the current execution context is Document because we do not want to lead to duplicate error messages in the console.
+    // FIXME (31171): need better design to solve the duplicate error message reporting problem.
+    ScriptExecutionContext* context = getScriptExecutionContext(scriptState);
+    if (!context->isDocument())
+      context->reportException(errorMessage, lineNumber, sourceURL);
     exceptionCatcher.Reset();
 }
 

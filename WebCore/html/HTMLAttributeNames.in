@@ -14,8 +14,10 @@ alt
 archive
 aria-activedescendant
 aria-checked
+aria-controls
 aria-describedby
 aria-disabled
+aria-expanded
 aria-hidden
 aria-label
 aria-labeledby
@@ -24,6 +26,7 @@ aria-level
 aria-pressed
 aria-readonly
 aria-required
+aria-selected
 aria-valuemax
 aria-valuemin
 aria-valuenow
@@ -125,6 +128,7 @@ object
 onabort
 onbeforecopy
 onbeforecut
+onbeforeload
 onbeforepaste
 onbeforeunload
 onblur
@@ -157,7 +161,6 @@ onkeyup
 onload
 onloadeddata
 onloadedmetadata
-onloadend
 onloadstart
 onmousedown
 onmousemove

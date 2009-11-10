@@ -53,14 +53,14 @@
 #endif
 
 #if ENABLE(3D_CANVAS)
-#include "JSCanvasArrayBufferConstructor.h"
-#include "JSCanvasByteArrayConstructor.h"
-#include "JSCanvasUnsignedByteArrayConstructor.h"
-#include "JSCanvasIntArrayConstructor.h"
-#include "JSCanvasUnsignedIntArrayConstructor.h"
-#include "JSCanvasShortArrayConstructor.h"
-#include "JSCanvasUnsignedShortArrayConstructor.h"
-#include "JSCanvasFloatArrayConstructor.h"
+#include "JSWebGLArrayBufferConstructor.h"
+#include "JSWebGLByteArrayConstructor.h"
+#include "JSWebGLUnsignedByteArrayConstructor.h"
+#include "JSWebGLIntArrayConstructor.h"
+#include "JSWebGLUnsignedIntArrayConstructor.h"
+#include "JSWebGLShortArrayConstructor.h"
+#include "JSWebGLUnsignedShortArrayConstructor.h"
+#include "JSWebGLFloatArrayConstructor.h"
 #endif
 #include "JSWebKitCSSMatrixConstructor.h"
 #include "JSWebKitPointConstructor.h"
@@ -79,7 +79,9 @@
 #include "RegisteredEventListener.h"
 #include "ScheduledAction.h"
 #include "ScriptController.h"
+#include "SerializedScriptValue.h"
 #include "Settings.h"
+#include "SharedWorkerRepository.h"
 #include "WindowFeatures.h"
 #include <runtime/Error.h>
 #include <runtime/JSFunction.h>
@@ -589,7 +591,7 @@ void JSDOMWindow::setLocation(ExecState* exec, JSValue value)
 
     if (!protocolIsJavaScript(url) || allowsAccessFrom(exec)) {
         // We want a new history item if this JS was called via a user gesture
-        frame->loader()->scheduleLocationChange(url, lexicalFrame->loader()->outgoingReferrer(), !lexicalFrame->script()->anyPageIsProcessingUserGesture(), false, processingUserGesture(exec));
+        frame->redirectScheduler()->scheduleLocationChange(url, lexicalFrame->loader()->outgoingReferrer(), !lexicalFrame->script()->anyPageIsProcessingUserGesture(), false, processingUserGesture(exec));
     }
 }
 
@@ -643,44 +645,44 @@ JSValue JSDOMWindow::webKitCSSMatrix(ExecState* exec) const
 }
  
 #if ENABLE(3D_CANVAS)
-JSValue JSDOMWindow::canvasArrayBuffer(ExecState* exec) const
+JSValue JSDOMWindow::webGLArrayBuffer(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasArrayBufferConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLArrayBufferConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasByteArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLByteArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasByteArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLByteArrayConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasUnsignedByteArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLUnsignedByteArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasUnsignedByteArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLUnsignedByteArrayConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasIntArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLIntArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasIntArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLIntArrayConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasUnsignedIntArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLUnsignedIntArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasUnsignedIntArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLUnsignedIntArrayConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasShortArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLShortArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasShortArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLShortArrayConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasUnsignedShortArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLUnsignedShortArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasUnsignedShortArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLUnsignedShortArrayConstructor>(exec, this);
 }
  
-JSValue JSDOMWindow::canvasFloatArray(ExecState* exec) const
+JSValue JSDOMWindow::webGLFloatArray(ExecState* exec) const
 {
-    return getDOMConstructor<JSCanvasFloatArrayConstructor>(exec, this);
+    return getDOMConstructor<JSWebGLFloatArrayConstructor>(exec, this);
 }
 #endif
  
@@ -713,7 +715,9 @@ JSValue JSDOMWindow::worker(ExecState* exec) const
 #if ENABLE(SHARED_WORKERS)
 JSValue JSDOMWindow::sharedWorker(ExecState* exec) const
 {
-    return getDOMConstructor<JSSharedWorkerConstructor>(exec, this);
+    if (SharedWorkerRepository::isAvailable())
+        return getDOMConstructor<JSSharedWorkerConstructor>(exec, this);
+    return jsUndefined();
 }
 #endif
 
@@ -725,8 +729,6 @@ JSValue JSDOMWindow::webSocket(ExecState* exec) const
         return jsUndefined();
     Settings* settings = frame->settings();
     if (!settings)
-        return jsUndefined();
-    if (!settings->experimentalWebSocketsEnabled())
         return jsUndefined();
     return getDOMConstructor<JSWebSocketConstructor>(exec, this);
 }
@@ -767,9 +769,10 @@ static Frame* createWindow(ExecState* exec, Frame* lexicalFrame, Frame* dynamicF
         return 0;
 
     newFrame->loader()->setOpener(openerFrame);
-    newFrame->loader()->setOpenedByDOM();
+    newFrame->page()->setOpenedByDOM();
 
-    JSDOMWindow* newWindow = toJSDOMWindow(newFrame);
+    // FIXME: If a window is created from an isolated world, what are the consequences of this? 'dialogArguments' only appears back in the normal world?
+    JSDOMWindow* newWindow = toJSDOMWindow(newFrame, normalWorld(exec->globalData()));
 
     if (dialogArgs)
         newWindow->putDirect(Identifier(exec, "dialogArguments"), dialogArgs);
@@ -781,7 +784,7 @@ static Frame* createWindow(ExecState* exec, Frame* lexicalFrame, Frame* dynamicF
         if (created)
             newFrame->loader()->changeLocation(completedURL, referrer, false, false, userGesture);
         else if (!url.isEmpty())
-            newFrame->loader()->scheduleLocationChange(completedURL.string(), referrer, !lexicalFrame->script()->anyPageIsProcessingUserGesture(), false, userGesture);
+            newFrame->redirectScheduler()->scheduleLocationChange(completedURL.string(), referrer, !lexicalFrame->script()->anyPageIsProcessingUserGesture(), false, userGesture);
     }
 
     return newFrame;
@@ -829,7 +832,7 @@ JSValue JSDOMWindow::open(ExecState* exec, const ArgList& args)
         if (!shouldAllowNavigation(exec, frame))
             return jsUndefined();
 
-        const JSDOMWindow* targetedWindow = toJSDOMWindow(frame);
+        const JSDOMWindow* targetedWindow = toJSDOMWindow(frame, currentWorld(exec));
         if (!completedURL.isEmpty() && (!protocolIsJavaScript(completedURL) || (targetedWindow && targetedWindow->allowsAccessFrom(exec)))) {
             bool userGesture = processingUserGesture(exec);
 
@@ -838,7 +841,7 @@ JSValue JSDOMWindow::open(ExecState* exec, const ArgList& args)
             // here.
             String referrer = dynamicFrame->loader()->outgoingReferrer();
 
-            frame->loader()->scheduleLocationChange(completedURL, referrer, !lexicalFrame->script()->anyPageIsProcessingUserGesture(), false, userGesture);
+            frame->redirectScheduler()->scheduleLocationChange(completedURL, referrer, !lexicalFrame->script()->anyPageIsProcessingUserGesture(), false, userGesture);
         }
         return toJS(exec, frame->domWindow());
     }
@@ -930,7 +933,7 @@ JSValue JSDOMWindow::showModalDialog(ExecState* exec, const ArgList& args)
     if (!dialogFrame)
         return jsUndefined();
 
-    JSDOMWindow* dialogWindow = toJSDOMWindow(dialogFrame);
+    JSDOMWindow* dialogWindow = toJSDOMWindow(dialogFrame, currentWorld(exec));
     dialogFrame->page()->chrome()->runModal();
 
     Identifier returnValue(exec, "returnValue");
@@ -949,7 +952,7 @@ JSValue JSDOMWindow::postMessage(ExecState* exec, const ArgList& args)
     DOMWindow* window = impl();
 
     DOMWindow* source = asJSDOMWindow(exec->lexicalGlobalObject())->impl();
-    String message = args.at(0).toString(exec);
+    PassRefPtr<SerializedScriptValue> message = SerializedScriptValue::create(exec, args.at(0));
 
     if (exec->hadException())
         return jsUndefined();
@@ -973,7 +976,7 @@ JSValue JSDOMWindow::postMessage(ExecState* exec, const ArgList& args)
 
 JSValue JSDOMWindow::setTimeout(ExecState* exec, const ArgList& args)
 {
-    ScheduledAction* action = ScheduledAction::create(exec, args);
+    ScheduledAction* action = ScheduledAction::create(exec, args, currentWorld(exec));
     if (exec->hadException())
         return jsUndefined();
     int delay = args.at(1).toInt32(exec);
@@ -982,7 +985,7 @@ JSValue JSDOMWindow::setTimeout(ExecState* exec, const ArgList& args)
 
 JSValue JSDOMWindow::setInterval(ExecState* exec, const ArgList& args)
 {
-    ScheduledAction* action = ScheduledAction::create(exec, args);
+    ScheduledAction* action = ScheduledAction::create(exec, args, currentWorld(exec));
     if (exec->hadException())
         return jsUndefined();
     int delay = args.at(1).toInt32(exec);
@@ -1050,7 +1053,7 @@ JSValue JSDOMWindow::addEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false), args.at(2).toBoolean(exec));
+    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false, currentWorld(exec)), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -1064,7 +1067,7 @@ JSValue JSDOMWindow::removeEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false).get(), args.at(2).toBoolean(exec));
+    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false, currentWorld(exec)).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 

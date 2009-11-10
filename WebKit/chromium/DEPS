@@ -34,7 +34,21 @@ vars = {
   'chromium_svn': 'http://src.chromium.org/svn/trunk/src',
   'chromium_deps_svn': 'http://src.chromium.org/svn/trunk/deps/third_party',
 
-  'chromium_rev': '27573', 
+  # Dependencies' revisions to use:
+  'chromium_rev': '28710',
+  'google-url_rev': '119',
+  'gtest_rev': '329',
+  'gyp_rev': '685',
+  'icu_rev': '27687',
+  'openvcdiff_rev': '28',
+  'skia_rev': '376',
+  'v8_rev': '3030',
+
+  # Windows:
+  'cygwin_rev': '11984',
+  'ffmpeg_ia32_rev': '28488',
+  'pthreads-win32_rev': '26716',
+  'python_24_rev': '22967',
 }
 
 deps = {
@@ -44,7 +58,7 @@ deps = {
   'webkit/build':
       Var('chromium_svn')+'/webkit/build@'+Var('chromium_rev'),
   'tools/gyp':
-    'http://gyp.googlecode.com/svn/trunk@671',
+    'http://gyp.googlecode.com/svn/trunk@'+Var('gyp_rev'),
 
   # Basic tools
   'base':
@@ -54,31 +68,33 @@ deps = {
   'skia':
     Var('chromium_svn')+'/skia@'+Var('chromium_rev'),
   'third_party/skia':
-    'http://skia.googlecode.com/svn/trunk@341',
+    'http://skia.googlecode.com/svn/trunk@'+Var('skia_rev'),
 
   # testing
   'testing':
     Var('chromium_svn')+'/testing@'+Var('chromium_rev'),
+  'testing/gtest':
+    'http://googletest.googlecode.com/svn/trunk@'+Var('gtest_rev'),
 
   # v8 javascript engine
   'v8':
-    'http://v8.googlecode.com/svn/trunk@2966',
-  'webkit/extensions/v8':
-    Var('chromium_svn')+'/webkit/extensions/v8@'+Var('chromium_rev'),
-  
+    'http://v8.googlecode.com/svn/trunk@'+Var('v8_rev'),
+  'testing/gtest':
+    'http://googletest.googlecode.com/svn/trunk@'+Var('gtest_rev'),
+
   # net dependencies
   'net':
     Var('chromium_svn')+'/net@'+Var('chromium_rev'),
   'sdch':
     Var('chromium_svn')+'/sdch@'+Var('chromium_rev'),
   'sdch/open-vcdiff':
-    'http://open-vcdiff.googlecode.com/svn/trunk@26',
+    'http://open-vcdiff.googlecode.com/svn/trunk@'+Var('openvcdiff_rev'),
   'googleurl':
-    'http://google-url.googlecode.com/svn/trunk@119',
+    'http://google-url.googlecode.com/svn/trunk@'+Var('google-url_rev'),
 
   # other third party
   'third_party/icu':
-    Var('chromium_deps_svn')+'/icu42@26673',
+    Var('chromium_deps_svn')+'/icu42@'+Var('icu_rev'),
 
   'third_party/bzip2':
     Var('chromium_svn')+'/third_party/bzip2@'+Var('chromium_rev'),
@@ -109,7 +125,22 @@ deps = {
 
   'third_party/zlib':
     Var('chromium_svn')+'/third_party/zlib@'+Var('chromium_rev'),
+}
 
+deps_os = {
+  'win': {
+    'third_party/cygwin':
+      Var('chromium_deps_svn')+'/cygwin@'+Var('cygwin_rev'),
+
+    'third_party/python_24':
+      Var('chromium_deps_svn')+'/python_24@'+Var('python_24_rev'),
+
+    'third_party/ffmpeg/binaries/chromium/win/ia32':
+      Var('chromium_deps_svn')+'/ffmpeg/binaries/win@'+Var('ffmpeg_ia32_rev'),
+
+    'third_party/pthreads-win32':
+      Var('chromium_deps_svn')+'/pthreads-win32@'+Var('pthreads-win32_rev'),
+  },
 }
 
 skip_child_includes = [
@@ -148,11 +179,6 @@ hooks = [
   {
     # A change to any file in this directory should run the gyp generator.
     'pattern': '.',
-    'action': ['python',
-               'build/gyp_chromium',
-               '-Dinside_chromium_build=0',
-               '-Dv8_use_snapshot=false',
-               '--depth=./',
-               'webkit.gyp'],
+    'action': ['python', 'gyp_webkit'],
   },
 ]

@@ -951,7 +951,7 @@ class CppStyleTest(CppStyleTestBase):
         self.assert_lint('int a[sizeof(struct Foo)];', '')
         self.assert_lint('int a[128 - sizeof(const bar)];', '')
         self.assert_lint('int a[(sizeof(foo) * 4)];', '')
-        self.assert_lint('int a[(arraysize(fixed_size_array)/2) << 1];', '')
+        self.assert_lint('int a[(arraysize(fixed_size_array)/2) << 1];', 'Missing spaces around /  [whitespace/operators] [3]')
         self.assert_lint('delete a[some_var];', '')
         self.assert_lint('return a[some_var];', '')
 
@@ -1209,6 +1209,68 @@ class CppStyleTest(CppStyleTestBase):
         self.assert_lint('typedef hash_map<Foo, Bar', 'Missing spaces around <'
                          '  [whitespace/operators] [3]')
         self.assert_lint('typedef hash_map<FoooooType, BaaaaarType,', '')
+        self.assert_lint('a<Foo> t+=b;', 'Missing spaces around +='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo> t-=b;', 'Missing spaces around -='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t*=b;', 'Missing spaces around *='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t/=b;', 'Missing spaces around /='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t|=b;', 'Missing spaces around |='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t&=b;', 'Missing spaces around &='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t<<=b;', 'Missing spaces around <<='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t>>=b;', 'Missing spaces around >>='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t>>=&b|c;', 'Missing spaces around >>='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t<<=*b/c;', 'Missing spaces around <<='
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo> t -= b;', '')
+        self.assert_lint('a<Foo> t += b;', '')
+        self.assert_lint('a<Foo*> t *= b;', '')
+        self.assert_lint('a<Foo*> t /= b;', '')
+        self.assert_lint('a<Foo*> t |= b;', '')
+        self.assert_lint('a<Foo*> t &= b;', '')
+        self.assert_lint('a<Foo*> t <<= b;', '')
+        self.assert_lint('a<Foo*> t >>= b;', '')
+        self.assert_lint('a<Foo*> t >>= &b|c;', 'Missing spaces around |'
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t <<= *b/c;', 'Missing spaces around /'
+                         '  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t <<= b/c; //Test', ['At least two spaces'
+                         ' is best between code and comments  [whitespace/'
+                         'comments] [2]', 'Should have a space between // '
+                         'and comment  [whitespace/comments] [4]', 'Missing'
+                         ' spaces around /  [whitespace/operators] [3]'])
+        self.assert_lint('a<Foo*> t <<= b||c;  //Test', ['Should have a space'
+                         ' between // and comment  [whitespace/comments] [4]',
+                         'Missing spaces around ||  [whitespace/operators] [3]'])
+        self.assert_lint('a<Foo*> t <<= b&&c;  // Test', 'Missing spaces around'
+                         ' &&  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t <<= b&&&c;  // Test', 'Missing spaces around'
+                         ' &&  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t <<= b&&*c;  // Test', 'Missing spaces around'
+                         ' &&  [whitespace/operators] [3]')
+        self.assert_lint('a<Foo*> t <<= b && *c;  // Test', '')
+        self.assert_lint('a<Foo*> t <<= b && &c;  // Test', '')
+        self.assert_lint('a<Foo*> t <<= b || &c;  /*Test', 'Complex multi-line '
+                         '/*...*/-style comment found. Lint may give bogus '
+                         'warnings.  Consider replacing these with //-style'
+                         ' comments, with #if 0...#endif, or with more clearly'
+                         ' structured multi-line comments.  [readability/multiline_comment] [5]')
+        self.assert_lint('a<Foo&> t <<= &b | &c;', '')
+        self.assert_lint('a<Foo*> t <<= &b & &c;  // Test', '')
+        self.assert_lint('a<Foo*> t <<= *b / &c;  // Test', '')
+        self.assert_lint('if (a=b == 1)', 'Missing spaces around =  [whitespace/operators] [4]')
+        self.assert_lint('a = 1<<20', 'Missing spaces around <<  [whitespace/operators] [3]')
+        self.assert_lint('if (a = b == 1)', '')
+        self.assert_lint('a = 1 << 20', '')
+        self.assert_multi_line_lint('#include "config.h"\n#include <sys/io.h>\n',
+                                    '')
 
     def test_spacing_before_last_semicolon(self):
         self.assert_lint('call_function() ;',
@@ -2750,40 +2812,39 @@ class WebKitStyleTest(CppStyleTestBase):
             'Weird number of spaces at line-start.  Are you using a 4-space indent?  [whitespace/indent] [3]')
         # FIXME: No tests for 8-spaces.
 
-        # 3. In a header, code inside a namespace should be indented.
+        # 3. In a header, code inside a namespace should not be indented.
         self.assert_multi_line_lint(
             'namespace WebCore {\n\n'
-            '    class Document {\n'
-            '        int myVariable;\n'
-            '    };\n'
+            'class Document {\n'
+            '    int myVariable;\n'
+            '};\n'
             '}',
             '',
             'foo.h')
         self.assert_multi_line_lint(
             'namespace OuterNamespace {\n'
             '    namespace InnerNamespace {\n'
-            '        class Document {\n'
-            '        };\n'
-            '    };\n'
+            '    class Document {\n'
+            '};\n'
+            '};\n'
             '}',
-            '',
+            ['Code inside a namespace should not be indented.  [whitespace/indent] [4]', 'namespace should never be indented.  [whitespace/indent] [4]'],
             'foo.h')
         self.assert_multi_line_lint(
             'namespace WebCore {\n'
             '#if 0\n'
             '    class Document {\n'
-            '    };\n'
+            '};\n'
             '#endif\n'
             '}',
-            '',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
             'foo.h')
         self.assert_multi_line_lint(
             'namespace WebCore {\n'
             'class Document {\n'
             '};\n'
             '}',
-            'In a header, code inside a namespace should be indented.'
-            '  [whitespace/indent] [4]',
+            '',
             'foo.h')
 
         # 4. In an implementation file (files with the extension .cpp, .c
@@ -2802,14 +2863,52 @@ class WebKitStyleTest(CppStyleTestBase):
             'namespace OuterNamespace {\n'
             'namespace InnerNamespace {\n'
             'Document::Foo() { }\n'
-            '}',
-            '',
+            '    void* p;\n'
+            '}\n'
+            '}\n',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
             'foo.cpp')
         self.assert_multi_line_lint(
-            '    namespace WebCore {\n\n'
-            'start:  // Pointless code, but tests the label regexp.\n'
-            '    goto start;\n'
-            '    }',
+            'namespace OuterNamespace {\n'
+            'namespace InnerNamespace {\n'
+            'Document::Foo() { }\n'
+            '}\n'
+            '    void* p;\n'
+            '}\n',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
+            'foo.cpp')
+        self.assert_multi_line_lint(
+            'namespace WebCore {\n\n'
+            '    const char* foo = "start:;"\n'
+            '        "dfsfsfs";\n'
+            '}\n',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
+            'foo.cpp')
+        self.assert_multi_line_lint(
+            'namespace WebCore {\n\n'
+            'const char* foo(void* a = ";",  // ;\n'
+            '    void* b);\n'
+            '    void* p;\n'
+            '}\n',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
+            'foo.cpp')
+        self.assert_multi_line_lint(
+            'namespace WebCore {\n\n'
+            'const char* foo[] = {\n'
+            '    "void* b);",  // ;\n'
+            '    "asfdf",\n'
+            '    }\n'
+            '    void* p;\n'
+            '}\n',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
+            'foo.cpp')
+        self.assert_multi_line_lint(
+            'namespace WebCore {\n\n'
+            'const char* foo[] = {\n'
+            '    "void* b);",  // }\n'
+            '    "asfdf",\n'
+            '    }\n'
+            '}\n',
             '',
             'foo.cpp')
         self.assert_multi_line_lint(
@@ -2819,14 +2918,29 @@ class WebKitStyleTest(CppStyleTestBase):
             'start:  // infinite loops are fun!\n'
             '        goto start;\n'
             '    }',
-            '',
+            'namespace should never be indented.  [whitespace/indent] [4]',
             'foo.cpp')
         self.assert_multi_line_lint(
             'namespace WebCore {\n'
             '    Document::Foo() { }\n'
             '}',
-            'In an implementation file, code inside a namespace should not be indented.'
+            'Code inside a namespace should not be indented.'
             '  [whitespace/indent] [4]',
+            'foo.cpp')
+        self.assert_multi_line_lint(
+            'namespace WebCore {\n'
+            '#define abc(x) x; \\\n'
+            '    x\n'
+            '}',
+            '',
+            'foo.cpp')
+        self.assert_multi_line_lint(
+            'namespace WebCore {\n'
+            '#define abc(x) x; \\\n'
+            '    x\n'
+            '    void* x;'
+            '}',
+            'Code inside a namespace should not be indented.  [whitespace/indent] [4]',
             'foo.cpp')
 
         # 5. A case label should line up with its switch statement. The
@@ -2960,7 +3074,7 @@ class WebKitStyleTest(CppStyleTestBase):
             'Missing space after ,  [whitespace/comma] [3]')
         self.assert_multi_line_lint(
             'c = a|b;',
-            '')
+            'Missing spaces around |  [whitespace/operators] [3]')
         # FIXME: We cannot catch this lint error.
         # self.assert_multi_line_lint(
         #     'return condition ? 1:0;',
@@ -3190,7 +3304,7 @@ class WebKitStyleTest(CppStyleTestBase):
             '')
         self.assert_multi_line_lint(
             'namespace WebCore {\n'
-            '    int foo;\n'
+            'int foo;\n'
             '};\n',
             '')
         self.assert_multi_line_lint(

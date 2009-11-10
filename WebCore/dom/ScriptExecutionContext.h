@@ -92,17 +92,21 @@ namespace WebCore {
         void ref() { refScriptExecutionContext(); }
         void deref() { derefScriptExecutionContext(); }
 
-        class Task : public ThreadSafeShared<Task> {
+        class Task : public Noncopyable {
         public:
             virtual ~Task();
             virtual void performTask(ScriptExecutionContext*) = 0;
         };
 
-        virtual void postTask(PassRefPtr<Task>) = 0; // Executes the task on context's thread asynchronously.
+        virtual void postTask(PassOwnPtr<Task>) = 0; // Executes the task on context's thread asynchronously.
 
         void addTimeout(int timeoutId, DOMTimer*);
         void removeTimeout(int timeoutId);
         DOMTimer* findTimeout(int timeoutId);
+
+#if USE(JSC)
+        JSC::JSGlobalData* globalData();
+#endif
 
     protected:
         // Explicitly override the security origin for this script context.

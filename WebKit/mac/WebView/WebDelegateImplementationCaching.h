@@ -85,6 +85,8 @@ struct WebHistoryDelegateImplementationCache {
     IMP navigatedFunc;
     IMP clientRedirectFunc;
     IMP serverRedirectFunc;
+    IMP setTitleFunc;
+    IMP populateVisitedLinksFunc;
 };
 
 WebResourceDelegateImplementationCache* WebViewGetResourceLoadDelegateImplementations(WebView *);
@@ -129,5 +131,6 @@ id CallScriptDebugDelegate(IMP, WebView *, SEL, id, NSInteger, id, NSInteger, id
 id CallScriptDebugDelegate(IMP, WebView *, SEL, id, NSInteger, id, id, id);
 id CallScriptDebugDelegate(IMP, WebView *, SEL, id, NSInteger, NSInteger, id);
 
+id CallHistoryDelegate(IMP, WebView *, SEL);
 id CallHistoryDelegate(IMP, WebView *, SEL, id, id);
 id CallHistoryDelegate(IMP, WebView *, SEL, id, id, id);

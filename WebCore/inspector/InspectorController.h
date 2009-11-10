@@ -30,7 +30,9 @@
 #define InspectorController_h
 
 #include "Console.h"
+#include "Cookie.h"
 #include "PlatformString.h"
+#include "ScriptArray.h"
 #include "ScriptObject.h"
 #include "ScriptState.h"
 #include "ScriptValue.h"
@@ -39,6 +41,7 @@
 
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/ListHashSet.h>
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
 
@@ -68,7 +71,7 @@ class JavaScriptCallFrame;
 class KURL;
 class Node;
 class Page;
-struct ResourceRequest;
+class ResourceRequest;
 class ResourceResponse;
 class ResourceError;
 class ScriptCallStack;
@@ -90,16 +93,18 @@ class InspectorController
 public:
     typedef HashMap<long long, RefPtr<InspectorResource> > ResourcesMap;
     typedef HashMap<RefPtr<Frame>, ResourcesMap*> FrameResourcesMap;
-    typedef HashSet<RefPtr<InspectorDatabaseResource> > DatabaseResourcesSet;
-    typedef HashSet<RefPtr<InspectorDOMStorageResource> > DOMStorageResourcesSet;
+    typedef HashMap<int, RefPtr<InspectorDatabaseResource> > DatabaseResourcesMap;
+    typedef HashMap<int, RefPtr<InspectorDOMStorageResource> > DOMStorageResourcesMap;
+    typedef HashMap<String, Vector<String> > ObjectGroupsMap;
 
     typedef enum {
         CurrentPanel,
         ConsolePanel,
         ElementsPanel,
-        ProfilesPanel,
         ResourcesPanel,
         ScriptsPanel,
+        TimelinePanel,
+        ProfilesPanel,
         StoragePanel
     } SpecialPanels;
 
@@ -219,15 +224,19 @@ public:
     void resourceRetrievedByXMLHttpRequest(unsigned long identifier, const ScriptString& sourceString);
     void scriptImported(unsigned long identifier, const String& sourceString);
 
-    void enableResourceTracking(bool always = false);
+    void enableResourceTracking(bool always = false, bool reload = true);
     void disableResourceTracking(bool always = false);
     bool resourceTrackingEnabled() const { return m_resourceTrackingEnabled; }
     void ensureResourceTrackingSettingsLoaded();
 
-    void enableTimeline(bool always = false);
-    void disableTimeline(bool always = false);
-    bool timelineEnabled() const;
+    void startTimelineProfiler();
+    void stopTimelineProfiler();
     InspectorTimelineAgent* timelineAgent() { return m_timelineAgent.get(); }
+
+    void mainResourceFiredLoadEvent(DocumentLoader*, const KURL&);
+    void mainResourceFiredDOMContentEvent(DocumentLoader*, const KURL&);
+                                                        
+    void getCookies(long callId, const String& url);
 
 #if ENABLE(DATABASE)
     void didOpenDatabase(Database*, const String& domain, const String& name, const String& version);
@@ -252,11 +261,12 @@ public:
     void startGroup(MessageSource source, ScriptCallStack* callFrame);
     void endGroup(MessageSource source, unsigned lineNumber, const String& sourceURL);
 
+    void markTimeline(const String& message); 
+
 #if ENABLE(JAVASCRIPT_DEBUGGER)
     void addProfile(PassRefPtr<JSC::Profile>, unsigned lineNumber, const JSC::UString& sourceURL);
     void addProfileFinishedMessageToConsole(PassRefPtr<JSC::Profile>, unsigned lineNumber, const JSC::UString& sourceURL);
     void addStartProfilingMessageToConsole(const JSC::UString& title, unsigned lineNumber, const JSC::UString& sourceURL);
-    const ProfilesArray& profiles() const { return m_profiles; }
 
     bool isRecordingUserInitiatedProfile() const { return m_recordingUserInitiatedProfile; }
 
@@ -280,6 +290,8 @@ public:
     virtual void didContinue();
 #endif
 
+    void evaluateForTestInFrontend(long callId, const String& script);
+
 private:
     friend class InspectorBackend;
     // Following are used from InspectorBackend and internally.
@@ -290,26 +302,40 @@ private:
     void storeLastActivePanel(const String& panelName);
     void closeWindow();
     InspectorDOMAgent* domAgent() { return m_domAgent.get(); }
+    void releaseDOMAgent();
 
     friend class InspectorFrontend;
     // Following are used from InspectorFrontend only. We don't want to expose them to the
     // rest of the InspectorController clients.
     // TODO: extract these into a separate interface.
-    ScriptValue wrapObject(const ScriptValue& object);
+    ScriptValue wrapObject(const ScriptValue& object, const String& objectGroup);
     ScriptValue unwrapObject(const String& objectId);
+    void releaseWrapperObjectGroup(const String& objectGroup);
     
     void resetInjectedScript();
 
-    void deleteCookie(const String& cookieName);
+    void deleteCookie(const String& cookieName, const String& domain);
 
 #if ENABLE(JAVASCRIPT_DEBUGGER)
+    typedef HashMap<unsigned int, RefPtr<JSC::Profile> > ProfilesMap;
+
     void startUserInitiatedProfilingSoon();
     void toggleRecordButton(bool);
     void enableDebuggerFromFrontend(bool always);
+    void getProfileHeaders(long callId);
+    void getProfile(long callId, unsigned uid);
+    ScriptObject createProfileHeader(const JSC::Profile& profile);
+#endif
+#if ENABLE(DATABASE)
+    void selectDatabase(Database* database);
+    Database* databaseForId(int databaseId);
 #endif
 #if ENABLE(DOM_STORAGE)
     InspectorDOMStorageResource* getDOMStorageResourceForId(int storageId);
 #endif
+                                                        
+    ScriptObject buildObjectForCookie(const Cookie&);
+    ScriptArray buildArrayForCookies(ListHashSet<Cookie>&);
 
     void focusNode();
 
@@ -328,6 +354,8 @@ private:
 
     SpecialPanels specialPanelForJSName(const String& panelName);
 
+    void didEvaluateForTestInFrontend(long callId, const String& jsonResult);
+
     Page* m_inspectedPage;
     InspectorClient* m_client;
     OwnPtr<InspectorFrontend> m_frontend;
@@ -344,10 +372,10 @@ private:
     HashMap<String, double> m_times;
     HashMap<String, unsigned> m_counts;
 #if ENABLE(DATABASE)
-    DatabaseResourcesSet m_databaseResources;
+    DatabaseResourcesMap m_databaseResources;
 #endif
 #if ENABLE(DOM_STORAGE)
-    DOMStorageResourcesSet m_domStorageResources;
+    DOMStorageResourcesMap m_domStorageResources;
 #endif
     ScriptState* m_scriptState;
     bool m_windowVisible;
@@ -360,8 +388,11 @@ private:
     bool m_resourceTrackingEnabled;
     bool m_resourceTrackingSettingsLoaded;
     RefPtr<InspectorBackend> m_inspectorBackend;
-    HashMap<String, ScriptValue> m_idToConsoleObject;
+    HashMap<String, ScriptValue> m_idToWrappedObject;
+    ObjectGroupsMap m_objectGroups;
+
     long m_lastBoundObjectId;
+    Vector<pair<long, String> > m_pendingEvaluateTestCommands;
 #if ENABLE(JAVASCRIPT_DEBUGGER)
     bool m_debuggerEnabled;
     bool m_attachDebuggerWhenShown;
@@ -370,7 +401,7 @@ private:
     int m_currentUserInitiatedProfileNumber;
     unsigned m_nextUserInitiatedProfileNumber;
     Timer<InspectorController> m_startProfiling;
-    ProfilesArray m_profiles;
+    ProfilesMap m_profiles;
 #endif
 };
 

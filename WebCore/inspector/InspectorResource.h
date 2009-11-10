@@ -51,7 +51,7 @@ namespace WebCore {
     class Frame;
     class ResourceResponse;
 
-    struct ResourceRequest;
+    class ResourceRequest;
 
     class InspectorResource : public RefCounted<InspectorResource> {
     public:
@@ -103,6 +103,8 @@ namespace WebCore {
 
         void startTiming();
         void markResponseReceivedTime();
+        void markLoadEventTime();
+        void markDOMContentEventTime();
         void endTiming();
 
         void markFailed();
@@ -123,10 +125,13 @@ namespace WebCore {
         public:
             Changes() : m_change(NoChange) {}
 
-            inline bool hasChange(ChangeType change) { return (m_change & change) || !(m_change + change); }
+            inline bool hasChange(ChangeType change)
+            {
+                return m_change & change || (m_change == NoChange && change == NoChange);
+            }
             inline void set(ChangeType change)
             {
-                m_change = static_cast<ChangeType>(static_cast<unsigned>(m_change) | static_cast<unsigned>(change));            
+                m_change = static_cast<ChangeType>(static_cast<unsigned>(m_change) | static_cast<unsigned>(change));
             }
             inline void clear(ChangeType change)
             {
@@ -142,6 +147,8 @@ namespace WebCore {
 
         InspectorResource(long long identifier, DocumentLoader*);
         Type type() const;
+
+        CachedResource* cachedResource() const;
 
         long long m_identifier;
         RefPtr<DocumentLoader> m_loader;
@@ -161,6 +168,8 @@ namespace WebCore {
         double m_startTime;
         double m_responseReceivedTime;
         double m_endTime;
+        double m_loadEventTime;
+        double m_domContentEventTime;
         ScriptString m_xmlHttpResponseText;
         Changes m_changes;
         bool m_isMainResource;

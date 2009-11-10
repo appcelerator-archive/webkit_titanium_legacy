@@ -54,13 +54,13 @@ namespace WebCore {
         // (Only use these methods in the worker object thread.)
         virtual void startWorkerContext(const KURL& scriptURL, const String& userAgent, const String& sourceCode);
         virtual void terminateWorkerContext();
-        virtual void postMessageToWorkerContext(const String&, PassOwnPtr<MessagePortChannelArray>);
+        virtual void postMessageToWorkerContext(PassRefPtr<SerializedScriptValue>, PassOwnPtr<MessagePortChannelArray>);
         virtual bool hasPendingActivity() const;
         virtual void workerObjectDestroyed();
 
         // Implementations of WorkerObjectProxy.
         // (Only use these methods in the worker context thread.)
-        virtual void postMessageToWorkerObject(const String&, PassOwnPtr<MessagePortChannelArray>);
+        virtual void postMessageToWorkerObject(PassRefPtr<SerializedScriptValue>, PassOwnPtr<MessagePortChannelArray>);
         virtual void postExceptionToWorkerObject(const String& errorMessage, int lineNumber, const String& sourceURL);
         virtual void postConsoleMessageToWorkerObject(MessageDestination, MessageSource, MessageType, MessageLevel, const String& message, int lineNumber, const String& sourceURL);
         virtual void confirmMessageFromWorkerObject(bool hasPendingActivity);
@@ -71,8 +71,8 @@ namespace WebCore {
         // Implementation of WorkerLoaderProxy.
         // These methods are called on different threads to schedule loading
         // requests and to send callbacks back to WorkerContext.
-        virtual void postTaskToLoader(PassRefPtr<ScriptExecutionContext::Task>);
-        virtual void postTaskForModeToWorkerContext(PassRefPtr<ScriptExecutionContext::Task>, const String& mode);
+        virtual void postTaskToLoader(PassOwnPtr<ScriptExecutionContext::Task>);
+        virtual void postTaskForModeToWorkerContext(PassOwnPtr<ScriptExecutionContext::Task>, const String& mode);
 
         void workerThreadCreated(PassRefPtr<DedicatedWorkerThread>);
 
@@ -100,7 +100,7 @@ namespace WebCore {
 
         bool m_askedToTerminate;
 
-        Vector<RefPtr<ScriptExecutionContext::Task> > m_queuedEarlyTasks; // Tasks are queued here until there's a thread object created.
+        Vector<OwnPtr<ScriptExecutionContext::Task> > m_queuedEarlyTasks; // Tasks are queued here until there's a thread object created.
     };
 
 } // namespace WebCore

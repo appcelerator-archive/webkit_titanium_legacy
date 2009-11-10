@@ -31,16 +31,37 @@
 #ifndef InspectorTimelineAgent_h
 #define InspectorTimelineAgent_h
 
+#include "Document.h"
+#include "ScriptExecutionContext.h"
 #include "ScriptObject.h"
 #include "ScriptArray.h"
-
-#include <wtf/OwnPtr.h>
-#include <wtf/PassOwnPtr.h>
+#include <wtf/Vector.h>
 
 namespace WebCore {
     class Event;
     class InspectorFrontend;
-    class TimelineItem;
+    class IntRect;
+    class ResourceRequest;
+    class ResourceResponse;
+
+    // Must be kept in sync with TimelineAgent.js
+    enum TimelineRecordType {
+        EventDispatchTimelineRecordType = 0,
+        LayoutTimelineRecordType = 1,
+        RecalculateStylesTimelineRecordType = 2,
+        PaintTimelineRecordType = 3,
+        ParseHTMLTimelineRecordType = 4,
+        TimerInstallTimelineRecordType = 5,
+        TimerRemoveTimelineRecordType = 6,
+        TimerFireTimelineRecordType = 7,
+        XHRReadyStateChangeRecordType = 8,
+        XHRLoadRecordType = 9,
+        EvaluateScriptTimelineRecordType = 10,
+        MarkTimelineRecordType = 11,
+        ResourceSendRequestTimelineRecordType = 12,
+        ResourceReceiveResponseTimelineRecordType = 13,
+        ResourceFinishTimelineRecordType = 14,
+    };
 
     class InspectorTimelineAgent {
     public:
@@ -48,29 +69,71 @@ namespace WebCore {
         ~InspectorTimelineAgent();
 
         void reset();
+        void resetFrontendProxyObject(InspectorFrontend*);
 
         // Methods called from WebCore.
-        void willDispatchDOMEvent(const Event&);
-        void didDispatchDOMEvent();
+        void willDispatchEvent(const Event&);
+        void didDispatchEvent();
+
         void willLayout();
         void didLayout();
+
         void willRecalculateStyle();
         void didRecalculateStyle();
-        void willPaint();
-        void didPaint();
-        void didWriteHTML();
-        void willWriteHTML();
-    private:
-        double sessionTimeInMilliseconds();
 
+        void willPaint(const IntRect&);
+        void didPaint();
+
+        void willWriteHTML();
+        void didWriteHTML();
+        
+        void didInstallTimer(int timerId, int timeout, bool singleShot);
+        void didRemoveTimer(int timerId);
+        void willFireTimer(int timerId);
+        void didFireTimer();
+
+        void willChangeXHRReadyState(const String&, int);
+        void didChangeXHRReadyState();
+        void willLoadXHR(const String&);
+        void didLoadXHR();
+
+        void willEvaluateScript(const String&, int);
+        void didEvaluateScript();
+
+        void didMarkTimeline(const String&);
+
+        void willSendResourceRequest(unsigned long, bool isMainResource, const ResourceRequest&);
+        void didReceiveResourceResponse(unsigned long, const ResourceResponse&);
+        void didFinishLoadingResource(unsigned long, bool didFail);
+
+        static InspectorTimelineAgent* retrieve(ScriptExecutionContext*);
+    private:
+        struct TimelineRecordEntry {
+            TimelineRecordEntry(ScriptObject record, ScriptArray children, TimelineRecordType type) : record(record), children(children), type(type) { }
+            ScriptObject record;
+            ScriptArray children;
+            TimelineRecordType type;
+        };
+        
+        void pushCurrentRecord(ScriptObject, TimelineRecordType);
+        
         static double currentTimeInMilliseconds();
 
-        void didCompleteCurrentRecord();
+        void didCompleteCurrentRecord(TimelineRecordType);
+        
+        void addRecordToTimeline(ScriptObject, TimelineRecordType);
 
-        double m_sessionStartTime;
         InspectorFrontend* m_frontend;
-        OwnPtr<TimelineItem> m_currentTimelineItem;
+        
+        Vector< TimelineRecordEntry > m_recordStack;
     };
+
+inline InspectorTimelineAgent* InspectorTimelineAgent::retrieve(ScriptExecutionContext* context)
+{
+    if (context->isDocument())
+        return static_cast<Document*>(context)->inspectorTimelineAgent();
+    return 0;
+}
 
 } // namespace WebCore
 

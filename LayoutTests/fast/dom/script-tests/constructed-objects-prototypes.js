@@ -26,6 +26,17 @@ function constructorPropertiesOnWindow(globalObject)
         if (value == null)
             continue;
         var type = classNameForObject(value);
+        // Ignore these properties because they do not exist in all implementations. They will be tested separately
+        if (type == "WebGLRenderingContextConstructor" ||
+            type == "WebGLArrayBufferConstructor" ||
+            type =="WebGLByteArrayConstructor" ||
+            type =="WebGLFloatArrayConstructor" ||
+            type =="WebGLIntArrayConstructor" ||
+            type =="WebGLShortArrayConstructor" ||
+            type =="WebGLUnsignedByteArrayConstructor" ||
+            type =="WebGLUnsignedIntArrayConstructor" ||
+            type =="WebGLUnsignedShortArrayConstructor")
+            continue;
         if (!type.match('Constructor$'))
             continue;
         constructorNames.push(property);

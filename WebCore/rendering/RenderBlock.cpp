@@ -58,12 +58,6 @@ static const int verticalLineClickFudgeFactor = 3;
 
 using namespace HTMLNames;
 
-static void moveChild(RenderObject* to, RenderObjectChildList* toChildList, RenderObject* from, RenderObjectChildList* fromChildList, RenderObject* child)
-{
-    ASSERT(from == child->parent());
-    toChildList->appendChildNode(to, fromChildList->removeChildNode(from, child, false), false);
-}
-
 struct ColumnInfo {
     ColumnInfo()
         : m_desiredColumnWidth(0)
@@ -163,15 +157,18 @@ RenderBlock::~RenderBlock()
 
 void RenderBlock::destroy()
 {
-    // Detach our continuation first.
-    if (m_inlineContinuation)
-        m_inlineContinuation->destroy();
-    m_inlineContinuation = 0;
-    
     // Make sure to destroy anonymous children first while they are still connected to the rest of the tree, so that they will
-    // properly dirty line boxes that they are removed from.  Effects that do :before/:after only on hover could crash otherwise.
+    // properly dirty line boxes that they are removed from. Effects that do :before/:after only on hover could crash otherwise.
     children()->destroyLeftoverChildren();
 
+    // Destroy our continuation before anything other than anonymous children.
+    // The reason we don't destroy it before anonymous children is that they may
+    // have continuations of their own that are anonymous children of our continuation.
+    if (m_inlineContinuation) {
+        m_inlineContinuation->destroy();
+        m_inlineContinuation = 0;
+    }
+    
     if (!documentBeingDestroyed()) {
         if (firstLineBox()) {
             // We can't wait for RenderBox::destroy to clear the selection,
@@ -399,6 +396,19 @@ RootInlineBox* RenderBlock::createAndAppendRootInlineBox()
     m_lineBoxes.appendLineBox(rootBox);
     return rootBox;
 }
+    
+void RenderBlock::moveChildTo(RenderObject* to, RenderObjectChildList* toChildList, RenderObject* child)
+{
+    ASSERT(this == child->parent());
+    toChildList->appendChildNode(to, children()->removeChildNode(this, child, false), false);
+}
+
+void RenderBlock::moveChildTo(RenderObject* to, RenderObjectChildList* toChildList, RenderObject* beforeChild, RenderObject* child)
+{
+    ASSERT(this == child->parent());
+    ASSERT(!beforeChild || to == beforeChild->parent());
+    toChildList->insertChildNode(to, children()->removeChildNode(this, child, false), beforeChild, false);
+}
 
 void RenderBlock::makeChildrenNonInline(RenderObject *insertionPoint)
 {    
@@ -436,9 +446,9 @@ void RenderBlock::makeChildrenNonInline(RenderObject *insertionPoint)
             RenderObject* no = o;
             o = no->nextSibling();
             
-            moveChild(block, block->children(), this, children(), no);
+            moveChildTo(block, block->children(), no);
         }
-        moveChild(block, block->children(), this, children(), inlineRunEnd);
+        moveChildTo(block, block->children(), inlineRunEnd);
     }
 
 #ifndef NDEBUG
@@ -513,7 +523,7 @@ void RenderBlock::removeChild(RenderObject* oldChild)
         while (o) {
             RenderObject* no = o;
             o = no->nextSibling();
-            moveChild(prevBlock, prevBlock->children(), nextBlock, nextBlock->children(), no);
+            nextBlock->moveChildTo(prevBlock, prevBlock->children(), no);
         }
  
         nextBlock->deleteLineBoxTree();
@@ -536,7 +546,7 @@ void RenderBlock::removeChild(RenderObject* oldChild)
         while (o) {
             RenderObject* no = o;
             o = no->nextSibling();
-            moveChild(this, children(), anonBlock, anonBlock->children(), no);
+            anonBlock->moveChildTo(this, children(), no);
         }
 
         // Delete the now-empty block's lines and nuke it.
@@ -774,7 +784,9 @@ void RenderBlock::layoutBlock(bool relayoutChildren)
     // Repaint with our new bounds if they are different from our old bounds.
     bool didFullRepaint = repainter.repaintAfterLayout();
     if (!didFullRepaint && repaintTop != repaintBottom && (style()->visibility() == VISIBLE || enclosingLayer()->hasVisibleContent())) {
-        IntRect repaintRect(leftVisibleOverflow(), repaintTop, rightVisibleOverflow() - leftVisibleOverflow(), repaintBottom - repaintTop);
+        int repaintLeft = min(leftVisualOverflow(), leftLayoutOverflow());
+        int repaintRight = max(rightVisualOverflow(), rightLayoutOverflow());
+        IntRect repaintRect(repaintLeft, repaintTop, repaintRight - repaintLeft, repaintBottom - repaintTop);
 
         // FIXME: Deal with multiple column repainting.  We have to split the repaint
         // rect up into multiple rects if it spans columns.
@@ -855,7 +867,11 @@ void RenderBlock::adjustPositionedBlock(RenderBox* child, const MarginInfo& marg
             }
             y += (collapsedTopPos - collapsedTopNeg) - marginTop;
         }
-        child->layer()->setStaticY(y);
+        RenderLayer* childLayer = child->layer();
+        if (childLayer->staticY() != y) {
+            child->layer()->setStaticY(y);
+            child->setChildNeedsLayout(true, false);
+        }
     }
 }
 
@@ -944,7 +960,7 @@ bool RenderBlock::handleRunInChild(RenderBox* child)
     // Move the nodes from the old child to the new child, but skip any :before/:after content.  It has already
     // been regenerated by the new inline.
     for (RenderObject* runInChild = blockRunIn->firstChild(); runInChild; runInChild = runInChild->nextSibling()) {
-        if (runInIsGenerated || runInChild->style()->styleType() != BEFORE && runInChild->style()->styleType() != AFTER) {
+        if (runInIsGenerated || (runInChild->style()->styleType() != BEFORE && runInChild->style()->styleType() != AFTER)) {
             blockRunIn->children()->removeChildNode(blockRunIn, runInChild, false);
             inlineRunIn->addChild(runInChild); // Use addChild instead of appendChildNode since it handles correct placement of the children relative to :after-generated content.
         }

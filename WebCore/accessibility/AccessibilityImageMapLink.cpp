@@ -29,8 +29,8 @@
 #include "config.h"
 #include "AccessibilityImageMapLink.h"
 
-#include "AccessibilityRenderObject.h"
 #include "AXObjectCache.h"
+#include "AccessibilityRenderObject.h"
 #include "Document.h"
 #include "HTMLNames.h"
 #include "IntRect.h"
@@ -134,5 +134,15 @@ IntSize AccessibilityImageMapLink::size() const
 {
     return elementRect().size();
 }
-    
+
+String AccessibilityImageMapLink::stringValueForMSAA() const
+{
+    return url();
+}
+
+String AccessibilityImageMapLink::nameForMSAA() const
+{
+    return accessibilityDescription();
+}
+
 } // namespace WebCore

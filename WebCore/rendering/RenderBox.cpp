@@ -139,6 +139,8 @@ void RenderBox::styleWillChange(StyleDifference diff, const RenderStyle* newStyl
             markContainingBlocksForLayout();
             if (style()->position() == StaticPosition)
                 repaint();
+            else if (newStyle->position() == AbsolutePosition || newStyle->position() == FixedPosition)
+                parent()->setChildNeedsLayout(true);
             if (isFloating() && !isPositioned() && (newStyle->position() == AbsolutePosition || newStyle->position() == FixedPosition))
                 removeFloatingOrPositionedChildFromBlockLists();
         }
@@ -1469,7 +1471,7 @@ void RenderBox::calcHeight()
     // height since we don't set a height in RenderView when we're printing. So without this quirk, the 
     // height has nothing to be a percentage of, and it ends up being 0. That is bad.
     bool printingNeedsBaseHeight = document()->printing() && h.isPercent()
-        && (isRoot() || isBody() && document()->documentElement()->renderer()->style()->height().isPercent());
+        && (isRoot() || (isBody() && document()->documentElement()->renderer()->style()->height().isPercent()));
     if (stretchesToViewHeight() || printingNeedsBaseHeight) {
         int margins = collapsedMarginTop() + collapsedMarginBottom();
         int visHeight = document()->printing() ? view()->frameView()->visibleHeight() : view()->viewHeight();
@@ -2693,7 +2695,7 @@ VisiblePosition RenderBox::positionForPoint(const IntPoint& point)
 {
     // no children...return this render object's element, if there is one, and offset 0
     if (!firstChild())
-        return createVisiblePosition(firstDeepEditingPositionForNode(node()));
+        return createVisiblePosition(node() ? firstDeepEditingPositionForNode(node()) : Position(0, 0));
 
     int xPos = point.x();
     int yPos = point.y();

@@ -457,8 +457,8 @@ QVariant convertValueToQVariant(ExecState* exec, JSValue value, QMetaType::Type 
         case QMetaType::QTime:
             if (type == Date) {
                 DateInstance* date = static_cast<DateInstance*>(object);
-                WTF::GregorianDateTime gdt;
-                date->getUTCTime(gdt);
+                GregorianDateTime gdt;
+                msToGregorianDateTime(exec, date->internalNumber(), true, gdt);
                 if (hint == QMetaType::QDateTime) {
                     ret = QDateTime(QDate(gdt.year + 1900, gdt.month + 1, gdt.monthDay), QTime(gdt.hour, gdt.minute, gdt.second), Qt::UTC);
                     dist = 0;
@@ -471,8 +471,8 @@ QVariant convertValueToQVariant(ExecState* exec, JSValue value, QMetaType::Type 
                 }
             } else if (type == Number) {
                 double b = value.toNumber(exec);
-                WTF::GregorianDateTime gdt;
-                msToGregorianDateTime(b, true, gdt);
+                GregorianDateTime gdt;
+                msToGregorianDateTime(exec, b, true, gdt);
                 if (hint == QMetaType::QDateTime) {
                     ret = QDateTime(QDate(gdt.year + 1900, gdt.month + 1, gdt.monthDay), QTime(gdt.hour, gdt.minute, gdt.second), Qt::UTC);
                     dist = 6;
@@ -824,7 +824,7 @@ JSValue convertQVariantToValue(ExecState* exec, PassRefPtr<RootObject> root, con
         }
 
         // Dates specified this way are in local time (we convert DateTimes above)
-        WTF::GregorianDateTime dt;
+        GregorianDateTime dt;
         dt.year = date.year() - 1900;
         dt.month = date.month() - 1;
         dt.monthDay = date.day();
@@ -832,11 +832,9 @@ JSValue convertQVariantToValue(ExecState* exec, PassRefPtr<RootObject> root, con
         dt.minute = time.minute();
         dt.second = time.second();
         dt.isDST = -1;
-        double ms = WTF::gregorianDateTimeToMS(dt, time.msec(), /*inputIsUTC*/ false);
+        double ms = gregorianDateTimeToMS(exec, dt, time.msec(), /*inputIsUTC*/ false);
 
-        DateInstance* instance = new (exec) DateInstance(exec->lexicalGlobalObject()->dateStructure());
-        instance->setInternalValue(jsNumber(exec, trunc(ms)));
-        return instance;
+        return new (exec) DateInstance(exec, trunc(ms));
     }
 
     if (type == QMetaType::QByteArray) {
@@ -1339,7 +1337,7 @@ void QtRuntimeMetaMethod::markChildren(MarkStack& markStack)
         markStack.append(d->m_disconnect);
 }
 
-JSValue QtRuntimeMetaMethod::call(ExecState* exec, JSObject* functionObject, JSValue thisValue, const ArgList& args)
+JSValue QtRuntimeMetaMethod::call(ExecState* exec, JSObject* functionObject, JSValue, const ArgList& args)
 {
     QtRuntimeMetaMethodData* d = static_cast<QtRuntimeMetaMethod *>(functionObject)->d_func();
 
@@ -1437,7 +1435,7 @@ QtRuntimeConnectionMethod::QtRuntimeConnectionMethod(ExecState* exec, const Iden
     d->m_isConnect = isConnect;
 }
 
-JSValue QtRuntimeConnectionMethod::call(ExecState* exec, JSObject* functionObject, JSValue thisValue, const ArgList& args)
+JSValue QtRuntimeConnectionMethod::call(ExecState* exec, JSObject* functionObject, JSValue, const ArgList& args)
 {
     QtRuntimeConnectionMethodData* d = static_cast<QtRuntimeConnectionMethod *>(functionObject)->d_func();
 

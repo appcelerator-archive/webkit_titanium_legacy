@@ -1,6 +1,4 @@
 /*
- * This file is part of the CSS implementation for KDE.
- *
  * Copyright (C) 1999-2003 Lars Knoll (knoll@kde.org)
  *               1999 Waldo Bastian (bastian@kde.org)
  * Copyright (C) 2004, 2006, 2007, 2008 Apple Inc. All rights reserved.
@@ -183,7 +181,8 @@ namespace WebCore {
             PseudoMediaControlsRewindButton,
             PseudoMediaControlsReturnToRealtimeButton,
             PseudoMediaControlsStatusDisplay,
-            PseudoMediaControlsFullscreenButton
+            PseudoMediaControlsFullscreenButton,
+            PseudoInputListButton
         };
 
         PseudoType pseudoType() const
@@ -229,7 +228,7 @@ namespace WebCore {
 
         void extractPseudoType() const;
 
-        struct RareData {
+        struct RareData : Noncopyable {
             RareData(CSSSelector* tagHistory)
                 : m_tagHistory(tagHistory)
                 , m_simpleSelector(0)

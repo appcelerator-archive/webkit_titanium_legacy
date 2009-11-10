@@ -608,34 +608,32 @@ HashSet<String> ClipboardWin::types() const
 
 PassRefPtr<FileList> ClipboardWin::files() const
 {
-	if (policy() != ClipboardReadable && policy() != ClipboardTypesReadable)
-        return FileList::create();
+    RefPtr<FileList> files = FileList::create();
+    if (policy() != ClipboardReadable && policy() != ClipboardTypesReadable)
+        return files.release();
 
     if (!m_dataObject)
-        return FileList::create();
+        return files.release();
 
-    RefPtr<FileList> files = FileList::create();    
-	STGMEDIUM medium;
-	if (FAILED(m_dataObject->GetData(cfHDropFormat(), &medium)))
-	    return files.release();
-	
-	HDROP hdrop = (HDROP) GlobalLock(medium.hGlobal);
-	if (!hdrop)
-	    return files.release();
-	
-	WCHAR filename[MAX_PATH];
-	UINT fileCount = DragQueryFile(hdrop, (UINT)-1, 0, 0);
+    STGMEDIUM medium;
+    if (FAILED(m_dataObject->GetData(cfHDropFormat(), &medium)))
+        return files.release();
+
+    HDROP hdrop = reinterpret_cast<HDROP>(GlobalLock(medium.hGlobal));
+    if (!hdrop)
+        return files.release();
+
+    WCHAR filename[MAX_PATH];
+    UINT fileCount = DragQueryFileW(hdrop, 0xFFFFFFFF, 0, 0);
     for (UINT i = 0; i < fileCount; i++) {
         if (!DragQueryFileW(hdrop, i, filename, ARRAYSIZE(filename)))
             continue;
-        files->append(File::create((UChar*)filename));
+        files->append(File::create(reinterpret_cast<UChar*>(filename)));
     }
 
-    // Free up memory from drag
-    DragFinish(hdrop);
-    GlobalUnlock(medium.hGlobal);	
-	
-	return files.release();
+    GlobalUnlock(medium.hGlobal);
+    ReleaseStgMedium(&medium);
+    return files.release();
 }
 
 void ClipboardWin::setDragImage(CachedImage* image, Node *node, const IntPoint &loc)

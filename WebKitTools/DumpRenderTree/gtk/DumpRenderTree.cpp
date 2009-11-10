@@ -319,6 +319,7 @@ static void resetDefaultsToConsistentValues()
                  "enable-offline-web-application-cache", TRUE,
                  "enable-universal-access-from-file-uris", TRUE,
                  "enable-scripts", TRUE,
+                 "enable-dom-paste", TRUE,
                  "default-font-family", "Times",
                  "monospace-font-family", "Courier",
                  "serif-font-family", "Times",
@@ -334,6 +335,8 @@ static void resetDefaultsToConsistentValues()
     g_object_set(G_OBJECT(inspector), "javascript-profiling-enabled", FALSE, NULL);
 
     webkit_reset_origin_access_white_lists();
+
+    setlocale(LC_ALL, "");
 }
 
 void dump()
@@ -402,6 +405,7 @@ void dump()
     fflush(stderr);
 
     done = true;
+    gtk_main_quit();
 }
 
 static void setDefaultsToConsistentStateValuesForTesting()
@@ -480,9 +484,7 @@ static void runTest(const string& testPathOrURL)
     g_free(url);
     url = NULL;
 
-    while (!done)
-        g_main_context_iteration(NULL, TRUE);
-
+    gtk_main();
 
     // Also check if we still have opened webViews and free them.
     if (gLayoutTestController->closeRemainingWindowsWhenComplete() || webViewList) {
@@ -561,7 +563,7 @@ static void webViewLoadFinished(WebKitWebView* view, WebKitWebFrame* frame, void
 
     if (WorkQueue::shared()->count())
         g_timeout_add(0, processWork, 0);
-     else
+    else
         dump();
 }
 
@@ -704,6 +706,11 @@ static void databaseQuotaExceeded(WebKitWebView* view, WebKitWebFrame* frame, We
 
 static WebKitWebView* webViewCreate(WebKitWebView*, WebKitWebFrame*);
 
+static WebKitWebView* webInspectorInspectWebView(WebKitWebInspector*, gpointer data)
+{
+    return WEBKIT_WEB_VIEW(webkit_web_view_new());
+}
+
 static WebKitWebView* createWebView()
 {
     WebKitWebView* view = WEBKIT_WEB_VIEW(webkit_web_view_new());
@@ -727,6 +734,9 @@ static WebKitWebView* createWebView()
                      "signal::close-web-view", webViewClose, 0,
                      "signal::database-quota-exceeded", databaseQuotaExceeded, 0,
                      NULL);
+
+    WebKitWebInspector* inspector = webkit_web_view_get_inspector(view);
+    g_signal_connect(inspector, "inspect-web-view", G_CALLBACK(webInspectorInspectWebView), 0);
 
     return view;
 }

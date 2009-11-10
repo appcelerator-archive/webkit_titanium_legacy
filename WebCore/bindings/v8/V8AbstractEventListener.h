@@ -33,13 +33,16 @@
 
 #include "EventListener.h"
 #include "OwnHandle.h"
-#include "V8Proxy.h"
+#include "SharedPersistent.h"
 #include <v8.h>
+#include <wtf/PassRefPtr.h>
+#include <wtf/RefCounted.h>
 
 namespace WebCore {
 
     class Event;
     class Frame;
+    class V8Proxy;
 
     // There are two kinds of event listeners: HTML or non-HMTL. onload,
     // onfocus, etc (attributes) are always HTML event handler type; Event
@@ -51,56 +54,72 @@ namespace WebCore {
     // but ALLOWs duplicated non-HTML event handlers.
     class V8AbstractEventListener : public EventListener {
     public:
-        virtual ~V8AbstractEventListener() { }
+        virtual ~V8AbstractEventListener();
+
+        static const V8AbstractEventListener* cast(const EventListener* listener)
+        {
+            return listener->type() == JSEventListenerType
+                ? static_cast<const V8AbstractEventListener*>(listener)
+                : 0;
+        }
+
+        static V8AbstractEventListener* cast(EventListener* listener)
+        {
+            return const_cast<V8AbstractEventListener*>(cast(const_cast<const EventListener*>(listener)));
+        }
+
+        // Implementation of EventListener interface.
 
         virtual bool operator==(const EventListener& other) { return this == &other; }
 
-        // Returns the owner frame of the listener.
-        Frame* frame() { return m_frame; }
-
         virtual void handleEvent(ScriptExecutionContext*, Event*);
-        void invokeEventHandler(v8::Handle<v8::Context>, Event*, v8::Handle<v8::Value> jsEvent);
+
+        virtual bool isLazy() const { return false; }
 
         // Returns the listener object, either a function or an object.
-        virtual v8::Local<v8::Object> getListenerObject()
+        v8::Local<v8::Object> getListenerObject(ScriptExecutionContext* context)
+        {
+            prepareListenerObject(context);
+            return v8::Local<v8::Object>::New(m_listener);
+        }
+
+        v8::Local<v8::Object> getExistingListenerObject()
         {
             return v8::Local<v8::Object>::New(m_listener);
+        }
+
+        bool hasExistingListenerObject()
+        {
+            return !m_listener.IsEmpty();
         }
 
         // Dispose listener object and clear the handle.
         void disposeListenerObject();
 
-        virtual bool disconnected() const { return !m_frame; }
-
-        virtual bool isObjectListener() const { return false; }
-
     protected:
-        v8::Persistent<v8::Object> m_listener;
+        V8AbstractEventListener(bool isAttribute);
 
-        // Indicates if this is an HTML type listener.
-        bool m_isAttribute;
+        virtual void prepareListenerObject(ScriptExecutionContext*) { }
 
-    private:
-        V8AbstractEventListener(Frame*, bool isInline);
+        void setListenerObject(v8::Handle<v8::Object> listener);
 
-        virtual v8::Local<v8::Value> callListenerFunction(v8::Handle<v8::Value> jsevent, Event*) = 0;
+        void invokeEventHandler(ScriptExecutionContext*, Event*, v8::Handle<v8::Value> jsEvent);
 
         // Get the receiver object to use for event listener call.
         v8::Local<v8::Object> getReceiverObject(Event*);
+    private:
+        // Implementation of EventListener function.
+        virtual bool virtualisAttribute() const { return m_isAttribute; }
 
-        // Frame to which the event listener is attached to. An event listener must be destroyed before its owner frame is
-        // deleted. See fast/dom/replaceChild.html
-        // FIXME: this could hold m_frame live until the event listener is deleted.
-        Frame* m_frame;
-        RefPtr<SharedPersistent<v8::Context> > m_context;
+        virtual v8::Local<v8::Value> callListenerFunction(ScriptExecutionContext*, v8::Handle<v8::Value> jsevent, Event*) = 0;
 
-        // Position in the HTML source for HTML event listeners.
-        int m_lineNumber;
-        int m_columnNumber;
+        v8::Persistent<v8::Object> m_listener;
 
-        friend class V8EventListener;
-        friend class V8ObjectEventListener;
-        friend class V8LazyEventListener;
+        // Indicates if the above handle is weak.
+        bool m_isWeak;
+
+        // Indicates if this is an HTML type listener.
+        bool m_isAttribute;
     };
 
 } // namespace WebCore

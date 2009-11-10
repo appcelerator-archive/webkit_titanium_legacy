@@ -69,8 +69,13 @@ void InspectorClient::webViewDestroyed()
 
 Page* InspectorClient::createPage()
 {
-    if (m_webView)
-      return core(m_webView);
+    if (m_webView) {
+        gboolean handled = FALSE;
+        g_signal_emit_by_name(m_webInspector, "destroy", &handled);
+
+        /* we can now dispose our own reference */
+        g_object_unref(m_webInspector);
+    }
 
     // This g_object_get will ref the inspector. We're not doing an
     // unref if this method succeeds because the inspector object must
@@ -93,16 +98,21 @@ Page* InspectorClient::createPage()
     g_signal_connect(m_webView, "destroy",
                      G_CALLBACK(notifyWebViewDestroyed), (gpointer)this);
 
-    gchar* inspectorURI;
+    GOwnPtr<gchar> inspectorURI;
+
+    // Make the Web Inspector work when running tests
     if (CustomGtkWebInspectorPath) {
         String url = CustomGtkWebInspectorPath;
         url.append("/inspector.html");
-        inspectorURI = g_filename_to_uri(url.utf8().data(), NULL, NULL);
-    } else {
-         inspectorURI = g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/inspector.html", NULL, NULL);
-    }
-    webkit_web_view_load_uri(m_webView, inspectorURI);
-    g_free(inspectorURI);
+        inspectorURI.set(g_filename_to_uri(url.utf8().data(), NULL, NULL));
+    } else if (g_file_test("WebCore/inspector/front-end/inspector.html", G_FILE_TEST_EXISTS)) {
+        GOwnPtr<gchar> currentDirectory(g_get_current_dir());
+        GOwnPtr<gchar> fullPath(g_strdup_printf("%s/WebCore/inspector/front-end/inspector.html", currentDirectory.get()));
+        inspectorURI.set(g_filename_to_uri(fullPath.get(), NULL, NULL));
+    } else
+        inspectorURI.set(g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/inspector.html", NULL, NULL));
+
+    webkit_web_view_load_uri(m_webView, inspectorURI.get());
 
     gtk_widget_show(GTK_WIDGET(m_webView));
 
@@ -111,18 +121,22 @@ Page* InspectorClient::createPage()
 
 String InspectorClient::localizedStringsURL()
 {
-    // FIXME: support l10n of localizedStrings.js
-    gchar* stringsURI;
+    GOwnPtr<gchar> URL;
+
+    // Make the Web Inspector work when running tests
     if (CustomGtkWebInspectorPath) {
         String url = CustomGtkWebInspectorPath;
         url.append("/localizedStrings.js");
-        stringsURI = g_filename_to_uri(url.utf8().data(), NULL, NULL);
-    } else {
-        stringsURI = g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/localizedStrings.js", NULL, NULL);
-    }
-    String result = String::fromUTF8(stringsURI);
-    g_free(stringsURI);
-    return result;
+        URL.set(g_filename_to_uri(url.utf8().data(), NULL, NULL));
+    } else if (g_file_test("WebCore/English.lproj/localizedStrings.js", G_FILE_TEST_EXISTS)) {
+        GOwnPtr<gchar> currentDirectory(g_get_current_dir());
+        GOwnPtr<gchar> fullPath(g_strdup_printf("%s/WebCore/English.lproj/localizedStrings.js", currentDirectory.get()));
+        URL.set(g_filename_to_uri(fullPath.get(), NULL, NULL));
+    } else
+        URL.set(g_filename_to_uri(DATA_DIR"/webkit-1.0/webinspector/localizedStrings.js", NULL, NULL));
+
+    // FIXME: support l10n of localizedStrings.js
+    return String::fromUTF8(URL.get());
 }
 
 String InspectorClient::hiddenPanels()

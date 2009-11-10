@@ -281,8 +281,13 @@ WebInspector.ScriptsPanel.prototype = {
             var breakpointsLength = breakpoints.length;
             for (var i = 0; i < breakpointsLength; ++i) {
                 var breakpoint = breakpoints[i];
+
                 if (startingLine <= breakpoint.line) {
+                    // remove and add the breakpoint, to clean up things like the sidebar
+                    this.removeBreakpoint(breakpoint);
                     breakpoint.sourceID = sourceID;
+                    this.addBreakpoint(breakpoint);
+                    
                     if (breakpoint.enabled)
                         InspectorController.addBreakpoint(breakpoint.sourceID, breakpoint.line, breakpoint.condition);
                 }
@@ -359,7 +364,7 @@ WebInspector.ScriptsPanel.prototype = {
         return selectedCallFrame.id;
     },
 
-    evaluateInSelectedCallFrame: function(code, updateInterface, callback)
+    evaluateInSelectedCallFrame: function(code, updateInterface, objectGroup, callback)
     {
         var selectedCallFrame = this.sidebarPanes.callstack.selectedCallFrame;
         if (!this._paused || !selectedCallFrame)
@@ -375,33 +380,17 @@ WebInspector.ScriptsPanel.prototype = {
             if (updateInterface)
                 self.sidebarPanes.scopechain.update(selectedCallFrame);
         }
-        this.doEvalInCallFrame(selectedCallFrame, code, updatingCallbackWrapper);
+        this.doEvalInCallFrame(selectedCallFrame, code, objectGroup, updatingCallbackWrapper);
     },
 
-    doEvalInCallFrame: function(callFrame, code, callback)
+    doEvalInCallFrame: function(callFrame, code, objectGroup, callback)
     {
         function evalCallback(result)
         {
             if (result)
                 callback(result.value, result.isException);
         }
-        InjectedScriptAccess.evaluateInCallFrame(callFrame.id, code, evalCallback);
-    },
-
-    variablesInSelectedCallFrame: function()
-    {
-        var selectedCallFrame = this.sidebarPanes.callstack.selectedCallFrame;
-        if (!this._paused || !selectedCallFrame)
-            return {};
-
-        var result = {};
-        var scopeChain = selectedCallFrame.scopeChain;
-        for (var i = 0; i < scopeChain.length; ++i) {
-            var scopeObjectProperties = scopeChain[i].properties;
-            for (var j = 0; j < scopeObjectProperties.length; ++j)
-                result[scopeObjectProperties[j]] = true;
-        }
-        return result;
+        InjectedScriptAccess.evaluateInCallFrame(callFrame.id, code, objectGroup, evalCallback);
     },
 
     debuggerPaused: function(callFrames)
@@ -641,6 +630,14 @@ WebInspector.ScriptsPanel.prototype = {
         var option;
         if (scriptOrResource instanceof WebInspector.Script) {
             option = scriptOrResource.filesSelectOption;
+
+            // hasn't been added yet - happens for stepping in evals,
+            // so use the force option to force the script into the menu.
+            if (!option) {
+                this._addScriptToFilesMenu(scriptOrResource, {force: true});
+                option = scriptOrResource.filesSelectOption;
+            }
+
             console.assert(option);
         } else {
             var url = scriptOrResource.url;
@@ -653,8 +650,13 @@ WebInspector.ScriptsPanel.prototype = {
             this.filesSelectElement.selectedIndex = option.index;
     },
 
-    _addScriptToFilesMenu: function(script)
+    _addScriptToFilesMenu: function(script, options)
     {
+        var force = options && options.force;
+
+        if (!script.sourceURL && !force)
+            return;
+
         if (script.resource && this._scriptsForURLsInFilesSelect[script.sourceURL])
             return;
 

@@ -1219,6 +1219,11 @@ void GraphicsContext::clip(const Path& path)
     notImplemented();
 }
 
+void GraphicsContext::canvasClip(const Path& path)
+{
+    clip(path);
+}
+
 void GraphicsContext::clipOut(const Path&)
 {
     notImplemented();
@@ -1350,7 +1355,7 @@ Color gradientAverageColor(const Gradient* gradient)
 
 void GraphicsContext::fillPath()
 {
-    Color c = m_common->state.fillColorSpace == GradientColorSpace && m_common->state.fillGradient
+    Color c = m_common->state.fillType == GradientType && m_common->state.fillGradient
         ? gradientAverageColor(m_common->state.fillGradient.get())
         : fillColor();
 
@@ -1534,7 +1539,7 @@ void GraphicsContext::clipToImageBuffer(const FloatRect&, const ImageBuffer*)
 
 void GraphicsContext::fillRect(const FloatRect& rect)
 {
-    if (m_common->state.fillColorSpace == GradientColorSpace && m_common->state.fillGradient)
+    if (m_common->state.fillType == GradientType && m_common->state.fillGradient)
         fillRect(rect, m_common->state.fillGradient.get());
     else
         fillRect(rect, fillColor());

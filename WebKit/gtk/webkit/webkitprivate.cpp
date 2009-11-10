@@ -153,6 +153,12 @@ WebKitHitTestResult* kit(const WebCore::HitTestResult& result)
                                            NULL));
 }
 
+PasteboardHelperGtk* pasteboardHelperInstance()
+{
+    static PasteboardHelperGtk* helper = new PasteboardHelperGtk();
+    return helper;
+}
+
 } /** end namespace WebKit */
 
 namespace WTF {

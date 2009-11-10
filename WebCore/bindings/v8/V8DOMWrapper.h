@@ -37,9 +37,12 @@
 #include "NodeFilter.h"
 #include "PlatformString.h" // for WebCore::String
 #include "V8CustomBinding.h"
+#include "V8CustomXPathNSResolver.h"
 #include "V8DOMMap.h"
 #include "V8Index.h"
 #include "V8Utilities.h"
+#include "V8XPathNSResolver.h"
+#include "XPathNSResolver.h"
 #include <v8.h>
 
 namespace WebCore {
@@ -92,6 +95,11 @@ namespace WebCore {
     class WebSocket;
 #endif
     class WorkerContext;
+
+    enum ListenerLookupType {
+        ListenerFindOnly,
+        ListenerFindOrCreate,
+    };
 
     class V8DOMWrapper {
     public:
@@ -158,6 +166,16 @@ namespace WebCore {
 
         static v8::Handle<v8::Value> convertDocumentToV8Object(Document*);
 
+        static v8::Handle<v8::Value> convertNewNodeToV8Object(PassRefPtr<Node> node)
+        {
+            return convertNewNodeToV8Object(node.get());
+        }
+
+        static v8::Handle<v8::Value> convertNewNodeToV8Object(Node* node)
+        {
+            return convertNewNodeToV8Object(node, 0, getDOMNodeMap());
+        }
+
         static v8::Handle<v8::Value> convertNewNodeToV8Object(Node*, V8Proxy*, DOMWrapperMap<Node>&);
 
         template <class C>
@@ -208,16 +226,42 @@ namespace WebCore {
         static v8::Handle<v8::Value> convertEventTargetToV8Object(EventTarget*);
 
         // Wrap and unwrap JS event listeners.
-        static v8::Handle<v8::Value> convertEventListenerToV8Object(PassRefPtr<EventListener> eventListener)
+        static v8::Handle<v8::Value> convertEventListenerToV8Object(ScriptExecutionContext* context, PassRefPtr<EventListener> eventListener)
         {
-            return convertEventListenerToV8Object(eventListener.get());
+            return convertEventListenerToV8Object(context, eventListener.get());
         }
 
-        static v8::Handle<v8::Value> convertEventListenerToV8Object(EventListener*);
+        static v8::Handle<v8::Value> convertEventListenerToV8Object(ScriptExecutionContext*, EventListener*);
 
-        static PassRefPtr<EventListener> getEventListener(Node* node, v8::Local<v8::Value> value, bool isAttribute, bool findOnly);
+        static PassRefPtr<EventListener> getEventListener(Node* node, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
 
-        static PassRefPtr<EventListener> getEventListener(SVGElementInstance* element, v8::Local<v8::Value> value, bool isAttribute, bool findOnly);
+        static PassRefPtr<EventListener> getEventListener(SVGElementInstance* element, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+        static PassRefPtr<EventListener> getEventListener(AbstractWorker* worker, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+#if ENABLE(NOTIFICATIONS)
+        static PassRefPtr<EventListener> getEventListener(Notification* notification, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+#endif
+
+        static PassRefPtr<EventListener> getEventListener(WorkerContext* workerContext, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+        static PassRefPtr<EventListener> getEventListener(XMLHttpRequestUpload* upload, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+        static PassRefPtr<EventListener> getEventListener(EventTarget* eventTarget, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+        static PassRefPtr<EventListener> getEventListener(V8Proxy* proxy, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+
+        // XPath-related utilities
+        static RefPtr<XPathNSResolver> getXPathNSResolver(v8::Handle<v8::Value> value)
+        {
+            RefPtr<XPathNSResolver> resolver;
+            if (V8XPathNSResolver::HasInstance(value))
+                resolver = convertToNativeObject<XPathNSResolver>(V8ClassIndex::XPATHNSRESOLVER, v8::Handle<v8::Object>::Cast(value));
+            else if (value->IsObject())
+                resolver = V8CustomXPathNSResolver::create(value->ToObject());
+            return resolver;
+        }
 
         // DOMImplementation is a singleton and it is handled in a special
         // way. A wrapper is generated per document and stored in an
@@ -235,6 +279,10 @@ namespace WebCore {
 
         // Checks whether a DOM object has a JS wrapper.
         static bool domObjectHasJSWrapper(void*);
+        // Get JS wrapper of an existing DOM object, assuming that the wrapper
+        // exists.
+        static v8::Persistent<v8::Object> jsWrapperForDOMObject(void*);
+        static v8::Persistent<v8::Object> jsWrapperForActiveDOMObject(void*);
         // Set JS wrapper of a DOM object, the caller in charge of increase ref.
         static void setJSWrapperForDOMObject(void*, v8::Persistent<v8::Object>);
         static void setJSWrapperForActiveDOMObject(void*, v8::Persistent<v8::Object>);
@@ -258,6 +306,13 @@ namespace WebCore {
 #if ENABLE(SVG)
         static v8::Handle<v8::Value> convertSVGElementInstanceToV8Object(SVGElementInstance*);
         static v8::Handle<v8::Value> convertSVGObjectWithContextToV8Object(V8ClassIndex::V8WrapperType, void*);
+#endif
+
+#if ENABLE(3D_CANVAS)
+        static void setIndexedPropertiesToExternalArray(v8::Handle<v8::Object>,
+                                                        int,
+                                                        void*,
+                                                        int);
 #endif
 
     private:

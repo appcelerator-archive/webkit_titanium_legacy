@@ -46,14 +46,14 @@ namespace WebCore {
 
 class MessageWorkerContextTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<MessageWorkerContextTask> create(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
+    static PassOwnPtr<MessageWorkerContextTask> create(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray> channels)
     {
-        return adoptRef(new MessageWorkerContextTask(message, channels));
+        return new MessageWorkerContextTask(message, channels);
     }
 
 private:
-    MessageWorkerContextTask(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
-        : m_message(message.copy())
+    MessageWorkerContextTask(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray> channels)
+        : m_message(message->release())
         , m_channels(channels)
     {
     }
@@ -68,20 +68,20 @@ private:
     }
 
 private:
-    String m_message;
+    RefPtr<SerializedScriptValue> m_message;
     OwnPtr<MessagePortChannelArray> m_channels;
 };
 
 class MessageWorkerTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<MessageWorkerTask> create(const String& message, PassOwnPtr<MessagePortChannelArray> channels, WorkerMessagingProxy* messagingProxy)
+    static PassOwnPtr<MessageWorkerTask> create(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray> channels, WorkerMessagingProxy* messagingProxy)
     {
-        return adoptRef(new MessageWorkerTask(message, channels, messagingProxy));
+        return new MessageWorkerTask(message, channels, messagingProxy);
     }
 
 private:
-    MessageWorkerTask(const String& message, PassOwnPtr<MessagePortChannelArray> channels, WorkerMessagingProxy* messagingProxy)
-        : m_message(message.copy())
+    MessageWorkerTask(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray> channels, WorkerMessagingProxy* messagingProxy)
+        : m_message(message->release())
         , m_channels(channels)
         , m_messagingProxy(messagingProxy)
     {
@@ -98,23 +98,23 @@ private:
     }
 
 private:
-    String m_message;
+    RefPtr<SerializedScriptValue> m_message;
     OwnPtr<MessagePortChannelArray> m_channels;
     WorkerMessagingProxy* m_messagingProxy;
 };
 
 class WorkerExceptionTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<WorkerExceptionTask> create(const String& errorMessage, int lineNumber, const String& sourceURL, WorkerMessagingProxy* messagingProxy)
+    static PassOwnPtr<WorkerExceptionTask> create(const String& errorMessage, int lineNumber, const String& sourceURL, WorkerMessagingProxy* messagingProxy)
     {
-        return adoptRef(new WorkerExceptionTask(errorMessage, lineNumber, sourceURL, messagingProxy));
+        return new WorkerExceptionTask(errorMessage, lineNumber, sourceURL, messagingProxy);
     }
 
 private:
     WorkerExceptionTask(const String& errorMessage, int lineNumber, const String& sourceURL, WorkerMessagingProxy* messagingProxy)
-        : m_errorMessage(errorMessage.copy())
+        : m_errorMessage(errorMessage.crossThreadString())
         , m_lineNumber(lineNumber)
-        , m_sourceURL(sourceURL.copy())
+        , m_sourceURL(sourceURL.crossThreadString())
         , m_messagingProxy(messagingProxy)
     {
     }
@@ -141,9 +141,9 @@ private:
 
 class WorkerContextDestroyedTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<WorkerContextDestroyedTask> create(WorkerMessagingProxy* messagingProxy)
+    static PassOwnPtr<WorkerContextDestroyedTask> create(WorkerMessagingProxy* messagingProxy)
     {
-        return adoptRef(new WorkerContextDestroyedTask(messagingProxy));
+        return new WorkerContextDestroyedTask(messagingProxy);
     }
 
 private:
@@ -162,9 +162,9 @@ private:
 
 class WorkerTerminateTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<WorkerTerminateTask> create(WorkerMessagingProxy* messagingProxy)
+    static PassOwnPtr<WorkerTerminateTask> create(WorkerMessagingProxy* messagingProxy)
     {
-        return adoptRef(new WorkerTerminateTask(messagingProxy));
+        return new WorkerTerminateTask(messagingProxy);
     }
 
 private:
@@ -183,9 +183,9 @@ private:
 
 class WorkerThreadActivityReportTask : public ScriptExecutionContext::Task {
 public:
-    static PassRefPtr<WorkerThreadActivityReportTask> create(WorkerMessagingProxy* messagingProxy, bool confirmingMessage, bool hasPendingActivity)
+    static PassOwnPtr<WorkerThreadActivityReportTask> create(WorkerMessagingProxy* messagingProxy, bool confirmingMessage, bool hasPendingActivity)
     {
-        return adoptRef(new WorkerThreadActivityReportTask(messagingProxy, confirmingMessage, hasPendingActivity));
+        return new WorkerThreadActivityReportTask(messagingProxy, confirmingMessage, hasPendingActivity);
     }
 
 private:
@@ -240,12 +240,12 @@ void WorkerMessagingProxy::startWorkerContext(const KURL& scriptURL, const Strin
     thread->start();
 }
 
-void WorkerMessagingProxy::postMessageToWorkerObject(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
+void WorkerMessagingProxy::postMessageToWorkerObject(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray> channels)
 {
     m_scriptExecutionContext->postTask(MessageWorkerTask::create(message, channels.release(), this));
 }
 
-void WorkerMessagingProxy::postMessageToWorkerContext(const String& message, PassOwnPtr<MessagePortChannelArray> channels)
+void WorkerMessagingProxy::postMessageToWorkerContext(PassRefPtr<SerializedScriptValue> message, PassOwnPtr<MessagePortChannelArray> channels)
 {
     if (m_askedToTerminate)
         return;
@@ -257,7 +257,7 @@ void WorkerMessagingProxy::postMessageToWorkerContext(const String& message, Pas
         m_queuedEarlyTasks.append(MessageWorkerContextTask::create(message, channels.release()));
 }
 
-void WorkerMessagingProxy::postTaskForModeToWorkerContext(PassRefPtr<ScriptExecutionContext::Task> task, const String& mode)
+void WorkerMessagingProxy::postTaskForModeToWorkerContext(PassOwnPtr<ScriptExecutionContext::Task> task, const String& mode)
 {
     if (m_askedToTerminate)
         return;
@@ -266,7 +266,7 @@ void WorkerMessagingProxy::postTaskForModeToWorkerContext(PassRefPtr<ScriptExecu
     m_workerThread->runLoop().postTaskForMode(task, mode);
 }
 
-void WorkerMessagingProxy::postTaskToLoader(PassRefPtr<ScriptExecutionContext::Task> task)
+void WorkerMessagingProxy::postTaskToLoader(PassOwnPtr<ScriptExecutionContext::Task> task)
 {
     // FIXME: In case of nested workers, this should go directly to the root Document context.
     ASSERT(m_scriptExecutionContext->isDocument());
@@ -304,7 +304,7 @@ void WorkerMessagingProxy::workerThreadCreated(PassRefPtr<DedicatedWorkerThread>
         m_workerThreadHadPendingActivity = true; // Worker initialization means a pending activity.
 
         for (unsigned i = 0; i < taskCount; ++i)
-            m_workerThread->runLoop().postTask(m_queuedEarlyTasks[i]);
+            m_workerThread->runLoop().postTask(m_queuedEarlyTasks[i].release());
         m_queuedEarlyTasks.clear();
     }
 }

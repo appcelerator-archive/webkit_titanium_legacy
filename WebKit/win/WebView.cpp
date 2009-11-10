@@ -100,6 +100,7 @@
 #include <WebCore/ProgressTracker.h>
 #include <WebCore/RenderTheme.h>
 #include <WebCore/RenderView.h>
+#include <WebCore/RenderWidget.h>
 #include <WebCore/ResourceHandle.h>
 #include <WebCore/ResourceHandleClient.h>
 #include <WebCore/ScriptValue.h>
@@ -639,6 +640,7 @@ HRESULT STDMETHODCALLTYPE WebView::close()
     setEditingDelegate(0);
     setFrameLoadDelegate(0);
     setFrameLoadDelegatePrivate(0);
+    setHistoryDelegate(0);
     setPolicyDelegate(0);
     setResourceLoadDelegate(0);
     setUIDelegate(0);
@@ -1983,6 +1985,10 @@ static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, L
             // Send blur events unless we're losing focus to a child of ours.
             if (!IsChild(hWnd, newFocusWnd))
                 focusController->setFocused(false);
+
+            // If we are pan-scrolling when we lose focus, stop the pan scrolling.
+            frame->eventHandler()->stopAutoscrollTimer();
+
             break;
         }
         case WM_WINDOWPOSCHANGED:
@@ -2866,7 +2872,7 @@ HRESULT STDMETHODCALLTYPE WebView::stringByEvaluatingJavaScriptFromString(
     if (!coreFrame)
         return E_FAIL;
 
-    JSC::JSValue scriptExecutionResult = coreFrame->loader()->executeScript(WebCore::String(script), true).jsValue();
+    JSC::JSValue scriptExecutionResult = coreFrame->script()->executeScript(WebCore::String(script), true).jsValue();
     if (!scriptExecutionResult)
         return E_FAIL;
     else if (scriptExecutionResult.isString()) {
@@ -3370,10 +3376,34 @@ HRESULT STDMETHODCALLTYPE WebView::setMainFrameURL(
 }
     
 HRESULT STDMETHODCALLTYPE WebView::mainFrameURL( 
-        /* [retval][out] */ BSTR* /*urlString*/)
+        /* [retval][out] */ BSTR* urlString)
 {
-    ASSERT_NOT_REACHED();
-    return E_NOTIMPL;
+    if (!urlString)
+        return E_POINTER;
+
+    if (!m_mainFrame)
+        return E_FAIL;
+
+    COMPtr<IWebDataSource> dataSource;
+
+    if (FAILED(m_mainFrame->provisionalDataSource(&dataSource))) {
+        if (FAILED(m_mainFrame->dataSource(&dataSource)))
+            return E_FAIL;
+    }
+
+    if (!dataSource) {
+        *urlString = 0;
+        return S_OK;
+    }
+    
+    COMPtr<IWebMutableURLRequest> request;
+    if (FAILED(dataSource->request(&request)) || !request)
+        return E_FAIL;
+
+    if (FAILED(request->URL(urlString)))
+        return E_FAIL;
+
+    return S_OK;
 }
     
 HRESULT STDMETHODCALLTYPE WebView::mainFrameDocument( 
@@ -4419,11 +4449,6 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     settings->setExperimentalNotificationsEnabled(enabled);
 
-    hr = prefsPrivate->experimentalWebSocketsEnabled(&enabled);
-    if (FAILED(hr))
-        return hr;
-    settings->setExperimentalWebSocketsEnabled(enabled);
-
     hr = prefsPrivate->isWebSecurityEnabled(&enabled);
     if (FAILED(hr))
         return hr;
@@ -4450,11 +4475,6 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings->setShouldUseHighResolutionTimers(enabled);
-
-    hr = prefsPrivate->pluginHalterEnabled(&enabled);
-    if (FAILED(hr))
-        return hr;
-    settings->setPluginHalterEnabled(enabled);
 
     UINT runTime;
     hr = prefsPrivate->pluginAllowedRunTime(&runTime);
@@ -4634,11 +4654,25 @@ static DWORD dragOperationToDragCursor(DragOperation op) {
     return res;
 }
 
-static DragOperation keyStateToDragOperation(DWORD) {
-    //FIXME: This is currently very simple, it may need to actually
-    //work out an appropriate DragOperation in future -- however this
-    //behaviour appears to match FireFox
-    return (DragOperation)(DragOperationCopy | DragOperationLink);
+DragOperation WebView::keyStateToDragOperation(DWORD grfKeyState) const
+{
+    if (!m_page)
+        return DragOperationNone;
+
+    // Conforms to Microsoft's key combinations as documented for 
+    // IDropTarget::DragOver. Note, grfKeyState is the current 
+    // state of the keyboard modifier keys on the keyboard. See:
+    // <http://msdn.microsoft.com/en-us/library/ms680129(VS.85).aspx>.
+    DragOperation operation = m_page->dragController()->sourceDragOperation();
+
+    if ((grfKeyState & (MK_CONTROL | MK_SHIFT)) == (MK_CONTROL | MK_SHIFT))
+        operation = DragOperationLink;
+    else if ((grfKeyState & MK_CONTROL) == MK_CONTROL)
+        operation = DragOperationCopy;
+    else if ((grfKeyState & MK_SHIFT) == MK_SHIFT)
+        operation = DragOperationGeneric;
+
+    return operation;
 }
 
 HRESULT STDMETHODCALLTYPE WebView::DragEnter(
@@ -4655,6 +4689,7 @@ HRESULT STDMETHODCALLTYPE WebView::DragEnter(
         IntPoint(pt.x, pt.y), keyStateToDragOperation(grfKeyState));
     *pdwEffect = dragOperationToDragCursor(m_page->dragController()->dragEntered(&data));
 
+    m_lastDropEffect = *pdwEffect;
     m_dragData = pDataObject;
 
     return S_OK;
@@ -4675,6 +4710,7 @@ HRESULT STDMETHODCALLTYPE WebView::DragOver(
     } else
         *pdwEffect = DROPEFFECT_NONE;
 
+    m_lastDropEffect = *pdwEffect;
     return S_OK;
 }
 
@@ -4699,7 +4735,7 @@ HRESULT STDMETHODCALLTYPE WebView::Drop(
         m_dropTargetHelper->Drop(pDataObject, (POINT*)&pt, *pdwEffect);
 
     m_dragData = 0;
-    *pdwEffect = DROPEFFECT_NONE;
+    *pdwEffect = m_lastDropEffect;
     POINTL localpt = pt;
     ::ScreenToClient(m_viewWindow, (LPPOINT)&localpt);
     DragData data(pDataObject, IntPoint(localpt.x, localpt.y), 
@@ -4825,7 +4861,7 @@ HRESULT STDMETHODCALLTYPE WebView::loadBackForwardListFromOtherView(
             // If this item is showing , save away its current scroll and form state,
             // since that might have changed since loading and it is normally not saved
             // until we leave that page.
-            otherWebView->m_page->mainFrame()->loader()->saveDocumentAndScrollState();
+            otherWebView->m_page->mainFrame()->loader()->history()->saveDocumentAndScrollState();
         }
         RefPtr<HistoryItem> newItem = otherBackForwardList->itemAtIndex(i)->copy();
         if (!i) 
@@ -5443,29 +5479,21 @@ HRESULT WebView::setCanStartPlugins(BOOL canStartPlugins)
     return S_OK;
 }
 
-HRESULT WebView::addUserScriptToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url, unsigned patternsCount, BSTR* patterns, WebUserScriptInjectionTime injectionTime)
+static PassOwnPtr<Vector<String> > toStringVector(unsigned patternsCount, BSTR* patterns)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
-        return E_INVALIDARG;
-
-    PageGroup* pageGroup = PageGroup::pageGroup(group);
-    ASSERT(pageGroup);
-    if (!pageGroup)
-        return E_FAIL;
-
     // Convert the patterns into a Vector.
-    Vector<String> patternsVector;
+    if (patternsCount == 0)
+        return 0;
+    Vector<String>* patternsVector = new Vector<String>;
     for (unsigned i = 0; i < patternsCount; ++i)
-        patternsVector.append(String(patterns[i], SysStringLen(patterns[i])));
-
-    pageGroup->addUserScript(String(source, SysStringLen(source)), KURL(KURL(), String(url, SysStringLen(url))), patternsVector, worldID,
-                             injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
-
-    return S_OK;
+        patternsVector->append(String(patterns[i], SysStringLen(patterns[i])));
+    return patternsVector;
 }
 
-HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url, unsigned patternsCount, BSTR* patterns)
+HRESULT WebView::addUserScriptToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url, 
+                                      unsigned whitelistCount, BSTR* whitelist,
+                                      unsigned blacklistCount, BSTR* blacklist,
+                                      WebUserScriptInjectionTime injectionTime)
 {
     String group(groupName, SysStringLen(groupName));
     if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
@@ -5476,17 +5504,16 @@ HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR
     if (!pageGroup)
         return E_FAIL;
 
-    // Convert the patterns into a Vector.
-    Vector<String> patternsVector;
-    for (unsigned i = 0; i < patternsCount; ++i)
-        patternsVector.append(String(patterns[i], SysStringLen(patterns[i])));
-
-    pageGroup->addUserStyleSheet(String(source, SysStringLen(source)), KURL(KURL(), String(url, SysStringLen(url))), patternsVector, worldID);
+    pageGroup->addUserScriptToWorld(worldID, String(source, SysStringLen(source)), KURL(KURL(), String(url, SysStringLen(url))),
+                                    toStringVector(whitelistCount, whitelist), toStringVector(blacklistCount, blacklist),
+                                    injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
 
     return S_OK;
 }
 
-HRESULT WebView::removeUserContentWithURLFromGroup(BSTR groupName, unsigned worldID, BSTR url)
+HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url,
+                                          unsigned whitelistCount, BSTR* whitelist,
+                                          unsigned blacklistCount, BSTR* blacklist)
 {
     String group(groupName, SysStringLen(groupName));
     if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
@@ -5497,12 +5524,13 @@ HRESULT WebView::removeUserContentWithURLFromGroup(BSTR groupName, unsigned worl
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->removeUserContentWithURLForWorld(KURL(KURL(), String(url, SysStringLen(url))), worldID);
+    pageGroup->addUserStyleSheetToWorld(worldID, String(source, SysStringLen(source)), KURL(KURL(), String(url, SysStringLen(url))),
+                                        toStringVector(whitelistCount, whitelist), toStringVector(blacklistCount, blacklist));
 
     return S_OK;
 }
 
-HRESULT WebView::removeUserContentFromGroup(BSTR groupName, unsigned worldID)
+HRESULT WebView::removeUserScriptFromGroup(BSTR groupName, unsigned worldID, BSTR url)
 {
     String group(groupName, SysStringLen(groupName));
     if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
@@ -5513,7 +5541,54 @@ HRESULT WebView::removeUserContentFromGroup(BSTR groupName, unsigned worldID)
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->removeUserContentForWorld(worldID);
+    pageGroup->removeUserScriptFromWorld(worldID, KURL(KURL(), String(url, SysStringLen(url))));
+
+    return S_OK;
+}
+
+HRESULT WebView::removeUserStyleSheetFromGroup(BSTR groupName, unsigned worldID, BSTR url)
+{
+    String group(groupName, SysStringLen(groupName));
+    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+        return E_INVALIDARG;
+
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    ASSERT(pageGroup);
+    if (!pageGroup)
+        return E_FAIL;
+
+    pageGroup->removeUserStyleSheetFromWorld(worldID, KURL(KURL(), String(url, SysStringLen(url))));
+
+    return S_OK;
+}
+
+HRESULT WebView::removeUserScriptsFromGroup(BSTR groupName, unsigned worldID)
+{
+    String group(groupName, SysStringLen(groupName));
+    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+        return E_INVALIDARG;
+
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    ASSERT(pageGroup);
+    if (!pageGroup)
+        return E_FAIL;
+
+    pageGroup->removeUserScriptsFromWorld(worldID);
+    return S_OK;
+}
+
+HRESULT WebView::removeUserStyleSheetsFromGroup(BSTR groupName, unsigned worldID)
+{
+    String group(groupName, SysStringLen(groupName));
+    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+        return E_INVALIDARG;
+
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    ASSERT(pageGroup);
+    if (!pageGroup)
+        return E_FAIL;
+
+    pageGroup->removeUserStyleSheetsFromWorld(worldID);
     return S_OK;
 }
 
@@ -5551,6 +5626,45 @@ HRESULT WebView::invalidateBackingStore(const RECT* rect)
     return S_OK;
 }
 
+HRESULT WebView::whiteListAccessFromOrigin(BSTR sourceOrigin, BSTR destinationProtocol, BSTR destinationHost, BOOL allowDestinationSubdomains)
+{
+    SecurityOrigin::whiteListAccessFromOrigin(*SecurityOrigin::createFromString(String(sourceOrigin, SysStringLen(sourceOrigin))), String(destinationProtocol, SysStringLen(destinationProtocol)), String(destinationHost, SysStringLen(destinationHost)), allowDestinationSubdomains);
+    return S_OK;
+}
+
+HRESULT WebView::resetOriginAccessWhiteLists()
+{
+    SecurityOrigin::resetOriginAccessWhiteLists();
+    return S_OK;
+}
+ 
+HRESULT WebView::setHistoryDelegate(IWebHistoryDelegate* historyDelegate)
+{
+    m_historyDelegate = historyDelegate;
+    return S_OK;
+}
+
+HRESULT WebView::historyDelegate(IWebHistoryDelegate** historyDelegate)
+{
+    if (!historyDelegate)
+        return E_POINTER;
+
+    return m_historyDelegate.copyRefTo(historyDelegate);
+}
+
+HRESULT WebView::addVisitedLinks(BSTR* visitedURLs, unsigned visitedURLCount)
+{
+    PageGroup& group = core(this)->group();
+    
+    for (unsigned i = 0; i < visitedURLCount; ++i) {
+        BSTR url = visitedURLs[i];
+        unsigned length = SysStringLen(url);
+        group.addVisitedLink(url, length);
+    }
+
+    return S_OK;
+}
+
 void WebView::downloadURL(const KURL& url)
 {
     // It's the delegate's job to ref the WebDownload to keep it alive - otherwise it will be
@@ -5575,6 +5689,70 @@ HRESULT STDMETHODCALLTYPE WebView::pluginHalterDelegate(IWebPluginHalterDelegate
         return E_FAIL;
 
     return m_pluginHalterDelegate.copyRefTo(d);
+}
+
+static PluginView* pluginViewForNode(IDOMNode* domNode)
+{
+    COMPtr<DOMNode> webKitDOMNode(Query, domNode);
+    if (!webKitDOMNode)
+        return 0;
+
+    Node* node = webKitDOMNode->node();
+    if (!node)
+        return 0;
+
+    RenderObject* renderer = node->renderer();
+    if (!renderer || !renderer->isWidget())
+        return 0;
+
+    Widget* widget = toRenderWidget(renderer)->widget();
+    if (!widget || !widget->isPluginView())
+        return 0;
+
+    return static_cast<PluginView*>(widget);
+}
+
+HRESULT WebView::isNodeHaltedPlugin(IDOMNode* domNode, BOOL* result)
+{
+    if (!domNode || !result)
+        return E_POINTER;
+
+    *result = FALSE;
+
+    PluginView* view = pluginViewForNode(domNode);
+    if (!view)
+        return E_FAIL;
+
+    *result = view->isHalted();
+    return S_OK;
+}
+
+HRESULT WebView::restartHaltedPluginForNode(IDOMNode* domNode)
+{
+    if (!domNode)
+        return E_POINTER;
+
+    PluginView* view = pluginViewForNode(domNode);
+    if (!view)
+        return E_FAIL;
+
+    view->restart();
+    return S_OK;
+}
+
+HRESULT WebView::hasPluginForNodeBeenHalted(IDOMNode* domNode, BOOL* result)
+{
+    if (!domNode || !result)
+        return E_POINTER;
+
+    *result = FALSE;
+
+    PluginView* view = pluginViewForNode(domNode);
+    if (!view)
+        return E_FAIL;
+
+    *result = view->hasBeenHalted();
+    return S_OK;
 }
 
 class EnumTextMatches : public IEnumTextMatches

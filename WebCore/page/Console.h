@@ -64,7 +64,8 @@ namespace WebCore {
         ObjectMessageType,
         TraceMessageType,
         StartGroupMessageType,
-        EndGroupMessageType
+        EndGroupMessageType,
+        AssertMessageType
     };
 
     enum MessageLevel {
@@ -94,6 +95,7 @@ namespace WebCore {
         void trace(ScriptCallStack*);
         void assertCondition(bool condition, ScriptCallStack*);
         void count(ScriptCallStack*);
+        void markTimeline(ScriptCallStack*);
 #if ENABLE(WML)
         String lastWMLErrorMessage() const;
 #endif

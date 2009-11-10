@@ -840,15 +840,19 @@ unsigned LayoutTestController::numberOfActiveAnimations() const
     return number;
 }
 
-void LayoutTestController::whiteListAccessFromOrigin(JSStringRef sourceOrigin, JSStringRef destinationProtocol, JSStringRef destinationHost, bool allowDestinationSubdomains)
-{
-    printf("LayoutTestController::whiteListAccessFromOrigin not implemented\n");
-}
-
 static _bstr_t bstrT(JSStringRef jsString)
 {
     // The false parameter tells the _bstr_t constructor to adopt the BSTR we pass it.
     return _bstr_t(JSStringCopyBSTR(jsString), false);
+}
+
+void LayoutTestController::whiteListAccessFromOrigin(JSStringRef sourceOrigin, JSStringRef destinationProtocol, JSStringRef destinationHost, bool allowDestinationSubdomains)
+{
+    COMPtr<IWebViewPrivate> webView;
+    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+        return;
+
+    webView->whiteListAccessFromOrigin(bstrT(sourceOrigin).GetBSTR(), bstrT(destinationProtocol).GetBSTR(), bstrT(destinationHost).GetBSTR(), allowDestinationSubdomains);
 }
 
 void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
@@ -857,7 +861,7 @@ void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
     if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
         return;
 
-    webView->addUserScriptToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), 1, bstrT(source).GetBSTR(), 0, 0, 0, runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd);
+    webView->addUserScriptToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), 1, bstrT(source).GetBSTR(), 0, 0, 0, 0, 0, runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd);
 }
 
 
@@ -867,5 +871,127 @@ void LayoutTestController::addUserStyleSheet(JSStringRef source)
     if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
         return;
 
-    webView->addUserStyleSheetToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), 1, bstrT(source).GetBSTR(), 0, 0, 0);
+    webView->addUserStyleSheetToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), 1, bstrT(source).GetBSTR(), 0, 0, 0, 0, 0);
 }
+
+void LayoutTestController::showWebInspector()
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+
+    COMPtr<IWebPreferencesPrivate> prefsPrivate(Query, preferences);
+    if (!prefsPrivate)
+        return;
+
+    prefsPrivate->setDeveloperExtrasEnabled(true);
+
+    COMPtr<IWebViewPrivate> viewPrivate(Query, webView);
+    if (!viewPrivate)
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (SUCCEEDED(viewPrivate->inspector(&inspector)))
+        inspector->show();
+}
+
+void LayoutTestController::closeWebInspector()
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebViewPrivate> viewPrivate(Query, webView);
+    if (!viewPrivate)
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (FAILED(viewPrivate->inspector(&inspector)))
+        return;
+
+    inspector->close();
+
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+
+    COMPtr<IWebPreferencesPrivate> prefsPrivate(Query, preferences);
+    if (!prefsPrivate)
+        return;
+
+    prefsPrivate->setDeveloperExtrasEnabled(false);
+}
+
+void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef script)
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebViewPrivate> viewPrivate(Query, webView);
+    if (!viewPrivate)
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (FAILED(viewPrivate->inspector(&inspector)))
+        return;
+
+    COMPtr<IWebInspectorPrivate> inspectorPrivate(Query, inspector);
+    if (!inspectorPrivate)
+        return;
+
+    inspectorPrivate->evaluateInFrontend(callId, bstrT(script).GetBSTR());
+}
+
+void LayoutTestController::evaluateScriptInIsolatedWorld(unsigned worldId, JSObjectRef globalObject, JSStringRef script)
+{
+    COMPtr<IWebFramePrivate> framePrivate(Query, frame);
+    if (!framePrivate)
+        return;
+
+    BSTR result;
+    if (FAILED(framePrivate->stringByEvaluatingJavaScriptInIsolatedWorld(worldId, reinterpret_cast<OLE_HANDLE>(globalObject), bstrT(script).GetBSTR(), &result)))
+        return;
+    SysFreeString(result);
+}
+
+void LayoutTestController::removeAllVisitedLinks()
+{
+    COMPtr<IWebHistory> history;
+    if (FAILED(WebKitCreateInstance(CLSID_WebHistory, 0, __uuidof(history), reinterpret_cast<void**>(&history))))
+        return;
+
+    COMPtr<IWebHistory> sharedHistory;
+    if (FAILED(history->optionalSharedHistory(&sharedHistory)) || !sharedHistory)
+        return;
+
+    COMPtr<IWebHistoryPrivate> sharedHistoryPrivate;
+    if (FAILED(sharedHistory->QueryInterface(&sharedHistoryPrivate)))
+        return;
+
+    sharedHistoryPrivate->removeAllVisitedLinks();
+}
+
+JSRetainPtr<JSStringRef> LayoutTestController::counterValueForElementById(JSStringRef id)
+{
+    COMPtr<IWebFramePrivate> framePrivate(Query, frame);
+    if (!framePrivate)
+        return 0;
+
+    wstring idWstring = jsStringRefToWString(id);
+    BSTR idBSTR = SysAllocStringLen((OLECHAR*)idWstring.c_str(), idWstring.length());
+    BSTR counterValueBSTR;
+    if (FAILED(framePrivate->counterValueForElementById(idBSTR, &counterValueBSTR)))
+        return 0;
+
+    wstring counterValue(counterValueBSTR, SysStringLen(counterValueBSTR));
+    SysFreeString(idBSTR);
+    SysFreeString(counterValueBSTR);
+    JSRetainPtr<JSStringRef> counterValueJS(Adopt, JSStringCreateWithCharacters(counterValue.data(), counterValue.length()));
+    return counterValueJS;
+}
+

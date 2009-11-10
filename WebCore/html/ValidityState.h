@@ -44,8 +44,8 @@ namespace WebCore {
         bool typeMismatch();
         bool patternMismatch() { return control()->patternMismatch(); }
         bool tooLong() { return control()->tooLong(); }
-        bool rangeUnderflow() { return false; }
-        bool rangeOverflow() { return false; }
+        bool rangeUnderflow();
+        bool rangeOverflow();
         bool stepMismatch() { return false; }
         bool customError() { return !m_customErrorMessage.isEmpty(); }
         bool valid();
@@ -56,6 +56,7 @@ namespace WebCore {
         String m_customErrorMessage;
 
         static bool isValidColorString(const String&);
+        bool isValidEmailAddress(const String&);
     };
 
 } // namespace WebCore

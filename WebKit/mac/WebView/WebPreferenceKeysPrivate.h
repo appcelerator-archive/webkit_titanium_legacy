@@ -56,7 +56,6 @@
 #define WebKitDatabasesEnabledPreferenceKey @"WebKitDatabasesEnabledPreferenceKey"
 #define WebKitLocalStorageEnabledPreferenceKey @"WebKitLocalStorageEnabledPreferenceKey"
 #define WebKitExperimentalNotificationsEnabledPreferenceKey @"WebKitExperimentalNotificationsEnabledPreferenceKey"
-#define WebKitExperimentalWebSocketsEnabledPreferenceKey @"WebKitExperimentalWebSocketsEnabledPreferenceKey"
 #define WebKitAllowAnimatedImagesPreferenceKey @"WebKitAllowAnimatedImagesPreferenceKey"
 #define WebKitAllowAnimatedImageLoopingPreferenceKey @"WebKitAllowAnimatedImageLoopingPreferenceKey"
 #define WebKitDisplayImagesKey @"WebKitDisplayImagesKey"
@@ -86,6 +85,8 @@
 #define WebKitZoomsTextOnlyPreferenceKey @"WebKitZoomsTextOnly"
 #define WebKitXSSAuditorEnabledPreferenceKey @"WebKitXSSAuditorEnabled"
 #define WebKitAcceleratedCompositingEnabledPreferenceKey @"WebKitAcceleratedCompositingEnabled"
+#define WebKitWebGLEnabledPreferenceKey @"WebKitWebGLEnabled"
+#define WebKitPluginAllowedRunTimePreferenceKey @"WebKitPluginAllowedRunTime"
 
 // These are private both because callers should be using the cover methods and because the
 // cover methods themselves are private.

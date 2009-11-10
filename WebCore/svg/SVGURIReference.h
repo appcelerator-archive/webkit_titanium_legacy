@@ -1,8 +1,6 @@
 /*
-    Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+    Copyright (C) 2004, 2005, 2008, 2009 Nikolas Zimmermann <zimmermann@kde.org>
                   2004, 2005 Rob Buis <buis@kde.org>
-
-    This file is part of the KDE project
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -42,10 +40,8 @@ namespace WebCore {
 
         static String getTarget(const String& url);
 
-        virtual const SVGElement* contextElement() const = 0;
-
-    private:
-        ANIMATED_PROPERTY_DECLARATIONS(SVGURIReference, SVGURIReferenceIdentifier, XLinkNames::hrefAttrString, String, Href, href)
+    protected:
+        virtual void setHrefBaseValue(SVGAnimatedTypeValue<String>::DecoratedType type) = 0;
     };
 
 } // namespace WebCore

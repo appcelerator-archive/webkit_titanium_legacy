@@ -36,6 +36,16 @@ GENERATED_SOURCES_DIR_SLASH = $${GENERATED_SOURCES_DIR}$${QMAKE_DIR_SEP}
 win32-* {
     LIBS += -lwinmm
 }
+contains(JAVASCRIPTCORE_JIT,yes) {
+    DEFINES+=ENABLE_JIT=1
+    DEFINES+=ENABLE_YARR_JIT=1
+    DEFINES+=ENABLE_YARR=1
+}
+contains(JAVASCRIPTCORE_JIT,no) {
+    DEFINES+=ENABLE_JIT=0
+    DEFINES+=ENABLE_YARR_JIT=0
+    DEFINES+=ENABLE_YARR=0
+}
 
 # In debug mode JIT disabled until crash fixed
 win32-* {
@@ -129,7 +139,8 @@ SOURCES += \
     interpreter/RegisterFile.cpp
 
 symbian {
-    SOURCES += runtime/MarkStackSymbian.cpp
+    SOURCES += jit/ExecutableAllocatorSymbian.cpp \
+              runtime/MarkStackSymbian.cpp
 } else {
     win32-*|wince* {
         SOURCES += jit/ExecutableAllocatorWin.cpp \

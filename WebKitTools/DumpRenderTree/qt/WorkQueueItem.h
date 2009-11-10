@@ -30,8 +30,9 @@
 #ifndef WorkQueueItem_h
 #define WorkQueueItem_h
 
-#include <qstring.h>
-#include <qpointer.h>
+#include <QPointer>
+#include <QString>
+#include <qwebframe.h>
 #include <qwebpage.h>
 
 class WorkQueueItem {
@@ -87,6 +88,27 @@ public:
 private:
     QString m_script;
 };
+
+class LoadingScriptItem : public ScriptItem {
+public:
+    LoadingScriptItem(const QString& script, QWebPage* page)
+        : ScriptItem(script, page)
+    {
+    }
+
+    virtual bool invoke() const { return ScriptItem::invoke(); }
+};
+
+class NonLoadingScriptItem : public ScriptItem {
+public:
+    NonLoadingScriptItem(const QString& script, QWebPage* page)
+        : ScriptItem(script, page)
+    {
+    }
+
+    virtual bool invoke() const { ScriptItem::invoke(); return false; }
+};
+
 
 class BackForwardItem : public WorkQueueItem {
 public:

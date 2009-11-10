@@ -25,13 +25,17 @@ building-libs {
                 LIBS += -lQtWebKit$${QT_MAJOR_VERSION}
             } else {
                 LIBS += -lQtWebKit
+                symbian {
+                    TARGET.EPOCSTACKSIZE = 0x14000 // 80 kB
+                    TARGET.EPOCHEAPSIZE = 0x20000 0x2000000 // Min 128kB, Max 32MB
+                }
             }
         }
     }
     DEPENDPATH += $$PWD/WebKit/qt/Api
 }
 
-!win32:!mac:!unix {
+!mac:!unix|symbian {
     DEFINES += USE_SYSTEM_MALLOC
 }
 
@@ -43,15 +47,14 @@ BASE_DIR = $$PWD
 INCLUDEPATH += $$PWD/WebKit/qt/Api
 
 CONFIG -= warn_on
-*-g++*:QMAKE_CXXFLAGS += -Wreturn-type -fno-strict-aliasing
-#QMAKE_CXXFLAGS += -Wall -Wno-undef -Wno-unused-parameter
+*-g++*:QMAKE_CXXFLAGS += -Wall -Wreturn-type -fno-strict-aliasing -Wcast-align -Wchar-subscripts -Wformat-security -Wreturn-type -Wno-unused-parameter -Wno-sign-compare -Wno-switch -Wno-switch-enum -Wundef -Wmissing-noreturn -Winit-self
 
 # Enable GNU compiler extensions to the ARM compiler for all Qt ports using RVCT
 symbian|*-armcc {
     RVCT_COMMON_CFLAGS = --gnu --diag_suppress 68,111,177,368,830,1293
     RVCT_COMMON_CXXFLAGS = $$RVCT_COMMON_CFLAGS --no_parse_templates
     DEFINES *= QT_NO_UITOOLS
-} 
+}
 
 *-armcc {
     QMAKE_CFLAGS += $$RVCT_COMMON_CFLAGS
@@ -66,7 +69,7 @@ contains(DEFINES, QT_NO_UITOOLS): CONFIG -= uitools
 
 # Disable a few warnings on Windows. The warnings are also
 # disabled in WebKitLibraries/win/tools/vsprops/common.vsprops
-win32-msvc*: QMAKE_CXXFLAGS += -wd4291 -wd4344 -wd4503 -wd4800 -wd4819 -wd4996
+win32-msvc*: QMAKE_CXXFLAGS += -wd4291 -wd4344 -wd4396 -wd4503 -wd4800 -wd4819 -wd4996
 
 #
 # For builds inside Qt we interpret the output rule and the input of each extra compiler manually

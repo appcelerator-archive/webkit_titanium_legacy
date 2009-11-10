@@ -82,6 +82,10 @@
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/StdLibExtras.h>
 
+#if PLATFORM(MAC) || (PLATFORM(CHROMIUM) && PLATFORM(DARWIN))
+#import <Carbon/Carbon.h>
+#endif
+
 #if USE(JSC)
 #include "JSDOMWindowShell.h"
 #include "runtime_root.h"
@@ -198,6 +202,7 @@ Frame::~Frame()
 
     if (m_domWindow)
         m_domWindow->disconnectFrame();
+    script()->clearWindowShell();
 
     HashSet<DOMWindow*>::iterator end = m_liveFormerWindows.end();
     for (HashSet<DOMWindow*>::iterator it = m_liveFormerWindows.begin(); it != end; ++it)
@@ -881,12 +886,11 @@ void Frame::injectUserScriptsForWorld(unsigned worldID, const UserScriptVector& 
     if (!doc)
         return;
 
-    // FIXME: Need to implement pattern checking.
     Vector<ScriptSourceCode> sourceCode;
     unsigned count = userScripts.size();
     for (unsigned i = 0; i < count; ++i) {
         UserScript* script = userScripts[i].get();
-        if (script->injectionTime() == injectionTime && UserContentURLPattern::matchesPatterns(doc->url(), script->patterns()))
+        if (script->injectionTime() == injectionTime && UserContentURLPattern::matchesPatterns(doc->url(), script->whitelist(), script->blacklist()))
             sourceCode.append(ScriptSourceCode(script->source(), script->url()));
     }
     script()->evaluateInIsolatedWorld(worldID, sourceCode);
@@ -915,13 +919,36 @@ bool Frame::isContentEditable() const
     return m_doc->inDesignMode();
 }
 
-#if !PLATFORM(MAC)
-
-void Frame::setUseSecureKeyboardEntry(bool)
-{
-}
-
+#if PLATFORM(MAC) || (PLATFORM(CHROMIUM) && PLATFORM(DARWIN))
+const short enableRomanKeyboardsOnly = -23;
 #endif
+void Frame::setUseSecureKeyboardEntry(bool enable)
+{
+#if PLATFORM(MAC) || (PLATFORM(CHROMIUM) && PLATFORM(DARWIN))
+    if (enable == IsSecureEventInputEnabled())
+        return;
+    if (enable) {
+        EnableSecureEventInput();
+#ifdef BUILDING_ON_TIGER
+        KeyScript(enableRomanKeyboardsOnly);
+#else
+        // WebKit substitutes nil for input context when in password field, which corresponds to null TSMDocument. So, there is
+        // no need to call TSMGetActiveDocument(), which may return an incorrect result when selection hasn't been yet updated
+        // after focusing a node.
+        CFArrayRef inputSources = TISCreateASCIICapableInputSourceList();
+        TSMSetDocumentProperty(0, kTSMDocumentEnabledInputSourcesPropertyTag, sizeof(CFArrayRef), &inputSources);
+        CFRelease(inputSources);
+#endif
+    } else {
+        DisableSecureEventInput();
+#ifdef BUILDING_ON_TIGER
+        KeyScript(smKeyEnableKybds);
+#else
+        TSMRemoveDocumentProperty(0, kTSMDocumentEnabledInputSourcesPropertyTag);
+#endif
+    }
+#endif
+}
 
 void Frame::updateSecureKeyboardEntryIfActive()
 {

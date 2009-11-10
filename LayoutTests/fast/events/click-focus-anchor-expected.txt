@@ -1,7 +1,10 @@
-This test ensures that we can click to focus an a element with a tab index. Click on the element below.
+This test ensures that we can click to focus an a element. Click on the element below.
 
-Focusable
+The expected result is platform specific. GTK and QT allows all links to be mouse focusable.
 
 Result
 
-PASS
+
+a1 received focus (focusable)
+a4 received focus (focusable)
+a5 received focus (focusable)

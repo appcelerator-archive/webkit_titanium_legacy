@@ -52,6 +52,7 @@ DOM_CLASSES = \
     AbstractWorker \
     Attr \
     BarInfo \
+    BeforeLoadEvent \
     CDATASection \
     CSSCharsetRule \
     CSSFontFaceRule \
@@ -69,26 +70,27 @@ DOM_CLASSES = \
     CSSValueList \
     CSSVariablesRule \
     CSSVariablesDeclaration \
-    CanvasArray \
-    CanvasArrayBuffer \
-    CanvasBuffer \
-    CanvasByteArray \
-    CanvasFloatArray \
-    CanvasFramebuffer \
+    WebGLActiveInfo \
+    WebGLArray \
+    WebGLArrayBuffer \
+    WebGLBuffer \
+    WebGLByteArray \
+    WebGLFloatArray \
+    WebGLFramebuffer \
     CanvasGradient \
-    CanvasIntArray \
+    WebGLIntArray \
     CanvasPattern \
-    CanvasProgram \
-    CanvasRenderbuffer \
+    WebGLProgram \
+    WebGLRenderbuffer \
     CanvasRenderingContext \
     CanvasRenderingContext2D \
-    CanvasRenderingContext3D \
-    CanvasShader \
-    CanvasShortArray \
-    CanvasTexture \
-    CanvasUnsignedByteArray \
-    CanvasUnsignedIntArray \
-    CanvasUnsignedShortArray \
+    WebGLRenderingContext \
+    WebGLShader \
+    WebGLShortArray \
+    WebGLTexture \
+    WebGLUnsignedByteArray \
+    WebGLUnsignedIntArray \
+    WebGLUnsignedShortArray \
     CharacterData \
     ClientRect \
     ClientRectList \
@@ -124,6 +126,7 @@ DOM_CLASSES = \
     FileList \
     Geolocation \
     Geoposition \
+    HTMLAllCollection \
     HTMLAnchorElement \
     HTMLAppletElement \
     HTMLAreaElement \
@@ -287,6 +290,7 @@ DOM_CLASSES = \
     SVGFEImageElement \
     SVGFEMergeElement \
     SVGFEMergeNodeElement \
+    SVGFEMorphologyElement \
     SVGFEOffsetElement \
     SVGFEPointLightElement \
     SVGFESpecularLightingElement \
@@ -593,7 +597,7 @@ endif
 ifeq ($(findstring ENABLE_VIDEO,$(FEATURE_DEFINES)), ENABLE_VIDEO)
     USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/mediaControls.css
 ifeq ($(OS),MACOS)
-    USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/mediaControlsQT.css
+    USER_AGENT_STYLE_SHEETS := $(USER_AGENT_STYLE_SHEETS) $(WebCore)/css/mediaControlsQuickTime.css
 endif
 endif
 
@@ -610,10 +614,6 @@ endif
 
 ifeq ($(findstring ENABLE_VIDEO,$(FEATURE_DEFINES)), ENABLE_VIDEO)
     HTML_FLAGS := $(HTML_FLAGS) ENABLE_VIDEO=1
-endif
-
-ifeq ($(findstring ENABLE_RUBY,$(FEATURE_DEFINES)), ENABLE_RUBY)
-    HTML_FLAGS := $(HTML_FLAGS) ENABLE_RUBY=1
 endif
 
 ifdef HTML_FLAGS
@@ -836,6 +836,10 @@ endif
 
 ifeq ($(findstring ENABLE_PLUGIN_PROXY_FOR_VIDEO,$(FEATURE_DEFINES)), ENABLE_PLUGIN_PROXY_FOR_VIDEO)
      WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.VideoProxy.exp
+endif
+
+ifeq ($(findstring ENABLE_VIDEO,$(FEATURE_DEFINES)), ENABLE_VIDEO)
+     WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.Video.exp
 endif
 
 WebCore.exp : WebCore.base.exp $(WEBCORE_EXPORT_DEPENDENCIES)

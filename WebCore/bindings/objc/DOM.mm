@@ -32,6 +32,7 @@
 #import "DOMElementInternal.h"
 #import "DOMHTMLCanvasElement.h"
 #import "DOMNodeInternal.h"
+#import "DOMPrivate.h"
 #import "DOMRangeInternal.h"
 #import "Frame.h"
 #import "HTMLElement.h"
@@ -175,6 +176,7 @@ static void createElementClassMap()
     addElementClass(SVGNames::feImageTag, [DOMSVGFEImageElement class]);
     addElementClass(SVGNames::feMergeTag, [DOMSVGFEMergeElement class]);
     addElementClass(SVGNames::feMergeNodeTag, [DOMSVGFEMergeNodeElement class]);
+    addElementClass(SVGNames::feMorphologyTag, [DOMSVGFEMorphologyElement class]);
     addElementClass(SVGNames::feOffsetTag, [DOMSVGFEOffsetElement class]);
     addElementClass(SVGNames::fePointLightTag, [DOMSVGFEPointLightElement class]);
     addElementClass(SVGNames::feSpecularLightingTag, [DOMSVGFESpecularLightingElement class]);
@@ -357,20 +359,6 @@ id <DOMEventTarget> kit(WebCore::EventTarget* eventTarget)
     return renderer->absoluteBoundingBoxRect();
 }
 
-- (NSArray *)textRects
-{
-    // FIXME: Could we move this function to WebCore::Node and autogenerate?
-    core(self)->document()->updateLayoutIgnorePendingStylesheets();
-    if (!core(self)->renderer())
-        return nil;
-    RefPtr<Range> range = Range::create(core(self)->document());
-    WebCore::ExceptionCode ec = 0;
-    range->selectNodeContents(core(self), ec);
-    Vector<WebCore::IntRect> rects;
-    range->textRects(rects);
-    return kit(rects);
-}
-
 - (NSArray *)lineBoxRects
 {
     return [self textRects];
@@ -390,6 +378,19 @@ id <DOMEventTarget> kit(WebCore::EventTarget* eventTarget)
     return frame->nodeImage(node);
 }
 
+- (NSArray *)textRects
+{
+    // FIXME: Could we move this function to WebCore::Node and autogenerate?
+    core(self)->document()->updateLayoutIgnorePendingStylesheets();
+    if (!core(self)->renderer())
+        return nil;
+    RefPtr<Range> range = Range::create(core(self)->document());
+    WebCore::ExceptionCode ec = 0;
+    range->selectNodeContents(core(self), ec);
+    Vector<WebCore::IntRect> rects;
+    range->textRects(rects);
+    return kit(rects);
+}
 @end
 
 @implementation DOMRange (DOMRangeExtensions)

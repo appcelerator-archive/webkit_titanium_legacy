@@ -33,6 +33,7 @@
 
 #pragma warning(push, 0) 
 #include <WebCore/ClipboardWin.h>
+#include <WebCore/DragController.h>
 #include <WebCore/DragData.h>
 #include <WebCore/Font.h>
 #include <WebCore/FontDescription.h>
@@ -67,6 +68,22 @@ namespace WebCore {
 #define DRAG_LINK_URL_FONT_SIZE   10
 
 using namespace WebCore;
+
+static DWORD draggingSourceOperationMaskToDragCursors(DragOperation op)
+{
+    DWORD result = DROPEFFECT_NONE;
+    if (op == DragOperationEvery)
+        return DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE; 
+    if (op & DragOperationCopy)
+        result |= DROPEFFECT_COPY; 
+    if (op & DragOperationLink)
+        result |= DROPEFFECT_LINK; 
+    if (op & DragOperationMove)
+        result |= DROPEFFECT_MOVE;
+    if (op & DragOperationGeneric)
+        result |= DROPEFFECT_MOVE;
+    return result;
+}
 
 WebDragClient::WebDragClient(WebView* webView)
     : m_webView(webView) 
@@ -154,18 +171,28 @@ void WebDragClient::startDrag(DragImageRef image, const IntPoint& imageOrigin, c
             }
         }
 
-        //FIXME: Ensure correct drag ops are available <rdar://problem/5015957>
-        DWORD okEffect = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
-        DWORD effect;
+        DWORD okEffect = draggingSourceOperationMaskToDragCursors(m_webView->page()->dragController()->sourceDragOperation());
+        DWORD effect = DROPEFFECT_NONE;
         COMPtr<IWebUIDelegate> ui;
+        HRESULT hr = E_NOTIMPL;
         if (SUCCEEDED(m_webView->uiDelegate(&ui))) {
             COMPtr<IWebUIDelegatePrivate> uiPrivate;
             if (SUCCEEDED(ui->QueryInterface(IID_IWebUIDelegatePrivate, (void**)&uiPrivate)))
-                if (SUCCEEDED(uiPrivate->doDragDrop(m_webView, dataObject.get(), source.get(), okEffect, &effect)))
-                    return;
+                hr = uiPrivate->doDragDrop(m_webView, dataObject.get(), source.get(), okEffect, &effect);
         }
+        if (hr == E_NOTIMPL)
+            hr = DoDragDrop(dataObject.get(), source.get(), okEffect, &effect);
 
-        DoDragDrop(dataObject.get(), source.get(), okEffect, &effect);
+        DragOperation operation = DragOperationNone;
+        if (hr == DRAGDROP_S_DROP) {
+            if (effect & DROPEFFECT_COPY)
+                operation = DragOperationCopy;
+            else if (effect & DROPEFFECT_LINK)
+                operation = DragOperationLink;
+            else if (effect & DROPEFFECT_MOVE)
+                operation = DragOperationMove;
+        }
+        frame->eventHandler()->dragSourceEndedAt(generateMouseEvent(m_webView, false), operation);
     }
 }
 

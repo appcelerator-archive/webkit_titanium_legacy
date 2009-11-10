@@ -37,7 +37,6 @@
 #include "Frame.h"
 #include "Settings.h"
 #include "V8Binding.h"
-#include "V8ObjectEventListener.h"
 #include "V8Proxy.h"
 #include "V8Utilities.h"
 #include "WorkerContext.h"
@@ -45,123 +44,36 @@
 
 namespace WebCore {
 
-static PassRefPtr<EventListener> getEventListener(WebSocket* webSocket, v8::Local<v8::Value> value, bool findOnly)
+CALLBACK_FUNC_DECL(WebSocketAddEventListener)
 {
-#if ENABLE(WORKERS)
-    WorkerContextExecutionProxy* workerContextProxy = WorkerContextExecutionProxy::retrieve();
-    if (workerContextProxy)
-        return workerContextProxy->findOrCreateObjectEventListener(value, false, findOnly);
-#endif
+    INC_STATS("DOM.WebSocket.addEventListener()");
+    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, args.Holder());
 
-    V8Proxy* proxy = V8Proxy::retrieve(webSocket->scriptExecutionContext());
-    if (proxy) {
-        V8EventListenerList* list = proxy->objectListeners();
-        return findOnly ? list->findWrapper(value, false) : list->findOrCreateWrapper<V8ObjectEventListener>(proxy->frame(), value, false);
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(webSocket, args[1], false, ListenerFindOrCreate);
+    if (listener) {
+        String type = toWebCoreString(args[0]);
+        bool useCapture = args[2]->BooleanValue();
+        webSocket->addEventListener(type, listener, useCapture);
+
+        createHiddenDependency(args.Holder(), args[1], V8Custom::kWebSocketCacheIndex);
     }
-
-    return PassRefPtr<EventListener>();
+    return v8::Undefined();
 }
 
-ACCESSOR_GETTER(WebSocketOnopen)
+CALLBACK_FUNC_DECL(WebSocketRemoveEventListener)
 {
-    INC_STATS("DOM.WebSocket.onopen._get");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, info.Holder());
-    if (webSocket->onopen()) {
-        V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(webSocket->onopen());
-        v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-        return v8Listener;
-    }
-    return v8::Null();
-}
+    INC_STATS("DOM.WebSocket.removeEventListener()");
+    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, args.Holder());
 
-ACCESSOR_SETTER(WebSocketOnopen)
-{
-    INC_STATS("DOM.WebSocket.onopen._set");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, info.Holder());
-    if (value->IsNull()) {
-        if (webSocket->onopen()) {
-            V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(webSocket->onopen());
-            v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-            removeHiddenDependency(info.Holder(), v8Listener, V8Custom::kWebSocketCacheIndex);
-        }
-        // Clear the listener.
-        webSocket->setOnopen(0);
-    } else {
-        RefPtr<EventListener> listener = getEventListener(webSocket, value, false);
-        if (listener) {
-            webSocket->setOnopen(listener);
-            createHiddenDependency(info.Holder(), value, V8Custom::kWebSocketCacheIndex);
-        }
+    RefPtr<EventListener> listener = V8DOMWrapper::getEventListener(webSocket, args[1], false, ListenerFindOnly);
+    if (listener) {
+        String type = toWebCoreString(args[0]);
+        bool useCapture = args[2]->BooleanValue();
+        webSocket->removeEventListener(type, listener.get(), useCapture);
+        removeHiddenDependency(args.Holder(), args[1], V8Custom::kWebSocketCacheIndex);
     }
+    return v8::Undefined();
 }
-
-ACCESSOR_GETTER(WebSocketOnmessage)
-{
-    INC_STATS("DOM.WebSocket.onmessage._get");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, info.Holder());
-    if (webSocket->onmessage()) {
-        RefPtr<V8ObjectEventListener> listener = static_cast<V8ObjectEventListener*>(webSocket->onmessage());
-        v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-        return v8Listener;
-    }
-    return v8::Null();
-}
-
-ACCESSOR_SETTER(WebSocketOnmessage)
-{
-    INC_STATS("DOM.WebSocket.onmessage._set");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, info.Holder());
-    if (value->IsNull()) {
-        if (webSocket->onmessage()) {
-            V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(webSocket->onmessage());
-            v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-            removeHiddenDependency(info.Holder(), v8Listener, V8Custom::kWebSocketCacheIndex);
-        }
-        // Clear the listener.
-        webSocket->setOnmessage(0);
-    } else {
-        RefPtr<EventListener> listener = getEventListener(webSocket, value, false);
-        if (listener) {
-            webSocket->setOnmessage(listener);
-            createHiddenDependency(info.Holder(), value, V8Custom::kWebSocketCacheIndex);
-        }
-    }
-}
-
-ACCESSOR_GETTER(WebSocketOnclose)
-{
-    INC_STATS("DOM.WebSocket.onclose._get");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, info.Holder());
-    if (webSocket->onclose()) {
-        V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(webSocket->onclose());
-        v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-        return v8Listener;
-    }
-    return v8::Null();
-}
-
-ACCESSOR_SETTER(WebSocketOnclose)
-{
-    INC_STATS("DOM.WebSocket.onclose._set");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, info.Holder());
-    if (value->IsNull()) {
-        if (webSocket->onclose()) {
-            V8ObjectEventListener* listener = static_cast<V8ObjectEventListener*>(webSocket->onclose());
-            v8::Local<v8::Object> v8Listener = listener->getListenerObject();
-            removeHiddenDependency(info.Holder(), v8Listener, V8Custom::kWebSocketCacheIndex);
-        }
-        // Clear the listener.
-        webSocket->setOnclose(0);
-    } else {
-        RefPtr<EventListener> listener = getEventListener(webSocket, value, false);
-        if (listener) {
-            webSocket->setOnclose(listener);
-            createHiddenDependency(info.Holder(), value, V8Custom::kWebSocketCacheIndex);
-        }
-    }
-}
-
-// ??? AddEventListener, RemoveEventListener
 
 CALLBACK_FUNC_DECL(WebSocketConstructor)
 {

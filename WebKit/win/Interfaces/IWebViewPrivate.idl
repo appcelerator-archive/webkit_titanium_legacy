@@ -28,7 +28,9 @@ import "oaidl.idl";
 import "ocidl.idl";
 import "IWebFormDelegate.idl";
 import "IWebFrameLoadDelegatePrivate.idl";
+import "IWebHistoryDelegate.idl";
 import "IWebInspector.idl";
+import "IWebInspectorPrivate.idl";
 #endif
 
 // Sent when IWebView::close is called. No userInfo is associated with this notification.
@@ -37,7 +39,9 @@ cpp_quote("#define WebViewWillCloseNotification L\"WebViewWillCloseNotification\
 interface IEnumTextMatches;
 interface IWebFormDelegate;
 interface IWebFrameLoadDelegatePrivate;
+interface IWebHistoryDelegate;
 interface IWebInspector;
+interface IWebInspectorPrivate;
 interface IWebPluginHalterDelegate;
 interface IWebURLRequest;
 interface IWebView;
@@ -181,10 +185,17 @@ interface IWebViewPrivate : IUnknown
     HRESULT MIMETypeForExtension([in] BSTR extension, [out, retval] BSTR* mimeType);
 
     // For the following functions, 0 < worldID < UINT_MAX.
-    HRESULT addUserScriptToGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR source, [in] BSTR url, [in] unsigned patternsCount, [in, size_is(patternsCount)] BSTR* patterns, [in] WebUserScriptInjectionTime injectionTime);
-    HRESULT addUserStyleSheetToGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR source, [in] BSTR url, [in] unsigned patternsCount, [in, size_is(patternsCount)] BSTR* patterns);
-    HRESULT removeUserContentWithURLFromGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR url);
-    HRESULT removeUserContentFromGroup([in] BSTR groupName, [in] unsigned worldID);
+    HRESULT addUserScriptToGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR source, [in] BSTR url,
+                                 [in] unsigned whitelistCount, [in, size_is(whitelistCount)] BSTR* whitelist,
+                                 [in] unsigned blacklistCount, [in, size_is(blacklistCount)] BSTR* blacklist,
+                                 [in] WebUserScriptInjectionTime injectionTime);
+    HRESULT addUserStyleSheetToGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR source, [in] BSTR url,
+                                     [in] unsigned whitelistCount, [in, size_is(whitelistCount)] BSTR* whitelist,
+                                     [in] unsigned blacklistCount, [in, size_is(blacklistCount)] BSTR* blacklist);
+    HRESULT removeUserScriptFromGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR url);
+    HRESULT removeUserStyleSheetFromGroup([in] BSTR groupName, [in] unsigned worldID, [in] BSTR url);
+    HRESULT removeUserScriptsFromGroup([in] BSTR groupName, [in] unsigned worldID);
+    HRESULT removeUserStyleSheetsFromGroup([in] BSTR groupName, [in] unsigned worldID);
     HRESULT removeAllUserContentFromGroup([in] BSTR groupName);
 
     HRESULT setPluginHalterDelegate([in] IWebPluginHalterDelegate* d);
@@ -192,4 +203,21 @@ interface IWebViewPrivate : IUnknown
 
     // If rect is 0, the entire backing store will be invalidated.
     HRESULT invalidateBackingStore([in] const RECT* rect);
+
+    // Whitelists access from an origin (sourceOrigin) to a set of one or more origins described by the parameters:
+    // - destinationProtocol: The protocol to grant access to.
+    // - destinationHost: The host to grant access to.
+    // - allowDestinationSubdomains: If host is a domain, setting this to YES will whitelist host and all its subdomains, recursively.
+    HRESULT whiteListAccessFromOrigin([in] BSTR sourceOrigin, [in] BSTR destinationProtocol, [in] BSTR destinationHost, [in] BOOL allowDestinationSubdomains);
+
+    // Removes all white list entries created with whiteListAccessFromOrigin.
+    HRESULT resetOriginAccessWhiteLists();
+
+    HRESULT setHistoryDelegate([in] IWebHistoryDelegate* historyDelegate);
+    HRESULT historyDelegate([out,retval] IWebHistoryDelegate** historyDelegate);
+    HRESULT addVisitedLinks([in] BSTR* visitedURLs, [in] unsigned visitedURLCount);
+
+    HRESULT isNodeHaltedPlugin([in] IDOMNode*, [retval, out] BOOL*);
+    HRESULT restartHaltedPluginForNode([in] IDOMNode*);
+    HRESULT hasPluginForNodeBeenHalted([in] IDOMNode*, [retval, out] BOOL*);
 }

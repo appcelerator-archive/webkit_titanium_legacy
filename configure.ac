@@ -2,7 +2,7 @@ AC_PREREQ(2.59)
 
 m4_define([webkit_major_version], [1])
 m4_define([webkit_minor_version], [1])
-m4_define([webkit_micro_version], [15])
+m4_define([webkit_micro_version], [17])
 
 # This is the version we'll be using as part of our User-Agent string
 # e.g., AppleWebKit/$(webkit_user_agent_version) ...
@@ -35,7 +35,7 @@ AC_CONFIG_SRCDIR([WebCore/config.h])
 
 dnl # Libtool library version, not to confuse with API version
 dnl # see http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html#Libtool-versioning
-LIBWEBKITGTK_VERSION=13:0:11
+LIBWEBKITGTK_VERSION=14:0:12
 AC_SUBST([LIBWEBKITGTK_VERSION])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects tar-ustar])
@@ -191,7 +191,7 @@ fi
 
 # minimum base dependencies
 LIBSOUP_REQUIRED_VERSION=2.27.91
-CAIRO_REQUIRED_VERSION=1.2
+CAIRO_REQUIRED_VERSION=1.6
 FONTCONFIG_REQUIRED_VERSION=2.4
 FREETYPE2_REQUIRED_VERSION=9.0
 LIBXML_REQUIRED_VERSION=2.6
@@ -371,14 +371,6 @@ AC_ARG_ENABLE(datalist,
               [],[enable_datalist="yes"])
 AC_MSG_RESULT([$enable_datalist])
 
-# check whether to enable HTML5 ruby support
-AC_MSG_CHECKING([whether to enable HTML5 ruby support])
-AC_ARG_ENABLE(ruby,
-              AC_HELP_STRING([--enable-ruby],
-                             [enable HTML5 ruby support [default=yes]]),
-              [],[enable_ruby="yes"])
-AC_MSG_RESULT([$enable_ruby])
-
 # check whether to enable HTML5 audio/video support
 AC_MSG_CHECKING([whether to enable HTML5 video support])
 AC_ARG_ENABLE(video,
@@ -410,6 +402,14 @@ AC_ARG_ENABLE(geolocation,
                              [enable support for geolocation [default=no]]),
               [],[enable_geolocation="no"])
 AC_MSG_RESULT([$enable_geolocation])
+
+# check whether to enable MathML support
+AC_MSG_CHECKING([whether to enable MathML support])
+AC_ARG_ENABLE(mathml,
+              AC_HELP_STRING([--enable-mathml],
+                             [enable support for MathML [default=no]]),
+              [],[enable_mathml="no"])
+AC_MSG_RESULT([$enable_mathml])
 
 # check whether to enable SVG support
 AC_MSG_CHECKING([whether to enable SVG support])
@@ -517,7 +517,7 @@ fi
 AC_MSG_CHECKING([whether to enable Web Sockets support])
 AC_ARG_ENABLE(web_sockets,
               AC_HELP_STRING([--enable-web-sockets],
-                             [enable support for Web Sockets [default=yes]]),
+                             [enable support for Web Sockets [default=no]]),
               [],[enable_web_sockets="no"])
 AC_MSG_RESULT([$enable_web_sockets])
 
@@ -588,8 +588,8 @@ if test "$enable_introspection" = "yes"; then
   G_IR_SCANNER="$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)"
   G_IR_COMPILER="$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)"
   G_IR_GENERATE="$($PKG_CONFIG --variable=g_ir_generate gobject-introspection-1.0)"
-  GIRDIR="$($PKG_CONFIG --variable=girdir gobject-introspection-1.0)"
-  GIRTYPELIBDIR="$($PKG_CONFIG --variable=typelibdir gobject-introspection-1.0)"
+  GIRDIR="$($PKG_CONFIG --define-variable=prefix=$prefix --variable=girdir gobject-introspection-1.0)"
+  GIRTYPELIBDIR="$($PKG_CONFIG --define-variable=prefix=$prefix --variable=typelibdir gobject-introspection-1.0)"
 
   AC_DEFINE([ENABLE_INTROSPECTION],[1],[Define to enable GObject introspection support])
 fi
@@ -656,7 +656,15 @@ if test "$enable_icon_database" = "yes" || \
    test "$enable_database" = "yes" || \
    test "$enable_offline_web_applications" = "yes" || \
    test "$enable_dom_storage" = "yes"; then
-   PKG_CHECK_MODULES([SQLITE3], [sqlite3 >= $SQLITE_REQUIRED_VERSION])
+   PKG_CHECK_MODULES([SQLITE3],
+                     [sqlite3 >= $SQLITE_REQUIRED_VERSION],
+                     [sqlite3_has_pkg_config=yes],
+                     [sqlite3_has_pkg_config=no])
+   if test "$sqlite3_has_pkg_config" = "no"; then
+      AC_SEARCH_LIBS([sqlite3_open16], [sqlite3],
+                     [SQLITE3_LIBS="$LIBS";SQLITE3_CFLAGS="-I $srcdir/WebKitLibraries/WebCoreSQLite3"],
+                     [AC_MSG_ERROR([SQLite3 is required to enable Database support])])
+   fi
    AC_SUBST([SQLITE3_CFLAGS])
    AC_SUBST([SQLITE3_LIBS])
 fi
@@ -739,7 +747,7 @@ AM_CONDITIONAL([ENABLE_XPATH],[test "$enable_xpath" = "yes"])
 AM_CONDITIONAL([ENABLE_XSLT],[test "$enable_xslt" = "yes"])
 AM_CONDITIONAL([ENABLE_FILTERS],[test "$enable_filters" = "yes"])
 AM_CONDITIONAL([ENABLE_GEOLOCATION], [test "$enable_geolocation" = "yes"])
-AM_CONDITIONAL([ENABLE_RUBY],[test "$enable_ruby" = "yes"])
+AM_CONDITIONAL([ENABLE_MATHML], [test "$enable_mathml" = "yes"])
 AM_CONDITIONAL([ENABLE_VIDEO],[test "$enable_video" = "yes"])
 AM_CONDITIONAL([ENABLE_NOTIFICATIONS],[test "$enable_notifications" = "yes"])
 AM_CONDITIONAL([ENABLE_ORIENTATION_EVENTS],[test "$enable_orientation_events" = "yes"])
@@ -790,11 +798,11 @@ Features:
  Filters support                                          : $enable_filters
  Geolocation support                                      : $enable_geolocation
  JavaScript debugger/profiler support                     : $enable_javascript_debugger
+ MathML support                                           : $enable_mathml
  HTML5 offline web applications support                   : $enable_offline_web_applications
  HTML5 channel messaging support                          : $enable_channel_messaging
  HTML5 client-side session and persistent storage support : $enable_dom_storage
  HTML5 client-side database storage support               : $enable_database
- HTML5 ruby support                                       : $enable_ruby
  HTML5 server-sent events support                         : $enable_eventsource
  HTML5 video element support                              : $enable_video
  Icon database support                                    : $enable_icon_database

@@ -718,7 +718,7 @@ void WebFrameLoaderClient::dispatchWillSubmitForm(FramePolicyFunction function, 
 {
     id <WebFormDelegate> formDelegate = [getWebView(m_webFrame.get()) _formDelegate];
     if (!formDelegate) {
-        (core(m_webFrame.get())->loader()->*function)(PolicyUse);
+        (core(m_webFrame.get())->loader()->policyChecker()->*function)(PolicyUse);
         return;
     }
 
@@ -988,7 +988,7 @@ void WebFrameLoaderClient::saveViewStateToItem(HistoryItem* item)
 
 void WebFrameLoaderClient::restoreViewState()
 {
-    HistoryItem* currentItem = core(m_webFrame.get())->loader()->currentHistoryItem();
+    HistoryItem* currentItem = core(m_webFrame.get())->loader()->history()->currentItem();
     ASSERT(currentItem);
 
     // FIXME: As the ASSERT attests, it seems we should always have a currentItem here.
@@ -1064,15 +1064,25 @@ PassRefPtr<DocumentLoader> WebFrameLoaderClient::createDocumentLoader(const Reso
     return loader.release();
 }
 
-// FIXME: <rdar://problem/4880065> - Push Global History into WebCore
-// Once that task is complete, this will go away
-void WebFrameLoaderClient::setTitle(const String& title, const KURL& URL)
+void WebFrameLoaderClient::setTitle(const String& title, const KURL& url)
 {
-    NSURL* nsURL = URL;
+    WebView* view = getWebView(m_webFrame.get());
+    
+    if ([view historyDelegate]) {
+        WebHistoryDelegateImplementationCache* implementations = WebViewGetHistoryDelegateImplementations(view);
+        if (!implementations->setTitleFunc)
+            return;
+            
+        CallHistoryDelegate(implementations->setTitleFunc, view, @selector(webView:updateHistoryTitle:forURL:), (NSString *)title, (NSString *)url);
+        return;
+    }
+    
+    NSURL* nsURL = url;
     nsURL = [nsURL _webkit_canonicalize];
     if(!nsURL)
         return;
     NSString *titleNSString = title;
+       
     [[[WebHistory optionalSharedHistory] itemForURL:nsURL] setTitle:titleNSString];
 }
 
@@ -1197,7 +1207,7 @@ void WebFrameLoaderClient::receivedPolicyDecison(PolicyAction action)
     m_policyListener = nil;
     m_policyFunction = 0;
 
-    (core(m_webFrame.get())->loader()->*function)(action);
+    (core(m_webFrame.get())->loader()->policyChecker()->*function)(action);
 }
 
 String WebFrameLoaderClient::userAgent(const KURL& url)
@@ -1728,18 +1738,7 @@ jobject WebFrameLoaderClient::javaApplet(NSView* view)
 }
 #endif
 
-bool WebFrameLoaderClient::shouldLoadMediaElementURL(const KURL& url) const {
-    WebView *webView = getWebView(m_webFrame.get());
-    
-    if (id policyDelegate = [webView policyDelegate]) {
-        if ([policyDelegate respondsToSelector:@selector(webView:shouldLoadMediaURL:inFrame:)])
-            return [policyDelegate webView:webView shouldLoadMediaURL:url inFrame:m_webFrame.get()];
-    }
-    return true;
-}
-
 @implementation WebFramePolicyListener
-
 + (void)initialize
 {
     JSC::initializeThreading();

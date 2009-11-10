@@ -62,7 +62,7 @@ public:
     static PassRefPtr<AccessibilityRenderObject> create(RenderObject*);
     virtual ~AccessibilityRenderObject();
     
-    bool isAccessibilityRenderObject() const { return true; };
+    bool isAccessibilityRenderObject() const { return true; }
     
     virtual bool isAnchor() const;
     virtual bool isAttachment() const;
@@ -102,7 +102,9 @@ public:
     virtual bool isReadOnly() const;
     virtual bool isVisited() const;        
     virtual bool isRequired() const;
-
+    virtual bool isLinked() const;
+    virtual bool isExpanded() const;
+    
     const AtomicString& getAttribute(const QualifiedName&) const;
     virtual bool canSetFocusAttribute() const;
     virtual bool canSetTextRangeAttributes() const;
@@ -119,6 +121,7 @@ public:
     virtual float maxValueForRange() const;
     virtual float minValueForRange() const;
     virtual AccessibilityObject* selectedRadioButton();
+    virtual AccessibilityObject* selectedTabItem();
     virtual int layoutCount() const;
     
     virtual AccessibilityObject* doAccessibilityHitTest(const IntPoint&) const;
@@ -134,6 +137,7 @@ public:
     virtual bool exposesTitleUIElement() const;
     virtual AccessibilityObject* titleUIElement() const;
     virtual AccessibilityObject* correspondingControlForLabelElement() const;
+    virtual AccessibilityObject* correspondingLabelForControlElement() const;
 
     virtual AccessibilityRole ariaRoleAttribute() const;
     virtual bool isPresentationalChildOfAriaRole() const;
@@ -142,6 +146,7 @@ public:
     
     virtual AXObjectCache* axObjectCache() const;
     
+    virtual void expandObject() const;
     virtual Element* actionElement() const;
     Element* mouseButtonListener() const;
     FrameView* frameViewIfRenderView() const;
@@ -166,7 +171,6 @@ public:
     virtual PlainTextRange selectedTextRange() const;
     virtual VisibleSelection selection() const;
     virtual String stringValue() const;
-    virtual String ariaAccessibilityName(const String&) const;
     virtual String ariaLabeledByAttribute() const;
     virtual String title() const;
     virtual String ariaDescribedByAttribute() const;
@@ -200,6 +204,7 @@ public:
     virtual bool canHaveChildren() const;
     virtual void selectedChildren(AccessibilityChildrenVector&);
     virtual void visibleChildren(AccessibilityChildrenVector&);
+    virtual void tabChildren(AccessibilityChildrenVector&);
     virtual bool shouldFocusActiveDescendant() const;
     virtual AccessibilityObject* activeDescendant() const;
     virtual void handleActiveDescendantChanged();
@@ -223,13 +228,19 @@ public:
     virtual IntRect doAXBoundsForRange(const PlainTextRange&) const;
     
     virtual void updateBackingStore();
-    
+
+    virtual String stringValueForMSAA() const;
+    virtual String stringRoleForMSAA() const;
+    virtual String nameForMSAA() const;
+    virtual String descriptionForMSAA() const;
+
 protected:
     RenderObject* m_renderer;
     AccessibilityRole m_ariaRole;
     mutable bool m_childrenDirty;
     
     void setRenderObject(RenderObject* renderer) { m_renderer = renderer; }
+    void ariaLabeledByElements(Vector<Element*>& elements) const;
     
     virtual bool isDetached() const { return !m_renderer; }
 
@@ -237,18 +248,23 @@ private:
     void ariaListboxSelectedChildren(AccessibilityChildrenVector&);
     void ariaListboxVisibleChildren(AccessibilityChildrenVector&);
     bool ariaIsHidden() const;
+    String positionalDescriptionForMSAA() const;
 
     Element* menuElementForMenuButton() const;
     Element* menuItemElementForMenu() const;
     AccessibilityRole determineAccessibilityRole();
     AccessibilityRole determineAriaRoleAttribute() const;
 
+    bool isTabItemSelected() const;
     IntRect checkboxOrRadioRect() const;
     void addRadioButtonGroupMembers(AccessibilityChildrenVector& linkedUIElements) const;
     AccessibilityObject* internalLinkElement() const;
     AccessibilityObject* accessibilityImageMapHitTest(HTMLAreaElement*, const IntPoint&) const;
     AccessibilityObject* accessibilityParentForImageMap(HTMLMapElement* map) const;
 
+    String accessibilityDescriptionForElements(Vector<Element*> &elements) const;
+    void elementsFromAttribute(Vector<Element*>& elements, const QualifiedName& name) const;
+    
     void markChildrenDirty() const { m_childrenDirty = true; }
 };
     

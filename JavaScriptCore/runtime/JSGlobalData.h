@@ -30,6 +30,7 @@
 #define JSGlobalData_h
 
 #include "Collector.h"
+#include "DateInstanceCache.h"
 #include "ExecutableAllocator.h"
 #include "JITStubs.h"
 #include "JSValue.h"
@@ -61,6 +62,26 @@ namespace JSC {
     struct HashTable;
     struct Instruction;    
     struct VPtrSet;
+
+    struct DSTOffsetCache {
+        DSTOffsetCache()
+        {
+            reset();
+        }
+        
+        void reset()
+        {
+            offset = 0.0;
+            start = 0.0;
+            end = -1.0;
+            increment = 0.0;
+        }
+
+        double offset;
+        double start;
+        double end;
+        double increment;
+    };
 
     class JSGlobalData : public RefCounted<JSGlobalData> {
     public:
@@ -116,7 +137,8 @@ namespace JSC {
         const MarkedArgumentBuffer* emptyList; // Lists are supposed to be allocated on the stack to have their elements properly marked, which is not the case here - but this list has nothing to mark.
         SmallStrings smallStrings;
         NumericStrings numericStrings;
-
+        DateInstanceCache dateInstanceCache;
+        
 #if ENABLE(ASSEMBLER)
         ExecutableAllocator executableAllocator;
 #endif
@@ -151,9 +173,17 @@ namespace JSC {
 
         MarkStack markStack;
 
+        double cachedUTCOffset;
+        DSTOffsetCache dstOffsetCache;
+        
+        UString cachedDateString;
+        double cachedDateStringValue;
+
 #ifndef NDEBUG
         bool mainThreadOnly;
 #endif
+
+        void resetDateCache();
 
         void startSampling();
         void stopSampling();
@@ -163,7 +193,7 @@ namespace JSC {
         static JSGlobalData*& sharedInstanceInternal();
         void createNativeThunk();
     };
-
+    
 } // namespace JSC
 
 #endif // JSGlobalData_h

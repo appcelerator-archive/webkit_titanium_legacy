@@ -47,6 +47,11 @@
 #elif !defined(MAC_OS_X_VERSION_10_6) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6
 #define BUILDING_ON_LEOPARD 1
 #endif
+#if !defined(MAC_OS_X_VERSION_10_5) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
+#define TARGETING_TIGER 1
+#elif !defined(MAC_OS_X_VERSION_10_6) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_6
+#define TARGETING_LEOPARD 1
+#endif
 #include <TargetConditionals.h>
 #endif
 
@@ -466,6 +471,7 @@
 #if PLATFORM(MAC) && !PLATFORM(IPHONE)
 #define WTF_PLATFORM_CF 1
 #define WTF_USE_PTHREADS 1
+#define HAVE_PTHREAD_RWLOCK 1
 #if !defined(BUILDING_ON_LEOPARD) && !defined(BUILDING_ON_TIGER) && defined(__x86_64__)
 #define WTF_USE_PLUGIN_HOST_PROCESS 1
 #endif
@@ -482,6 +488,11 @@
 #if PLATFORM(CHROMIUM) && PLATFORM(DARWIN)
 #define WTF_PLATFORM_CF 1
 #define WTF_USE_PTHREADS 1
+#define HAVE_PTHREAD_RWLOCK 1
+#endif
+
+#if PLATFORM(QT) && PLATFORM(DARWIN)
+#define WTF_PLATFORM_CF 1
 #endif
 
 #if PLATFORM(IPHONE)
@@ -498,6 +509,7 @@
 #define HAVE_READLINE 1
 #define WTF_PLATFORM_CF 1
 #define WTF_USE_PTHREADS 1
+#define HAVE_PTHREAD_RWLOCK 1
 #endif
 
 #if PLATFORM(WIN)
@@ -511,6 +523,7 @@
 #if PLATFORM(GTK)
 #if HAVE(PTHREAD_H)
 #define WTF_USE_PTHREADS 1
+#define HAVE_PTHREAD_RWLOCK 1
 #endif
 #endif
 
@@ -518,6 +531,7 @@
 #define HAVE_POSIX_MEMALIGN 1
 #define WTF_USE_CURL 1
 #define WTF_USE_PTHREADS 1
+#define HAVE_PTHREAD_RWLOCK 1
 #define USE_SYSTEM_MALLOC 1
 #define ENABLE_NETSCAPE_PLUGIN_API 0
 #endif
@@ -698,7 +712,7 @@
 #endif
 
 #if !defined(WTF_USE_JSVALUE64) && !defined(WTF_USE_JSVALUE32) && !defined(WTF_USE_JSVALUE32_64)
-#if PLATFORM(X86_64) && (PLATFORM(DARWIN) || PLATFORM(LINUX))
+#if PLATFORM(X86_64) && (PLATFORM(DARWIN) || PLATFORM(LINUX) || PLATFORM(WIN_OS))
 #define WTF_USE_JSVALUE64 1
 #elif PLATFORM(ARM) || PLATFORM(PPC64)
 #define WTF_USE_JSVALUE32 1
@@ -725,9 +739,7 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
     #define ENABLE_JIT 1
     #define WTF_USE_JIT_STUB_ARGUMENT_VA_LIST 1
 #elif PLATFORM(ARM_THUMB2) && PLATFORM(IPHONE)
-    /* Under development, temporarily disabled until 16Mb link range limit in assembler is fixed. */
-    #define ENABLE_JIT 0
-    #define ENABLE_JIT_OPTIMIZE_NATIVE_CALL 0
+    #define ENABLE_JIT 1
 /* The JIT is tested & working on x86 Windows */
 #elif PLATFORM(X86) && PLATFORM(WIN)
     #define ENABLE_JIT 1
@@ -745,9 +757,6 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
     #define WTF_USE_JIT_STUB_ARGUMENT_VA_LIST 1
 #elif PLATFORM(ARM_TRADITIONAL) && PLATFORM(LINUX)
     #define ENABLE_JIT 1
-    #if PLATFORM(ARM_THUMB2)
-        #define ENABLE_JIT_OPTIMIZE_NATIVE_CALL 0
-    #endif
 #endif
 #endif /* PLATFORM(QT) */
 
@@ -792,8 +801,7 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 /* YARR supports x86 & x86-64, and has been tested on Mac and Windows. */
 #if (PLATFORM(X86) && PLATFORM(MAC)) \
  || (PLATFORM(X86_64) && PLATFORM(MAC)) \
- /* Under development, temporarily disabled until 16Mb link range limit in assembler is fixed. */ \
- || (PLATFORM(ARM_THUMB2) && PLATFORM(IPHONE) && 0) \
+ || (PLATFORM(ARM_THUMB2) && PLATFORM(IPHONE)) \
  || (PLATFORM(X86) && PLATFORM(WIN))
 #define ENABLE_YARR 1
 #define ENABLE_YARR_JIT 1
@@ -857,6 +865,10 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #define WARN_UNUSED_RETURN __attribute__ ((warn_unused_result))
 #else
 #define WARN_UNUSED_RETURN
+#endif
+
+#if !ENABLE(NETSCAPE_PLUGIN_API) || (ENABLE(NETSCAPE_PLUGIN_API) && ((PLATFORM(UNIX) && (PLATFORM(QT) || PLATFORM(WX))) || PLATFORM(GTK)))
+#define ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH 1
 #endif
 
 /* Set up a define for a common error that is intended to cause a build error -- thus the space after Error. */

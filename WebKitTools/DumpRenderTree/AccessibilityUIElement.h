@@ -80,6 +80,7 @@ public:
     JSStringRef parameterizedAttributeNames();
     void increment();
     void decrement();
+    void showMenu();
 
     // Attributes - platform-independent implementations
     JSStringRef attributeValue(JSStringRef attribute);
@@ -90,6 +91,8 @@ public:
     JSStringRef title();
     JSStringRef description();
     JSStringRef language();
+    JSStringRef stringValue();
+    JSStringRef accessibilityValue() const;
     double x();
     double y();
     double width();
@@ -102,6 +105,8 @@ public:
     JSStringRef selectedTextRange();
     bool isEnabled();
     bool isRequired() const;
+    bool isSelected() const;
+    bool isExpanded() const;
     double clickPointX();
     double clickPointY();
 

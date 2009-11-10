@@ -298,10 +298,11 @@ public:
     enum UpdateLayerPositionsFlag {
         DoFullRepaint = 1,
         CheckForRepaint = 1 << 1,
-        UpdateCompositingLayers = 1 << 2,
+        IsCompositingUpdateRoot = 1 << 2,
+        UpdateCompositingLayers = 1 << 3,
     };
     typedef unsigned UpdateLayerPositionsFlags;
-    void updateLayerPositions(UpdateLayerPositionsFlags = DoFullRepaint | UpdateCompositingLayers);
+    void updateLayerPositions(UpdateLayerPositionsFlags = DoFullRepaint | IsCompositingUpdateRoot | UpdateCompositingLayers);
 
     void updateTransform();
 
@@ -327,6 +328,7 @@ public:
     Vector<RenderLayer*>* normalFlowList() const { return m_normalFlowList; }
 
     bool hasVisibleContent() const { return m_hasVisibleContent; }
+    bool hasVisibleDescendant() const { return m_hasVisibleDescendant; }
     void setHasVisibleContent(bool);
     void dirtyVisibleContentStatus();
 
@@ -388,7 +390,7 @@ public:
     int staticX() const { return m_staticX; }
     int staticY() const { return m_staticY; }
     void setStaticX(int staticX) { m_staticX = staticX; }
-    void setStaticY(int staticY);
+    void setStaticY(int staticY) { m_staticY = staticY; }
 
     bool hasTransform() const { return renderer()->hasTransform(); }
     // Note that this transform has the transform-origin baked in.

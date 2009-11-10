@@ -33,7 +33,6 @@
 #include "CollectionType.h"
 #include "Color.h"
 #include "DocumentMarker.h"
-#include "Page.h"
 #include "ScriptExecutionContext.h"
 #include "Timer.h"
 #include <wtf/HashCountedSet.h>
@@ -71,6 +70,7 @@ namespace WebCore {
     class HitTestRequest;
     class HTMLCanvasElement;
     class HTMLCollection;
+    class HTMLAllCollection;
     class HTMLDocument;
     class HTMLElement;
     class HTMLFormElement;
@@ -79,10 +79,12 @@ namespace WebCore {
     class HTMLMapElement;
     class InspectorTimelineAgent;
     class IntPoint;
+    class DOMWrapperWorld;
     class JSNode;
     class MouseEventWithHitTestResults;
     class NodeFilter;
     class NodeIterator;
+    class Page;
     class PlatformMouseEvent;
     class ProcessingInstruction;
     class Range;
@@ -315,11 +317,12 @@ public:
     PassRefPtr<HTMLCollection> links();
     PassRefPtr<HTMLCollection> forms();
     PassRefPtr<HTMLCollection> anchors();
-    PassRefPtr<HTMLCollection> all();
     PassRefPtr<HTMLCollection> objects();
     PassRefPtr<HTMLCollection> scripts();
     PassRefPtr<HTMLCollection> windowNamedItems(const String& name);
     PassRefPtr<HTMLCollection> documentNamedItems(const String& name);
+
+    PassRefPtr<HTMLAllCollection> all();
 
     // Find first anchor with the given name.
     // First searches for an element with the given ID, but if that fails, then looks
@@ -473,7 +476,6 @@ public:
     void write(const String& text, Document* ownerDocument = 0);
     void writeln(const String& text, Document* ownerDocument = 0);
     void finishParsing();
-    void clear();
 
     bool wellFormed() const { return m_wellFormed; }
 
@@ -615,7 +617,8 @@ public:
         ANIMATIONEND_LISTENER                = 0x100,
         ANIMATIONSTART_LISTENER              = 0x200,
         ANIMATIONITERATION_LISTENER          = 0x400,
-        TRANSITIONEND_LISTENER               = 0x800
+        TRANSITIONEND_LISTENER               = 0x800,
+        BEFORELOAD_LISTENER                  = 0x1000
     };
 
     bool hasListenerType(ListenerType listenerType) const { return (m_listenerTypes & listenerType); }
@@ -816,10 +819,18 @@ public:
     virtual void addMessage(MessageDestination, MessageSource, MessageType, MessageLevel, const String& message, unsigned lineNumber, const String& sourceURL);
     virtual void resourceRetrievedByXMLHttpRequest(unsigned long identifier, const ScriptString& sourceString);
     virtual void scriptImported(unsigned long, const String&);
-    virtual void postTask(PassRefPtr<Task>); // Executes the task on context's thread asynchronously.
+    virtual void postTask(PassOwnPtr<Task>); // Executes the task on context's thread asynchronously.
 
     typedef HashMap<WebCore::Node*, JSNode*> JSWrapperCache;
-    JSWrapperCache& wrapperCache() { return m_wrapperCache; }
+    typedef HashMap<DOMWrapperWorld*, JSWrapperCache*> JSWrapperCacheMap;
+    JSWrapperCacheMap& wrapperCacheMap() { return m_wrapperCacheMap; }
+    JSWrapperCache* getWrapperCache(DOMWrapperWorld* world)
+    {
+        if (JSWrapperCache* wrapperCache = m_wrapperCacheMap.get(world))
+            return wrapperCache;
+        return createWrapperCache(world);
+    }
+    JSWrapperCache* createWrapperCache(DOMWrapperWorld*);
 
     virtual void finishedParsing();
 
@@ -1137,7 +1148,7 @@ private:
 
     unsigned m_numNodeListCaches;
 
-    JSWrapperCache m_wrapperCache;
+    JSWrapperCacheMap m_wrapperCacheMap;
 
 #if ENABLE(DATABASE)
     RefPtr<DatabaseThread> m_databaseThread;
@@ -1163,12 +1174,6 @@ inline bool Node::isDocumentNode() const
 {
     return this == m_document;
 }
-
-#if ENABLE(INSPECTOR)
-inline InspectorTimelineAgent* Document::inspectorTimelineAgent() const {
-    return page() ? page()->inspectorTimelineAgent() : 0;
-}
-#endif
 
 } // namespace WebCore
 
