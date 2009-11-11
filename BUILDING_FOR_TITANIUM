@@ -6,6 +6,10 @@ This is what a typical build command might look like:
   WEBKIT_SYSTEM_INTERFACE_LIBRARY=WebKitSystemInterfaceLeopard \
   ARCHS="i386 ppc" ONLY_ACTIVE_ARCH=NO
 
+------------------------Win32-------------------------
+./WebKitTools/Scripts/build-webkit --release --cairo-win32
+
 ------------------------Linux-------------------------
 ./WebKitTools/Scripts/build-webkit --gtk
+
 
