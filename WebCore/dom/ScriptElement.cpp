@@ -182,7 +182,7 @@ void ScriptElementData::requestScript(const String& sourceUrl)
 
 void ScriptElementData::evaluateScript(const ScriptSourceCode& sourceCode)
 {
-		if (m_evaluated || sourceCode.isEmpty())
+    if (m_evaluated || sourceCode.isEmpty())
         return;
 
     if (shouldExecuteAsJavaScript()) {
@@ -198,17 +198,20 @@ void ScriptElementData::evaluateScript(const ScriptSourceCode& sourceCode)
     } else {
         for (size_t i = 0; i < ScriptElement::evaluators.size(); i++) {
             ScriptEvaluator* evaluator = ScriptElement::evaluators.at(i);
-            if (evaluator && evaluator->matchesMimeType(m_scriptElement->typeAttributeValue())) {
-                m_evaluated = true;
+            if (!evaluator || !evaluator->matchesMimeType(m_scriptElement->typeAttributeValue()))
+                continue;
 
-                if (Frame* frame = m_element->document()->frame()) {
-                    evaluator->evaluate(m_scriptElement->typeAttributeValue(), sourceCode, (void*)frame->script()->windowShell()->window()->globalExec());
-                    Document::updateStyleForAllDocuments();
-                    break;
-                }
-            }
+            Frame* frame = m_element->document()->frame();
+            if (!frame)
+                continue;
+
+            m_evaluated = true;
+            evaluator->evaluate(m_scriptElement->typeAttributeValue(), sourceCode,
+                frame->script()->windowShell(mainThreadNormalWorld())->window()->globalExec());
+            Document::updateStyleForAllDocuments();
+            break;
         }
-     }
+    }
 }
 
 void ScriptElementData::stopLoadRequest()
