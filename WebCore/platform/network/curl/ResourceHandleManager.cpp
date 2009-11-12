@@ -729,9 +729,9 @@ void ResourceHandleManager::startJob(ResourceHandle* job)
         parseDataUrl(job);
         return;
     }
-	
-	if (kurl.protocolIs("app") || kurl.protocolIs("ti"))
-	{
+
+    if (kurl.protocolIs("app") || kurl.protocolIs("ti"))
+    {
         KURL normalized(TitaniumProtocols::NormalizeURL(kurl));
         bool isNormalized = strcmp(normalized.string().utf8().data(), kurl.string().utf8().data()) == 0;
         if (isNormalized && TitaniumProtocols::CanPreprocess(job->request())) {

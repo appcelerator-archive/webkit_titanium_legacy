@@ -62,9 +62,6 @@ public:
     virtual HRESULT STDMETHODCALLTYPE setJavaScriptProfilingEnabled(BOOL);
     
     virtual HRESULT STDMETHODCALLTYPE evaluateInFrontend(ULONG callId, BSTR script);
-
-    virtual HRESULT STDMETHODCALLTYPE setInspectorURL(BSTR url);
-    virtual HRESULT STDMETHODCALLTYPE setLocalizedStringsURL(BSTR url);
 private:
     WebInspector(WebView*, WebInspectorClient*);
     ~WebInspector();

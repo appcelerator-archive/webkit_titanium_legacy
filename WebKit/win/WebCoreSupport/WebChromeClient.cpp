@@ -204,30 +204,12 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
             return 0;
     }
 
-    HashMap<String, int> map;
-    map.set("fullscreen", features.fullscreen);
-    map.set("resizable", features.resizable);
-    if (features.xSet) {
-        map.set("x", features.x);
-    }
-    if (features.ySet) {
-        map.set("y", features.y);
-    }
-    if (features.widthSet) {
-        map.set("width", features.width);
-    }
-    if (features.heightSet) {
-        map.set("height", features.height);
-    }
-    
-    COMPtr<COMPropertyBag<int> > windowFeatures;
-    windowFeatures.adoptRef(COMPropertyBag<int>::createInstance(map));
-
     COMPtr<IWebView> newWebView;
+
     if (features.dialog) {
         if (FAILED(delegate->createModalDialog(m_webView, request.get(), &newWebView)))
             return 0;
-    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request.get(), windowFeatures.get(), &newWebView)))
+    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request.get(), &newWebView)))
         return 0;
 
     return newWebView ? core(newWebView.get()) : 0;
