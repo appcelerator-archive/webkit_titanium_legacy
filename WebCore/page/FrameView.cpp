@@ -98,7 +98,7 @@ static const double deferredRepaintDelayIncrementDuringLoading = 0;
 // The maximum number of updateWidgets iterations that should be done before returning.
 static const unsigned maxUpdateWidgetsIterations = 2;
 
-struct ScheduledEvent {
+struct ScheduledEvent : Noncopyable {
     RefPtr<Event> m_event;
     RefPtr<Node> m_eventTarget;
 };
@@ -1664,7 +1664,7 @@ void FrameView::paintContents(GraphicsContext* p, const IntRect& rect)
         fillWithRed = true;
     
     if (fillWithRed)
-        p->fillRect(rect, Color(0xFF, 0, 0));
+        p->fillRect(rect, Color(0xFF, 0, 0), DeviceColorSpace);
 #endif
 
     bool isTopLevelPainter = !sCurrentPaintTimeStamp;

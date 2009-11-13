@@ -32,11 +32,11 @@ void EllipsisBox::paint(RenderObject::PaintInfo& paintInfo, int tx, int ty)
     RenderStyle* style = m_renderer->style(m_firstLine);
     Color textColor = style->color();
     if (textColor != context->fillColor())
-        context->setFillColor(textColor);
+        context->setFillColor(textColor, style->colorSpace());
     bool setShadow = false;
     if (style->textShadow()) {
         context->setShadow(IntSize(style->textShadow()->x, style->textShadow()->y),
-                           style->textShadow()->blur, style->textShadow()->color);
+                           style->textShadow()->blur, style->textShadow()->color, style->colorSpace());
         setShadow = true;
     }
 

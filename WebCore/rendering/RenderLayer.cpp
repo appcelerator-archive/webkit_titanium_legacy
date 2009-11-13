@@ -719,46 +719,18 @@ RenderLayer* RenderLayer::transparentPaintingAncestor()
     return 0;
 }
 
-static IntRect transparencyClipBox(const TransformationMatrix& enclosingTransform, const RenderLayer* l, const RenderLayer* rootLayer)
+static IntRect transparencyClipBox(const RenderLayer* l, const RenderLayer* rootLayer);
+
+static void expandClipRectForDescendantsAndReflection(IntRect& clipRect, const RenderLayer* l, const RenderLayer* rootLayer)
 {
-    // FIXME: Although this function completely ignores CSS-imposed clipping, we did already intersect with the
-    // paintDirtyRect, and that should cut down on the amount we have to paint.  Still it
-    // would be better to respect clips.
-    
-    if (rootLayer != l && l->paintsWithTransform()) {
-        // The best we can do here is to use enclosed bounding boxes to establish a "fuzzy" enough clip to encompass
-        // the transformed layer and all of its children.
-        int x = 0;
-        int y = 0;
-        l->convertToLayerCoords(rootLayer, x, y);
-
-        TransformationMatrix transform;
-        transform.translate(x, y);
-        transform = *l->transform() * transform;
-        transform = transform * enclosingTransform;
-
-        // We now have a transform that will produce a rectangle in our view's space.
-        IntRect clipRect = transform.mapRect(l->boundingBox(l));
-        
-        // Now shift the root layer to be us and pass down the new enclosing transform.
-        for (RenderLayer* curr = l->firstChild(); curr; curr = curr->nextSibling()) {
-            if (!l->reflection() || l->reflectionLayer() != curr)
-                clipRect.unite(transparencyClipBox(transform, curr, l));
-        }
-            
-        return clipRect;
-    }
-    
-    // Note: we don't have to walk z-order lists since transparent elements always establish
-    // a stacking context.  This means we can just walk the layer tree directly.
-    IntRect clipRect = l->boundingBox(rootLayer);
-    
     // If we have a mask, then the clip is limited to the border box area (and there is
     // no need to examine child layers).
     if (!l->renderer()->hasMask()) {
+        // Note: we don't have to walk z-order lists since transparent elements always establish
+        // a stacking context.  This means we can just walk the layer tree directly.
         for (RenderLayer* curr = l->firstChild(); curr; curr = curr->nextSibling()) {
             if (!l->reflection() || l->reflectionLayer() != curr)
-                clipRect.unite(transparencyClipBox(enclosingTransform, curr, rootLayer));
+                clipRect.unite(transparencyClipBox(curr, rootLayer));
         }
     }
 
@@ -774,9 +746,33 @@ static IntRect transparencyClipBox(const TransformationMatrix& enclosingTransfor
         clipRect.unite(l->renderBox()->reflectedRect(clipRect));
         clipRect.move(deltaX, deltaY);
     }
+}
 
-    // Now map the clipRect via the enclosing transform
-    return enclosingTransform.mapRect(clipRect);
+static IntRect transparencyClipBox(const RenderLayer* l, const RenderLayer* rootLayer)
+{
+    // FIXME: Although this function completely ignores CSS-imposed clipping, we did already intersect with the
+    // paintDirtyRect, and that should cut down on the amount we have to paint.  Still it
+    // would be better to respect clips.
+    
+    if (rootLayer != l && l->paintsWithTransform()) {
+        // The best we can do here is to use enclosed bounding boxes to establish a "fuzzy" enough clip to encompass
+        // the transformed layer and all of its children.
+        int x = 0;
+        int y = 0;
+        l->convertToLayerCoords(rootLayer, x, y);
+
+        TransformationMatrix transform;
+        transform.translate(x, y);
+        transform = *l->transform() * transform;
+
+        IntRect clipRect = l->boundingBox(l);
+        expandClipRectForDescendantsAndReflection(clipRect, l, l);
+        return transform.mapRect(clipRect);
+    }
+    
+    IntRect clipRect = l->boundingBox(rootLayer);
+    expandClipRectForDescendantsAndReflection(clipRect, l, rootLayer);
+    return clipRect;
 }
 
 void RenderLayer::beginTransparencyLayers(GraphicsContext* p, const RenderLayer* rootLayer)
@@ -791,8 +787,13 @@ void RenderLayer::beginTransparencyLayers(GraphicsContext* p, const RenderLayer*
     if (paintsWithTransparency()) {
         m_usedTransparency = true;
         p->save();
-        p->clip(transparencyClipBox(TransformationMatrix(), this, rootLayer));
+        IntRect clipRect = transparencyClipBox(this, rootLayer);
+        p->clip(clipRect);
         p->beginTransparencyLayer(renderer()->opacity());
+#ifdef REVEAL_TRANSPARENCY_LAYERS
+        p->setFillColor(Color(0.0f, 0.0f, 0.5f, 0.2f));
+        p->fillRect(clipRect);
+#endif
     }
 }
 
@@ -1913,7 +1914,7 @@ void RenderLayer::paintScrollCorner(GraphicsContext* context, int tx, int ty, co
         return;
     }
     
-    context->fillRect(absRect, Color::white);
+    context->fillRect(absRect, Color::white, box->style()->colorSpace());
 }
 
 void RenderLayer::paintResizer(GraphicsContext* context, int tx, int ty, const IntRect& damageRect)
@@ -1951,9 +1952,9 @@ void RenderLayer::paintResizer(GraphicsContext* context, int tx, int ty, const I
         context->clip(absRect);
         IntRect largerCorner = absRect;
         largerCorner.setSize(IntSize(largerCorner.width() + 1, largerCorner.height() + 1));
-        context->setStrokeColor(Color(makeRGB(217, 217, 217)));
+        context->setStrokeColor(Color(makeRGB(217, 217, 217)), DeviceColorSpace);
         context->setStrokeThickness(1.0f);
-        context->setFillColor(Color::transparent);
+        context->setFillColor(Color::transparent, DeviceColorSpace);
         context->drawRect(largerCorner);
         context->restore();
     }

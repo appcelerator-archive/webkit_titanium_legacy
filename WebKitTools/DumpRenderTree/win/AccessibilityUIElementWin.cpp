@@ -257,6 +257,11 @@ bool AccessibilityUIElement::isSelected() const
     return false;
 }
 
+int AccessibilityUIElement::hierarchicalLevel() const
+{
+    return 0;
+}
+
 bool AccessibilityUIElement::isExpanded() const
 {
     return false;
@@ -400,6 +405,21 @@ void AccessibilityUIElement::showMenu()
 {
 }
 
+AccessibilityUIElement AccessibilityUIElement::disclosedRowAtIndex(unsigned index)
+{
+    return 0;
+}
+
+AccessibilityUIElement AccessibilityUIElement::selectedRowAtIndex(unsigned index)
+{
+    return 0;
+}
+
+AccessibilityUIElement AccessibilityUIElement::disclosedByRow()
+{
+    return 0;
+}
+
 JSStringRef AccessibilityUIElement::accessibilityValue() const
 {
     BSTR valueBSTR;
@@ -410,4 +430,15 @@ JSStringRef AccessibilityUIElement::accessibilityValue() const
     ::SysFreeString(valueBSTR);
 
     return JSStringCreateWithCharacters(value.data(), value.length());
+}
+
+
+JSStringRef AccessibilityUIElement::documentEncoding()
+{
+    return JSStringCreateWithCharacters(0, 0);
+}
+
+JSStringRef AccessibilityUIElement::documentURI()
+{
+    return JSStringCreateWithCharacters(0, 0);
 }

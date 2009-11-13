@@ -21,6 +21,7 @@
 #
 # editing/selection/extend-selection.html
 # fast/dom/Window/window-screen-properties.html
+# fast/dom/null-document-location-href-put-crash.html
 # fast/dom/null-document-location-put-crash.html
 # fast/js/navigator-mimeTypes-length.html
 # media/video-currentTime-set.html
@@ -1254,6 +1255,7 @@ fast/canvas/canvas-bg-zoom.html
 fast/canvas/canvas-empty-image-pattern.html
 fast/canvas/canvas-getImageData.html
 fast/canvas/canvas-gradient-addStop-error.html
+fast/canvas/canvas-shadow.html
 fast/canvas/canvas-transform-identity.html
 fast/canvas/canvas-transform-infinity.html
 fast/canvas/canvas-transform-multiply.html
@@ -1289,6 +1291,7 @@ fast/dom/Geolocation/watch.html
 fast/dom/Element/getBoundingClientRect.html
 fast/dom/Range/getBoundingClientRect.html
 fast/dom/Range/getClientRects.html
+fast/dom/null-document-location-href-put-crash.html
 fast/dom/null-document-location-put-crash.html
 fast/dom/null-document-location-replace-crash.html
 fast/dom/object-embed-plugin-scripting.html
@@ -1353,6 +1356,7 @@ fast/forms/focus-control-to-page.html
 fast/forms/focus-selection-input.html
 fast/forms/focus-selection-textarea.html
 fast/forms/get-file-upload.html
+fast/forms/input-file-re-render.html
 fast/forms/legend-access-key.html
 fast/forms/listbox-onchange.html
 fast/forms/listbox-selection.html
@@ -1458,8 +1462,10 @@ fast/dom/elementFromPoint-relative-to-viewport.html
 
 # DnD failures https://bugs.webkit.org/show_bug.cgi?id=30576
 fast/events/drag-and-drop-dataTransfer-types-nocrash.html
+fast/events/drag-and-drop-fire-drag-dragover.html
 fast/events/drag-and-drop.html
 fast/events/drag-parent-node.html
+http/tests/misc/bubble-drag-events.html
 
 fast/xmlhttprequest/null-document-xmlhttprequest-open.html
 #   Tests timing out
@@ -2754,6 +2760,7 @@ fast/parser/title-error-test.html
 fast/parser/xhtml-alternate-entities.xml
 fast/reflections/abs-position-in-reflection.html
 fast/reflections/inline-crash.html
+fast/reflections/opacity-reflection-transform.html
 fast/reflections/reflection-direction.html
 fast/reflections/reflection-masks-opacity.html
 fast/reflections/reflection-masks.html
@@ -3567,6 +3574,7 @@ http/tests/navigation/postredirect-basic.html
 http/tests/navigation/postredirect-frames.html
 http/tests/navigation/postredirect-goback1.html
 http/tests/uri/css-href.php
+http/tests/webarchive/cross-origin-stylesheet-crash.html
 http/tests/webarchive/test-css-url-encoding-shift-jis.html
 http/tests/webarchive/test-css-url-encoding-utf-8.html
 http/tests/webarchive/test-css-url-encoding.html
@@ -3577,9 +3585,6 @@ http/tests/webarchive/test-preload-resources.html
 media/video-controls-transformed.html
 media/video-controls-zoomed.html
 media/video-size-intrinsic-scale.html
-# See https://bugs.webkit.org/show_bug.cgi?id=30221
-media/video-document-types.html
-media/video-click-dblckick-standalone.html
 # Missing API from https://bugs.webkit.org/show_bug.cgi?id=24001
 media/restore-from-page-cache.html
 # https://bugs.webkit.org/show_bug.cgi?id=30198
@@ -3602,6 +3607,9 @@ media/video-zoom-controls.html
 media/video-zoom.html
 # This test requires media controls has a volume slider.
 media/video-volume-slider.html
+# Tests requiring fullscreen <video> support
+media/media-fullscreen-inline.html
+media/media-fullscreen-not-in-document.html
 
 # Tests in plugins/ directory
 #   These tests require ObjC plugin, do not bother trying to get them to work
@@ -5357,6 +5365,7 @@ http/tests/security/clipboard/clipboard-file-access.html
 # Tests that require editing callbacks (and possibly Glib DOM bindings)
 editing/execCommand/indent-with-style.html
 editing/text-iterator/thai-cursor-movement.html
+editing/undo/redo-style.html
 editing/undo/undo-indent.html
 
 # Requires expected results that we don't have atm
@@ -5592,3 +5601,69 @@ plugins/destroy-during-npp-new.html
 
 # This port doesn't have a global history delegate yet
 http/tests/globalhistory
+
+# Ruby tests
+fast/ruby/ruby-empty-rt.html
+fast/ruby/ruby-length.html
+fast/ruby/ruby-run-break.html
+fast/ruby/ruby-runs-spans.html
+fast/ruby/ruby-runs.html
+fast/ruby/ruby-simple-rp.html
+fast/ruby/ruby-simple.html
+fast/ruby/ruby-trailing.html
+fast/ruby/rubyDOM-insert-rt.html
+fast/ruby/rubyDOM-insert-text1.html
+fast/ruby/rubyDOM-insert-text2.html
+fast/ruby/rubyDOM-insert-text3.html
+fast/ruby/rubyDOM-remove-rt1.html
+fast/ruby/rubyDOM-remove-rt2.html
+fast/ruby/rubyDOM-remove-text1.html
+fast/ruby/rubyDOM-remove-text2.html
+
+# SVG new tests
+svg/filters/feDisplacementMap.svg
+
+# Missing SocketStreamHandle implementation
+websocket/tests
+
+# New color correction tests
+fast/css/color-correction-backgrounds-and-text.html
+fast/css/color-correction-on-backgrounds.html
+fast/css/color-correction-on-text.html
+fast/css/color-correction.html
+
+# Need rebaseline: https://bugs.webkit.org/show_bug.cgi?id=26830
+fast/multicol/single-line.html
+
+# New tests failing
+accessibility/aria-controls-with-tabs.html
+accessibility/aria-list-and-listitem.html
+accessibility/aria-presentational-role.html
+fast/overflow/scrollbar-restored.html
+fast/css/color-correction-on-box-shadow.html
+fast/css/color-correction-on-text-shadow.html
+
+# Tests that seem to need a rebaseline
+fast/block/positioning/relative-positioned-inline-container.html
+fast/repaint/inline-relative-positioned.html
+inspector/timeline-paint.html
+
+# Test crashing on release bot
+# See https://bugs.webkit.org/show_bug.cgi?id=31433
+plugins/document-open.html
+
+# See https://bugs.webkit.org/show_bug.cgi?id=31434
+media/video-played-collapse.html
+
+# See https://bugs.webkit.org/show_bug.cgi?id=31435
+fast/forms/input-radio-checked-tab.html
+fast/forms/tabs-with-modifiers.html
+
+# See https://bugs.webkit.org/show_bug.cgi?id=31436
+fast/events/key-events-in-input-text.html
+fast/events/tab-focus-hidden.html
+
+# Tests failing once in a while
+fast/events/overflow-events.html
+media/progress-event-total.html
+http/tests/xmlhttprequest/interactive-state.html

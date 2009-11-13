@@ -43,25 +43,27 @@
 #import <WebKit/WebApplicationCache.h>
 #import <WebKit/WebBackForwardList.h>
 #import <WebKit/WebCoreStatistics.h>
-#import <WebKit/WebDatabaseManagerPrivate.h>
 #import <WebKit/WebDataSource.h>
+#import <WebKit/WebDatabaseManagerPrivate.h>
 #import <WebKit/WebFrame.h>
 #import <WebKit/WebFrameViewPrivate.h>
-#import <WebKit/WebIconDatabasePrivate.h>
+#import <WebKit/WebGeolocationMockPrivate.h>
 #import <WebKit/WebHTMLRepresentation.h>
 #import <WebKit/WebHTMLViewPrivate.h>
 #import <WebKit/WebHistory.h>
 #import <WebKit/WebHistoryPrivate.h>
+#import <WebKit/WebIconDatabasePrivate.h>
 #import <WebKit/WebInspectorPrivate.h>
-#import <WebKit/WebGeolocationMockPrivate.h>
 #import <WebKit/WebNSURLExtras.h>
 #import <WebKit/WebPreferences.h>
 #import <WebKit/WebPreferencesPrivate.h>
+#import <WebKit/WebScriptWorld.h>
 #import <WebKit/WebSecurityOriginPrivate.h>
 #import <WebKit/WebTypesInternal.h>
 #import <WebKit/WebView.h>
 #import <WebKit/WebViewPrivate.h>
 #import <WebKit/WebWorkersPrivate.h>
+#import <wtf/HashMap.h>
 #import <wtf/RetainPtr.h>
 
 @interface CommandValidationTarget : NSObject <NSValidatedUserInterfaceItem>
@@ -501,14 +503,14 @@ void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
 {
     RetainPtr<CFStringRef> sourceCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, source));
     NSString *sourceNS = (NSString *)sourceCF.get();
-    [WebView _addUserScriptToGroup:@"org.webkit.DumpRenderTree" worldID:1 source:sourceNS url:nil whitelist:nil blacklist:nil injectionTime:(runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd)];
+    [WebView _addUserScriptToGroup:@"org.webkit.DumpRenderTree" world:[WebScriptWorld world] source:sourceNS url:nil whitelist:nil blacklist:nil injectionTime:(runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd)];
 }
 
 void LayoutTestController::addUserStyleSheet(JSStringRef source)
 {
     RetainPtr<CFStringRef> sourceCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, source));
     NSString *sourceNS = (NSString *)sourceCF.get();
-    [WebView _addUserStyleSheetToGroup:@"org.webkit.DumpRenderTree" worldID:1 source:sourceNS url:nil whitelist:nil blacklist:nil];
+    [WebView _addUserStyleSheetToGroup:@"org.webkit.DumpRenderTree" world:[WebScriptWorld world] source:sourceNS url:nil whitelist:nil blacklist:nil];
 }
 
 void LayoutTestController::showWebInspector()
@@ -534,5 +536,20 @@ void LayoutTestController::evaluateScriptInIsolatedWorld(unsigned worldID, JSObj
 {
     RetainPtr<CFStringRef> scriptCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, script));
     NSString *scriptNS = (NSString *)scriptCF.get();
-    [mainFrame _stringByEvaluatingJavaScriptInIsolatedWorld:worldID WithGlobalObject:globalObject FromString:scriptNS];
+
+    // A worldID of 0 always corresponds to a new world. Any other worldID corresponds to a world
+    // that is created once and cached forever.
+    WebScriptWorld *world;
+    if (!worldID)
+        world = [WebScriptWorld world];
+    else {
+        typedef HashMap<unsigned, RetainPtr<WebScriptWorld> > WorldMap;
+        static WorldMap& worldMap = *new WorldMap;
+        RetainPtr<WebScriptWorld>& worldSlot = worldMap.add(worldID, 0).first->second;
+        if (!worldSlot)
+            worldSlot.adoptNS([[WebScriptWorld alloc] init]);
+        world = worldSlot.get();
+    }
+
+    [mainFrame _stringByEvaluatingJavaScriptFromString:scriptNS withGlobalObject:globalObject inScriptWorld:world];
 }

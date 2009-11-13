@@ -1484,6 +1484,7 @@ webcore_sources += \
 	WebCore/platform/graphics/BitmapImage.h \
 	WebCore/platform/graphics/Color.cpp \
 	WebCore/platform/graphics/Color.h \
+	WebCore/platform/graphics/ColorSpace.h \
 	WebCore/platform/graphics/DashArray.h \
 	WebCore/platform/graphics/FloatPoint.cpp \
 	WebCore/platform/graphics/FloatPoint.h \
@@ -1583,6 +1584,7 @@ webcore_sources += \
 	WebCore/platform/graphics/transforms/TranslateTransformOperation.h \
 	WebCore/platform/network/AuthenticationChallengeBase.cpp \
 	WebCore/platform/network/AuthenticationChallengeBase.h \
+	WebCore/platform/network/AuthenticationClient.h \
 	WebCore/platform/network/Credential.cpp \
 	WebCore/platform/network/Credential.h \
 	WebCore/platform/network/DNS.h \
@@ -2628,6 +2630,8 @@ webcore_sources += \
 	WebCore/platform/graphics/filters/Filter.h \
 	WebCore/platform/graphics/filters/FilterEffect.cpp \
 	WebCore/platform/graphics/filters/FilterEffect.h \
+	WebCore/platform/graphics/filters/ImageBufferFilter.cpp \
+	WebCore/platform/graphics/filters/ImageBufferFilter.h \
 	WebCore/platform/graphics/filters/SourceAlpha.cpp \
 	WebCore/platform/graphics/filters/SourceAlpha.h \
 	WebCore/platform/graphics/filters/SourceGraphic.cpp \

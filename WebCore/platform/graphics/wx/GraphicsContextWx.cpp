@@ -119,8 +119,8 @@ GraphicsContext::GraphicsContext(PlatformGraphicsContext* context)
     setPaintingDisabled(!context);
     if (context) {
         // Make sure the context starts in sync with our state.
-        setPlatformFillColor(fillColor());
-        setPlatformStrokeColor(strokeColor());
+        setPlatformFillColor(fillColor(), DeviceColorSpace);
+        setPlatformStrokeColor(strokeColor(), DeviceColorSpace);
     }
 #if USE(WXGC)
     m_data->context = (wxGCDC*)context;
@@ -252,7 +252,7 @@ void GraphicsContext::drawConvexPolygon(size_t npoints, const FloatPoint* points
     delete [] polygon;
 }
 
-void GraphicsContext::fillRect(const FloatRect& rect, const Color& color)
+void GraphicsContext::fillRect(const FloatRect& rect, const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
@@ -262,7 +262,7 @@ void GraphicsContext::fillRect(const FloatRect& rect, const Color& color)
     m_data->context->DrawRectangle(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
-void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLeft, const IntSize& topRight, const IntSize& bottomLeft, const IntSize& bottomRight, const Color& color)
+void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLeft, const IntSize& topRight, const IntSize& bottomLeft, const IntSize& bottomRight, const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
@@ -438,7 +438,7 @@ void GraphicsContext::addPath(const Path& path)
     notImplemented();
 }
 
-void GraphicsContext::setPlatformStrokeColor(const Color& color)
+void GraphicsContext::setPlatformStrokeColor(const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
@@ -457,7 +457,7 @@ void GraphicsContext::setPlatformStrokeThickness(float thickness)
 
 }
 
-void GraphicsContext::setPlatformFillColor(const Color& color)
+void GraphicsContext::setPlatformFillColor(const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
@@ -511,7 +511,7 @@ void GraphicsContext::fillRect(const FloatRect& rect)
         return;
 }
 
-void GraphicsContext::setPlatformShadow(IntSize const&,int,Color const&) 
+void GraphicsContext::setPlatformShadow(IntSize const&,int,Color const&, ColorSpace) 
 { 
     notImplemented(); 
 }

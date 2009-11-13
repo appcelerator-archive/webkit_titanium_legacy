@@ -93,6 +93,11 @@ QT_BEGIN_NAMESPACE
 extern Q_GUI_EXPORT int qt_defaultDpi();
 QT_END_NAMESPACE
 
+bool QWEBKIT_EXPORT qt_drt_hasDocumentElement(QWebFrame* qframe)
+{
+    return QWebFramePrivate::core(qframe)->document()->documentElement();
+}
+
 void QWEBKIT_EXPORT qt_drt_setJavaScriptProfilingEnabled(QWebFrame* qframe, bool enabled)
 {
 #if ENABLE(JAVASCRIPT_DEBUGGER)
@@ -324,7 +329,7 @@ void QWebFramePrivate::renderPrivate(QPainter *painter, QWebFrame::RenderLayer l
     the HTML content readily available, you can use setHtml() instead.
 
     The page() function returns a pointer to the web page object. See
-    \l{Elements of QWebView} for an explanation of how web
+    \l{QWebView}{Elements of QWebView} for an explanation of how web
     frames are related to a web page and web view.
 
     The QWebFrame class also offers methods to retrieve both the URL currently
@@ -354,6 +359,19 @@ void QWebFramePrivate::renderPrivate(QPainter *painter, QWebFrame::RenderLayer l
     signal.
 
     \sa QWebPage
+*/
+
+/*!
+    \enum QWebFrame::RenderLayer
+
+    This enum describes the layers available for rendering using \l{QWebFrame::}{render()}.
+    The layers can be OR-ed together from the following list:
+
+    \value ContentsLayer The web content of the frame
+    \value ScrollBarLayer The scrollbars of the frame
+    \value PanIconLayer The icon used when panning the frame
+
+    \value AllLayers Includes all the above layers
 */
 
 QWebFrame::QWebFrame(QWebPage *parent, QWebFrameData *frameData)
@@ -471,7 +489,9 @@ QString QWebFrame::toPlainText() const
         d->frame->view()->layout();
 
     Element *documentElement = d->frame->document()->documentElement();
-    return documentElement->innerText();
+    if (documentElement)
+        return documentElement->innerText();
+    return QString();
 }
 
 /*!
@@ -483,7 +503,7 @@ QString QWebFrame::renderTreeDump() const
     if (d->frame->view() && d->frame->view()->layoutPending())
         d->frame->view()->layout();
 
-    return externalRepresentation(d->frame->contentRenderer());
+    return externalRepresentation(d->frame);
 }
 
 /*!

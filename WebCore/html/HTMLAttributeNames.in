@@ -23,6 +23,7 @@ aria-label
 aria-labeledby
 aria-labelledby
 aria-level
+aria-multiselectable
 aria-pressed
 aria-readonly
 aria-required
@@ -198,6 +199,8 @@ onwaiting
 onwebkitanimationstart
 onwebkitanimationiteration
 onwebkitanimationend
+onwebkitbeginfullscreen
+onwebkitendfullscreen
 onwebkittransitionend
 pattern
 placeholder

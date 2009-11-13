@@ -116,8 +116,8 @@ static float playbackPosition(GstElement* playbin)
 
     // Position is available only if the pipeline is not in NULL or
     // READY state.
-    if (position != GST_CLOCK_TIME_NONE)
-        ret = (float) (position / 1000000000.0);
+    if (position !=  static_cast<gint64>(GST_CLOCK_TIME_NONE))
+        ret = static_cast<float>(position) / static_cast<float>(GST_SECOND);
 
     LOG_VERBOSE(Media, "Position %" GST_TIME_FORMAT, GST_TIME_ARGS(position));
 
@@ -214,14 +214,26 @@ void MediaPlayerPrivate::load(const String& url)
 
 void MediaPlayerPrivate::play()
 {
-    LOG_VERBOSE(Media, "Play");
-    gst_element_set_state(m_playBin, GST_STATE_PLAYING);
+    GstState state;
+    GstState pending;
+
+    gst_element_get_state(m_playBin, &state, &pending, 0);
+    if (state != GST_STATE_PLAYING && pending != GST_STATE_PLAYING) {
+        LOG_VERBOSE(Media, "Play");
+        gst_element_set_state(m_playBin, GST_STATE_PLAYING);
+    }
 }
 
 void MediaPlayerPrivate::pause()
 {
-    LOG_VERBOSE(Media, "Pause");
-    gst_element_set_state(m_playBin, GST_STATE_PAUSED);
+    GstState state;
+    GstState pending;
+
+    gst_element_get_state(m_playBin, &state, &pending, 0);
+    if (state != GST_STATE_PAUSED  && pending != GST_STATE_PAUSED) {
+        LOG_VERBOSE(Media, "Pause");
+        gst_element_set_state(m_playBin, GST_STATE_PAUSED);
+    }
 }
 
 float MediaPlayerPrivate::duration() const
@@ -284,8 +296,6 @@ void MediaPlayerPrivate::seek(float time)
     else {
         m_seeking = true;
         m_seekTime = sec;
-        // Wait some time for the seek to complete.
-        gst_element_get_state(m_playBin, 0, 0, 40 * GST_MSECOND);
     }
 }
 
@@ -381,9 +391,9 @@ void MediaPlayerPrivate::setRate(float rate)
     GstState state;
     GstState pending;
 
-    gst_element_get_state(m_playBin,
-        &state, &pending, 250 * GST_NSECOND);
-    if (state != GST_STATE_PLAYING && state != GST_STATE_PAUSED)
+    gst_element_get_state(m_playBin, &state, &pending, 0);
+    if ((state != GST_STATE_PLAYING && state != GST_STATE_PAUSED)
+        || (pending == GST_STATE_PAUSED))
         return;
 
     if (m_isStreaming)
@@ -408,7 +418,7 @@ void MediaPlayerPrivate::setRate(float rate)
 
         // If we are at beginning of media, start from the end to
         // avoid immediate EOS.
-        if (currentPosition == 0 || currentPosition == -1)
+        if (currentPosition <= 0)
             end = duration() * GST_SECOND;
         else
             end = currentPosition;
@@ -420,11 +430,8 @@ void MediaPlayerPrivate::setRate(float rate)
                           GST_SEEK_TYPE_SET, start,
                           GST_SEEK_TYPE_SET, end))
         LOG_VERBOSE(Media, "Set rate to %f failed", rate);
-    else {
+    else
         g_object_set(m_playBin, "mute", mute, NULL);
-        // Wait some time for the seek to complete.
-        gst_element_get_state(m_playBin, 0, 0, 40 * GST_MSECOND);
-    }
 }
 
 int MediaPlayerPrivate::dataRate() const
@@ -686,27 +693,13 @@ void MediaPlayerPrivate::paint(GraphicsContext* context, const IntRect& rect)
         return;
 
     int width = 0, height = 0;
-    int pixelAspectRatioNumerator = 0;
-    int pixelAspectRatioDenominator = 0;
-    double doublePixelAspectRatioNumerator = 0;
-    double doublePixelAspectRatioDenominator = 0;
-    double displayWidth;
-    double displayHeight;
-    double scale, gapHeight, gapWidth;
+    GstCaps *caps = gst_buffer_get_caps(m_buffer);
     GstVideoFormat format;
 
-    GstCaps* caps = gst_buffer_get_caps(m_buffer);
-
-    if (G_UNLIKELY(!gst_video_format_parse_caps(caps, &format, &width, &height)
-                   || !gst_video_parse_caps_pixel_aspect_ratio(caps, &pixelAspectRatioNumerator, &pixelAspectRatioDenominator))) {
+    if (!gst_video_format_parse_caps(caps, &format, &width, &height)) {
       gst_caps_unref(caps);
       return;
     }
-
-    displayWidth = width;
-    displayHeight = height;
-    doublePixelAspectRatioNumerator = pixelAspectRatioNumerator;
-    doublePixelAspectRatioDenominator = pixelAspectRatioDenominator;
 
     cairo_format_t cairoFormat;
     if (format == GST_VIDEO_FORMAT_ARGB || format == GST_VIDEO_FORMAT_BGRA)
@@ -721,34 +714,15 @@ void MediaPlayerPrivate::paint(GraphicsContext* context, const IntRect& rect)
                                                                4 * width);
 
     cairo_save(cr);
-    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
-    // Calculate the display width/height from the storage width/height and the pixel aspect ratio
-    displayWidth *= doublePixelAspectRatioNumerator / doublePixelAspectRatioDenominator;
-    displayHeight *= doublePixelAspectRatioDenominator / doublePixelAspectRatioNumerator;
+    // translate and scale the context to correct size
+    cairo_translate(cr, rect.x(), rect.y());
+    cairo_scale(cr, static_cast<double>(rect.width()) / width, static_cast<double>(rect.height()) / height);
 
-    // Calculate the largest scale factor that would fill the target surface
-    scale = std::min(rect.width() / displayWidth, rect.height() / displayHeight);
-    // And calculate the new display width/height
-    displayWidth *= scale;
-    displayHeight *= scale;
-
-    // Calculate gap between border an picture on every side
-    gapWidth = (rect.width() - displayWidth) / 2.0;
-    gapHeight = (rect.height() - displayHeight) / 2.0;
-
-    // Paint the rectangle on the context and draw the buffer inside the rectangle
-
-    // Go to the new origin and center the video frame.
-    cairo_translate(cr, rect.x() + gapWidth, rect.y() + gapHeight);
-    cairo_rectangle(cr, 0, 0, rect.width(), rect.height());
-    // Scale the video frame according to the pixel aspect ratio.
-    cairo_scale(cr, doublePixelAspectRatioNumerator / doublePixelAspectRatioDenominator,
-                doublePixelAspectRatioDenominator / doublePixelAspectRatioNumerator);
-    // Scale the video frame to fill the target surface as good as possible.
-    cairo_scale(cr, scale, scale);
     // And paint it.
     cairo_set_source_surface(cr, src, 0, 0);
+    cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_PAD);
+    cairo_rectangle(cr, 0, 0, width, height);
     cairo_fill(cr);
     cairo_restore(cr);
 

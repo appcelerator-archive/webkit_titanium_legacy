@@ -50,6 +50,7 @@
 #include <QFocusEvent>
 #include <QFontDatabase>
 #include <QNetworkRequest>
+#include <QUndoStack>
 
 #include <qwebpage.h>
 #include <qwebframe.h>
@@ -70,6 +71,7 @@ extern void qt_dump_frame_loader(bool b);
 extern void qt_drt_clearFrameName(QWebFrame* qFrame);
 extern void qt_drt_overwritePluginDirectories();
 extern void qt_drt_resetOriginAccessWhiteLists();
+extern bool qt_drt_hasDocumentElement(QWebFrame* qFrame);
 
 namespace WebCore {
 
@@ -77,39 +79,8 @@ namespace WebCore {
 const unsigned int maxViewWidth = 800;
 const unsigned int maxViewHeight = 600;
 
-class WebPage : public QWebPage {
-    Q_OBJECT
-public:
-    WebPage(QWidget *parent, DumpRenderTree *drt);
-
-    QWebPage *createWindow(QWebPage::WebWindowType);
-
-    void javaScriptAlert(QWebFrame *frame, const QString& message);
-    void javaScriptConsoleMessage(const QString& message, int lineNumber, const QString& sourceID);
-    bool javaScriptConfirm(QWebFrame *frame, const QString& msg);
-    bool javaScriptPrompt(QWebFrame *frame, const QString& msg, const QString& defaultValue, QString* result);
-
-    void resetSettings();
-
-public slots:
-    bool shouldInterruptJavaScript() { return false; }
-
-protected:
-    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, NavigationType type);
-
-private slots:
-    void setViewGeometry(const QRect &r)
-    {
-        QWidget *v = view();
-        if (v)
-            v->setGeometry(r);
-    }
-private:
-    DumpRenderTree *m_drt;
-};
-
 WebPage::WebPage(QWidget *parent, DumpRenderTree *drt)
-    : QWebPage(parent), m_drt(drt)
+    : QWebPage(parent), m_drt(drt), m_enableTextOutput(false)
 {
     QWebSettings* globalSettings = QWebSettings::globalSettings();
 
@@ -139,12 +110,12 @@ void WebPage::resetSettings()
     // layoutTestController.overridePreference() or similar.
 
     settings()->resetFontSize(QWebSettings::DefaultFontSize);
-
     settings()->resetAttribute(QWebSettings::JavascriptCanOpenWindows);
     settings()->resetAttribute(QWebSettings::JavascriptEnabled);
     settings()->resetAttribute(QWebSettings::PrivateBrowsingEnabled);
     settings()->resetAttribute(QWebSettings::LinksIncludedInFocusChain);
     settings()->resetAttribute(QWebSettings::OfflineWebApplicationCacheEnabled);
+    QWebSettings::setMaximumPagesInCache(0); // reset to default
 }
 
 QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
@@ -154,6 +125,9 @@ QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
 
 void WebPage::javaScriptAlert(QWebFrame*, const QString& message)
 {
+    if (!m_enableTextOutput)
+        return;
+
     fprintf(stdout, "ALERT: %s\n", message.toUtf8().constData());
 }
 
@@ -167,6 +141,9 @@ static QString urlSuitableForTestResult(const QString& url)
 
 void WebPage::javaScriptConsoleMessage(const QString& message, int lineNumber, const QString&)
 {
+    if (!m_enableTextOutput)
+        return;
+
     QString newMessage;
     if (!message.isEmpty()) {
         newMessage = message;
@@ -182,12 +159,18 @@ void WebPage::javaScriptConsoleMessage(const QString& message, int lineNumber, c
 
 bool WebPage::javaScriptConfirm(QWebFrame*, const QString& msg)
 {
+    if (!m_enableTextOutput)
+        return true;
+
     fprintf(stdout, "CONFIRM: %s\n", msg.toUtf8().constData());
     return true;
 }
 
 bool WebPage::javaScriptPrompt(QWebFrame*, const QString& msg, const QString& defaultValue, QString* result)
 {
+    if (!m_enableTextOutput)
+        return true;
+
     fprintf(stdout, "PROMPT: %s, default text: %s\n", msg.toUtf8().constData(), defaultValue.toUtf8().constData());
     *result = defaultValue;
     return true;
@@ -222,8 +205,10 @@ bool WebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& r
             typeDescription = "illegal value";
         }
 
-        fprintf(stdout, "Policy delegate: attempt to load %s with navigation type '%s'\n",
-                url.toUtf8().constData(), typeDescription.toUtf8().constData());
+        if (m_enableTextOutput)
+            fprintf(stdout, "Policy delegate: attempt to load %s with navigation type '%s'\n",
+                    url.toUtf8().constData(), typeDescription.toUtf8().constData());
+
         m_drt->layoutTestController()->notifyDone();
     }
     return QWebPage::acceptNavigationRequest(frame, request, type);
@@ -249,8 +234,6 @@ DumpRenderTree::DumpRenderTree()
 
     connect(m_page->mainFrame(), SIGNAL(loadFinished(bool)), m_controller, SLOT(maybeDump(bool)));
 
-    m_page->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
-    m_page->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
     connect(m_page->mainFrame(), SIGNAL(titleChanged(const QString&)),
             SLOT(titleChanged(const QString&)));
     connect(m_page, SIGNAL(databaseQuotaExceeded(QWebFrame*,QString)),
@@ -319,6 +302,8 @@ void DumpRenderTree::resetToConsistentStateBeforeTesting()
     m_controller->reset();
     qt_drt_resetOriginAccessWhiteLists();
 
+    m_page->undoStack()->clear();
+
     QLocale qlocale;
     QLocale::setDefault(qlocale);
 }
@@ -357,6 +342,7 @@ void DumpRenderTree::open(const QUrl& aurl)
 #endif
 
     qt_dump_frame_loader(url.toString().contains("loading/"));
+    m_page->enableTextOutput(true);
     m_page->mainFrame()->load(url);
 }
 
@@ -405,7 +391,7 @@ void DumpRenderTree::initJSObjects()
 
 QString DumpRenderTree::dumpFramesAsText(QWebFrame* frame)
 {
-    if (!frame)
+    if (!frame || !qt_drt_hasDocumentElement(frame))
         return QString();
 
     QString result;
@@ -416,7 +402,8 @@ QString DumpRenderTree::dumpFramesAsText(QWebFrame* frame)
         result.append(QLatin1String("'\n--------\n"));
     }
 
-    result.append(frame->toPlainText());
+    QString innerText = frame->toPlainText();
+    result.append(innerText);
     result.append(QLatin1String("\n"));
 
     if (m_controller->shouldDumpChildrenAsText()) {
@@ -697,5 +684,3 @@ void DumpRenderTree::initializeFonts()
 #endif
 
 }
-
-#include "DumpRenderTree.moc"

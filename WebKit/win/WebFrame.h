@@ -248,14 +248,8 @@ public:
         /* [in] */ BSTR url,
         /* [retval][out] */ BOOL* result);
 
-    virtual HRESULT STDMETHODCALLTYPE stringByEvaluatingJavaScriptInIsolatedWorld( 
-        /* [in] */ unsigned int worldID,
-        /* [in] */ OLE_HANDLE jsGlobalObject,
-        /* [in] */ BSTR script,
-        /* [retval][out] */ BSTR* evaluationResult);
-
-    virtual /* [local] */ JSGlobalContextRef STDMETHODCALLTYPE contextForWorldID(
-        /* [in] */ unsigned worldID);
+    virtual HRESULT STDMETHODCALLTYPE stringByEvaluatingJavaScriptInScriptWorld(IWebScriptWorld*, JSObjectRef globalObjectRef, BSTR script, BSTR* evaluationResult);
+    virtual JSGlobalContextRef STDMETHODCALLTYPE globalContextForScriptWorld(IWebScriptWorld*);
 
     // IWebDocumentText
     virtual HRESULT STDMETHODCALLTYPE supportsTextEncoding( 

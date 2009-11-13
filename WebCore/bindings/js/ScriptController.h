@@ -64,11 +64,14 @@ class XSSAuditor;
 typedef HashMap<void*, RefPtr<JSC::Bindings::RootObject> > RootObjectMap;
 
 class ScriptController {
-    typedef WTF::HashMap<DOMWrapperWorld*, JSC::ProtectedPtr<JSDOMWindowShell> > ShellMap;
+    friend class ScriptCachedFrameData;
+    typedef WTF::HashMap< RefPtr<DOMWrapperWorld>, JSC::ProtectedPtr<JSDOMWindowShell> > ShellMap;
 
 public:
     ScriptController(Frame*);
     ~ScriptController();
+
+    static PassRefPtr<DOMWrapperWorld> createWorld();
 
     JSDOMWindowShell* windowShell(DOMWrapperWorld* world)
     {
@@ -84,18 +87,11 @@ public:
     {
         return windowShell(world)->window();
     }
-    JSDOMWindow* globalObject(unsigned worldID);
-
-    void forgetWorld(DOMWrapperWorld* world)
-    {
-        m_windowShells.remove(world);
-    }
 
     ScriptValue executeScript(const ScriptSourceCode&);
     ScriptValue executeScript(const String& script, bool forceUserGesture = false);
     ScriptValue executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator* evaluator);
-    ScriptValue executeScriptInIsolatedWorld(unsigned worldID, const String& script, bool forceUserGesture = false);
-    ScriptValue executeScriptInIsolatedWorld(DOMWrapperWorld* world, const String& script, bool forceUserGesture = false);
+    ScriptValue executeScriptInWorld(DOMWrapperWorld* world, const String& script, bool forceUserGesture = false);
 
     // Returns true if argument is a JavaScript URL.
     bool executeIfJavaScriptURL(const KURL&, bool userGesture = false, bool replaceDocument = true);
@@ -106,8 +102,6 @@ public:
 
     ScriptValue evaluate(const ScriptSourceCode&);
     ScriptValue evaluateInWorld(const ScriptSourceCode&, DOMWrapperWorld*);
-    ScriptValue evaluateInIsolatedWorld(unsigned /*worldID*/, const ScriptSourceCode&);
-    void evaluateInIsolatedWorld(unsigned /*worldID*/, const Vector<ScriptSourceCode>&);
 
     void setEventHandlerLineNumber(int lineno) { m_handlerLineNumber = lineno; }
     int eventHandlerLineNumber() { return m_handlerLineNumber; }

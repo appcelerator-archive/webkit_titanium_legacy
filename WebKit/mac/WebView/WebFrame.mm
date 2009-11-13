@@ -49,6 +49,7 @@
 #import "WebNSObjectExtras.h"
 #import "WebNSURLExtras.h"
 #import "WebScriptDebugger.h"
+#import "WebScriptWorldInternal.h"
 #import "WebViewInternal.h"
 #import <JavaScriptCore/APICast.h>
 #import <WebCore/AXObjectCache.h>
@@ -923,20 +924,6 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     _private->coreFrame->computeAndSetTypingStyle(core(style), undoAction);
 }
 
-- (void)_dragSourceMovedTo:(NSPoint)windowLoc
-{
-    if (!_private->coreFrame)
-        return;
-    FrameView* view = _private->coreFrame->view();
-    if (!view)
-        return;
-    ASSERT([getWebView(self) _usesDocumentViews]);
-    // FIXME: These are fake modifier keys here, but they should be real ones instead.
-    PlatformMouseEvent event(IntPoint(windowLoc), globalPoint(windowLoc, [view->platformWidget() window]),
-        LeftButton, MouseEventMoved, 0, false, false, false, false, currentTime());
-    _private->coreFrame->eventHandler()->dragSourceMovedTo(event);
-}
-
 - (void)_dragSourceEndedAt:(NSPoint)windowLoc operation:(NSDragOperation)operation
 {
     if (!_private->coreFrame)
@@ -1204,7 +1191,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     return SecurityOrigin::canLoad(URL, String(), _private->coreFrame->document());
 }
 
-- (NSString *)_stringByEvaluatingJavaScriptInIsolatedWorld:(unsigned)worldID WithGlobalObject:(JSObjectRef)globalObjectRef FromString:(NSString *)string
+- (NSString *)_stringByEvaluatingJavaScriptFromString:(NSString *)string withGlobalObject:(JSObjectRef)globalObjectRef inScriptWorld:(WebScriptWorld *)world
 {
     // Start off with some guess at a frame and a global object, we'll try to do better...!
     JSDOMWindow* anyWorldGlobalObject = _private->coreFrame->script()->globalObject(mainThreadNormalWorld());
@@ -1217,7 +1204,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     // Get the frame frome the global object we've settled on.
     Frame* frame = anyWorldGlobalObject->impl()->frame();
     ASSERT(frame->document());
-    JSValue result = frame->script()->executeScriptInIsolatedWorld(worldID, string, true).jsValue();
+    JSValue result = frame->script()->executeScriptInWorld(core(world), string, true).jsValue();
 
     if (!frame) // In case the script removed our frame from the page.
         return @"";
@@ -1232,12 +1219,15 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     return String(result.toString(anyWorldGlobalObject->globalExec()));
 }
 
-- (JSGlobalContextRef)contextForWorldID:(unsigned)worldID;
+- (JSGlobalContextRef)_globalContextForScriptWorld:(WebScriptWorld *)world
 {
     Frame* coreFrame = _private->coreFrame;
     if (!coreFrame)
         return 0;
-    return toGlobalRef(coreFrame->script()->globalObject(worldID)->globalExec());
+    DOMWrapperWorld* coreWorld = core(world);
+    if (!coreWorld)
+        return 0;
+    return toGlobalRef(coreFrame->script()->globalObject(coreWorld)->globalExec());
 }
 
 @end

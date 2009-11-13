@@ -256,8 +256,8 @@ GraphicsContext::GraphicsContext(PlatformGraphicsContext* context)
     setPaintingDisabled(!context);
     if (context) {
         // Make sure the context starts in sync with our state.
-        setPlatformFillColor(fillColor());
-        setPlatformStrokeColor(strokeColor());
+        setPlatformFillColor(fillColor(), DeviceColorSpace);
+        setPlatformStrokeColor(strokeColor(), DeviceColorSpace);
     }
 }
 
@@ -751,7 +751,7 @@ void GraphicsContext::fillRect(const FloatRect& rect)
     }
 }
 
-void GraphicsContext::fillRect(const FloatRect& rect, const Color& c)
+void GraphicsContext::fillRect(const FloatRect& rect, const Color& c, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
@@ -762,7 +762,7 @@ void GraphicsContext::fillRect(const FloatRect& rect, const Color& c)
     p->fillRect(rect, m_data->solidColor);
 }
 
-void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLeft, const IntSize& topRight, const IntSize& bottomLeft, const IntSize& bottomRight, const Color& color)
+void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLeft, const IntSize& topRight, const IntSize& bottomLeft, const IntSize& bottomRight, const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled() || !color.alpha())
         return;
@@ -886,7 +886,7 @@ FloatRect GraphicsContext::roundToDevicePixels(const FloatRect& frect)
     return FloatRect(QRectF(result));
 }
 
-void GraphicsContext::setPlatformShadow(const IntSize& size, int, const Color&)
+void GraphicsContext::setPlatformShadow(const IntSize& size, int, const Color&, ColorSpace)
 {
     // Qt doesn't support shadows natively, they are drawn manually in the draw*
     // functions
@@ -1225,7 +1225,7 @@ void GraphicsContext::setURLForRect(const KURL&, const IntRect&)
     notImplemented();
 }
 
-void GraphicsContext::setPlatformStrokeColor(const Color& color)
+void GraphicsContext::setPlatformStrokeColor(const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
@@ -1255,7 +1255,7 @@ void GraphicsContext::setPlatformStrokeThickness(float thickness)
     p->setPen(newPen);
 }
 
-void GraphicsContext::setPlatformFillColor(const Color& color)
+void GraphicsContext::setPlatformFillColor(const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;

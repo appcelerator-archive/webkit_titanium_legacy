@@ -42,6 +42,7 @@ namespace WebCore {
     class Node;
     class String;
     class ScriptController;
+    class ScriptCachedFrameData;
 
     typedef int ExceptionCode;
 
@@ -147,8 +148,6 @@ namespace WebCore {
 
         void rememberDocument(Document* document) { documentsWithWrappers.add(document); }
         void forgetDocument(Document* document) { documentsWithWrappers.remove(document); }
-        void rememberScriptController(ScriptController* scriptController) { scriptControllersWithShells.add(scriptController); }
-        void forgetScriptController(ScriptController* scriptController) { scriptControllersWithShells.remove(scriptController); }
 
         // FIXME: can we make this private?
         DOMObjectWrapperMap m_wrappers;
@@ -156,7 +155,6 @@ namespace WebCore {
     private:
         JSC::JSGlobalData* m_globalData;
         HashSet<Document*> documentsWithWrappers;
-        HashSet<ScriptController*> scriptControllersWithShells;
     };
 
     // Map from static HashTable instances to per-GlobalData ones.
@@ -240,6 +238,7 @@ namespace WebCore {
     void markDOMNodesForDocument(JSC::MarkStack&, Document*);
     void markActiveObjectsForContext(JSC::MarkStack&, JSC::JSGlobalData&, ScriptExecutionContext*);
     void markDOMObjectWrapper(JSC::MarkStack&, JSC::JSGlobalData& globalData, void* object);
+    void markDOMNodeWrapper(JSC::MarkStack& markStack, Document* document, Node* node);
 
     JSC::Structure* getCachedDOMStructure(JSDOMGlobalObject*, const JSC::ClassInfo*);
     JSC::Structure* cacheDOMStructure(JSDOMGlobalObject*, NonNullPassRefPtr<JSC::Structure>, const JSC::ClassInfo*);

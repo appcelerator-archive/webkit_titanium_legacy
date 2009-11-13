@@ -29,29 +29,30 @@
 #include "WebFrame.h"
 
 #include "CFDictionaryPropertyBag.h"
-#include "COMPtr.h"
 #include "COMPropertyBag.h"
-#include "DefaultPolicyDelegate.h"
+#include "COMPtr.h"
 #include "DOMCoreClasses.h"
+#include "DefaultPolicyDelegate.h"
 #include "HTMLFrameOwnerElement.h"
 #include "MarshallingHelpers.h"
 #include "WebActionPropertyBag.h"
 #include "WebChromeClient.h"
+#include "WebDataSource.h"
 #include "WebDocumentLoader.h"
 #include "WebDownload.h"
-#include "WebError.h"
-#include "WebMutableURLRequest.h"
 #include "WebEditorClient.h"
+#include "WebError.h"
 #include "WebFramePolicyListener.h"
 #include "WebHistory.h"
+#include "WebHistoryItem.h"
 #include "WebIconFetcher.h"
 #include "WebKit.h"
 #include "WebKitStatisticsPrivate.h"
+#include "WebMutableURLRequest.h"
 #include "WebNotificationCenter.h"
-#include "WebView.h"
-#include "WebDataSource.h"
-#include "WebHistoryItem.h"
+#include "WebScriptWorld.h"
 #include "WebURLResponse.h"
+#include "WebView.h"
 #pragma warning( push, 0 )
 #include <WebCore/BString.h>
 #include <WebCore/Cache.h>
@@ -490,14 +491,17 @@ JSGlobalContextRef STDMETHODCALLTYPE WebFrame::globalContext()
     return toGlobalRef(coreFrame->script()->globalObject(mainThreadNormalWorld())->globalExec());
 }
 
-JSGlobalContextRef STDMETHODCALLTYPE WebFrame::contextForWorldID(
-    /* [in] */ unsigned worldID)
+JSGlobalContextRef WebFrame::globalContextForScriptWorld(IWebScriptWorld* iWorld)
 {
     Frame* coreFrame = core(this);
     if (!coreFrame)
         return 0;
 
-    return toGlobalRef(coreFrame->script()->globalObject(worldID)->globalExec());
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return 0;
+
+    return toGlobalRef(coreFrame->script()->globalObject(world->world())->globalExec());
 }
 
 HRESULT STDMETHODCALLTYPE WebFrame::loadRequest( 
@@ -820,7 +824,7 @@ HRESULT STDMETHODCALLTYPE WebFrame::renderTreeAsExternalRepresentation(
     if (!coreFrame)
         return E_FAIL;
 
-    *result = BString(externalRepresentation(coreFrame->contentRenderer())).release();
+    *result = BString(externalRepresentation(coreFrame)).release();
     return S_OK;
 }
 
@@ -2169,18 +2173,20 @@ HRESULT STDMETHODCALLTYPE WebFrame::isDescendantOfFrame(
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE WebFrame::stringByEvaluatingJavaScriptInIsolatedWorld(
-    /* [in] */ unsigned int worldID,
-    /* [in] */ OLE_HANDLE jsGlobalObject,
-    /* [in] */ BSTR script,
-    /* [retval][out] */ BSTR* evaluationResult)
+HRESULT WebFrame::stringByEvaluatingJavaScriptInScriptWorld(IWebScriptWorld* iWorld, JSObjectRef globalObjectRef, BSTR script, BSTR* evaluationResult)
 {
     if (!evaluationResult)
         return E_POINTER;
     *evaluationResult = 0;
 
+    if (!iWorld)
+        return E_POINTER;
+
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_INVALIDARG;
+
     Frame* coreFrame = core(this);
-    JSObjectRef globalObjectRef = reinterpret_cast<JSObjectRef>(jsGlobalObject);
     String string = String(script, SysStringLen(script));
 
     // Start off with some guess at a frame and a global object, we'll try to do better...!
@@ -2194,7 +2200,7 @@ HRESULT STDMETHODCALLTYPE WebFrame::stringByEvaluatingJavaScriptInIsolatedWorld(
     // Get the frame frome the global object we've settled on.
     Frame* frame = anyWorldGlobalObject->impl()->frame();
     ASSERT(frame->document());
-    JSValue result = frame->script()->executeScriptInIsolatedWorld(worldID, string, true).jsValue();
+    JSValue result = frame->script()->executeScriptInWorld(world->world(), string, true).jsValue();
 
     if (!frame) // In case the script removed our frame from the page.
         return S_OK;

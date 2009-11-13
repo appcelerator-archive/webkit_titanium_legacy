@@ -31,17 +31,17 @@
 #include "DOMCoreClasses.h"
 #include "MarshallingHelpers.h"
 #include "SoftLinking.h"
-#include "WebDatabaseManager.h"
-#include "WebDocumentLoader.h"
-#include "WebDownload.h"
-#include "WebEditorClient.h"
-#include "WebElementPropertyBag.h"
-#include "WebFrame.h"
 #include "WebBackForwardList.h"
 #include "WebChromeClient.h"
 #include "WebContextMenuClient.h"
 #include "WebCoreTextRenderer.h"
+#include "WebDatabaseManager.h"
+#include "WebDocumentLoader.h"
+#include "WebDownload.h"
 #include "WebDragClient.h"
+#include "WebEditorClient.h"
+#include "WebElementPropertyBag.h"
+#include "WebFrame.h"
 #include "WebIconDatabase.h"
 #include "WebInspector.h"
 #include "WebInspectorClient.h"
@@ -52,6 +52,7 @@
 #include "WebNotificationCenter.h"
 #include "WebPluginHalterClient.h"
 #include "WebPreferences.h"
+#include "WebScriptWorld.h"
 #include "WindowsTouch.h"
 #pragma warning( push, 0 )
 #include <WebCore/ApplicationCacheStorage.h>
@@ -5479,6 +5480,16 @@ HRESULT WebView::setCanStartPlugins(BOOL canStartPlugins)
     return S_OK;
 }
 
+static String toString(BSTR bstr)
+{
+    return String(bstr, SysStringLen(bstr));
+}
+
+static KURL toKURL(BSTR bstr)
+{
+    return KURL(KURL(), toString(bstr));
+}
+
 static PassOwnPtr<Vector<String> > toStringVector(unsigned patternsCount, BSTR* patterns)
 {
     // Convert the patterns into a Vector.
@@ -5486,17 +5497,21 @@ static PassOwnPtr<Vector<String> > toStringVector(unsigned patternsCount, BSTR* 
         return 0;
     Vector<String>* patternsVector = new Vector<String>;
     for (unsigned i = 0; i < patternsCount; ++i)
-        patternsVector->append(String(patterns[i], SysStringLen(patterns[i])));
+        patternsVector->append(toString(patterns[i]));
     return patternsVector;
 }
 
-HRESULT WebView::addUserScriptToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url, 
+HRESULT WebView::addUserScriptToGroup(BSTR groupName, IWebScriptWorld* iWorld, BSTR source, BSTR url, 
                                       unsigned whitelistCount, BSTR* whitelist,
                                       unsigned blacklistCount, BSTR* blacklist,
                                       WebUserScriptInjectionTime injectionTime)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_POINTER;
+
+    String group = toString(groupName);
+    if (group.isEmpty())
         return E_INVALIDARG;
 
     PageGroup* pageGroup = PageGroup::pageGroup(group);
@@ -5504,19 +5519,23 @@ HRESULT WebView::addUserScriptToGroup(BSTR groupName, unsigned worldID, BSTR sou
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->addUserScriptToWorld(worldID, String(source, SysStringLen(source)), KURL(KURL(), String(url, SysStringLen(url))),
+    pageGroup->addUserScriptToWorld(world->world(), toString(source), toKURL(url),
                                     toStringVector(whitelistCount, whitelist), toStringVector(blacklistCount, blacklist),
                                     injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
 
     return S_OK;
 }
 
-HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR source, BSTR url,
+HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, IWebScriptWorld* iWorld, BSTR source, BSTR url,
                                           unsigned whitelistCount, BSTR* whitelist,
                                           unsigned blacklistCount, BSTR* blacklist)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_POINTER;
+
+    String group = toString(groupName);
+    if (group.isEmpty())
         return E_INVALIDARG;
 
     PageGroup* pageGroup = PageGroup::pageGroup(group);
@@ -5524,16 +5543,20 @@ HRESULT WebView::addUserStyleSheetToGroup(BSTR groupName, unsigned worldID, BSTR
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->addUserStyleSheetToWorld(worldID, String(source, SysStringLen(source)), KURL(KURL(), String(url, SysStringLen(url))),
+    pageGroup->addUserStyleSheetToWorld(world->world(), toString(source), toKURL(url),
                                         toStringVector(whitelistCount, whitelist), toStringVector(blacklistCount, blacklist));
 
     return S_OK;
 }
 
-HRESULT WebView::removeUserScriptFromGroup(BSTR groupName, unsigned worldID, BSTR url)
+HRESULT WebView::removeUserScriptFromGroup(BSTR groupName, IWebScriptWorld* iWorld, BSTR url)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_POINTER;
+
+    String group = toString(groupName);
+    if (group.isEmpty())
         return E_INVALIDARG;
 
     PageGroup* pageGroup = PageGroup::pageGroup(group);
@@ -5541,15 +5564,19 @@ HRESULT WebView::removeUserScriptFromGroup(BSTR groupName, unsigned worldID, BST
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->removeUserScriptFromWorld(worldID, KURL(KURL(), String(url, SysStringLen(url))));
+    pageGroup->removeUserScriptFromWorld(world->world(), toKURL(url));
 
     return S_OK;
 }
 
-HRESULT WebView::removeUserStyleSheetFromGroup(BSTR groupName, unsigned worldID, BSTR url)
+HRESULT WebView::removeUserStyleSheetFromGroup(BSTR groupName, IWebScriptWorld* iWorld, BSTR url)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_POINTER;
+
+    String group = toString(groupName);
+    if (group.isEmpty())
         return E_INVALIDARG;
 
     PageGroup* pageGroup = PageGroup::pageGroup(group);
@@ -5557,15 +5584,19 @@ HRESULT WebView::removeUserStyleSheetFromGroup(BSTR groupName, unsigned worldID,
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->removeUserStyleSheetFromWorld(worldID, KURL(KURL(), String(url, SysStringLen(url))));
+    pageGroup->removeUserStyleSheetFromWorld(world->world(), toKURL(url));
 
     return S_OK;
 }
 
-HRESULT WebView::removeUserScriptsFromGroup(BSTR groupName, unsigned worldID)
+HRESULT WebView::removeUserScriptsFromGroup(BSTR groupName, IWebScriptWorld* iWorld)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_POINTER;
+
+    String group = toString(groupName);
+    if (group.isEmpty())
         return E_INVALIDARG;
 
     PageGroup* pageGroup = PageGroup::pageGroup(group);
@@ -5573,14 +5604,18 @@ HRESULT WebView::removeUserScriptsFromGroup(BSTR groupName, unsigned worldID)
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->removeUserScriptsFromWorld(worldID);
+    pageGroup->removeUserScriptsFromWorld(world->world());
     return S_OK;
 }
 
-HRESULT WebView::removeUserStyleSheetsFromGroup(BSTR groupName, unsigned worldID)
+HRESULT WebView::removeUserStyleSheetsFromGroup(BSTR groupName, IWebScriptWorld* iWorld)
 {
-    String group(groupName, SysStringLen(groupName));
-    if (group.isEmpty() || !worldID || worldID == numeric_limits<unsigned>::max())
+    COMPtr<WebScriptWorld> world(Query, iWorld);
+    if (!world)
+        return E_POINTER;
+
+    String group = toString(groupName);
+    if (group.isEmpty())
         return E_INVALIDARG;
 
     PageGroup* pageGroup = PageGroup::pageGroup(group);
@@ -5588,13 +5623,13 @@ HRESULT WebView::removeUserStyleSheetsFromGroup(BSTR groupName, unsigned worldID
     if (!pageGroup)
         return E_FAIL;
 
-    pageGroup->removeUserStyleSheetsFromWorld(worldID);
+    pageGroup->removeUserStyleSheetsFromWorld(world->world());
     return S_OK;
 }
 
 HRESULT WebView::removeAllUserContentFromGroup(BSTR groupName)
 {
-    String group(groupName, SysStringLen(groupName));
+    String group = toString(groupName);
     if (group.isEmpty())
         return E_INVALIDARG;
 

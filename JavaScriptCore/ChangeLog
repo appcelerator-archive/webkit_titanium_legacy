@@ -1,3 +1,140 @@
+2009-11-12  Steve VanDeBogart  <vandebo@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Calculate the time offset only if we were able to parse
+        the date string. This saves an IPC in Chromium for
+        invalid date strings.
+        https://bugs.webkit.org/show_bug.cgi?id=31416
+
+        * wtf/DateMath.cpp:
+        (WTF::parseDateFromNullTerminatedCharacters):
+        (JSC::parseDateFromNullTerminatedCharacters):
+
+2009-11-12  Oliver Hunt  <oliver@apple.com>
+
+        Rollout r50896 until i can work out why it causes failures.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitReturn):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        * parser/Nodes.cpp:
+        (JSC::EvalNode::emitBytecode):
+
+2009-11-12  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Stephanie Lewis.
+
+        Remove LIBRARY directive from def file to fix Debug_All target.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2009-11-12  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Holger Freyther.
+
+        Revert r50204, since it makes DRT crash on 32 bits release builds
+        for GTK+.
+
+        * wtf/FastMalloc.h:
+
+2009-11-12  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Gavin Barraclough.
+
+        Start unifying entry logic for function and eval code.
+
+        Eval now uses a ret instruction to end execution, and sets up
+        a callframe more in line with what we do for function entry.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitReturn):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        * parser/Nodes.cpp:
+        (JSC::EvalNode::emitBytecode):
+
+2009-11-12  Richard Moe Gustavsen  <richard.gustavsen@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Disable pthread_setname_np.
+
+        This allows Qt builds on Mac from 10.6 to run on earlier version
+        where this symbol is not present.
+        https://bugs.webkit.org/show_bug.cgi?id=31403
+
+        * wtf/Platform.h:
+
+2009-11-12  Thiago Macieira <thiago.macieira@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Fix linking on Linux 32-bit.
+
+        It was missing the ".text" directive at the top of the file,
+        indicating that code would follow. Without it, the assembler created
+        "NOTYPE" symbols, which would result in linker errors.
+        https://bugs.webkit.org/show_bug.cgi?id=30863
+
+        * jit/JITStubs.cpp:
+
+2009-11-11  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Refactor multiple JavaScriptCore threads
+        https://bugs.webkit.org/show_bug.cgi?id=31328
+
+        Remove the id field from the PlatformThread structure 
+        as it is not used.
+
+        * runtime/Collector.cpp:
+        (JSC::getCurrentPlatformThread):
+        (JSC::suspendThread):
+        (JSC::resumeThread):
+        (JSC::getPlatformThreadRegisters):
+
+2009-11-10  Geoffrey Garen  <ggaren@apple.com>
+
+        Linux build fix: Added an #include for UINT_MAX.
+
+        * runtime/WeakRandom.h:
+
+2009-11-10  Geoffrey Garen  <ggaren@apple.com>
+
+        JavaScriptGlue build fix: Marked a file 'private' instead of 'project'.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+
+2009-11-10  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Gavin "avGni arBalroguch" Barraclough.
+
+        Faster Math.random, based on GameRand.
+        
+        SunSpider says 1.4% faster.
+
+        * GNUmakefile.am:
+        * JavaScriptCore.gypi:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.vcproj:
+        * JavaScriptCore.xcodeproj/project.pbxproj: Added the header to the project.
+
+        * runtime/JSGlobalData.cpp:
+        (JSC::JSGlobalData::JSGlobalData):
+        * runtime/JSGlobalData.h: Use an object to track random number generation
+        state, initialized to the current time.
+
+        * runtime/MathObject.cpp:
+        (JSC::MathObject::MathObject):
+        (JSC::mathProtoFuncRandom): Use the new hotness.
+
+        * runtime/WeakRandom.h: Added.
+        (JSC::WeakRandom::WeakRandom):
+        (JSC::WeakRandom::get):
+        (JSC::WeakRandom::advance): The new hotness.
+
 2009-11-09  Geoffrey Garen  <ggaren@apple.com>
 
         Reviewed by Oliver Hunt.

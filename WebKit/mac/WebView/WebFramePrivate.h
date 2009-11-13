@@ -39,6 +39,7 @@
 @class DOMNode;
 @class WebIconFetcher;
 @class WebScriptObject;
+@class WebScriptWorld;
 
 // Keys for accessing the values in the page cache dictionary.
 extern NSString *WebPageCacheEntryDateKey;
@@ -96,8 +97,8 @@ typedef enum {
 - (void)_recursive_pauseNullEventsForAllNetscapePlugins;
 #endif
 
-- (NSString *)_stringByEvaluatingJavaScriptInIsolatedWorld:(unsigned)worldID WithGlobalObject:(JSObjectRef)globalObject FromString:(NSString *)string;
-- (JSGlobalContextRef)contextForWorldID:(unsigned)worldID;
+- (NSString *)_stringByEvaluatingJavaScriptFromString:(NSString *)string withGlobalObject:(JSObjectRef)globalObject inScriptWorld:(WebScriptWorld *)world;
+- (JSGlobalContextRef)_globalContextForScriptWorld:(WebScriptWorld *)world;
 
 // Pause a given CSS animation or transition on the target node at a specific time.
 // If the animation or transition is already paused, it will update its pause time.

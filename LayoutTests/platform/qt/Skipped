@@ -119,6 +119,14 @@ inspector/console-format-collections.html
 inspector/styles-iframe.html
 inspector/syntax-highlight-css.html
 inspector/syntax-highlight-javascript.html
+inspector/timeline-enum-stability.html
+inspector/timeline-layout.html
+inspector/timeline-mark-timeline.html
+inspector/timeline-paint.html
+inspector/timeline-parse-html.html
+inspector/timeline-recalculate-styles.html
+inspector/timeline-script-tag-1.html
+inspector/timeline-script-tag-2.html
 inspector/timeline-trivial.html
 inspector/uncaught-dom1-exception.html
 inspector/uncaught-dom3-exception.html
@@ -173,6 +181,7 @@ editing/pasteboard/file-input-files-access.html
 fast/events/drag-to-navigate.html
 fast/events/prevent-drag-to-navigate.html
 fast/forms/get-file-upload.html
+fast/forms/input-file-re-render.html
 fast/events/drag-file-crash.html
 http/tests/security/clipboard/clipboard-file-access.html
 
@@ -184,9 +193,11 @@ fast/dom/Document/CaretRangeFromPoint/caretRangeFromPoint-in-zoom-and-scroll.htm
 fast/dom/elementFromPoint-relative-to-viewport.html
 
 # ------- missing drag-and-drop support
+# See bug https://bugs.webkit.org/show_bug.cgi?id=31332
 fast/events/drag-parent-node.html
 fast/events/drag-and-drop.html
 fast/events/drag-and-drop-dataTransfer-types-nocrash.html
+fast/events/drag-and-drop-fire-drag-dragover.html
 
 # ------- broken backgroundOf(el)
 fast/forms/input-live-pseudo-selectors.html
@@ -342,6 +353,14 @@ fast/text/international/bidi-menulist.html
 fast/text/international/wrap-CJK-001.html
 fast/xpath/string-value.html
 
+# ------- plugin tests that use Objective-C
+plugins/call-as-function-test.html
+plugins/jsobjc-dom-wrappers.html
+plugins/jsobjc-simple.html
+plugins/root-object-premature-delete-crash.html
+plugins/throw-on-dealloc.html
+plugins/undefined-property-crash.html
+
 # ------- all other failures (not looked at)
 fast/box-sizing/percentage-height.html
 fast/css/acid2-pixel.html
@@ -464,19 +483,13 @@ fast/text/midword-break-after-breakable-char.html
 fast/text/textIteratorNilRenderer.html
 fast/text/international/002.html
 
-plugins/call-as-function-test.html
 plugins/destroy-during-npp-new.html
 plugins/embed-attributes-setting.html
 plugins/get-url-that-the-resource-load-delegate-will-disallow.html
 plugins/get-url-with-blank-target.html
 plugins/geturl-replace-query.html
-plugins/jsobjc-dom-wrappers.html
-plugins/jsobjc-simple.html
 plugins/mouse-events.html
 plugins/open-and-close-window-with-plugin.html
-plugins/root-object-premature-delete-crash.html
-plugins/throw-on-dealloc.html
-plugins/undefined-property-crash.html
 
 security/block-test.html
 svg/W3C-SVG-1.1/animate-elem-02-t.svg
@@ -5044,3 +5057,9 @@ http/tests/xmlhttprequest/zero-length-response-sync.html
 http/tests/xmlhttprequest/workers/methods-async.html
 http/tests/xmlhttprequest/workers/methods.html
 http/tests/xmlhttprequest/workers/shared-worker-methods-async.html
+
+# Missing SocketStreamHandle implementation
+websocket/tests
+
+# Need rebaseline: https://bugs.webkit.org/show_bug.cgi?id=26830
+fast/multicol/single-line.html

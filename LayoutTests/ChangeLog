@@ -1,3 +1,1380 @@
+2009-11-12  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31441
+        Implement SocketStreamCFNet
+
+        * platform/mac/Skipped:
+        * platform/win/Skipped:
+        Enables tests in websocket directory.
+
+2009-11-13  Dmitry Titov  <dimich@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Fix worker-timeout.html layout test that fails in Chromium harness.
+        https://bugs.webkit.org/show_bug.cgi?id=31452
+
+        * fast/workers/worker-timeout.html:
+        Stop logging timer messages at the same time as calling NotifyDone() because
+        in test harness Chromium uses for workers it does not capture the output immediately.
+
+2009-11-13  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Chromium: [REGRESSION] Crash while stopping on a breakpoint.
+        Rolling back r50890.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31467
+
+        * http/tests/security/calling-versus-current-expected.txt: Removed.
+        * http/tests/security/calling-versus-current.html: Removed.
+
+2009-11-13  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Gustavo Noronha.
+
+        Skip fast/canvas/canvas-shadow.html we need to enable filters
+        on cairo to pass this test.
+
+        * platform/gtk/Skipped:
+
+2009-11-13  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Skip one more new test.
+
+        * platform/gtk/Skipped:
+
+2009-11-12  Anantanarayanan G Iyengar  <ananta@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        The document-html and window-html tests don't use a setTimeout to notify that the
+        test is completed. The layout test plugin now issues the notifyDone call via
+        javascript.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=31067
+
+        * plugins/document-open.html:
+        * plugins/window-open.html:
+
+2009-11-12  Kinuko Yasuda  <kinuko@google.com>
+
+        Reviewed by Adam Barth.
+
+        Makes the output of fast/events/mouse-click-events.html independent
+        of the window size.
+        https://bugs.webkit.org/show_bug.cgi?id=31405
+
+        * fast/events/mouse-click-events-expected.txt:
+        * fast/events/script-tests/mouse-click-events.js:
+
+2009-11-12  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Transformed reflected elements are clipped inside element with opacity
+        https://bugs.webkit.org/show_bug.cgi?id=30957
+        
+        Testcase for reflected and transformed elements inside an opacity layer.
+
+        * fast/reflections/opacity-reflection-transform.html: Added.
+        * platform/mac/fast/reflections/opacity-reflection-transform-expected.checksum: Added.
+        * platform/mac/fast/reflections/opacity-reflection-transform-expected.png: Added.
+        * platform/mac/fast/reflections/opacity-reflection-transform-expected.txt: Added.
+
+2009-11-12  Joanmarie Diggs  <joanmarie.diggs@gmail.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30997
+        [Gtk] Implemment AtkDocument
+
+        Added testing support for AtkDocument implementation.
+
+        * accessibility/document-attributes.html: Added.
+        * accessibility/document-attributes-expected.txt: Added.
+        * platform/mac/Skipped:
+        * platform/win/Skipped:
+
+2009-11-11  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Simon Fraser.
+
+        Some tests for canvas shadow.
+
+        * fast/canvas/canvas-shadow-expected.txt: Added.
+        * fast/canvas/canvas-shadow.html: Added.
+        * fast/canvas/script-tests/canvas-shadow.js: Added.
+
+2009-11-12  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Steve Falkenburg.
+
+        Add failing tests to Skipped list.
+
+        * platform/win/Skipped:
+
+2009-11-12  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Skipping tests that fail intermitently.
+
+        * platform/gtk/Skipped:
+
+2009-11-12  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Oliver Hunt.
+
+        Test for <rdar://problem/7267951>
+        Canvas methods should reject uses of NaN and Infinity.
+
+        * fast/canvas/canvas-with-illegal-args-expected.txt: Added.
+        * fast/canvas/canvas-with-illegal-args.html: Added.
+        * fast/canvas/script-tests/canvas-with-illegal-args.js: Added.
+
+2009-11-12  Mark Rowe  <mrowe@apple.com>
+
+        Skip an accessibility test that covers functionality not available on Tiger or Leopard.
+
+        * platform/mac-leopard/Skipped:
+        * platform/mac-tiger/Skipped:
+
+2009-11-12  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Skipping one more new test, and a number of other tests, with bugs
+        filled.
+
+        * platform/gtk/Skipped:
+
+2009-11-12  Mark Rowe  <mrowe@apple.com>
+
+        Fix results for fast/dom/Window/window-properties.html after r50893.
+
+        * fast/dom/Window/window-properties-expected.txt:
+
+2009-11-12  Mark Rowe  <mrowe@apple.com>
+
+        Rubber-stamped by Anders Carlsson.
+
+        Move a misplaced accessibility test from platform/mac-snowleopard/accessibility to accessibility,
+        and the results from platform/mac-snowleopard/accessibility to platform/mac/accessibility.
+
+        * accessibility/aria-list-and-listitem.html: Renamed from LayoutTests/platform/mac-snowleopard/accessibility/aria-list-and-listitem.html.
+        * platform/mac/accessibility/aria-list-and-listitem-expected.txt: Renamed from LayoutTests/platform/mac-snowleopard/accessibility/aria-list-and-listitem-expected.txt.
+
+2009-11-12  Mark Rowe  <mrowe@apple.com>
+
+        Rubber-stamped by Brady Eidson.
+
+        Land updated results for file-url-mimetypes-2.html and file-url-mimetypes-3.html.
+
+        * platform/mac-snowleopard/platform/mac/fast/loader/file-url-mimetypes-2-expected.txt: Copied from LayoutTests/platform/mac/fast/loader/file-url-mimetypes-2-expected.txt.
+        * platform/mac-snowleopard/platform/mac/fast/loader/file-url-mimetypes-3-expected.txt: Copied from LayoutTests/platform/mac/fast/loader/file-url-mimetypes-3-expected.txt.
+        * platform/mac/fast/loader/file-url-mimetypes-2-expected.txt:
+        * platform/mac/fast/loader/file-url-mimetypes-3-expected.txt:
+
+2009-11-12  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Skipped new tests, a test that keeps failing despite
+        not failing locally, and a new DnD test.
+
+        * platform/gtk/Skipped:
+
+2009-11-12  Eric Carlson  <eric.carlson@apple.com>
+
+        Unreviewed, build fix.
+
+        Skipped tests need path relative to LayoutTests folder, not just
+        test name.
+
+        * platform/gtk/Skipped:
+        * platform/mac-leopard/Skipped:
+        * platform/mac-tiger/Skipped:
+        * platform/win/Skipped:
+
+2009-11-12  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        <rdar://problem/7388969> Add DOM API for fullscreen video
+        
+        Tests for fullscreen <video> DOM API.
+
+        * media/media-fullscreen-inline-expected.txt: Added.
+        * media/media-fullscreen-inline.html: Added.
+        * media/media-fullscreen-not-in-document-expected.txt: Added.
+        * media/media-fullscreen-not-in-document.html: Added.
+        * media/media-fullscreen.js: Added.
+
+        * platform/gtk/Skipped:
+        * platform/mac-leopard/Skipped:
+        * platform/mac-tiger/Skipped:
+        * platform/win/Skipped:
+            Skipped on platforms that don't support fullscreen yet.
+
+2009-11-12  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by David Levin.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31426
+        Some WebSocket tests don't properly listen to close event
+
+        * websocket/tests/script-tests/handshake-error.js:
+        * websocket/tests/script-tests/simple.js:
+        Made the tests clear second-chance timer on finish, avoiding confusing output when running
+        them in Safari.
+
+        * websocket/tests/script-tests/frame-length-longer-than-buffer.js:
+        * websocket/tests/script-tests/frame-length-skip.js:
+        * websocket/tests/frame-length-longer-than-buffer-expected.txt:
+        * websocket/tests/frame-length-skip-expected.txt:
+        These tests now finish properly.
+
+        * websocket/tests/handshake-error-expected.txt:
+        * websocket/tests/simple-expected.txt:
+        I'm getting an extra empty line for these tests, which is surprising. But since I didn't
+        change anything, I assume that it should be there.
+
+2009-11-12  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        [Chromium] Sify compose button alerts error
+        https://bugs.webkit.org/show_bug.cgi?id=31394
+
+        Test that we're using the calling security context in a simple case.
+
+        * http/tests/security/calling-versus-current-expected.txt: Added.
+        * http/tests/security/calling-versus-current.html: Added.
+
+2009-11-12  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30291
+
+        Rebased results for existing test case fast/events/drag-and-drop.html
+        from bug #24731.
+
+        Now, we can run the part of the test when effectAllowed == "uninitialized". 
+
+        * fast/events/drag-and-drop-expected.txt: Rebased results.
+        * fast/events/drag-and-drop.html: Removed notice about this bug (#30291).
+
+2009-11-12  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Darin Adler.
+
+        ARIA: add alert type roles
+        https://bugs.webkit.org/show_bug.cgi?id=31392
+
+        * platform/mac/accessibility/aria-alerts-expected.txt: Added.
+        * platform/mac/accessibility/aria-alerts.html: Added.
+
+2009-11-12  Andras Becsi  <becsi.andras@stud.u-szeged.hu>
+
+        Rubber-stamped by Tor Arne Vestbø.
+
+        [Qt] Update outdated metrics in layout tests after change to Qt 4.6 on the buildbot.
+
+        * platform/qt/css1/basic/class_as_selector-expected.txt:
+        * platform/qt/css1/basic/comments-expected.txt:
+        * platform/qt/css1/basic/containment-expected.txt:
+        * platform/qt/css1/basic/contextual_selectors-expected.txt:
+        * platform/qt/css1/basic/grouping-expected.txt:
+        * platform/qt/css1/basic/id_as_selector-expected.txt:
+        * platform/qt/css1/basic/inheritance-expected.txt:
+        * platform/qt/css1/box_properties/acid_test-expected.txt:
+        * platform/qt/css1/box_properties/border-expected.txt:
+        * platform/qt/css1/box_properties/border_bottom-expected.txt:
+        * platform/qt/css1/box_properties/border_bottom_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_bottom_width-expected.txt:
+        * platform/qt/css1/box_properties/border_bottom_width_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_color-expected.txt:
+        * platform/qt/css1/box_properties/border_color_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_left-expected.txt:
+        * platform/qt/css1/box_properties/border_left_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_left_width-expected.txt:
+        * platform/qt/css1/box_properties/border_left_width_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_right-expected.txt:
+        * platform/qt/css1/box_properties/border_right_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_right_width-expected.txt:
+        * platform/qt/css1/box_properties/border_right_width_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_style-expected.txt:
+        * platform/qt/css1/box_properties/border_style_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_top-expected.txt:
+        * platform/qt/css1/box_properties/border_top_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_top_width-expected.txt:
+        * platform/qt/css1/box_properties/border_top_width_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_width-expected.txt:
+        * platform/qt/css1/box_properties/border_width_inline-expected.txt:
+        * platform/qt/css1/box_properties/clear-expected.txt:
+        * platform/qt/css1/box_properties/clear_float-expected.txt:
+        * platform/qt/css1/box_properties/float-expected.txt:
+        * platform/qt/css1/box_properties/float_elements_in_series-expected.txt:
+        * platform/qt/css1/box_properties/float_margin-expected.txt:
+        * platform/qt/css1/box_properties/float_on_text_elements-expected.txt:
+        * platform/qt/css1/box_properties/height-expected.txt:
+        * platform/qt/css1/box_properties/margin-expected.txt:
+        * platform/qt/css1/box_properties/margin_bottom-expected.txt:
+        * platform/qt/css1/box_properties/margin_bottom_inline-expected.txt:
+        * platform/qt/css1/box_properties/margin_inline-expected.txt:
+        * platform/qt/css1/box_properties/margin_left-expected.txt:
+        * platform/qt/css1/box_properties/margin_left_inline-expected.txt:
+        * platform/qt/css1/box_properties/margin_right-expected.txt:
+        * platform/qt/css1/box_properties/margin_right_inline-expected.txt:
+        * platform/qt/css1/box_properties/margin_top-expected.txt:
+        * platform/qt/css1/box_properties/margin_top_inline-expected.txt:
+        * platform/qt/css1/box_properties/padding-expected.txt:
+        * platform/qt/css1/box_properties/padding_bottom-expected.txt:
+        * platform/qt/css1/box_properties/padding_bottom_inline-expected.txt:
+        * platform/qt/css1/box_properties/padding_inline-expected.txt:
+        * platform/qt/css1/box_properties/padding_left-expected.txt:
+        * platform/qt/css1/box_properties/padding_left_inline-expected.txt:
+        * platform/qt/css1/box_properties/padding_right-expected.txt:
+        * platform/qt/css1/box_properties/padding_right_inline-expected.txt:
+        * platform/qt/css1/box_properties/padding_top-expected.txt:
+        * platform/qt/css1/box_properties/padding_top_inline-expected.txt:
+        * platform/qt/css1/box_properties/width-expected.txt:
+        * platform/qt/css1/cascade/cascade_order-expected.txt:
+        * platform/qt/css1/cascade/important-expected.txt:
+        * platform/qt/css1/classification/display-expected.txt:
+        * platform/qt/css1/classification/list_style-expected.txt:
+        * platform/qt/css1/classification/list_style_image-expected.txt:
+        * platform/qt/css1/classification/list_style_position-expected.txt:
+        * platform/qt/css1/classification/list_style_type-expected.txt:
+        * platform/qt/css1/classification/white_space-expected.txt:
+        * platform/qt/css1/color_and_background/background-expected.txt:
+        * platform/qt/css1/color_and_background/background_attachment-expected.txt:
+        * platform/qt/css1/color_and_background/background_color-expected.txt:
+        * platform/qt/css1/color_and_background/background_image-expected.txt:
+        * platform/qt/css1/color_and_background/background_position-expected.txt:
+        * platform/qt/css1/color_and_background/background_repeat-expected.txt:
+        * platform/qt/css1/color_and_background/color-expected.txt:
+        * platform/qt/css1/conformance/forward_compatible_parsing-expected.txt:
+        * platform/qt/css1/font_properties/font-expected.txt:
+        * platform/qt/css1/font_properties/font_family-expected.txt:
+        * platform/qt/css1/font_properties/font_size-expected.txt:
+        * platform/qt/css1/font_properties/font_style-expected.txt:
+        * platform/qt/css1/font_properties/font_variant-expected.txt:
+        * platform/qt/css1/font_properties/font_weight-expected.txt:
+        * platform/qt/css1/formatting_model/canvas-expected.txt:
+        * platform/qt/css1/formatting_model/floating_elements-expected.txt:
+        * platform/qt/css1/formatting_model/height_of_lines-expected.txt:
+        * platform/qt/css1/formatting_model/horizontal_formatting-expected.txt:
+        * platform/qt/css1/formatting_model/inline_elements-expected.txt:
+        * platform/qt/css1/formatting_model/replaced_elements-expected.txt:
+        * platform/qt/css1/formatting_model/vertical_formatting-expected.txt:
+        * platform/qt/css1/pseudo/anchor-expected.txt:
+        * platform/qt/css1/pseudo/firstletter-expected.txt:
+        * platform/qt/css1/pseudo/firstline-expected.txt:
+        * platform/qt/css1/pseudo/multiple_pseudo_elements-expected.txt:
+        * platform/qt/css1/pseudo/pseudo_elements_in_selectors-expected.txt:
+        * platform/qt/css1/text_properties/letter_spacing-expected.txt:
+        * platform/qt/css1/text_properties/line_height-expected.txt:
+        * platform/qt/css1/text_properties/text_align-expected.txt:
+        * platform/qt/css1/text_properties/text_decoration-expected.txt:
+        * platform/qt/css1/text_properties/text_indent-expected.txt:
+        * platform/qt/css1/text_properties/text_transform-expected.txt:
+        * platform/qt/css1/text_properties/vertical_align-expected.txt:
+        * platform/qt/css1/text_properties/word_spacing-expected.txt:
+        * platform/qt/css1/units/color_units-expected.txt:
+        * platform/qt/css1/units/length_units-expected.txt:
+        * platform/qt/css1/units/percentage_units-expected.txt:
+        * platform/qt/css1/units/urls-expected.txt:
+        * platform/qt/css2.1/t040102-keywords-00-b-expected.txt:
+        * platform/qt/css2.1/t040102-keywords-01-b-expected.txt:
+        * platform/qt/css2.1/t040103-case-00-b-expected.txt:
+        * platform/qt/css2.1/t040103-case-01-c-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-00-b-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-01-b-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-02-d-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-03-b-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-04-b-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-05-c-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-06-b-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-07-b-expected.txt:
+        * platform/qt/css2.1/t040103-escapes-08-b-expected.txt:
+        * platform/qt/css2.1/t040103-ident-00-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-01-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-02-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-03-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-04-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-05-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-06-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-07-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-08-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-09-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-10-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-11-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-12-c-expected.txt:
+        * platform/qt/css2.1/t040103-ident-13-c-expected.txt:
+        * platform/qt/css2.1/t040105-atkeyw-00-b-expected.txt:
+        * platform/qt/css2.1/t040105-atkeyw-01-b-expected.txt:
+        * platform/qt/css2.1/t040105-atkeyw-02-b-expected.txt:
+        * platform/qt/css2.1/t040105-atrule-00-b-expected.txt:
+        * platform/qt/css2.1/t040105-atrule-01-b-expected.txt:
+        * platform/qt/css2.1/t040105-atrule-02-b-expected.txt:
+        * platform/qt/css2.1/t040105-atrule-03-b-expected.txt:
+        * platform/qt/css2.1/t040105-atrule-04-b-expected.txt:
+        * platform/qt/css2.1/t040105-import-00-b-expected.txt:
+        * platform/qt/css2.1/t040105-import-01-b-expected.txt:
+        * platform/qt/css2.1/t040109-c17-comments-00-b-expected.txt:
+        * platform/qt/css2.1/t040109-c17-comments-01-b-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-00-f-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-01-f-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-02-f-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-03-f-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-04-f-expected.txt:
+        * platform/qt/css2.1/t0402-syntax-01-f-expected.txt:
+        * platform/qt/css2.1/t0402-syntax-02-f-expected.txt:
+        * platform/qt/css2.1/t0402-syntax-03-f-expected.txt:
+        * platform/qt/css2.1/t0402-syntax-04-f-expected.txt:
+        * platform/qt/css2.1/t0402-syntax-05-f-expected.txt:
+        * platform/qt/css2.1/t0402-syntax-06-f-expected.txt:
+        * platform/qt/css2.1/t040302-c61-ex-len-00-b-a-expected.txt:
+        * platform/qt/css2.1/t040302-c61-phys-len-00-b-expected.txt:
+        * platform/qt/css2.1/t040302-c61-rel-len-00-b-ag-expected.txt:
+        * platform/qt/css2.1/t040304-c64-uri-00-a-g-expected.txt:
+        * platform/qt/css2.1/t040306-c63-color-00-b-ag-expected.txt:
+        * platform/qt/css2.1/t040306-syntax-01-f-expected.txt:
+        * platform/qt/css2.1/t040307-syntax-01-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-00-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-01-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-02-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-03-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-04-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-05-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-06-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-07-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-08-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-09-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-11-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-12-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-13-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-14-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-15-b-expected.txt:
+        * platform/qt/css2.1/t1202-counter-16-f-expected.txt:
+        * platform/qt/css2.1/t1202-counters-00-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-01-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-02-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-03-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-05-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-06-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-07-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-08-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-09-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-11-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-12-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-13-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-14-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-15-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-16-c-expected.txt:
+        * platform/qt/css2.1/t1202-counters-17-d-expected.txt:
+        * platform/qt/css2.1/t1202-counters-18-f-expected.txt:
+        * platform/qt/css2.1/t1205-c561-list-displ-00-b-expected.txt:
+        * platform/qt/css2.1/t1205-c563-list-type-00-b-expected.txt:
+        * platform/qt/css2.1/t1205-c563-list-type-01-b-expected.txt:
+        * platform/qt/css2.1/t1205-c564-list-img-00-b-g-expected.txt:
+        * platform/qt/css2.1/t1205-c565-list-pos-00-b-expected.txt:
+        * platform/qt/css2.1/t1205-c566-list-stl-01-c-g-expected.txt:
+        * platform/qt/css2.1/t140201-c532-bgcolor-00-a-expected.txt:
+        * platform/qt/css2.1/t140201-c532-bgcolor-01-b-expected.txt:
+        * platform/qt/css2.1/t140201-c533-bgimage-00-a-expected.txt:
+        * platform/qt/css2.1/t140201-c533-bgimage-01-b-g-expected.txt:
+        * platform/qt/css2.1/t140201-c534-bgre-00-b-ag-expected.txt:
+        * platform/qt/css2.1/t140201-c535-bg-fixd-00-b-g-expected.txt:
+        * platform/qt/css2.1/t140201-c536-bgpos-00-b-ag-expected.txt:
+        * platform/qt/css2.1/t1503-c522-font-family-00-b-expected.txt:
+        * platform/qt/css2.1/t1504-c523-font-style-00-b-expected.txt:
+        * platform/qt/css2.1/t1504-c543-txt-decor-00-d-g-expected.txt:
+        * platform/qt/css2.1/t1505-c524-font-var-00-b-expected.txt:
+        * platform/qt/css2.1/t1506-c525-font-wt-00-b-expected.txt:
+        * platform/qt/css2.1/t1507-c526-font-sz-00-b-expected.txt:
+        * platform/qt/css2.1/t1507-c526-font-sz-01-b-a-expected.txt:
+        * platform/qt/css2.1/t1507-c526-font-sz-02-b-a-expected.txt:
+        * platform/qt/css2.1/t1507-c526-font-sz-03-f-a-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-00-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-01-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-02-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-03-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-04-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-05-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-06-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-07-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-08-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-09-b-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-10-c-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-00-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-01-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-02-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-03-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-04-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-05-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-06-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-07-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-08-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-09-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-10-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-11-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-12-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-13-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-14-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-15-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-16-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-17-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-18-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-19-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-20-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-21-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-22-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-23-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-24-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-25-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-26-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-27-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-28-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-29-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-30-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-31-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-32-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-33-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-34-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-35-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-36-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-37-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-38-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-39-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-40-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-41-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-42-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-43-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-44-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-45-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-46-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-47-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-48-d-expected.txt:
+        * platform/qt/css2.1/t170602-bdr-conflct-w-49-d-expected.txt:
+        * platform/qt/editing/inserting/break-blockquote-after-delete-expected.txt:
+        * platform/qt/fast/backgrounds/001-expected.txt:
+        * platform/qt/fast/backgrounds/animated-svg-as-background-expected.txt:
+        * platform/qt/fast/backgrounds/background-inherit-color-bug-expected.txt:
+        * platform/qt/fast/backgrounds/background-origin-root-element-expected.txt:
+        * platform/qt/fast/backgrounds/background-position-1-expected.txt:
+        * platform/qt/fast/backgrounds/background-position-rounding-expected.txt:
+        * platform/qt/fast/backgrounds/body-generated-image-propagated-to-root-expected.txt:
+        * platform/qt/fast/backgrounds/mask-composite-expected.txt:
+        * platform/qt/fast/backgrounds/repeat/mask-negative-offset-repeat-expected.txt:
+        * platform/qt/fast/backgrounds/repeat/negative-offset-repeat-expected.txt:
+        * platform/qt/fast/backgrounds/repeat/noRepeatCorrectClip-expected.txt:
+        * platform/qt/fast/backgrounds/size/backgroundSize15-expected.txt:
+        * platform/qt/fast/backgrounds/size/zero-expected.txt:
+        * platform/qt/fast/backgrounds/solid-color-context-restore-expected.txt:
+        * platform/qt/fast/backgrounds/svg-as-background-1-expected.txt:
+        * platform/qt/fast/backgrounds/svg-as-background-2-expected.txt:
+        * platform/qt/fast/backgrounds/svg-as-background-3-expected.txt:
+        * platform/qt/fast/backgrounds/svg-as-background-4-expected.txt:
+        * platform/qt/fast/backgrounds/svg-as-background-5-expected.txt:
+        * platform/qt/fast/backgrounds/svg-as-background-6-expected.txt:
+        * platform/qt/fast/block/float/avoidance-percent-width-compat-expected.txt:
+        * platform/qt/fast/block/float/avoidance-percent-width-strict-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/001-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/002-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/003-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/004-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/005-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/006-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/010-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/011-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/012-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/015-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/016-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/017-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/018-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/019-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/020-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/021-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/022-expected.txt:
+        * platform/qt/fast/block/margin-collapse/block-inside-inline/025-expected.txt:
+        * platform/qt/fast/borders/border-radius-constraints-expected.txt:
+        * platform/qt/fast/borders/border-radius-split-inline-expected.txt:
+        * platform/qt/fast/box-shadow/basic-shadows-expected.txt:
+        * platform/qt/fast/box-shadow/inset-expected.txt:
+        * platform/qt/fast/box-shadow/transform-fringing-expected.txt:
+        * platform/qt/fast/canvas/canvas-before-css-expected.txt:
+        * platform/qt/fast/canvas/canvas-composite-expected.txt:
+        * platform/qt/fast/canvas/canvas-empty-image-pattern-expected.txt:
+        * platform/qt/fast/canvas/canvas-transform-identity-expected.txt:
+        * platform/qt/fast/canvas/canvas-transform-infinity-expected.txt:
+        * platform/qt/fast/canvas/canvas-transform-multiply-expected.txt:
+        * platform/qt/fast/canvas/canvas-transform-nan-expected.txt:
+        * platform/qt/fast/canvas/canvas-transform-non-invertible-expected.txt:
+        * platform/qt/fast/canvas/canvas-transform-skewed-expected.txt:
+        * platform/qt/fast/canvas/canvas-transforms-during-path-expected.txt:
+        * platform/qt/fast/canvas/canvas-zoom-expected.txt:
+        * platform/qt/fast/canvas/drawImage-expected.txt:
+        * platform/qt/fast/canvas/drawImage-with-globalAlpha-expected.txt:
+        * platform/qt/fast/canvas/image-pattern-rotate-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-1-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-2-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-3-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-4-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-5-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-6-expected.txt:
+        * platform/qt/fast/canvas/shadow-offset-7-expected.txt:
+        * platform/qt/fast/css/attribute-selector-dynamic-expected.txt:
+        * platform/qt/fast/css/font-smoothing-expected.txt:
+        * platform/qt/fast/css/getComputedStyle/marginComputedStyle-expected.txt:
+        * platform/qt/fast/css/nested-floating-relative-position-percentages-expected.txt:
+        * platform/qt/fast/css/nth-child-dynamic-expected.txt:
+        * platform/qt/fast/css/pseudo-cache-stale-expected.txt:
+        * platform/qt/fast/css/rem-dynamic-scaling-expected.txt:
+        * platform/qt/fast/css/rem-units-on-root-expected.txt:
+        * platform/qt/fast/css/text-input-with-webkit-border-radius-expected.txt:
+        * platform/qt/fast/css/text-rendering-expected.txt:
+        * platform/qt/fast/doctypes/001-expected.txt:
+        * platform/qt/fast/doctypes/002-expected.txt:
+        * platform/qt/fast/doctypes/004-expected.txt:
+        * platform/qt/fast/dom/HTMLTableColElement/resize-table-using-col-width-expected.txt:
+        * platform/qt/fast/dynamic/anchor-lock-expected.txt:
+        * platform/qt/fast/dynamic/genContentDestroyChildren-expected.txt:
+        * platform/qt/fast/dynamic/window-resize-scrollbars-test-expected.txt:
+        * platform/qt/fast/dynamic/window-scrollbars-test-expected.txt:
+        * platform/qt/fast/forms/basic-buttons-expected.txt:
+        * platform/qt/fast/forms/basic-inputs-expected.txt:
+        * platform/qt/fast/forms/button-style-color-expected.txt:
+        * platform/qt/fast/forms/isindex-placeholder-expected.txt:
+        * platform/qt/fast/forms/menulist-style-color-expected.txt:
+        * platform/qt/fast/forms/search-vertical-alignment-expected.txt:
+        * platform/qt/fast/forms/text-style-color-expected.txt:
+        * platform/qt/fast/forms/textarea-placeholder-pseudo-style-expected.txt:
+        * platform/qt/fast/forms/textarea-placeholder-set-attribute-expected.txt:
+        * platform/qt/fast/forms/textarea-placeholder-set-value-expected.txt:
+        * platform/qt/fast/frames/frame-navigation-expected.txt:
+        * platform/qt/fast/frames/frame-scrolling-attribute-expected.txt:
+        * platform/qt/fast/frames/frameset-style-recalc-expected.txt:
+        * platform/qt/fast/frames/iframe-scrolling-attribute-expected.txt:
+        * platform/qt/fast/frames/viewsource-on-image-file-expected.txt:
+        * platform/qt/fast/gradients/crash-on-zero-radius-expected.txt:
+        * platform/qt/fast/history/clicked-link-is-visited-expected.txt:
+        * platform/qt/fast/images/animated-gif-with-offsets-expected.txt:
+        * platform/qt/fast/images/image-in-map-expected.txt:
+        * platform/qt/fast/images/svg-as-background-expected.txt:
+        * platform/qt/fast/images/svg-width-100p-as-background-expected.txt:
+        * platform/qt/fast/lists/ol-start-parsing-expected.txt:
+        * platform/qt/fast/multicol/positioned-with-constrained-height-expected.txt:
+        * platform/qt/fast/overflow/overflow-with-local-background-attachment-expected.txt:
+        * platform/qt/fast/overflow/position-fixed-transform-clipping-expected.txt:
+        * platform/qt/fast/reflections/abs-position-in-reflection-expected.txt:
+        * platform/qt/fast/reflections/transparent-reflected-sublayers-expected.txt:
+        * platform/qt/fast/repaint/line-in-scrolled-clipped-block-expected.txt:
+        * platform/qt/fast/repaint/rel-positioned-inline-with-overflow-expected.txt:
+        * platform/qt/fast/table/fixed-table-with-percent-inside-percent-table-expected.txt:
+        * platform/qt/fast/table/fixed-table-with-percent-width-inside-auto-table-expected.txt:
+        * platform/qt/fast/table/fixed-table-with-percent-width-inside-div-expected.txt:
+        * platform/qt/fast/table/fixed-table-with-percent-width-inside-extra-large-div-expected.txt:
+        * platform/qt/fast/table/fixed-table-with-percent-width-inside-fixed-width-table-expected.txt:
+        * platform/qt/fast/table/fixed-table-with-small-percent-width-expected.txt:
+        * platform/qt/fast/text/international/hindi-whitespace-expected.txt:
+        * platform/qt/fast/text/international/khmer-selection-expected.txt:
+        * platform/qt/fast/text/shadow-translucent-fill-expected.txt:
+        * platform/qt/fast/text/text-letter-spacing-expected.txt:
+        * platform/qt/fast/transforms/bounding-rect-zoom-expected.txt:
+        * platform/qt/fast/xsl/document-function-expected.txt:
+        * platform/qt/plugins/netscape-dom-access-expected.txt:
+        * platform/qt/svg/custom/createImageElement2-expected.txt:
+        * platform/qt/svg/filters/feComposite-expected.txt:
+        * platform/qt/svg/filters/sourceAlpha-expected.txt:
+        * platform/qt/tables/mozilla/bugs/adforce_imgis_com-expected.txt:
+        * platform/qt/tables/mozilla/bugs/bug196870-expected.txt:
+        * platform/qt/tables/mozilla/bugs/bug56201-expected.txt:
+        * platform/qt/tables/mozilla/bugs/bug92647-2-expected.txt:
+        * platform/qt/tables/mozilla/other/slashlogo-expected.txt:
+        * platform/qt/tables/mozilla_expected_failures/bugs/bug23847-expected.txt:
+
+2009-11-12  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Unreviewed test fix by skipping a new test introduced in
+        https://bugs.webkit.org/show_bug.cgi?id=22249
+
+        * platform/gtk/Skipped:
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+
+2009-11-12  Yuta Kitamura  <yutak@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Prevent text inside a multi-column block from being split into columns.
+        
+        If the tentative height of a multi-column block was too small, we need to
+        expand the block height and try to layout again, in order to prevent text
+        from being split into different columns.
+
+        CSS Multicolumn text is split awkwardly
+        https://bugs.webkit.org/show_bug.cgi?id=22249
+
+        * fast/multicol/single-line.html: Added.
+        * fast/multicol/single-line-expected.checksum: Added.
+        * fast/multicol/single-line-expected.png: Added.
+        * fast/multicol/single-line-expected.txt: Added.
+
+2009-11-11  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        A test for a bug that RenderFileUploadControl isn't initialized with
+        multiple files. This test is skipped on ports which have no
+        eventSender.beginDragWithFiles().
+        https://bugs.webkit.org/show_bug.cgi?id=31195
+
+        * fast/forms/input-file-re-render.html: Added.
+        * platform/gtk/Skipped:
+        * platform/mac/fast/forms/input-file-re-render-expected.checksum: Added.
+        * platform/mac/fast/forms/input-file-re-render-expected.png: Added.
+        * platform/mac/fast/forms/input-file-re-render-expected.txt: Added.
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+
+2009-11-11  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31326
+
+        Makes the output for test fast/events/drag-and-drop.html pretty.
+        Now, it is easier to read for a human to read understand the results.
+
+        * fast/events/drag-and-drop-expected.txt: Rebased result.
+        * fast/events/drag-and-drop.html: Modified to make the output pretty.
+
+2009-11-11  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        need to implement aria tree roles
+        https://bugs.webkit.org/show_bug.cgi?id=31284
+
+        * accessibility/aria-readonly-expected.txt:
+        * accessibility/aria-readonly.html:
+        * platform/mac/accessibility/aria-multiselectable-expected.txt: Added.
+        * platform/mac/accessibility/aria-multiselectable.html: Added.
+        * platform/mac/accessibility/aria-tree-expected.txt: Added.
+        * platform/mac/accessibility/aria-tree.html: Added.
+        * platform/mac/accessibility/content-editable-expected.txt:
+        * platform/mac/accessibility/radio-button-group-members-expected.txt:
+
+2009-11-11  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Fix WebSocket frame parser of frame_type with high-order bit set.
+        https://bugs.webkit.org/show_bug.cgi?id=30668
+
+        * websocket/tests/frame-length-longer-than-buffer-expected.txt: Added.
+        * websocket/tests/frame-length-longer-than-buffer.html: Added.
+        * websocket/tests/frame-length-longer-than-buffer_wsh.py: Added.
+        * websocket/tests/frame-length-skip-expected.txt: Added.
+        * websocket/tests/frame-length-skip.html: Added.
+        * websocket/tests/frame-length-skip_wsh.py: Added.
+        * websocket/tests/script-tests/frame-length-longer-than-buffer.js: Added.
+        * websocket/tests/script-tests/frame-length-skip.js: Added.
+
+2009-11-11  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Put tests into skiplist added in r50830 and r50839 because
+        layoutTestController.showWebInspector() is unimplemented now.
+
+        * platform/qt/Skipped:
+
+2009-11-11  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Dmitry Titov.
+
+        Rewrite the test to run on a wider variety of screen configurations
+        (and pixel depths).
+
+        https://bugs.webkit.org/show_bug.cgi?id=31373
+
+        * fast/dom/Window/window-screen-properties-expected.txt:
+        * fast/dom/Window/window-screen-properties.html:
+        * platform/win/fast/dom/Window/window-screen-properties-expected.txt: Removed.
+
+2009-11-11  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        Tests for https://bugs.webkit.org/show_bug.cgi?id=31382
+        Make -webkit-color-correction work with shadows
+
+        * fast/css/color-correction-on-box-shadow.html: Added.
+        * fast/css/color-correction-on-text-shadow.html: Added.
+        * platform/mac/fast/css/color-correction-on-box-shadow-expected.checksum: Added.
+        * platform/mac/fast/css/color-correction-on-box-shadow-expected.png: Added.
+        * platform/mac/fast/css/color-correction-on-box-shadow-expected.txt: Added.
+        * platform/mac/fast/css/color-correction-on-text-shadow-expected.checksum: Added.
+        * platform/mac/fast/css/color-correction-on-text-shadow-expected.png: Added.
+        * platform/mac/fast/css/color-correction-on-text-shadow-expected.txt: Added.
+
+2009-11-11  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Print the file text of a file upload control in DumpRenderTree for ease of tests.
+        https://bugs.webkit.org/show_bug.cgi?id=31195
+
+        * platform/mac-leopard/fast/forms/file-input-disabled-expected.txt:
+        * platform/mac/fast/forms/box-shadow-override-expected.txt:
+        * platform/mac/fast/forms/file-input-direction-expected.txt:
+        * platform/mac/fast/forms/file-input-disabled-expected.txt:
+        * platform/mac/fast/forms/form-element-geometry-expected.txt:
+        * platform/mac/fast/forms/hidden-input-file-expected.txt:
+        * platform/mac/fast/forms/input-appearance-height-expected.txt:
+        * platform/mac/fast/forms/input-value-expected.txt:
+        * platform/win/fast/forms/box-shadow-override-expected.txt:
+        * platform/win/fast/forms/file-input-disabled-expected.txt:
+        * platform/win/fast/forms/input-appearance-height-expected.txt:
+        * platform/win/fast/forms/input-value-expected.txt:
+
+2009-11-11  Erik Arvidsson  <arv@chromium.org>
+
+        Reviewed by Dmitri Titov.
+
+        Fix layout test to not call onload on the wrong window after image has
+        been dropped onto the iframe.
+        https://bugs.webkit.org/show_bug.cgi?id=30893
+
+        * editing/selection/drag-to-contenteditable-iframe.html:
+
+2009-11-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Beth Dakin.
+
+        Unskip the webkit-color-correction tests because the workaround of using
+        the deviceRGBColorSpace allows the tests to pass on Windows.
+
+        * platform/win/Skipped:
+
+2009-11-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Skip the webkit-color-correction tests because they crash on Windows 
+        due to a CoreGraphics bug.
+
+        * platform/win/Skipped:
+
+2009-11-11  Eric Z. Ayers  <zundel@google.com>
+
+        Reviewed by Pavel Feldman.
+
+        Timeline tests for records generated for
+        Layout, Paint, ParseHTML, MarkTimeline, and Style Recalculation
+
+        https://bugs.webkit.org/show_bug.cgi?id=31361
+
+        * inspector/timeline-layout-expected.txt: Added.
+        * inspector/timeline-layout.html: Added.
+        * inspector/timeline-mark-timeline-expected.txt: Added.
+        * inspector/timeline-mark-timeline.html: Added.
+        * inspector/timeline-paint-expected.txt: Added.
+        * inspector/timeline-paint.html: Added.
+        * inspector/timeline-parse-html-expected.txt: Added.
+        * inspector/timeline-parse-html.html: Added.
+        * inspector/timeline-recalculate-styles-expected.txt: Added.
+        * inspector/timeline-recalculate-styles.html: Added.
+
+2009-11-11  Jessie Berlin  <jberlin@webkit.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Display the correct summary in the web inspector for the padding
+        shorthand. Also corrects the summaries for the border-color,
+        border-width, border-style, and margin shorthands.
+
+        https://bugs.webkit.org/show_bug.cgi?id=7987
+
+        * fast/css/shorthands-four-values-expected.txt: Added.
+        * fast/css/shorthands-four-values.html: Added.
+
+2009-11-11  Eric Z. Ayers  <zundel@google.com>
+
+        Reviewed by Pavel Feldman.
+
+        Added a test of an externally loaded script tag for Inspector 
+        timeline records.
+        Fixed identity comparisons.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31365
+
+        * inspector/timeline-script-tag-1.html:
+        * inspector/timeline-script-tag-2-expected.txt: Added.
+        * inspector/timeline-script-tag-2.html: Added.
+        * inspector/timeline-script-tag-2.js: Added.
+        * inspector/timeline-test.js:
+        ():
+        (timelineAgentTypeToString):
+
+2009-11-11  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Rubber-stamped by Kenneth Christiansen.
+
+        Grouping some of the current skipped plugin tests that fail
+        due to the same reason: no support for objective-c functions.
+
+        * platform/qt/Skipped:
+
+2009-11-11  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31334
+        
+        We should skip the test case /fast/events/drag-and-drop-fire-drag-dragover.html
+        on both the Qt and GTK builds since there are issues with drag-and-drop support
+        in these builds.
+        
+        For Qt: https://bugs.webkit.org/show_bug.cgi?id=31332
+        For GTK: https://bugs.webkit.org/show_bug.cgi?id=30576
+
+        * platform/gtk/Skipped: Skip test case /fast/events/drag-and-drop-fire-drag-dragover.html
+        since there are issues with drag-and-drop support in both GTK and Qt.
+        * platform/qt/Skipped: Ditto.
+
+2009-11-11  Yuta Kitamura  <yutak@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Convert LayoutTests/fast/inline/dirtyLinesForInline.html into dumpAsText.
+        
+        This test checks if the browser crashes after some operations. It doesn't test
+        any other interesting features, so we can safely make it a dumpAsText test.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=31335
+
+        * fast/inline/dirtyLinesForInline-expected.txt: Added.
+        * fast/inline/dirtyLinesForInline.html: Added dumpAsText().
+        * platform/mac/fast/inline/dirtyLinesForInline-expected.checksum: Removed.
+        * platform/mac/fast/inline/dirtyLinesForInline-expected.png: Removed.
+        * platform/mac/fast/inline/dirtyLinesForInline-expected.txt: Removed.
+
+2009-11-11  Eric Z. Ayers  <zundel@google.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Adds a test that dumps the timeline data for a simple script tag.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31204
+
+        * inspector/inspector-test.js:
+        (onload):
+        * inspector/timeline-script-tag-1-expected.txt: Added.
+        * inspector/timeline-script-tag-1.html: Added.
+        * inspector/timeline-test.js: Added.
+        (retrieveTimelineData):
+        ():
+        (dumpTimelineRecords):
+        (printTimelineRecordProperties):
+        (isNonDeterministicProp):
+        (printProps):
+        (isTimelineOverheadRecord):
+        (markTimelineRecordAsOverhead):
+        (timelineAgentTypeToString):
+        (frontend_startTimelineProfiler.window.WebInspector.addRecordToTimeline):
+        (frontend_startTimelineProfiler):
+        (frontend_getTimelineResults):
+        (frontend_setup):
+
+2009-11-11  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Skipping new tests.
+
+        * platform/gtk/Skipped:
+
+2009-11-11  Yuzo Fujishima  <yuzo@google.com>
+
+        Reviewed by David Levin.
+
+        Add a test for web socket handshake error.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31336
+
+        * websocket/tests/handshake-error-expected.txt: Added.
+        * websocket/tests/handshake-error.html: Added.
+        * websocket/tests/handshake-error_wsh.py: Added.
+        * websocket/tests/script-tests/handshake-error.js: Added.
+        (endTest):
+        (ws.onopen):
+        (ws.onmessage):
+        (ws.onclose):
+        (timeOutCallback):
+
+2009-11-11  Yuzo Fujishima  <yuzo@google.com>
+
+        Reviewed by David Levin.
+
+        Add a simple web socket test. This tests basic features of Web Socket.
+        This also serves as an example of Web Socket tests.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27492
+
+        * platform/gtk/Skipped:
+        * platform/mac/Skipped:
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+        * websocket/tests/resources/simple.js: Added.
+        (ws.onopen):
+        (ws.onmessage):
+        (ws.onclose):
+        (timeOutCallback):
+        * websocket/tests/simple-expected.txt: Added.
+        * websocket/tests/simple.html: Added.
+        * websocket/tests/simple_wsh.py: Added.
+
+2009-11-11  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30221
+        [GTK] fails to load media embedded in iframe element
+
+        * platform/gtk/Skipped: Unskip fixed tests.
+
+2009-11-10  Roland Steiner  <rolandsteiner@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Re-baselined layout test results for Windows for tests in fast/ruby.
+        (see https://bugs.webkit.org/show_bug.cgi?id=28420)
+
+        * platform/win/fast/ruby: Added.
+        * platform/win/fast/ruby/ruby-empty-rt-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-empty-rt-expected.png: Added.
+        * platform/win/fast/ruby/ruby-empty-rt-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-length-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-length-expected.png: Added.
+        * platform/win/fast/ruby/ruby-length-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-run-break-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-run-break-expected.png: Added.
+        * platform/win/fast/ruby/ruby-run-break-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-runs-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-runs-expected.png: Added.
+        * platform/win/fast/ruby/ruby-runs-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-runs-spans-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-runs-spans-expected.png: Added.
+        * platform/win/fast/ruby/ruby-runs-spans-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-simple-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-simple-expected.png: Added.
+        * platform/win/fast/ruby/ruby-simple-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-simple-rp-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-simple-rp-expected.png: Added.
+        * platform/win/fast/ruby/ruby-simple-rp-expected.txt: Added.
+        * platform/win/fast/ruby/ruby-trailing-expected.checksum: Added.
+        * platform/win/fast/ruby/ruby-trailing-expected.png: Added.
+        * platform/win/fast/ruby/ruby-trailing-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.txt: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.checksum: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.png: Added.
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.txt: Added.
+
+2009-11-10  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Oliver Hunt.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30754
+
+        Tests that the drag event always fires before the dragover event.
+
+        Also, re-bases the result for test fast/events/drag-in-frames.html, since
+        we now conform to the HTML 5 spec.
+
+        * fast/events/drag-and-drop-fire-drag-dragover-expected.txt: Added.
+        * fast/events/drag-and-drop-fire-drag-dragover.html: Added.
+        * fast/events/drag-in-frames-expected.txt: Rebased result.
+
+2009-11-10  Vitaly Repeshko  <vitalyr@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        [V8] Fix crash in V8CustomXPathNSResolver (http://crbug.com/26726).
+        https://bugs.webkit.org/show_bug.cgi?id=31301
+
+        * fast/xpath/xpath-detached-iframe-resolver-crash-expected.txt: Added.
+        * fast/xpath/xpath-detached-iframe-resolver-crash.html: Added.
+
+2009-11-10  Yael Aharon  <yael.aharon@nokia.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Implement URL decomposition IDL attributes for HTMLAnchorElement.
+        https://bugs.webkit.org/show_bug.cgi?id=29972
+
+        Testcases for setting and getting different parts of the URL.
+
+        * fast/dom/HTMLAnchorElement: Added.
+        * fast/dom/HTMLAnchorElement/script-tests: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/TEMPLATE.html: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-hash.js: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-host.js: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-hostname.js: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-pathname.js: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-port.js: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-protocol.js: Added.
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-search.js: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-hash-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-hash.html: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-host-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-host.html: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-hostname-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-hostname.html: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-pathname-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-pathname.html: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-port-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-port.html: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-protocol-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-protocol.html: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-search-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/set-href-attribute-search.html: Added.
+
+2009-11-10  Brian Weinstein  <bweinstein@apple.com>
+
+        Update getComputedStyle results for Windows to add -webkit-color-correction.
+
+        * platform/win/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+
+2009-11-10  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by NOBODY (Fix my own layout-test snafu)
+
+        Made a small change to my test then didn't update the results before landing.
+
+        * http/tests/webarchive/cross-origin-stylesheet-crash-expected.webarchive:
+
+2009-11-10  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Repro crash saving pcmag.com article as a webarchive.
+        <rdar://problem/7381219> and https://webkit.org/b/31322
+
+        * http/tests/webarchive/cross-origin-stylesheet-crash.html: Added.
+        * http/tests/webarchive/cross-origin-stylesheet-crash-expected.webarchive: Added.
+        * http/tests/webarchive/resources/localhost-stylesheet.css: Added.
+        * platform/gtk/Skipped: Add this test to the gtk Skipped list which tracks all individual skipped tests
+          instead of directories.
+
+2009-11-10  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Anders Carlsson.
+        
+        Add timing out test to Windows Skipped list.
+
+        * platform/win/Skipped:
+
+2009-11-10  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Put test into skiplist added in r50758 because
+        layoutTestController.showWebInspector() is unimplemented now.
+
+        * platform/qt/Skipped: inspector/timeline-enum-stability.html added.
+
+2009-11-10  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Skip another test that requires implementing editing
+        callbacks.
+
+        * platform/gtk/Skipped:
+
+2009-11-10  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Tests for <rdar://problem/7059710> 
+        -and corresponding-
+        https://bugs.webkit.org/show_bug.cgi?id=31196 Implement -webkit-
+        color-correction for CSS colors
+
+        New tests.
+        * fast/css/color-correction-backgrounds-and-text.html: Added.
+        * fast/css/color-correction-on-backgrounds.html: Added.
+        * fast/css/color-correction-on-text.html: Added.
+        * fast/css/color-correction.html: Added.
+        * fast/css/parsing-color-correction-expected.txt: Added.
+        * fast/css/parsing-color-correction.html: Added.
+        * fast/css/resources/parsing-color-correction.js: Added.
+        (test):
+        * fast/css/resources/purple-srgb.png: Added.
+        * platform/mac/fast/css/color-correction-backgrounds-and-text-expected.checksum: Added.
+        * platform/mac/fast/css/color-correction-backgrounds-and-text-expected.png: Added.
+        * platform/mac/fast/css/color-correction-backgrounds-and-text-expected.txt: Added.
+        * platform/mac/fast/css/color-correction-expected.checksum: Added.
+        * platform/mac/fast/css/color-correction-expected.png: Added.
+        * platform/mac/fast/css/color-correction-expected.txt: Added.
+        * platform/mac/fast/css/color-correction-on-backgrounds-expected.checksum: Added.
+        * platform/mac/fast/css/color-correction-on-backgrounds-expected.png: Added.
+        * platform/mac/fast/css/color-correction-on-backgrounds-expected.txt: Added.
+        * platform/mac/fast/css/color-correction-on-text-expected.checksum: Added.
+        * platform/mac/fast/css/color-correction-on-text-expected.png: Added.
+        * platform/mac/fast/css/color-correction-on-text-expected.txt: Added.
+
+        New and improved results.
+        * platform/mac/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/mac/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2009-11-10  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Skip new tests.
+
+        * platform/gtk/Skipped:
+
+2009-11-10  Eric Z. Ayers  <zundel@google.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Adds a test to flag changes to values of the WebInspector Timeline record types.
+        Downstream apps depend on these mappings remaining stable.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31303
+
+        * inspector/timeline-enum-stability-expected.txt: Added.
+        * inspector/timeline-enum-stability.html: Added.
+
+2009-11-10  Andras Becsi  <becsi.andras@stud.u-szeged.hu>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Update outdated metrics in these tests after r50665 enabled the previously missing scrollbar.
+        This fixes https://bugs.webkit.org/show_bug.cgi?id=31281.
+
+        * platform/qt/css1/basic/class_as_selector-expected.txt:
+        * platform/qt/css1/basic/comments-expected.txt:
+        * platform/qt/css1/basic/containment-expected.txt:
+        * platform/qt/css1/basic/id_as_selector-expected.txt:
+        * platform/qt/css1/basic/inheritance-expected.txt:
+        * platform/qt/css1/box_properties/border-expected.txt:
+        * platform/qt/css1/box_properties/border_bottom-expected.txt:
+        * platform/qt/css1/box_properties/border_bottom_width-expected.txt:
+        * platform/qt/css1/box_properties/border_left-expected.txt:
+        * platform/qt/css1/box_properties/border_left_width-expected.txt:
+        * platform/qt/css1/box_properties/border_right_inline-expected.txt:
+        * platform/qt/css1/box_properties/border_right_width-expected.txt:
+        * platform/qt/css1/box_properties/border_style-expected.txt:
+        * platform/qt/css1/box_properties/border_top-expected.txt:
+        * platform/qt/css1/box_properties/border_top_width-expected.txt:
+        * platform/qt/css1/box_properties/border_width-expected.txt:
+        * platform/qt/css1/box_properties/clear-expected.txt:
+        * platform/qt/css1/box_properties/clear_float-expected.txt:
+        * platform/qt/css1/box_properties/float_elements_in_series-expected.txt:
+        * platform/qt/css1/box_properties/float_margin-expected.txt:
+        * platform/qt/css1/box_properties/float_on_text_elements-expected.txt:
+        * platform/qt/css1/box_properties/height-expected.txt:
+        * platform/qt/css1/box_properties/margin-expected.txt:
+        * platform/qt/css1/box_properties/margin_bottom-expected.txt:
+        * platform/qt/css1/box_properties/margin_inline-expected.txt:
+        * platform/qt/css1/box_properties/margin_left-expected.txt:
+        * platform/qt/css1/box_properties/margin_right-expected.txt:
+        * platform/qt/css1/box_properties/margin_top-expected.txt:
+        * platform/qt/css1/box_properties/padding-expected.txt:
+        * platform/qt/css1/box_properties/padding_bottom-expected.txt:
+        * platform/qt/css1/box_properties/padding_inline-expected.txt:
+        * platform/qt/css1/box_properties/padding_left-expected.txt:
+        * platform/qt/css1/box_properties/padding_right-expected.txt:
+        * platform/qt/css1/box_properties/padding_top-expected.txt:
+        * platform/qt/css1/box_properties/width-expected.txt:
+        * platform/qt/css1/cascade/cascade_order-expected.txt:
+        * platform/qt/css1/cascade/important-expected.txt:
+        * platform/qt/css1/classification/display-expected.txt:
+        * platform/qt/css1/classification/list_style_type-expected.txt:
+        * platform/qt/css1/classification/white_space-expected.txt:
+        * platform/qt/css1/color_and_background/background-expected.txt:
+        * platform/qt/css1/color_and_background/background_attachment-expected.txt:
+        * platform/qt/css1/color_and_background/background_color-expected.txt:
+        * platform/qt/css1/color_and_background/background_image-expected.txt:
+        * platform/qt/css1/color_and_background/background_position-expected.txt:
+        * platform/qt/css1/color_and_background/background_repeat-expected.txt:
+        * platform/qt/css1/conformance/forward_compatible_parsing-expected.txt:
+        * platform/qt/css1/font_properties/font-expected.txt:
+        * platform/qt/css1/font_properties/font_family-expected.txt:
+        * platform/qt/css1/font_properties/font_size-expected.txt:
+        * platform/qt/css1/font_properties/font_weight-expected.txt:
+        * platform/qt/css1/formatting_model/floating_elements-expected.txt:
+        * platform/qt/css1/formatting_model/height_of_lines-expected.txt:
+        * platform/qt/css1/formatting_model/horizontal_formatting-expected.txt:
+        * platform/qt/css1/formatting_model/inline_elements-expected.txt:
+        * platform/qt/css1/formatting_model/replaced_elements-expected.txt:
+        * platform/qt/css1/formatting_model/vertical_formatting-expected.txt:
+        * platform/qt/css1/pseudo/anchor-expected.txt:
+        * platform/qt/css1/pseudo/firstletter-expected.txt:
+        * platform/qt/css1/pseudo/firstline-expected.txt:
+        * platform/qt/css1/pseudo/multiple_pseudo_elements-expected.txt:
+        * platform/qt/css1/pseudo/pseudo_elements_in_selectors-expected.txt:
+        * platform/qt/css1/text_properties/letter_spacing-expected.txt:
+        * platform/qt/css1/text_properties/line_height-expected.txt:
+        * platform/qt/css1/text_properties/text_decoration-expected.txt:
+        * platform/qt/css1/text_properties/text_indent-expected.txt:
+        * platform/qt/css1/text_properties/text_transform-expected.txt:
+        * platform/qt/css1/text_properties/vertical_align-expected.txt:
+        * platform/qt/css1/text_properties/word_spacing-expected.txt:
+        * platform/qt/css1/units/color_units-expected.txt:
+        * platform/qt/css1/units/length_units-expected.txt:
+        * platform/qt/css1/units/percentage_units-expected.txt:
+        * platform/qt/css2.1/t0402-c71-fwd-parsing-02-f-expected.txt:
+        * platform/qt/css2.1/t1202-counter-09-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-08-b-expected.txt:
+        * platform/qt/css2.1/t1202-counters-09-b-expected.txt:
+        * platform/qt/css2.1/t140201-c535-bg-fixd-00-b-g-expected.txt:
+        * platform/qt/css2.1/t1508-c527-font-07-b-expected.txt:
+        * platform/qt/fast/backgrounds/background-inherit-color-bug-expected.txt:
+        * platform/qt/fast/backgrounds/size/backgroundSize15-expected.txt:
+        * platform/qt/fast/block/float/008-expected.txt:
+        * platform/qt/fast/block/float/019-expected.txt:
+        * platform/qt/fast/block/float/033-expected.txt:
+        * platform/qt/fast/block/float/035-expected.txt:
+        * platform/qt/fast/block/float/avoidance-percent-width-strict-expected.txt:
+        * platform/qt/fast/box-shadow/basic-shadows-expected.txt:
+        * platform/qt/fast/canvas/canvas-bg-expected.txt:
+        * platform/qt/fast/css/nested-floating-relative-position-percentages-expected.txt:
+        * platform/qt/fast/css/nth-child-dynamic-expected.txt:
+        * platform/qt/fast/css/text-rendering-expected.txt:
+        * platform/qt/fast/dynamic/anchor-lock-expected.txt:
+        * platform/qt/fast/flexbox/flex-hang-expected.txt:
+        * platform/qt/fast/forms/search-vertical-alignment-expected.txt:
+        * platform/qt/fast/frames/iframe-scrolling-attribute-expected.txt:
+        * platform/qt/fast/lists/ol-start-parsing-expected.txt:
+        * platform/qt/fast/multicol/positioned-with-constrained-height-expected.txt:
+        * platform/qt/fast/overflow/position-fixed-transform-clipping-expected.txt:
+        * platform/qt/fast/table/height-percent-test-expected.txt:
+        * platform/qt/fast/table/wide-colspan-expected.txt:
+        * platform/qt/fast/table/wide-column-expected.txt:
+        * platform/qt/fast/text/text-letter-spacing-expected.txt:
+        * platform/qt/svg/css/stars-with-shadow-expected.txt:
+        * platform/qt/tables/mozilla/bugs/bug29314-expected.txt:
+
 2009-11-10  Philippe Normand  <pnormand@igalia.com>
 
         Reviewed by Eric Seidel.

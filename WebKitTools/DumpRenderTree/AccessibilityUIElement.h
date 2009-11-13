@@ -61,6 +61,8 @@ public:
 
     static JSObjectRef makeJSAccessibilityUIElement(JSContextRef, const AccessibilityUIElement&);
 
+    bool isEqual(AccessibilityUIElement* otherElement) { return platformUIElement() == otherElement->platformUIElement(); }
+    
     void getLinkedUIElements(Vector<AccessibilityUIElement>&);
     void getDocumentLinks(Vector<AccessibilityUIElement>&);
     void getChildren(Vector<AccessibilityUIElement>&);
@@ -107,8 +109,11 @@ public:
     bool isRequired() const;
     bool isSelected() const;
     bool isExpanded() const;
+    int hierarchicalLevel() const;
     double clickPointX();
     double clickPointY();
+    JSStringRef documentEncoding();
+    JSStringRef documentURI();
 
     // Table-specific attributes
     JSStringRef attributesOfColumnHeaders();
@@ -120,6 +125,11 @@ public:
     int indexInTable();
     JSStringRef rowIndexRange();
     JSStringRef columnIndexRange();
+    
+    // Tree/Outline specific attributes
+    AccessibilityUIElement selectedRowAtIndex(unsigned);
+    AccessibilityUIElement disclosedByRow();
+    AccessibilityUIElement disclosedRowAtIndex(unsigned);
     
     // Parameterized attributes
     int lineForIndex(int);

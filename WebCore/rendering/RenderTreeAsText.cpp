@@ -36,6 +36,7 @@
 #include "HTMLNames.h"
 #include "InlineTextBox.h"
 #include "RenderBR.h"
+#include "RenderFileUploadControl.h"
 #include "RenderInline.h"
 #include "RenderListMarker.h"
 #include "RenderTableCell.h"
@@ -217,6 +218,9 @@ static TextStream &operator<<(TextStream& ts, const RenderObject& o)
     ts << " " << r;
 
     if (!(o.isText() && !o.isBR())) {
+        if (o.isFileUploadControl()) {
+            ts << " " << quoteAndEscapeNonPrintables(toRenderFileUploadControl(&o)->fileTextValue());
+        }
         if (o.parent() && (o.parent()->style()->color() != o.style()->color()))
             ts << " [color=" << o.style()->color().name() << "]";
 
@@ -535,8 +539,9 @@ static void writeSelection(TextStream& ts, const RenderObject* o)
            << "selection end:   position " << selection.end().deprecatedEditingOffset() << " of " << nodePosition(selection.end().node()) << "\n";
 }
 
-String externalRepresentation(RenderObject* o)
+String externalRepresentation(Frame* frame)
 {
+    RenderObject* o = frame->contentRenderer();
     if (!o)
         return String();
 

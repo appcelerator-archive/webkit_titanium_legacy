@@ -45,6 +45,7 @@
 #include "KURL.h"
 #include "MessagePort.h"
 #include "RangeException.h"
+#include "ScriptCachedFrameData.h"
 #include "ScriptController.h"
 #include "Settings.h"
 #include "XMLHttpRequestException.h"
@@ -167,8 +168,6 @@ DOMWrapperWorld::~DOMWrapperWorld()
 
     for (HashSet<Document*>::iterator iter = documentsWithWrappers.begin(); iter != documentsWithWrappers.end(); ++iter)
         forgetWorldOfDOMNodesForDocument(*iter, this);
-    for (HashSet<ScriptController*>::iterator iter = scriptControllersWithShells.begin(); iter != scriptControllersWithShells.end(); ++iter)
-        (*iter)->forgetWorld(this);
 }
 
 EnterDOMWrapperWorld::EnterDOMWrapperWorld(JSC::JSGlobalData& globalData, DOMWrapperWorld* isolatedWorld)
@@ -533,6 +532,23 @@ void markDOMObjectWrapper(MarkStack& markStack, JSGlobalData& globalData, void* 
 
     for (JSGlobalDataWorldIterator worldIter(&globalData); worldIter; ++worldIter) {
         if (DOMObject* wrapper = worldIter->m_wrappers.get(object))
+            markStack.append(wrapper);
+    }
+}
+
+void markDOMNodeWrapper(MarkStack& markStack, Document* document, Node* node)
+{
+    if (document) {
+        JSWrapperCacheMap& wrapperCacheMap = document->wrapperCacheMap();
+        for (JSWrapperCacheMap::iterator iter = wrapperCacheMap.begin(); iter != wrapperCacheMap.end(); ++iter) {
+            if (JSNode* wrapper = iter->second->get(node))
+                markStack.append(wrapper);
+        }
+        return;
+    }
+
+    for (JSGlobalDataWorldIterator worldIter(JSDOMWindow::commonJSGlobalData()); worldIter; ++worldIter) {
+        if (DOMObject* wrapper = worldIter->m_wrappers.get(node))
             markStack.append(wrapper);
     }
 }

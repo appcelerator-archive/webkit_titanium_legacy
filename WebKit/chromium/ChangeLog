@@ -1,21 +1,1412 @@
-2009-11-09  Nate Chapin  <japhet@chromium.org>
+2009-11-13  Yaar Schnitman  <yaar@chromium.org>
 
         Reviewed by Dimitri Glazkov.
 
-        WebPa*.h and WebPl*.h Chromium API headers.
+        Rolling Chromium dependencies to match Chromium revision 31834. 
+        
+        https://bugs.webkit.org/show_bug.cgi?id=31445
 
-        https://bugs.webkit.org/show_bug.cgi?id=28394
+        * DEPS:
 
-        * public/WebPasswordAutocompleteListener.h: Added.
-        (WebKit::WebPasswordAutocompleteListener::~WebPasswordAutocompleteListener):
-        * public/WebPasswordFormData.h: Added.
-        (WebKit::WebPasswordFormData::isValid):
-        * public/WebPlugin.h: Added.
-        (WebKit::WebPlugin::~WebPlugin):
-        * public/WebPluginContainer.h: Added.
-        (WebKit::WebPluginContainer::~WebPluginContainer):
-        * public/WebPluginListBuilder.h: Added.
-        * public/WebPluginParams.h: Added.
+2009-11-12  Dumitru Daniliuc  <dumi@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Renaming some parameters passed to DB-related methods to better
+        indicate their purpose.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31449
+
+        * public/WebKitClient.h:
+        * src/ChromiumBridge.cpp:
+        (WebCore::ChromiumBridge::databaseOpenFile):
+        (WebCore::ChromiumBridge::databaseDeleteFile):
+        (WebCore::ChromiumBridge::databaseGetFileAttributes):
+        (WebCore::ChromiumBridge::databaseGetFileSize):
+
+2009-11-12  Adam Barth  <abarth>
+
+        Reviewed by Dimitri Glazkov.
+
+        [Chromium] reload-subframe-object.html fails
+        https://bugs.webkit.org/show_bug.cgi?id=31398
+
+        More closely match FrameLoaderClient.mm.  Turns out we don't want to
+        use MIMETypeRegistry::getMIMETypeForPath because we can't distinguish
+        between application/octet-stream and lack of knowledge of the MIME
+        type.
+
+        Covered by reload-subframe-object.html.
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::objectContentType):
+
+2009-11-12  Nate Chapin  <japhet@chromium.org>
+
+        Unreviewed, Chromium build fix.
+
+        Add new accessibility enum values to Chromium enums from
+        http://trac.webkit.org/changeset/50865 and
+        http://trac.webkit.org/changeset/50883.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31424
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::):
+        * src/AssertMatchingEnums.cpp:
+
+2009-11-12  Nicolas Weber  <thakis@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Send |keypress()| events for keys with cmd down, like safari.
+        Test: Hit cmd-shift-a on unixpapa.com/js/testkey.html , should show a
+        keypress() event.
+
+        * src/mac/WebInputEventFactory.mm:
+        (WebKit::WebInputEventFactory::keyboardEvent):
+
+2009-11-11  Jeremy Orlow  <jorlow@chromium.org>
+
+        Not reviewed.  Build fix.  Will be cleaned up in subsequent patch once we know exaclty what's going on.
+
+        * src/WebBindings.cpp:
+
+2009-11-11  Drew Wilson  <atwilson@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        SharedWorkerRepository.connect() does not call WebSharedWorkerRepository
+        https://bugs.webkit.org/show_bug.cgi?id=31371
+
+        Test: Unit tests can be enabled downstream when this lands.
+
+        * src/SharedWorkerRepository.cpp:
+        (WebCore::SharedWorkerRepository::connect):
+        Added missing call to WebSharedWorkerRepository.addSharedWorker().
+
+2009-11-11  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Tiny path fixes in Chromium API includes.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31369
+
+        * public/linux/WebSandboxSupport.h: Fixed path.
+        * src/WebBindings.cpp: Fixed path.
+
+2009-11-11  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        http://trac.webkit.org/changeset/50811 removed some methods from
+        platform/network/SocketStreamHandleClient.h, so remove them
+        here too.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31360
+
+        * public/WebSocketStreamHandleClient.h:
+        * src/SocketStreamHandle.cpp:
+        (WebCore::SocketStreamHandleInternal::send):
+
+2009-11-11  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Remove some additional references to dragSourceMovedTo() not
+        needed after http://trac.webkit.org/changeset/50786.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31354
+
+        * public/WebView.h:
+        * src/WebViewImpl.h:
+
+2009-11-11  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Remove WebViewImpl::dragSourceMovedTo(), as it is no longer
+        needed after http://trac.webkit.org/changeset/50786.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31354
+
+        * src/WebViewImpl.cpp:
+
+2009-11-10  Nate Chapin  <japhet@chromium.org>
+
+        Unreviewed, Chromium build fix for http://trac.webkit.org/changeset/50760.
+
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrameImpl::paint):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Modified WebKit.gyp to build the webkit api.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31320
+
+        * README: Added.
+        * WebKit.gyp: Added.
+        * webkit.gyp: Removed.
+
+2009-11-10  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Update references to Canvas 3D classes to use the WebGL prefix
+        introduced in http://trac.webkit.org/changeset/50725.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::beginPaint):
+        (WebCore::GraphicsContext3DInternal::bindBuffer):
+        (WebCore::GraphicsContext3DInternal::bindTexture):
+        (WebCore::GraphicsContext3D::beginPaint):
+        (WebCore::GraphicsContext3D::bindAttribLocation):
+        (WebCore::GraphicsContext3D::bindBuffer):
+        (WebCore::GraphicsContext3D::bindTexture):
+        (WebCore::GraphicsContext3D::bufferData):
+        (WebCore::GraphicsContext3D::bufferSubData):
+        (WebCore::GraphicsContext3D::detachShader):
+        (WebCore::GraphicsContext3D::getActiveAttrib):
+        (WebCore::GraphicsContext3D::getActiveUniform):
+        (WebCore::GraphicsContext3D::getAttribLocation):
+        (WebCore::GraphicsContext3D::getBooleanv):
+        (WebCore::GraphicsContext3D::getBufferParameteriv):
+        (WebCore::GraphicsContext3D::getFloatv):
+        (WebCore::GraphicsContext3D::getFramebufferAttachmentParameteriv):
+        (WebCore::GraphicsContext3D::getIntegerv):
+        (WebCore::GraphicsContext3D::getProgrami):
+        (WebCore::GraphicsContext3D::getProgramiv):
+        (WebCore::GraphicsContext3D::getProgramInfoLog):
+        (WebCore::GraphicsContext3D::getRenderbufferParameteriv):
+        (WebCore::GraphicsContext3D::getShaderi):
+        (WebCore::GraphicsContext3D::getShaderiv):
+        (WebCore::GraphicsContext3D::getShaderInfoLog):
+        (WebCore::GraphicsContext3D::getShaderSource):
+        (WebCore::GraphicsContext3D::getTexParameterfv):
+        (WebCore::GraphicsContext3D::getTexParameteriv):
+        (WebCore::GraphicsContext3D::getUniformf):
+        (WebCore::GraphicsContext3D::getUniformfv):
+        (WebCore::GraphicsContext3D::getUniformi):
+        (WebCore::GraphicsContext3D::getUniformiv):
+        (WebCore::GraphicsContext3D::getUniformLocation):
+        (WebCore::GraphicsContext3D::getVertexAttribfv):
+        (WebCore::GraphicsContext3D::getVertexAttribiv):
+        (WebCore::GraphicsContext3D::isBuffer):
+        (WebCore::GraphicsContext3D::isFramebuffer):
+        (WebCore::GraphicsContext3D::isProgram):
+        (WebCore::GraphicsContext3D::isRenderbuffer):
+        (WebCore::GraphicsContext3D::isShader):
+        (WebCore::GraphicsContext3D::isTexture):
+        (WebCore::GraphicsContext3D::readPixels):
+        (WebCore::GraphicsContext3D::shaderSource):
+        (WebCore::GraphicsContext3D::texImage2D):
+        (WebCore::GraphicsContext3D::texSubImage2D):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: WebWorker and friends.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/WebWorkerBase.cpp: Added.
+        (WebKit::WorkerWebFrameClient::didCreateDataSource):
+        (WebKit::WorkerWebFrameClient::sharedInstance):
+        (WebKit::WorkerWebFrameClient::WorkerWebFrameClient):
+        (WebKit::initializeWebKitStaticValues):
+        (WebKit::WebWorkerBase::WebWorkerBase):
+        (WebKit::WebWorkerBase::~WebWorkerBase):
+        (WebKit::WebWorkerBase::stopWorkerThread):
+        (WebKit::WebWorkerBase::initializeLoader):
+        (WebKit::WebWorkerBase::dispatchTaskToMainThread):
+        (WebKit::WebWorkerBase::invokeTaskMethod):
+        (WebKit::WebWorkerBase::postMessageToWorkerObject):
+        (WebKit::WebWorkerBase::postMessageTask):
+        (WebKit::WebWorkerBase::postExceptionToWorkerObject):
+        (WebKit::WebWorkerBase::postExceptionTask):
+        (WebKit::WebWorkerBase::postConsoleMessageToWorkerObject):
+        (WebKit::WebWorkerBase::postConsoleMessageTask):
+        (WebKit::WebWorkerBase::confirmMessageFromWorkerObject):
+        (WebKit::WebWorkerBase::confirmMessageTask):
+        (WebKit::WebWorkerBase::reportPendingActivity):
+        (WebKit::WebWorkerBase::reportPendingActivityTask):
+        (WebKit::WebWorkerBase::workerContextClosed):
+        (WebKit::WebWorkerBase::workerContextClosedTask):
+        (WebKit::WebWorkerBase::workerContextDestroyed):
+        (WebKit::WebWorkerBase::workerContextDestroyedTask):
+        (WebKit::WebWorkerBase::postTaskToLoader):
+        (WebKit::WebWorkerBase::postTaskForModeToWorkerContext):
+        * src/WebWorkerBase.h: Added.
+        (WebKit::WebWorkerBase::setWorkerThread):
+        (WebKit::WebWorkerBase::workerThread):
+        * src/WebWorkerClientImpl.cpp: Added.
+        (WebKit::WebWorkerClientImpl::createWorkerContextProxy):
+        (WebKit::WebWorkerClientImpl::WebWorkerClientImpl):
+        (WebKit::WebWorkerClientImpl::~WebWorkerClientImpl):
+        (WebKit::WebWorkerClientImpl::setWebWorker):
+        (WebKit::WebWorkerClientImpl::startWorkerContext):
+        (WebKit::WebWorkerClientImpl::terminateWorkerContext):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerContext):
+        (WebKit::WebWorkerClientImpl::hasPendingActivity):
+        (WebKit::WebWorkerClientImpl::workerObjectDestroyed):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerObject):
+        (WebKit::WebWorkerClientImpl::postExceptionToWorkerObject):
+        (WebKit::WebWorkerClientImpl::postConsoleMessageToWorkerObject):
+        (WebKit::WebWorkerClientImpl::confirmMessageFromWorkerObject):
+        (WebKit::WebWorkerClientImpl::reportPendingActivity):
+        (WebKit::WebWorkerClientImpl::workerContextDestroyed):
+        (WebKit::WebWorkerClientImpl::workerContextClosed):
+        (WebKit::WebWorkerClientImpl::startWorkerContextTask):
+        (WebKit::WebWorkerClientImpl::terminateWorkerContextTask):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerContextTask):
+        (WebKit::WebWorkerClientImpl::workerObjectDestroyedTask):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerObjectTask):
+        (WebKit::WebWorkerClientImpl::postExceptionToWorkerObjectTask):
+        (WebKit::WebWorkerClientImpl::postConsoleMessageToWorkerObjectTask):
+        (WebKit::WebWorkerClientImpl::confirmMessageFromWorkerObjectTask):
+        (WebKit::WebWorkerClientImpl::reportPendingActivityTask):
+        * src/WebWorkerClientImpl.h: Added.
+        (WebKit::WebWorkerClientImpl::createWorker):
+        (WebKit::WebWorkerClientImpl::notificationPresenter):
+        * src/WebWorkerImpl.cpp: Added.
+        (WebKit::WebWorker::create):
+        (WebKit::WebWorkerImpl::WebWorkerImpl):
+        (WebKit::WebWorkerImpl::~WebWorkerImpl):
+        (WebKit::WebWorkerImpl::commonClient):
+        (WebKit::WebWorkerImpl::postMessageToWorkerContextTask):
+        (WebKit::WebWorkerImpl::startWorkerContext):
+        (WebKit::WebWorkerImpl::terminateWorkerContext):
+        (WebKit::WebWorkerImpl::postMessageToWorkerContext):
+        (WebKit::WebWorkerImpl::workerObjectDestroyed):
+        (WebKit::WebWorkerImpl::clientDestroyed):
+        * src/WebWorkerImpl.h: Added.
+        (WebKit::WebWorkerImpl::client):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: Platform specific files.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/gtk/WebFontInfo.cpp: Added.
+        (WebKit::WebFontInfo::familyForChars):
+        * src/gtk/WebInputEventFactory.cpp: Added.
+        (WebKit::gdkEventTimeToWebEventTime):
+        (WebKit::gdkStateToWebEventModifiers):
+        (WebKit::gdkEventToWindowsKeyCode):
+        (WebKit::getControlCharacter):
+        (WebKit::WebInputEventFactory::keyboardEvent):
+        (WebKit::WebInputEventFactory::mouseEvent):
+        (WebKit::WebInputEventFactory::mouseWheelEvent):
+        * src/gtk/WebScreenInfoFactory.cpp: Added.
+        (WebKit::WebScreenInfoFactory::screenInfo):
+        * src/linux/WebFontRendering.cpp: Added.
+        (WebKit::WebFontRendering::setHinting):
+        (WebKit::WebFontRendering::setAntiAlias):
+        (WebKit::WebFontRendering::setSubpixelGlyphs):
+        (WebKit::WebFontRendering::setLCDOrder):
+        (WebKit::WebFontRendering::setLCDOrientation):
+        * src/mac/WebInputEventFactory.mm: Added.
+        (WebKit::isKeyUpEvent):
+        (WebKit::isKeypadEvent):
+        (WebKit::windowsKeyCodeForKeyEvent):
+        (WebKit::textFromEvent):
+        (WebKit::unmodifiedTextFromEvent):
+        (WebKit::keyIdentifierForKeyEvent):
+        (WebKit::modifiersFromEvent):
+        (WebKit::WebInputEventFactory::keyboardEvent):
+        (WebKit::WebInputEventFactory::mouseEvent):
+        (WebKit::WebInputEventFactory::mouseWheelEvent):
+        * src/mac/WebScreenInfoFactory.mm: Added.
+        (WebKit::screenForWindow):
+        (WebKit::toUserSpace):
+        (WebKit::WebScreenInfoFactory::screenInfo):
+        * src/win/WebInputEventFactory.cpp: Added.
+        (WebKit::isKeyPad):
+        (WebKit::WebInputEventFactory::keyboardEvent):
+        (WebKit::GetRelativeCursorPos):
+        (WebKit::WebInputEventFactory::resetLastClickState):
+        (WebKit::WebInputEventFactory::mouseEvent):
+        (WebKit::WebInputEventFactory::mouseWheelEvent):
+        * src/win/WebScreenInfoFactory.cpp: Added.
+        (WebKit::toWebRect):
+        (WebKit::WebScreenInfoFactory::screenInfo):
+        * src/x11/WebScreenInfoFactory.cpp: Added.
+        (WebKit::WebScreenInfoFactory::screenInfo):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Up-streaming Chromium API src files: WrapperResourceRequest and Response
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/WrappedResourceRequest.h: Added.
+        (WebKit::WrappedResourceRequest::~WrappedResourceRequest):
+        (WebKit::WrappedResourceRequest::WrappedResourceRequest):
+        (WebKit::WrappedResourceRequest::bind):
+        (WebKit::WrappedResourceRequest::Handle::dispose):
+        * src/WrappedResourceResponse.h: Added.
+        (WebKit::WrappedResourceResponse::~WrappedResourceResponse):
+        (WebKit::WrappedResourceResponse::WrappedResourceResponse):
+        (WebKit::WrappedResourceResponse::bind):
+        (WebKit::WrappedResourceResponse::Handle::dispose):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: StorageStreamHandlers...StorageNamespaceProxy
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/SocketStreamHandle.cpp: Added.
+        (WebCore::SocketStreamHandleInternal::create):
+        (WebCore::SocketStreamHandleInternal::SocketStreamHandleInternal):
+        (WebCore::SocketStreamHandleInternal::~SocketStreamHandleInternal):
+        (WebCore::SocketStreamHandleInternal::connect):
+        (WebCore::SocketStreamHandleInternal::send):
+        (WebCore::SocketStreamHandleInternal::close):
+        (WebCore::SocketStreamHandleInternal::willOpenStream):
+        (WebCore::SocketStreamHandleInternal::didOpenStream):
+        (WebCore::SocketStreamHandleInternal::didSendData):
+        (WebCore::SocketStreamHandleInternal::didReceiveData):
+        (WebCore::SocketStreamHandleInternal::didClose):
+        (WebCore::SocketStreamHandleInternal::didFail):
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+        (WebCore::SocketStreamHandle::~SocketStreamHandle):
+        (WebCore::SocketStreamHandle::platformSend):
+        (WebCore::SocketStreamHandle::platformClose):
+        (WebCore::SocketStreamHandle::didReceiveAuthenticationChallenge):
+        (WebCore::SocketStreamHandle::receivedCredential):
+        (WebCore::SocketStreamHandle::receivedRequestToContinueWithoutCredential):
+        (WebCore::SocketStreamHandle::receivedCancellation):
+        * src/StorageAreaProxy.cpp: Added.
+        (WebCore::StorageAreaProxy::StorageAreaProxy):
+        (WebCore::StorageAreaProxy::~StorageAreaProxy):
+        (WebCore::StorageAreaProxy::length):
+        (WebCore::StorageAreaProxy::key):
+        (WebCore::StorageAreaProxy::getItem):
+        (WebCore::StorageAreaProxy::setItem):
+        (WebCore::StorageAreaProxy::removeItem):
+        (WebCore::StorageAreaProxy::clear):
+        (WebCore::StorageAreaProxy::contains):
+        * src/StorageAreaProxy.h: Added.
+        * src/StorageEventDispatcherChromium.cpp: Added.
+        (WebCore::StorageEventDispatcher::dispatch):
+        * src/StorageEventDispatcherImpl.cpp: Added.
+        (WebCore::StorageEventDispatcherImpl::StorageEventDispatcherImpl):
+        (WebCore::StorageEventDispatcherImpl::dispatchStorageEvent):
+        * src/StorageEventDispatcherImpl.h: Added.
+        * src/StorageNamespaceProxy.cpp: Added.
+        (WebCore::StorageNamespace::localStorageNamespace):
+        (WebCore::StorageNamespace::sessionStorageNamespace):
+        (WebCore::StorageNamespaceProxy::StorageNamespaceProxy):
+        (WebCore::StorageNamespaceProxy::~StorageNamespaceProxy):
+        (WebCore::StorageNamespaceProxy::copy):
+        (WebCore::StorageNamespaceProxy::storageArea):
+        (WebCore::StorageNamespaceProxy::close):
+        (WebCore::StorageNamespaceProxy::unlock):
+        * src/StorageNamespaceProxy.h: Added.
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: NotificationPresenterImpl...SharedWorkerRepository
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/NotificationPresenterImpl.cpp: Added.
+        (WebKit::VoidCallbackClient::VoidCallbackClient):
+        (WebKit::VoidCallbackClient::permissionRequestComplete):
+        (WebKit::NotificationPresenterImpl::initialize):
+        (WebKit::NotificationPresenterImpl::isInitialized):
+        (WebKit::NotificationPresenterImpl::show):
+        (WebKit::NotificationPresenterImpl::cancel):
+        (WebKit::NotificationPresenterImpl::notificationObjectDestroyed):
+        (WebKit::NotificationPresenterImpl::checkPermission):
+        (WebKit::NotificationPresenterImpl::requestPermission):
+        * src/NotificationPresenterImpl.h: Added.
+        (WebKit::NotificationPresenterImpl::NotificationPresenterImpl):
+        * src/PlatformMessagePortChannel.cpp: Added.
+        (WebCore::MessagePortChannel::create):
+        (WebCore::MessagePortChannel::createChannel):
+        (WebCore::MessagePortChannel::MessagePortChannel):
+        (WebCore::MessagePortChannel::~MessagePortChannel):
+        (WebCore::MessagePortChannel::entangleIfOpen):
+        (WebCore::MessagePortChannel::disentangle):
+        (WebCore::MessagePortChannel::postMessageToRemote):
+        (WebCore::MessagePortChannel::tryGetMessageFromRemote):
+        (WebCore::MessagePortChannel::close):
+        (WebCore::MessagePortChannel::isConnectedTo):
+        (WebCore::MessagePortChannel::hasPendingActivity):
+        (WebCore::MessagePortChannel::locallyEntangledPort):
+        (WebCore::PlatformMessagePortChannel::create):
+        (WebCore::PlatformMessagePortChannel::PlatformMessagePortChannel):
+        (WebCore::PlatformMessagePortChannel::~PlatformMessagePortChannel):
+        (WebCore::PlatformMessagePortChannel::createChannel):
+        (WebCore::PlatformMessagePortChannel::messageAvailable):
+        (WebCore::PlatformMessagePortChannel::entangleIfOpen):
+        (WebCore::PlatformMessagePortChannel::disentangle):
+        (WebCore::PlatformMessagePortChannel::postMessageToRemote):
+        (WebCore::PlatformMessagePortChannel::tryGetMessageFromRemote):
+        (WebCore::PlatformMessagePortChannel::close):
+        (WebCore::PlatformMessagePortChannel::isConnectedTo):
+        (WebCore::PlatformMessagePortChannel::hasPendingActivity):
+        (WebCore::PlatformMessagePortChannel::setEntangledChannel):
+        (WebCore::PlatformMessagePortChannel::webChannelRelease):
+        * src/PlatformMessagePortChannel.h: Added.
+        * src/ResourceHandle.cpp: Added.
+        (WebCore::ResourceHandleInternal::ResourceHandleInternal):
+        (WebCore::ResourceHandleInternal::start):
+        (WebCore::ResourceHandleInternal::cancel):
+        (WebCore::ResourceHandleInternal::setDefersLoading):
+        (WebCore::ResourceHandleInternal::allowStoredCredentials):
+        (WebCore::ResourceHandleInternal::willSendRequest):
+        (WebCore::ResourceHandleInternal::didSendData):
+        (WebCore::ResourceHandleInternal::didReceiveResponse):
+        (WebCore::ResourceHandleInternal::didReceiveData):
+        (WebCore::ResourceHandleInternal::didFinishLoading):
+        (WebCore::ResourceHandleInternal::didFail):
+        (WebCore::ResourceHandle::ResourceHandle):
+        (WebCore::ResourceHandle::create):
+        (WebCore::ResourceHandle::request):
+        (WebCore::ResourceHandle::client):
+        (WebCore::ResourceHandle::setClient):
+        (WebCore::ResourceHandle::setDefersLoading):
+        (WebCore::ResourceHandle::start):
+        (WebCore::ResourceHandle::clearAuthentication):
+        (WebCore::ResourceHandle::cancel):
+        (WebCore::ResourceHandle::~ResourceHandle):
+        (WebCore::ResourceHandle::bufferedData):
+        (WebCore::ResourceHandle::loadsBlocked):
+        (WebCore::ResourceHandle::supportsBufferedData):
+        (WebCore::ResourceHandle::loadResourceSynchronously):
+        (WebCore::ResourceHandle::willLoadFromCache):
+        * src/SharedWorkerRepository.cpp: Added.
+        (WebCore::SharedWorkerScriptLoader::SharedWorkerScriptLoader):
+        (WebCore::SharedWorkerScriptLoader::load):
+        (WebCore::getWebPort):
+        (WebCore::SharedWorkerScriptLoader::notifyFinished):
+        (WebCore::SharedWorkerScriptLoader::sendConnect):
+        (WebCore::SharedWorkerScriptLoader::contextDestroyed):
+        (WebCore::SharedWorkerScriptLoader::connected):
+        (WebCore::SharedWorkerRepository::isAvailable):
+        (WebCore::getId):
+        (WebCore::SharedWorkerRepository::connect):
+        (WebCore::SharedWorkerRepository::documentDetached):
+        (WebCore::SharedWorkerRepository::hasSharedWorkers):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: GraphicContext3D...MediaPlaterPrivateChromium
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/GraphicsContext3D.cpp: Added.
+        (WebCore::GraphicsContext3DInternal::):
+        (WebCore::GraphicsContext3DInternal::VertexAttribPointerState::VertexAttribPointerState):
+        (WebCore::tryLoad):
+        (WebCore::GraphicsContext3DInternal::GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::~GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::checkError):
+        (WebCore::GraphicsContext3DInternal::makeContextCurrent):
+        (WebCore::GraphicsContext3DInternal::platformGraphicsContext3D):
+        (WebCore::GraphicsContext3DInternal::platformTexture):
+        (WebCore::createTextureObject):
+        (WebCore::GraphicsContext3DInternal::reshape):
+        (WebCore::GraphicsContext3DInternal::flipVertically):
+        (WebCore::GraphicsContext3DInternal::beginPaint):
+        (WebCore::GraphicsContext3DInternal::validateTextureTarget):
+        (WebCore::GraphicsContext3DInternal::validateTextureParameter):
+        (WebCore::GraphicsContext3DInternal::activeTexture):
+        (WebCore::GraphicsContext3DInternal::bindBuffer):
+        (WebCore::GraphicsContext3DInternal::bindTexture):
+        (WebCore::GraphicsContext3DInternal::bufferDataImpl):
+        (WebCore::GraphicsContext3DInternal::disableVertexAttribArray):
+        (WebCore::GraphicsContext3DInternal::enableVertexAttribArray):
+        (WebCore::GraphicsContext3DInternal::vertexAttribPointer):
+        (WebCore::GraphicsContext3DInternal::viewportImpl):
+        (WebCore::GraphicsContext3D::create):
+        (WebCore::GraphicsContext3D::GraphicsContext3D):
+        (WebCore::GraphicsContext3D::~GraphicsContext3D):
+        (WebCore::GraphicsContext3D::platformGraphicsContext3D):
+        (WebCore::GraphicsContext3D::platformTexture):
+        (WebCore::GraphicsContext3D::checkError):
+        (WebCore::GraphicsContext3D::makeContextCurrent):
+        (WebCore::GraphicsContext3D::reshape):
+        (WebCore::GraphicsContext3D::beginPaint):
+        (WebCore::GraphicsContext3D::endPaint):
+        (WebCore::GraphicsContext3D::sizeInBytes):
+        (WebCore::GraphicsContext3D::createBuffer):
+        (WebCore::GraphicsContext3D::createFramebuffer):
+        (WebCore::GraphicsContext3D::createProgram):
+        (WebCore::GraphicsContext3D::createRenderbuffer):
+        (WebCore::GraphicsContext3D::createShader):
+        (WebCore::GraphicsContext3D::createTexture):
+        (WebCore::GraphicsContext3D::deleteBuffer):
+        (WebCore::GraphicsContext3D::deleteFramebuffer):
+        (WebCore::GraphicsContext3D::deleteProgram):
+        (WebCore::GraphicsContext3D::deleteRenderbuffer):
+        (WebCore::GraphicsContext3D::deleteShader):
+        (WebCore::GraphicsContext3D::deleteTexture):
+        (WebCore::GraphicsContext3D::activeTexture):
+        (WebCore::GraphicsContext3D::bindAttribLocation):
+        (WebCore::GraphicsContext3D::bindBuffer):
+        (WebCore::GraphicsContext3D::bindTexture):
+        (WebCore::GraphicsContext3D::bufferData):
+        (WebCore::GraphicsContext3D::bufferSubData):
+        (WebCore::GraphicsContext3D::checkFramebufferStatus):
+        (WebCore::GraphicsContext3D::detachShader):
+        (WebCore::GraphicsContext3D::disableVertexAttribArray):
+        (WebCore::GraphicsContext3D::drawArrays):
+        (WebCore::GraphicsContext3D::drawElements):
+        (WebCore::GraphicsContext3D::enableVertexAttribArray):
+        (WebCore::GraphicsContext3D::generateMipmap):
+        (WebCore::GraphicsContext3D::getActiveAttrib):
+        (WebCore::GraphicsContext3D::getActiveUniform):
+        (WebCore::GraphicsContext3D::getAttribLocation):
+        (WebCore::GraphicsContext3D::getBoolean):
+        (WebCore::GraphicsContext3D::getBooleanv):
+        (WebCore::GraphicsContext3D::getBufferParameteri):
+        (WebCore::GraphicsContext3D::getBufferParameteriv):
+        (WebCore::GraphicsContext3D::getError):
+        (WebCore::GraphicsContext3D::getFloat):
+        (WebCore::GraphicsContext3D::getFloatv):
+        (WebCore::GraphicsContext3D::getFramebufferAttachmentParameteri):
+        (WebCore::GraphicsContext3D::getFramebufferAttachmentParameteriv):
+        (WebCore::GraphicsContext3D::getInteger):
+        (WebCore::GraphicsContext3D::getIntegerv):
+        (WebCore::GraphicsContext3D::getProgrami):
+        (WebCore::GraphicsContext3D::getProgramiv):
+        (WebCore::GraphicsContext3D::getProgramInfoLog):
+        (WebCore::GraphicsContext3D::getRenderbufferParameteri):
+        (WebCore::GraphicsContext3D::getRenderbufferParameteriv):
+        (WebCore::GraphicsContext3D::getShaderi):
+        (WebCore::GraphicsContext3D::getShaderiv):
+        (WebCore::GraphicsContext3D::getShaderInfoLog):
+        (WebCore::GraphicsContext3D::getShaderSource):
+        (WebCore::GraphicsContext3D::getString):
+        (WebCore::GraphicsContext3D::getTexParameterf):
+        (WebCore::GraphicsContext3D::getTexParameterfv):
+        (WebCore::GraphicsContext3D::getTexParameteri):
+        (WebCore::GraphicsContext3D::getTexParameteriv):
+        (WebCore::GraphicsContext3D::getUniformf):
+        (WebCore::GraphicsContext3D::getUniformfv):
+        (WebCore::GraphicsContext3D::getUniformi):
+        (WebCore::GraphicsContext3D::getUniformiv):
+        (WebCore::GraphicsContext3D::getUniformLocation):
+        (WebCore::GraphicsContext3D::getVertexAttribf):
+        (WebCore::GraphicsContext3D::getVertexAttribfv):
+        (WebCore::GraphicsContext3D::getVertexAttribi):
+        (WebCore::GraphicsContext3D::getVertexAttribiv):
+        (WebCore::GraphicsContext3D::getVertexAttribOffset):
+        (WebCore::GraphicsContext3D::isBuffer):
+        (WebCore::GraphicsContext3D::isEnabled):
+        (WebCore::GraphicsContext3D::isFramebuffer):
+        (WebCore::GraphicsContext3D::isProgram):
+        (WebCore::GraphicsContext3D::isRenderbuffer):
+        (WebCore::GraphicsContext3D::isShader):
+        (WebCore::GraphicsContext3D::isTexture):
+        (WebCore::GraphicsContext3D::pixelStorei):
+        (WebCore::GraphicsContext3D::readPixels):
+        (WebCore::GraphicsContext3D::releaseShaderCompiler):
+        (WebCore::GraphicsContext3D::shaderSource):
+        (WebCore::GraphicsContext3D::texImage2D):
+        (WebCore::unmultiplyAlpha):
+        (WebCore::texImage2DHelper):
+        (WebCore::GraphicsContext3D::texSubImage2D):
+        (WebCore::GraphicsContext3D::uniform1fv):
+        (WebCore::GraphicsContext3D::uniform1iv):
+        (WebCore::GraphicsContext3D::uniform2fv):
+        (WebCore::GraphicsContext3D::uniform2iv):
+        (WebCore::GraphicsContext3D::uniform3fv):
+        (WebCore::GraphicsContext3D::uniform3iv):
+        (WebCore::GraphicsContext3D::uniform4fv):
+        (WebCore::GraphicsContext3D::uniform4iv):
+        (WebCore::GraphicsContext3D::uniformMatrix2fv):
+        (WebCore::GraphicsContext3D::uniformMatrix3fv):
+        (WebCore::GraphicsContext3D::uniformMatrix4fv):
+        (WebCore::GraphicsContext3D::vertexAttrib1fv):
+        (WebCore::GraphicsContext3D::vertexAttrib2fv):
+        (WebCore::GraphicsContext3D::vertexAttrib3fv):
+        (WebCore::GraphicsContext3D::vertexAttrib4fv):
+        (WebCore::GraphicsContext3D::vertexAttribPointer):
+        (WebCore::GraphicsContext3D::viewport):
+        * src/InspectorClientImpl.cpp: Added.
+        (WebKit::InspectorClientImpl::InspectorClientImpl):
+        (WebKit::InspectorClientImpl::~InspectorClientImpl):
+        (WebKit::InspectorClientImpl::inspectorDestroyed):
+        (WebKit::InspectorClientImpl::createPage):
+        (WebKit::InspectorClientImpl::showWindow):
+        (WebKit::InspectorClientImpl::closeWindow):
+        (WebKit::InspectorClientImpl::windowVisible):
+        (WebKit::InspectorClientImpl::attachWindow):
+        (WebKit::InspectorClientImpl::detachWindow):
+        (WebKit::InspectorClientImpl::setAttachedWindowHeight):
+        (WebKit::invalidateNodeBoundingRect):
+        (WebKit::InspectorClientImpl::highlight):
+        (WebKit::InspectorClientImpl::hideHighlight):
+        (WebKit::InspectorClientImpl::inspectedURLChanged):
+        (WebKit::InspectorClientImpl::localizedStringsURL):
+        (WebKit::InspectorClientImpl::hiddenPanels):
+        (WebKit::InspectorClientImpl::populateSetting):
+        (WebKit::InspectorClientImpl::storeSetting):
+        (WebKit::InspectorClientImpl::removeSetting):
+        (WebKit::InspectorClientImpl::inspectorWindowObjectCleared):
+        (WebKit::InspectorClientImpl::loadSettings):
+        (WebKit::InspectorClientImpl::saveSettings):
+        * src/InspectorClientImpl.h: Added.
+        * src/LocalizedStrings.cpp: Added.
+        (WebCore::query):
+        (WebCore::searchableIndexIntroduction):
+        (WebCore::submitButtonDefaultLabel):
+        (WebCore::inputElementAltText):
+        (WebCore::resetButtonDefaultLabel):
+        (WebCore::fileButtonChooseFileLabel):
+        (WebCore::fileButtonNoFileSelectedLabel):
+        (WebCore::searchMenuNoRecentSearchesText):
+        (WebCore::searchMenuRecentSearchesText):
+        (WebCore::searchMenuClearRecentSearchesText):
+        (WebCore::AXWebAreaText):
+        (WebCore::AXLinkText):
+        (WebCore::AXListMarkerText):
+        (WebCore::AXImageMapText):
+        (WebCore::AXHeadingText):
+        (WebCore::AXDefinitionListTermText):
+        (WebCore::AXDefinitionListDefinitionText):
+        (WebCore::AXButtonActionVerb):
+        (WebCore::AXRadioButtonActionVerb):
+        (WebCore::AXTextFieldActionVerb):
+        (WebCore::AXCheckedCheckBoxActionVerb):
+        (WebCore::AXUncheckedCheckBoxActionVerb):
+        (WebCore::AXLinkActionVerb):
+        (WebCore::multipleFileUploadText):
+        (WebCore::unknownFileSizeText):
+        (WebCore::keygenMenuHighGradeKeySize):
+        (WebCore::keygenMenuMediumGradeKeySize):
+        (WebCore::imageTitle):
+        (WebCore::contextMenuItemTagOpenLinkInNewWindow):
+        (WebCore::contextMenuItemTagDownloadLinkToDisk):
+        (WebCore::contextMenuItemTagCopyLinkToClipboard):
+        (WebCore::contextMenuItemTagOpenImageInNewWindow):
+        (WebCore::contextMenuItemTagDownloadImageToDisk):
+        (WebCore::contextMenuItemTagCopyImageToClipboard):
+        (WebCore::contextMenuItemTagOpenFrameInNewWindow):
+        (WebCore::contextMenuItemTagCopy):
+        (WebCore::contextMenuItemTagGoBack):
+        (WebCore::contextMenuItemTagGoForward):
+        (WebCore::contextMenuItemTagStop):
+        (WebCore::contextMenuItemTagReload):
+        (WebCore::contextMenuItemTagCut):
+        (WebCore::contextMenuItemTagPaste):
+        (WebCore::contextMenuItemTagNoGuessesFound):
+        (WebCore::contextMenuItemTagIgnoreSpelling):
+        (WebCore::contextMenuItemTagLearnSpelling):
+        (WebCore::contextMenuItemTagSearchWeb):
+        (WebCore::contextMenuItemTagLookUpInDictionary):
+        (WebCore::contextMenuItemTagOpenLink):
+        (WebCore::contextMenuItemTagIgnoreGrammar):
+        (WebCore::contextMenuItemTagSpellingMenu):
+        (WebCore::contextMenuItemTagCheckSpelling):
+        (WebCore::contextMenuItemTagCheckSpellingWhileTyping):
+        (WebCore::contextMenuItemTagCheckGrammarWithSpelling):
+        (WebCore::contextMenuItemTagFontMenu):
+        (WebCore::contextMenuItemTagBold):
+        (WebCore::contextMenuItemTagItalic):
+        (WebCore::contextMenuItemTagUnderline):
+        (WebCore::contextMenuItemTagOutline):
+        (WebCore::contextMenuItemTagWritingDirectionMenu):
+        (WebCore::contextMenuItemTagTextDirectionMenu):
+        (WebCore::contextMenuItemTagDefaultDirection):
+        (WebCore::contextMenuItemTagLeftToRight):
+        (WebCore::contextMenuItemTagRightToLeft):
+        (WebCore::contextMenuItemTagInspectElement):
+        (WebCore::contextMenuItemTagShowSpellingPanel):
+        (WebCore::mediaElementLiveBroadcastStateText):
+        (WebCore::mediaElementLoadingStateText):
+        (WebCore::localizedMediaControlElementString):
+        (WebCore::localizedMediaControlElementHelpText):
+        (WebCore::localizedMediaTimeDescription):
+        * src/MediaPlayerPrivateChromium.cpp: Added.
+        (WebCore::MediaPlayerPrivate::registerMediaEngine):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: DOMUtilities...FrameLoaderClientImpl
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/DOMUtilitiesPrivate.cpp: Added.
+        (WebCore::toHTMLElement):
+        (WebKit::toHTMLInputElement):
+        (WebKit::toHTMLLinkElement):
+        (WebKit::toHTMLMetaElement):
+        (WebKit::toHTMLOptionElement):
+        (WebKit::nameOfInputElement):
+        * src/DOMUtilitiesPrivate.h: Added.
+        * src/DragClientImpl.cpp: Added.
+        (WebKit::DragClientImpl::willPerformDragDestinationAction):
+        (WebKit::DragClientImpl::willPerformDragSourceAction):
+        (WebKit::DragClientImpl::actionMaskForDrag):
+        (WebKit::DragClientImpl::dragSourceActionMaskForPoint):
+        (WebKit::DragClientImpl::startDrag):
+        (WebKit::DragClientImpl::createDragImageForLink):
+        (WebKit::DragClientImpl::dragControllerDestroyed):
+        * src/DragClientImpl.h: Added.
+        (WebKit::DragClientImpl::DragClientImpl):
+        * src/EditorClientImpl.cpp: Added.
+        (WebKit::EditorClientImpl::EditorClientImpl):
+        (WebKit::EditorClientImpl::~EditorClientImpl):
+        (WebKit::EditorClientImpl::pageDestroyed):
+        (WebKit::EditorClientImpl::shouldShowDeleteInterface):
+        (WebKit::EditorClientImpl::smartInsertDeleteEnabled):
+        (WebKit::EditorClientImpl::isSelectTrailingWhitespaceEnabled):
+        (WebKit::EditorClientImpl::shouldSpellcheckByDefault):
+        (WebKit::EditorClientImpl::isContinuousSpellCheckingEnabled):
+        (WebKit::EditorClientImpl::toggleContinuousSpellChecking):
+        (WebKit::EditorClientImpl::isGrammarCheckingEnabled):
+        (WebKit::EditorClientImpl::toggleGrammarChecking):
+        (WebKit::EditorClientImpl::spellCheckerDocumentTag):
+        (WebKit::EditorClientImpl::isEditable):
+        (WebKit::EditorClientImpl::shouldBeginEditing):
+        (WebKit::EditorClientImpl::shouldEndEditing):
+        (WebKit::EditorClientImpl::shouldInsertNode):
+        (WebKit::EditorClientImpl::shouldInsertText):
+        (WebKit::EditorClientImpl::shouldDeleteRange):
+        (WebKit::EditorClientImpl::shouldChangeSelectedRange):
+        (WebKit::EditorClientImpl::shouldApplyStyle):
+        (WebKit::EditorClientImpl::shouldMoveRangeAfterDelete):
+        (WebKit::EditorClientImpl::didBeginEditing):
+        (WebKit::EditorClientImpl::respondToChangedSelection):
+        (WebKit::EditorClientImpl::respondToChangedContents):
+        (WebKit::EditorClientImpl::didEndEditing):
+        (WebKit::EditorClientImpl::didWriteSelectionToPasteboard):
+        (WebKit::EditorClientImpl::didSetSelectionTypesForPasteboard):
+        (WebKit::EditorClientImpl::registerCommandForUndo):
+        (WebKit::EditorClientImpl::registerCommandForRedo):
+        (WebKit::EditorClientImpl::clearUndoRedoOperations):
+        (WebKit::EditorClientImpl::canUndo):
+        (WebKit::EditorClientImpl::canRedo):
+        (WebKit::EditorClientImpl::undo):
+        (WebKit::EditorClientImpl::redo):
+        (WebKit::):
+        (WebKit::EditorClientImpl::interpretKeyEvent):
+        (WebKit::EditorClientImpl::handleEditingKeyboardEvent):
+        (WebKit::EditorClientImpl::handleKeyboardEvent):
+        (WebKit::EditorClientImpl::handleInputMethodKeydown):
+        (WebKit::EditorClientImpl::textFieldDidBeginEditing):
+        (WebKit::EditorClientImpl::textFieldDidEndEditing):
+        (WebKit::EditorClientImpl::textDidChangeInTextField):
+        (WebKit::EditorClientImpl::showFormAutofillForNode):
+        (WebKit::EditorClientImpl::autofill):
+        (WebKit::EditorClientImpl::doAutofill):
+        (WebKit::EditorClientImpl::cancelPendingAutofill):
+        (WebKit::EditorClientImpl::onAutofillSuggestionAccepted):
+        (WebKit::EditorClientImpl::doTextFieldCommandFromEvent):
+        (WebKit::EditorClientImpl::textWillBeDeletedInTextField):
+        (WebKit::EditorClientImpl::textDidChangeInTextArea):
+        (WebKit::EditorClientImpl::ignoreWordInSpellDocument):
+        (WebKit::EditorClientImpl::learnWord):
+        (WebKit::EditorClientImpl::checkSpellingOfString):
+        (WebKit::EditorClientImpl::getAutoCorrectSuggestionForMisspelledWord):
+        (WebKit::EditorClientImpl::checkGrammarOfString):
+        (WebKit::EditorClientImpl::updateSpellingUIWithGrammarString):
+        (WebKit::EditorClientImpl::updateSpellingUIWithMisspelledWord):
+        (WebKit::EditorClientImpl::showSpellingUI):
+        (WebKit::EditorClientImpl::spellingUIIsShowing):
+        (WebKit::EditorClientImpl::getGuessesForWord):
+        (WebKit::EditorClientImpl::setInputMethodState):
+        * src/EditorClientImpl.h: Added.
+        (WebKit::EditorClientImpl::):
+        * src/FrameLoaderClientImpl.cpp: Added.
+        (WebKit::):
+        (WebKit::FrameLoaderClientImpl::FrameLoaderClientImpl):
+        (WebKit::FrameLoaderClientImpl::~FrameLoaderClientImpl):
+        (WebKit::FrameLoaderClientImpl::frameLoaderDestroyed):
+        (WebKit::FrameLoaderClientImpl::windowObjectCleared):
+        (WebKit::FrameLoaderClientImpl::documentElementAvailable):
+        (WebKit::FrameLoaderClientImpl::didCreateScriptContextForFrame):
+        (WebKit::FrameLoaderClientImpl::didDestroyScriptContextForFrame):
+        (WebKit::FrameLoaderClientImpl::didCreateIsolatedScriptContext):
+        (WebKit::FrameLoaderClientImpl::didPerformFirstNavigation):
+        (WebKit::FrameLoaderClientImpl::registerForIconNotification):
+        (WebKit::FrameLoaderClientImpl::didChangeScrollOffset):
+        (WebKit::FrameLoaderClientImpl::allowJavaScript):
+        (WebKit::FrameLoaderClientImpl::hasWebView):
+        (WebKit::FrameLoaderClientImpl::hasFrameView):
+        (WebKit::FrameLoaderClientImpl::makeDocumentView):
+        (WebKit::FrameLoaderClientImpl::makeRepresentation):
+        (WebKit::FrameLoaderClientImpl::forceLayout):
+        (WebKit::FrameLoaderClientImpl::forceLayoutForNonHTML):
+        (WebKit::FrameLoaderClientImpl::setCopiesOnScroll):
+        (WebKit::FrameLoaderClientImpl::detachedFromParent2):
+        (WebKit::FrameLoaderClientImpl::detachedFromParent3):
+        (WebKit::FrameLoaderClientImpl::assignIdentifierToInitialRequest):
+        (WebKit::determineTargetTypeFromLoader):
+        (WebKit::FrameLoaderClientImpl::dispatchWillSendRequest):
+        (WebKit::FrameLoaderClientImpl::shouldUseCredentialStorage):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReceiveAuthenticationChallenge):
+        (WebKit::FrameLoaderClientImpl::dispatchDidCancelAuthenticationChallenge):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReceiveResponse):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReceiveContentLength):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFinishLoading):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFailLoading):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFinishDocumentLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidLoadResourceFromMemoryCache):
+        (WebKit::FrameLoaderClientImpl::dispatchDidLoadResourceByXMLHttpRequest):
+        (WebKit::FrameLoaderClientImpl::dispatchDidHandleOnloadEvents):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReceiveServerRedirectForProvisionalLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidCancelClientRedirect):
+        (WebKit::FrameLoaderClientImpl::dispatchWillPerformClientRedirect):
+        (WebKit::FrameLoaderClientImpl::dispatchDidChangeLocationWithinPage):
+        (WebKit::FrameLoaderClientImpl::dispatchWillClose):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReceiveIcon):
+        (WebKit::FrameLoaderClientImpl::dispatchDidStartProvisionalLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReceiveTitle):
+        (WebKit::FrameLoaderClientImpl::dispatchDidCommitLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFailProvisionalLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFailLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFinishLoad):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFirstLayout):
+        (WebKit::FrameLoaderClientImpl::dispatchDidFirstVisuallyNonEmptyLayout):
+        (WebKit::FrameLoaderClientImpl::dispatchCreatePage):
+        (WebKit::FrameLoaderClientImpl::dispatchShow):
+        (WebKit::shouldTreatAsAttachment):
+        (WebKit::FrameLoaderClientImpl::dispatchDecidePolicyForMIMEType):
+        (WebKit::FrameLoaderClientImpl::dispatchDecidePolicyForNewWindowAction):
+        (WebKit::FrameLoaderClientImpl::dispatchDecidePolicyForNavigationAction):
+        (WebKit::FrameLoaderClientImpl::cancelPolicyCheck):
+        (WebKit::FrameLoaderClientImpl::dispatchUnableToImplementPolicy):
+        (WebKit::FrameLoaderClientImpl::dispatchWillSubmitForm):
+        (WebKit::FrameLoaderClientImpl::dispatchDidLoadMainResource):
+        (WebKit::FrameLoaderClientImpl::revertToProvisionalState):
+        (WebKit::FrameLoaderClientImpl::setMainDocumentError):
+        (WebKit::FrameLoaderClientImpl::postProgressStartedNotification):
+        (WebKit::FrameLoaderClientImpl::postProgressEstimateChangedNotification):
+        (WebKit::FrameLoaderClientImpl::postProgressFinishedNotification):
+        (WebKit::FrameLoaderClientImpl::setMainFrameDocumentReady):
+        (WebKit::FrameLoaderClientImpl::startDownload):
+        (WebKit::FrameLoaderClientImpl::willChangeTitle):
+        (WebKit::FrameLoaderClientImpl::didChangeTitle):
+        (WebKit::FrameLoaderClientImpl::committedLoad):
+        (WebKit::FrameLoaderClientImpl::finishedLoading):
+        (WebKit::FrameLoaderClientImpl::updateGlobalHistory):
+        (WebKit::FrameLoaderClientImpl::updateGlobalHistoryRedirectLinks):
+        (WebKit::FrameLoaderClientImpl::shouldGoToHistoryItem):
+        (WebKit::FrameLoaderClientImpl::didDisplayInsecureContent):
+        (WebKit::FrameLoaderClientImpl::didRunInsecureContent):
+        (WebKit::FrameLoaderClientImpl::blockedError):
+        (WebKit::FrameLoaderClientImpl::cancelledError):
+        (WebKit::FrameLoaderClientImpl::cannotShowURLError):
+        (WebKit::FrameLoaderClientImpl::interruptForPolicyChangeError):
+        (WebKit::FrameLoaderClientImpl::cannotShowMIMETypeError):
+        (WebKit::FrameLoaderClientImpl::fileDoesNotExistError):
+        (WebKit::FrameLoaderClientImpl::pluginWillHandleLoadError):
+        (WebKit::FrameLoaderClientImpl::shouldFallBack):
+        (WebKit::FrameLoaderClientImpl::canHandleRequest):
+        (WebKit::FrameLoaderClientImpl::canShowMIMEType):
+        (WebKit::FrameLoaderClientImpl::representationExistsForURLScheme):
+        (WebKit::FrameLoaderClientImpl::generatedMIMETypeForURLScheme):
+        (WebKit::FrameLoaderClientImpl::frameLoadCompleted):
+        (WebKit::FrameLoaderClientImpl::saveViewStateToItem):
+        (WebKit::FrameLoaderClientImpl::restoreViewState):
+        (WebKit::FrameLoaderClientImpl::provisionalLoadStarted):
+        (WebKit::FrameLoaderClientImpl::didFinishLoad):
+        (WebKit::FrameLoaderClientImpl::prepareForDataSourceReplacement):
+        (WebKit::FrameLoaderClientImpl::createDocumentLoader):
+        (WebKit::FrameLoaderClientImpl::setTitle):
+        (WebKit::FrameLoaderClientImpl::userAgent):
+        (WebKit::FrameLoaderClientImpl::savePlatformDataToCachedFrame):
+        (WebKit::FrameLoaderClientImpl::transitionToCommittedFromCachedFrame):
+        (WebKit::FrameLoaderClientImpl::transitionToCommittedForNewPage):
+        (WebKit::FrameLoaderClientImpl::canCachePage):
+        (WebKit::FrameLoaderClientImpl::download):
+        (WebKit::FrameLoaderClientImpl::createFrame):
+        (WebKit::FrameLoaderClientImpl::createPlugin):
+        (WebKit::FrameLoaderClientImpl::redirectDataToPlugin):
+        (WebKit::FrameLoaderClientImpl::createJavaAppletWidget):
+        (WebKit::FrameLoaderClientImpl::objectContentType):
+        (WebKit::FrameLoaderClientImpl::overrideMediaType):
+        (WebKit::FrameLoaderClientImpl::actionSpecifiesNavigationPolicy):
+        (WebKit::FrameLoaderClientImpl::handleBackForwardNavigation):
+        (WebKit::FrameLoaderClientImpl::pluginLoadObserver):
+        * src/FrameLoaderClientImpl.h: Added.
+        (WebKit::FrameLoaderClientImpl::webFrame):
+        (WebKit::FrameLoaderClientImpl::willChangeEstimatedProgress):
+        (WebKit::FrameLoaderClientImpl::didChangeEstimatedProgress):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: ChromeClientImpl...ContextMenuClientImpl
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/ChromeClientImpl.cpp: Added.
+        (WebKit::ChromeClientImpl::ChromeClientImpl):
+        (WebKit::ChromeClientImpl::~ChromeClientImpl):
+        (WebKit::ChromeClientImpl::chromeDestroyed):
+        (WebKit::ChromeClientImpl::setWindowRect):
+        (WebKit::ChromeClientImpl::windowRect):
+        (WebKit::ChromeClientImpl::pageRect):
+        (WebKit::ChromeClientImpl::scaleFactor):
+        (WebKit::ChromeClientImpl::focus):
+        (WebKit::ChromeClientImpl::unfocus):
+        (WebKit::ChromeClientImpl::canTakeFocus):
+        (WebKit::ChromeClientImpl::takeFocus):
+        (WebKit::ChromeClientImpl::focusedNodeChanged):
+        (WebKit::ChromeClientImpl::createWindow):
+        (WebKit::currentEventShouldCauseBackgroundTab):
+        (WebKit::ChromeClientImpl::show):
+        (WebKit::ChromeClientImpl::canRunModal):
+        (WebKit::ChromeClientImpl::runModal):
+        (WebKit::ChromeClientImpl::setToolbarsVisible):
+        (WebKit::ChromeClientImpl::toolbarsVisible):
+        (WebKit::ChromeClientImpl::setStatusbarVisible):
+        (WebKit::ChromeClientImpl::statusbarVisible):
+        (WebKit::ChromeClientImpl::setScrollbarsVisible):
+        (WebKit::ChromeClientImpl::scrollbarsVisible):
+        (WebKit::ChromeClientImpl::setMenubarVisible):
+        (WebKit::ChromeClientImpl::menubarVisible):
+        (WebKit::ChromeClientImpl::setResizable):
+        (WebKit::ChromeClientImpl::addMessageToConsole):
+        (WebKit::ChromeClientImpl::canRunBeforeUnloadConfirmPanel):
+        (WebKit::ChromeClientImpl::runBeforeUnloadConfirmPanel):
+        (WebKit::ChromeClientImpl::closeWindowSoon):
+        (WebKit::ChromeClientImpl::runJavaScriptAlert):
+        (WebKit::ChromeClientImpl::runJavaScriptConfirm):
+        (WebKit::ChromeClientImpl::runJavaScriptPrompt):
+        (WebKit::ChromeClientImpl::setStatusbarText):
+        (WebKit::ChromeClientImpl::shouldInterruptJavaScript):
+        (WebKit::ChromeClientImpl::tabsToLinks):
+        (WebKit::ChromeClientImpl::windowResizerRect):
+        (WebKit::ChromeClientImpl::repaint):
+        (WebKit::ChromeClientImpl::scroll):
+        (WebKit::ChromeClientImpl::screenToWindow):
+        (WebKit::ChromeClientImpl::windowToScreen):
+        (WebKit::ChromeClientImpl::contentsSizeChanged):
+        (WebKit::ChromeClientImpl::scrollbarsModeDidChange):
+        (WebKit::ChromeClientImpl::mouseDidMoveOverElement):
+        (WebKit::ChromeClientImpl::setToolTip):
+        (WebKit::ChromeClientImpl::print):
+        (WebKit::ChromeClientImpl::exceededDatabaseQuota):
+        (WebKit::ChromeClientImpl::reachedMaxAppCacheSize):
+        (WebKit::ChromeClientImpl::runOpenPanel):
+        (WebKit::ChromeClientImpl::popupOpened):
+        (WebKit::ChromeClientImpl::setCursor):
+        (WebKit::ChromeClientImpl::setCursorForPlugin):
+        (WebKit::ChromeClientImpl::formStateDidChange):
+        (WebKit::ChromeClientImpl::getPopupMenuInfo):
+        (WebKit::ChromeClientImpl::notificationPresenter):
+        * src/ChromeClientImpl.h: Added.
+        (WebKit::ChromeClientImpl::webView):
+        (WebKit::ChromeClientImpl::platformPageClient):
+        (WebKit::ChromeClientImpl::scrollRectIntoView):
+        (WebKit::ChromeClientImpl::requestGeolocationPermissionForFrame):
+        (WebKit::ChromeClientImpl::setCursor):
+        (WebKit::ChromeClientImpl::createHTMLParserQuirks):
+        * src/ChromiumBridge.cpp: Added.
+        (WebCore::toChromeClientImpl):
+        (WebCore::toWebWidgetClient):
+        (WebCore::ChromiumBridge::clipboardIsFormatAvailable):
+        (WebCore::ChromiumBridge::clipboardReadPlainText):
+        (WebCore::ChromiumBridge::clipboardReadHTML):
+        (WebCore::ChromiumBridge::clipboardWriteSelection):
+        (WebCore::ChromiumBridge::clipboardWritePlainText):
+        (WebCore::ChromiumBridge::clipboardWriteURL):
+        (WebCore::ChromiumBridge::clipboardWriteImage):
+        (WebCore::ChromiumBridge::setCookies):
+        (WebCore::ChromiumBridge::cookies):
+        (WebCore::ChromiumBridge::rawCookies):
+        (WebCore::ChromiumBridge::deleteCookie):
+        (WebCore::ChromiumBridge::prefetchDNS):
+        (WebCore::ChromiumBridge::fileExists):
+        (WebCore::ChromiumBridge::deleteFile):
+        (WebCore::ChromiumBridge::deleteEmptyDirectory):
+        (WebCore::ChromiumBridge::getFileSize):
+        (WebCore::ChromiumBridge::getFileModificationTime):
+        (WebCore::ChromiumBridge::directoryName):
+        (WebCore::ChromiumBridge::pathByAppendingComponent):
+        (WebCore::ChromiumBridge::makeAllDirectories):
+        (WebCore::ChromiumBridge::getAbsolutePath):
+        (WebCore::ChromiumBridge::isDirectory):
+        (WebCore::ChromiumBridge::filePathToURL):
+        (WebCore::ChromiumBridge::ensureFontLoaded):
+        (WebCore::ChromiumBridge::getFontFamilyForCharacters):
+        (WebCore::ChromiumBridge::databaseOpenFile):
+        (WebCore::ChromiumBridge::databaseDeleteFile):
+        (WebCore::ChromiumBridge::databaseGetFileAttributes):
+        (WebCore::ChromiumBridge::databaseGetFileSize):
+        (WebCore::ChromiumBridge::signedPublicKeyAndChallengeString):
+        (WebCore::ChromiumBridge::computedDefaultLanguage):
+        (WebCore::ChromiumBridge::layoutTestMode):
+        (WebCore::ChromiumBridge::isSupportedImageMIMEType):
+        (WebCore::ChromiumBridge::isSupportedJavaScriptMIMEType):
+        (WebCore::ChromiumBridge::isSupportedNonImageMIMEType):
+        (WebCore::ChromiumBridge::mimeTypeForExtension):
+        (WebCore::ChromiumBridge::mimeTypeFromFile):
+        (WebCore::ChromiumBridge::preferredExtensionForMIMEType):
+        (WebCore::ChromiumBridge::plugins):
+        (WebCore::ChromiumBridge::pluginScriptableObject):
+        (WebCore::ChromiumBridge::loadPlatformImageResource):
+        (WebCore::ChromiumBridge::sandboxEnabled):
+        (WebCore::ChromiumBridge::setSharedTimerFiredFunction):
+        (WebCore::ChromiumBridge::setSharedTimerFireTime):
+        (WebCore::ChromiumBridge::stopSharedTimer):
+        (WebCore::ChromiumBridge::decrementStatsCounter):
+        (WebCore::ChromiumBridge::incrementStatsCounter):
+        (WebCore::ChromiumBridge::suddenTerminationChanged):
+        (WebCore::ChromiumBridge::currentTime):
+        (WebCore::ChromiumBridge::paintButton):
+        (WebCore::ChromiumBridge::paintMenuList):
+        (WebCore::ChromiumBridge::paintScrollbarArrow):
+        (WebCore::ChromiumBridge::paintScrollbarThumb):
+        (WebCore::ChromiumBridge::paintScrollbarTrack):
+        (WebCore::ChromiumBridge::paintTextField):
+        (WebCore::ChromiumBridge::paintTrackbar):
+        (WebCore::ChromiumBridge::traceEventBegin):
+        (WebCore::ChromiumBridge::traceEventEnd):
+        (WebCore::ChromiumBridge::visitedLinkHash):
+        (WebCore::ChromiumBridge::isLinkVisited):
+        (WebCore::ChromiumBridge::notifyJSOutOfMemory):
+        (WebCore::ChromiumBridge::memoryUsageMB):
+        (WebCore::ChromiumBridge::screenDepth):
+        (WebCore::ChromiumBridge::screenDepthPerComponent):
+        (WebCore::ChromiumBridge::screenIsMonochrome):
+        (WebCore::ChromiumBridge::screenRect):
+        (WebCore::ChromiumBridge::screenAvailableRect):
+        (WebCore::ChromiumBridge::popupsAllowed):
+        (WebCore::ChromiumBridge::widgetSetCursor):
+        (WebCore::ChromiumBridge::widgetSetFocus):
+        (WebCore::WorkerContextProxy::create):
+        * src/ChromiumCurrentTime.cpp: Added.
+        (WTF::currentTime):
+        * src/ChromiumThreading.cpp: Added.
+        (WTF::ChromiumThreading::initializeMainThread):
+        (WTF::ChromiumThreading::scheduleDispatchFunctionsOnMainThread):
+        * src/ContextMenuClientImpl.cpp: Added.
+        (WebKit::urlFromFrame):
+        (WebKit::isASingleWord):
+        (WebKit::selectMisspelledWord):
+        (WebKit::ContextMenuClientImpl::getCustomMenuFromDefaultItems):
+        * src/ContextMenuClientImpl.h: Added.
+        (WebKit::ContextMenuClientImpl::ContextMenuClientImpl):
+        (WebKit::ContextMenuClientImpl::~ContextMenuClientImpl):
+        (WebKit::ContextMenuClientImpl::copyImageToClipboard):
+        (WebKit::ContextMenuClientImpl::contextMenuDestroyed):
+        (WebKit::ContextMenuClientImpl::contextMenuItemSelected):
+        (WebKit::ContextMenuClientImpl::downloadURL):
+        (WebKit::ContextMenuClientImpl::isSpeaking):
+        (WebKit::ContextMenuClientImpl::lookUpInDictionary):
+        (WebKit::ContextMenuClientImpl::searchWithGoogle):
+        (WebKit::ContextMenuClientImpl::shouldIncludeInspectElementItem):
+        (WebKit::ContextMenuClientImpl::speak):
+        (WebKit::ContextMenuClientImpl::stopSpeaking):
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: AppCach...BackForwardListClientImpl
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/ApplicationCacheHost.cpp: Added.
+        (WebCore::ApplicationCacheHostInternal::ApplicationCacheHostInternal):
+        (WebCore::ApplicationCacheHostInternal::notifyEventListener):
+        (WebCore::ApplicationCacheHost::ApplicationCacheHost):
+        (WebCore::ApplicationCacheHost::~ApplicationCacheHost):
+        (WebCore::ApplicationCacheHost::maybeLoadMainResource):
+        (WebCore::ApplicationCacheHost::selectCacheWithoutManifest):
+        (WebCore::ApplicationCacheHost::selectCacheWithManifest):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackForMainResponse):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackForMainError):
+        (WebCore::ApplicationCacheHost::mainResourceDataReceived):
+        (WebCore::ApplicationCacheHost::failedLoadingMainResource):
+        (WebCore::ApplicationCacheHost::finishedLoadingMainResource):
+        (WebCore::ApplicationCacheHost::maybeLoadResource):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackForRedirect):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackForResponse):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackForError):
+        (WebCore::ApplicationCacheHost::maybeLoadSynchronously):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackSynchronously):
+        (WebCore::ApplicationCacheHost::canCacheInPageCache):
+        (WebCore::ApplicationCacheHost::setDOMApplicationCache):
+        (WebCore::ApplicationCacheHost::notifyDOMApplicationCache):
+        (WebCore::ApplicationCacheHost::status):
+        (WebCore::ApplicationCacheHost::update):
+        (WebCore::ApplicationCacheHost::swapCache):
+        (WebCore::ApplicationCacheHost::isApplicationCacheEnabled):
+        * src/AssertMatchingEnums.cpp: Added.
+        * src/AutocompletePopupMenuClient.cpp: Added.
+        (WebKit::AutocompletePopupMenuClient::AutocompletePopupMenuClient):
+        (WebKit::AutocompletePopupMenuClient::~AutocompletePopupMenuClient):
+        (WebKit::AutocompletePopupMenuClient::initialize):
+        (WebKit::AutocompletePopupMenuClient::valueChanged):
+        (WebKit::AutocompletePopupMenuClient::itemText):
+        (WebKit::AutocompletePopupMenuClient::itemStyle):
+        (WebKit::AutocompletePopupMenuClient::menuStyle):
+        (WebKit::AutocompletePopupMenuClient::clientPaddingLeft):
+        (WebKit::AutocompletePopupMenuClient::clientPaddingRight):
+        (WebKit::AutocompletePopupMenuClient::popupDidHide):
+        (WebKit::AutocompletePopupMenuClient::setTextFromItem):
+        (WebKit::AutocompletePopupMenuClient::fontSelector):
+        (WebKit::AutocompletePopupMenuClient::hostWindow):
+        (WebKit::AutocompletePopupMenuClient::createScrollbar):
+        (WebKit::AutocompletePopupMenuClient::setSuggestions):
+        (WebKit::AutocompletePopupMenuClient::removeItemAtIndex):
+        (WebKit::AutocompletePopupMenuClient::textFieldStyle):
+        * src/AutocompletePopupMenuClient.h: Added.
+        (WebKit::AutocompletePopupMenuClient::textField):
+        (WebKit::AutocompletePopupMenuClient::itemToolTip):
+        (WebKit::AutocompletePopupMenuClient::itemIsEnabled):
+        (WebKit::AutocompletePopupMenuClient::clientInsetLeft):
+        (WebKit::AutocompletePopupMenuClient::clientInsetRight):
+        (WebKit::AutocompletePopupMenuClient::listSize):
+        (WebKit::AutocompletePopupMenuClient::selectedIndex):
+        (WebKit::AutocompletePopupMenuClient::itemIsSeparator):
+        (WebKit::AutocompletePopupMenuClient::itemIsLabel):
+        (WebKit::AutocompletePopupMenuClient::itemIsSelected):
+        (WebKit::AutocompletePopupMenuClient::shouldPopOver):
+        (WebKit::AutocompletePopupMenuClient::valueShouldChangeOnHotTrack):
+        * src/BackForwardListClientImpl.cpp: Added.
+        (WebKit::BackForwardListClientImpl::BackForwardListClientImpl):
+        (WebKit::BackForwardListClientImpl::~BackForwardListClientImpl):
+        (WebKit::BackForwardListClientImpl::setCurrentHistoryItem):
+        (WebKit::BackForwardListClientImpl::previousHistoryItem):
+        (WebKit::BackForwardListClientImpl::addItem):
+        (WebKit::BackForwardListClientImpl::goToItem):
+        (WebKit::BackForwardListClientImpl::currentItem):
+        (WebKit::BackForwardListClientImpl::itemAtIndex):
+        (WebKit::BackForwardListClientImpl::backListCount):
+        (WebKit::BackForwardListClientImpl::forwardListCount):
+        (WebKit::BackForwardListClientImpl::close):
+        * src/BackForwardListClientImpl.h: Added.
+
+2009-11-10  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Up-streaming Chromium API src files: WebString...WebViewImpl
+
+        https://bugs.webkit.org/show_bug.cgi?id=31276
+
+        * src/WebString.cpp: Added.
+        (WebKit::WebString::reset):
+        (WebKit::WebString::assign):
+        (WebKit::WebString::length):
+        (WebKit::WebString::data):
+        (WebKit::WebString::utf8):
+        (WebKit::WebString::fromUTF8):
+        (WebKit::WebString::WebString):
+        (WebKit::WebString::operator=):
+        (WebKit::WebString::operator WebCore::String):
+        (WebKit::WebString::operator WebCore::AtomicString):
+        * src/WebURL.cpp: Added.
+        (WebKit::WebURL::WebURL):
+        (WebKit::WebURL::operator=):
+        (WebKit::WebURL::operator WebCore::KURL):
+        * src/WebURLError.cpp: Added.
+        (WebKit::WebURLError::WebURLError):
+        (WebKit::WebURLError::operator=):
+        (WebKit::WebURLError::operator ResourceError):
+        * src/WebURLRequest.cpp: Added.
+        (WebKit::WebURLRequestPrivateImpl::WebURLRequestPrivateImpl):
+        (WebKit::WebURLRequestPrivateImpl::dispose):
+        (WebKit::WebURLRequest::initialize):
+        (WebKit::WebURLRequest::reset):
+        (WebKit::WebURLRequest::assign):
+        (WebKit::WebURLRequest::isNull):
+        (WebKit::WebURLRequest::url):
+        (WebKit::WebURLRequest::setURL):
+        (WebKit::WebURLRequest::firstPartyForCookies):
+        (WebKit::WebURLRequest::setFirstPartyForCookies):
+        (WebKit::WebURLRequest::allowCookies):
+        (WebKit::WebURLRequest::setAllowCookies):
+        (WebKit::WebURLRequest::allowStoredCredentials):
+        (WebKit::WebURLRequest::setAllowStoredCredentials):
+        (WebKit::WebURLRequest::cachePolicy):
+        (WebKit::WebURLRequest::setCachePolicy):
+        (WebKit::WebURLRequest::httpMethod):
+        (WebKit::WebURLRequest::setHTTPMethod):
+        (WebKit::WebURLRequest::httpHeaderField):
+        (WebKit::WebURLRequest::setHTTPHeaderField):
+        (WebKit::WebURLRequest::addHTTPHeaderField):
+        (WebKit::WebURLRequest::clearHTTPHeaderField):
+        (WebKit::WebURLRequest::visitHTTPHeaderFields):
+        (WebKit::WebURLRequest::httpBody):
+        (WebKit::WebURLRequest::setHTTPBody):
+        (WebKit::WebURLRequest::reportUploadProgress):
+        (WebKit::WebURLRequest::setReportUploadProgress):
+        (WebKit::WebURLRequest::targetType):
+        (WebKit::WebURLRequest::setTargetType):
+        (WebKit::WebURLRequest::requestorID):
+        (WebKit::WebURLRequest::setRequestorID):
+        (WebKit::WebURLRequest::requestorProcessID):
+        (WebKit::WebURLRequest::setRequestorProcessID):
+        (WebKit::WebURLRequest::appCacheHostID):
+        (WebKit::WebURLRequest::setAppCacheHostID):
+        (WebKit::WebURLRequest::toMutableResourceRequest):
+        (WebKit::WebURLRequest::toResourceRequest):
+        * src/WebURLRequestPrivate.h: Added.
+        (WebKit::WebURLRequestPrivate::WebURLRequestPrivate):
+        * src/WebURLResponse.cpp: Added.
+        (WebKit::WebURLResponsePrivateImpl::WebURLResponsePrivateImpl):
+        (WebKit::WebURLResponsePrivateImpl::dispose):
+        (WebKit::WebURLResponse::initialize):
+        (WebKit::WebURLResponse::reset):
+        (WebKit::WebURLResponse::assign):
+        (WebKit::WebURLResponse::isNull):
+        (WebKit::WebURLResponse::url):
+        (WebKit::WebURLResponse::setURL):
+        (WebKit::WebURLResponse::mimeType):
+        (WebKit::WebURLResponse::setMIMEType):
+        (WebKit::WebURLResponse::expectedContentLength):
+        (WebKit::WebURLResponse::setExpectedContentLength):
+        (WebKit::WebURLResponse::textEncodingName):
+        (WebKit::WebURLResponse::setTextEncodingName):
+        (WebKit::WebURLResponse::suggestedFileName):
+        (WebKit::WebURLResponse::setSuggestedFileName):
+        (WebKit::WebURLResponse::httpStatusCode):
+        (WebKit::WebURLResponse::setHTTPStatusCode):
+        (WebKit::WebURLResponse::httpStatusText):
+        (WebKit::WebURLResponse::setHTTPStatusText):
+        (WebKit::WebURLResponse::httpHeaderField):
+        (WebKit::WebURLResponse::setHTTPHeaderField):
+        (WebKit::WebURLResponse::addHTTPHeaderField):
+        (WebKit::WebURLResponse::clearHTTPHeaderField):
+        (WebKit::WebURLResponse::visitHTTPHeaderFields):
+        (WebKit::WebURLResponse::lastModifiedDate):
+        (WebKit::WebURLResponse::setLastModifiedDate):
+        (WebKit::WebURLResponse::isContentFiltered):
+        (WebKit::WebURLResponse::setIsContentFiltered):
+        (WebKit::WebURLResponse::appCacheID):
+        (WebKit::WebURLResponse::setAppCacheID):
+        (WebKit::WebURLResponse::appCacheManifestURL):
+        (WebKit::WebURLResponse::setAppCacheManifestURL):
+        (WebKit::WebURLResponse::securityInfo):
+        (WebKit::WebURLResponse::setSecurityInfo):
+        (WebKit::WebURLResponse::toMutableResourceResponse):
+        (WebKit::WebURLResponse::toResourceResponse):
+        * src/WebURLResponsePrivate.h: Added.
+        (WebKit::WebURLResponsePrivate::WebURLResponsePrivate):
+        * src/WebViewImpl.cpp: Added.
+        (WebKit::):
+        (WebKit::WebView::create):
+        (WebKit::WebView::updateVisitedLinkState):
+        (WebKit::WebView::resetVisitedLinkState):
+        (WebKit::WebViewImpl::initializeMainFrame):
+        (WebKit::WebViewImpl::WebViewImpl):
+        (WebKit::WebViewImpl::~WebViewImpl):
+        (WebKit::WebViewImpl::theme):
+        (WebKit::WebViewImpl::mainFrameImpl):
+        (WebKit::WebViewImpl::tabKeyCyclesThroughElements):
+        (WebKit::WebViewImpl::setTabKeyCyclesThroughElements):
+        (WebKit::WebViewImpl::mouseMove):
+        (WebKit::WebViewImpl::mouseLeave):
+        (WebKit::WebViewImpl::mouseDown):
+        (WebKit::WebViewImpl::mouseContextMenu):
+        (WebKit::WebViewImpl::mouseUp):
+        (WebKit::WebViewImpl::mouseWheel):
+        (WebKit::WebViewImpl::keyEvent):
+        (WebKit::WebViewImpl::autocompleteHandleKeyEvent):
+        (WebKit::WebViewImpl::charEvent):
+        (WebKit::WebViewImpl::sendContextMenuEvent):
+        (WebKit::WebViewImpl::keyEventDefault):
+        (WebKit::WebViewImpl::scrollViewWithKeyboard):
+        (WebKit::WebViewImpl::propagateScroll):
+        (WebKit::WebViewImpl::focusedWebCoreFrame):
+        (WebKit::WebViewImpl::fromPage):
+        (WebKit::WebViewImpl::close):
+        (WebKit::WebViewImpl::resize):
+        (WebKit::WebViewImpl::layout):
+        (WebKit::WebViewImpl::paint):
+        (WebKit::WebViewImpl::handleInputEvent):
+        (WebKit::WebViewImpl::mouseCaptureLost):
+        (WebKit::WebViewImpl::setFocus):
+        (WebKit::WebViewImpl::handleCompositionEvent):
+        (WebKit::WebViewImpl::queryCompositionStatus):
+        (WebKit::WebViewImpl::setTextDirection):
+        (WebKit::WebViewImpl::settings):
+        (WebKit::WebViewImpl::pageEncoding):
+        (WebKit::WebViewImpl::setPageEncoding):
+        (WebKit::WebViewImpl::dispatchBeforeUnloadEvent):
+        (WebKit::WebViewImpl::dispatchUnloadEvent):
+        (WebKit::WebViewImpl::mainFrame):
+        (WebKit::WebViewImpl::findFrameByName):
+        (WebKit::WebViewImpl::focusedFrame):
+        (WebKit::WebViewImpl::setFocusedFrame):
+        (WebKit::WebViewImpl::setInitialFocus):
+        (WebKit::WebViewImpl::clearFocusedNode):
+        (WebKit::WebViewImpl::zoomIn):
+        (WebKit::WebViewImpl::zoomOut):
+        (WebKit::WebViewImpl::zoomDefault):
+        (WebKit::WebViewImpl::performMediaPlayerAction):
+        (WebKit::WebViewImpl::copyImageAt):
+        (WebKit::WebViewImpl::dragSourceEndedAt):
+        (WebKit::WebViewImpl::dragSourceMovedTo):
+        (WebKit::WebViewImpl::dragSourceSystemDragEnded):
+        (WebKit::WebViewImpl::dragTargetDragEnter):
+        (WebKit::WebViewImpl::dragTargetDragOver):
+        (WebKit::WebViewImpl::dragTargetDragLeave):
+        (WebKit::WebViewImpl::dragTargetDrop):
+        (WebKit::WebViewImpl::dragIdentity):
+        (WebKit::WebViewImpl::inspectElementAt):
+        (WebKit::WebViewImpl::inspectorSettings):
+        (WebKit::WebViewImpl::setInspectorSettings):
+        (WebKit::WebViewImpl::devToolsAgent):
+        (WebKit::WebViewImpl::setDevToolsAgent):
+        (WebKit::WebViewImpl::accessibilityObject):
+        (WebKit::WebViewImpl::applyAutofillSuggestions):
+        (WebKit::WebViewImpl::hideAutofillPopup):
+        (WebKit::WebViewImpl::setDropEffect):
+        (WebKit::WebViewImpl::setIsTransparent):
+        (WebKit::WebViewImpl::isTransparent):
+        (WebKit::WebViewImpl::setIsActive):
+        (WebKit::WebViewImpl::isActive):
+        (WebKit::WebViewImpl::didCommitLoad):
+        (WebKit::WebViewImpl::navigationPolicyFromMouseEvent):
+        (WebKit::WebViewImpl::startDragging):
+        (WebKit::WebViewImpl::setCurrentHistoryItem):
+        (WebKit::WebViewImpl::previousHistoryItem):
+        (WebKit::WebViewImpl::observeNewNavigation):
+        (WebKit::WebViewImpl::hideAutoCompletePopup):
+        (WebKit::WebViewImpl::autoCompletePopupDidHide):
+        (WebKit::WebViewImpl::setIgnoreInputEvents):
+        (WebKit::WebViewImpl::notificationPresenterImpl):
+        (WebKit::WebViewImpl::refreshAutofillPopup):
+        (WebKit::WebViewImpl::focusedWebCoreNode):
+        (WebKit::WebViewImpl::hitTestResultForWindowPos):
+        (WebKit::WebViewImpl::setTabsToLinks):
+        (WebKit::WebViewImpl::tabsToLinks):
+        * src/WebViewImpl.h: Added.
+        (WebKit::WebViewImpl::size):
+        (WebKit::WebViewImpl::devToolsAgentPrivate):
+        (WebKit::WebViewImpl::lastMouseDownPoint):
+        (WebKit::WebViewImpl::client):
+        (WebKit::WebViewImpl::page):
+        (WebKit::WebViewImpl::contextMenuAllowed):
+        (WebKit::WebViewImpl::setInitialNavigationPolicy):
+        (WebKit::WebViewImpl::initialNavigationPolicy):
+        (WebKit::WebViewImpl::currentInputEvent):
+        (WebKit::WebViewImpl::):
 
 2009-11-10  Yaar Schnitman  <yaar@chromium.org>
 

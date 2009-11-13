@@ -209,13 +209,6 @@ WebInspector.AbstractTimelinePanel.prototype = {
             this.needsRefresh = true;
             return false;
         }
-
-        if (document.body.offsetWidth <= 0) {
-            // The stylesheet hasn't loaded yet or the window is closed,
-            // so we can't calculate what is need. Return early.
-            return false;
-        }
-
         return this._timelineGrid.updateDividers(force, this.calculator);
     },
 
@@ -371,8 +364,8 @@ WebInspector.AbstractTimelinePanel.prototype = {
         this._items.remove(item, true);
 
         if (item._itemsTreeElement) {
-            this.itemsTreeElement.removeChild(resource._itemsTreeElement);
-            this.itemsGraphsElement.removeChild(resource._itemsTreeElement._itemGraph.graphElement);
+            this.itemsTreeElement.removeChild(item._itemsTreeElement);
+            this.itemsGraphsElement.removeChild(item._itemsTreeElement._itemGraph.graphElement);
         }
 
         delete item._itemsTreeElement;

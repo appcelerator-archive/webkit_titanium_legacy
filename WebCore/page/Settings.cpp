@@ -63,8 +63,6 @@ Settings::Settings(Page* page)
     , m_maximumDecodedImageSize(numeric_limits<size_t>::max())
     , m_localStorageQuota(5 * 1024 * 1024)  // Suggested by the HTML5 spec.
     , m_pluginAllowedRunTime(numeric_limits<unsigned>::max())
-    , m_printingMinimumShrinkFactor(0.0f)
-    , m_printingMaximumShrinkFactor(0.0f)
     , m_isJavaEnabled(false)
     , m_loadsImagesAutomatically(false)
     , m_privateBrowsingEnabled(false)
@@ -72,7 +70,6 @@ Settings::Settings(Page* page)
     , m_arePluginsEnabled(false)
     , m_databasesEnabled(true)
     , m_localStorageEnabled(false)
-    , m_sessionStorageEnabled(true)
     , m_isJavaScriptEnabled(false)
     , m_isWebSecurityEnabled(true)
     , m_allowUniversalAccessFromFileURLs(true)
@@ -254,11 +251,6 @@ void Settings::setDatabasesEnabled(bool databasesEnabled)
 void Settings::setLocalStorageEnabled(bool localStorageEnabled)
 {
     m_localStorageEnabled = localStorageEnabled;
-}
-
-void Settings::setSessionStorageEnabled(bool sessionStorageEnabled)
-{
-    m_sessionStorageEnabled = sessionStorageEnabled;
 }
 
 void Settings::setLocalStorageQuota(unsigned localStorageQuota)
@@ -530,15 +522,5 @@ void Settings::setWebGLEnabled(bool enabled)
 {
     m_webGLEnabled = enabled;
 }
-
-void Settings::setPrintingMinimumShrinkFactor(float printingMinimumShrinkFactor)
-{
-    m_printingMinimumShrinkFactor = printingMinimumShrinkFactor;
-}    
-
-void Settings::setPrintingMaximumShrinkFactor(float printingMaximumShrinkFactor)
-{
-    m_printingMaximumShrinkFactor = printingMaximumShrinkFactor;
-}    
 
 } // namespace WebCore
