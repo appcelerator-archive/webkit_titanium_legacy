@@ -38,6 +38,7 @@ public:
     {
         return adoptRef(new PasteboardHelperGtk());
     }
+    PasteboardHelperGtk() { }
 
     virtual GtkClipboard* defaultClipboard();
     virtual GtkClipboard* defaultClipboardForFrame(Frame*);
@@ -50,9 +51,6 @@ public:
     virtual GtkTargetList* fullTargetList();
     virtual GtkTargetList* targetListForDataObject(DataObjectGtk* dataObject);
     virtual GtkTargetList* targetListForDragContext(GdkDragContext* context);
-
-private:
-    PasteboardHelperGtk() { }
 };
 
 }

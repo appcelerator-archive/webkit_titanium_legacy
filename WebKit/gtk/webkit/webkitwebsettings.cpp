@@ -681,10 +681,10 @@ static void webkit_web_settings_class_init(WebKitWebSettingsClass* klass)
     g_object_class_install_property(gobject_class,
                                     PROP_TAB_KEY_CYCLES_THROUGH_ELEMENTS,
                                     g_param_spec_boolean("tab-key-cycles-through-elements",
-                                                         "Tab key cycles through elements",
-                                                         "Whether the tab key cycles through elements on the page.",
+                                                         _("Tab key cycles through elements"),
+                                                         _("Whether the tab key cycles through elements on the page."),
                                                          TRUE,
-                                                         WEBKIT_PARAM_READWRITE));
+                                                         flags));
 
     g_type_class_add_private(klass, sizeof(WebKitWebSettingsPrivate));
 }
