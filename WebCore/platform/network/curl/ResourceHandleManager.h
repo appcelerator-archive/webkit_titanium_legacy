@@ -64,10 +64,10 @@ private:
     bool removeScheduledJob(ResourceHandle*);
     void startJob(ResourceHandle*);
     bool startScheduledJobs();
-	
-	void initializeHandle(ResourceHandle*);
-	bool preprocess(ResourceHandle*);
-    
+
+    void initializeHandle(ResourceHandle*);
+    bool preprocess(ResourceHandle*);
+
     Timer<ResourceHandleManager> m_downloadTimer;
     CURLM* m_curlMultiHandle;
     CURLSH* m_curlShareHandle;

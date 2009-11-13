@@ -23,6 +23,7 @@ NormalizeURLCallback TitaniumProtocols::NormalizeCallback = 0;
 URLToPathCallback TitaniumProtocols::URLCallback = 0;
 CanPreprocessURLCallback TitaniumProtocols::CanPreprocessCallback = 0;
 PreprocessURLCallback TitaniumProtocols::PreprocessCallback = 0;
+ProxyForURLCallback TitaniumProtocols::ProxyCallback = 0;
 
 /*static*/
 KURL TitaniumProtocols::NormalizeURL(KURL url)
@@ -97,6 +98,20 @@ String TitaniumProtocols::Preprocess(const ResourceRequest& request, String& mim
     free(cmimeType);
 
     return result;
+}
+
+/*static*/
+String TitaniumProtocols::ProxyForURL(String& url)
+{
+    if (!ProxyCallback)
+        return String("direct://");
+
+    char* buffer = new char[4096];
+    ProxyCallback(url.utf8().data(), buffer, 4096);
+    String proxy = String::fromUTF8(buffer);
+    delete [] buffer;
+
+    return proxy;
 }
 
 }

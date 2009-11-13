@@ -21,6 +21,7 @@ typedef void(*NormalizeURLCallback)(const char*, char*, int);
 typedef void(*URLToPathCallback)(const char*, char*, int);
 typedef int(*CanPreprocessURLCallback)(const char*);
 typedef char*(*PreprocessURLCallback)(const char* url, KeyValuePair* headers, char** mimeType);
+typedef void(*ProxyForURLCallback)(const char*, char*, int);
 
 namespace WebCore {
 
@@ -30,10 +31,13 @@ namespace WebCore {
         static KURL URLToFileURL(KURL url);
         static bool CanPreprocess(const ResourceRequest& request);
         static String Preprocess(const ResourceRequest& request, String& mimeType);
+        static String TitaniumProtocols::ProxyForURL(String& url);
+
         static NormalizeURLCallback NormalizeCallback;
         static URLToPathCallback URLCallback;
         static CanPreprocessURLCallback CanPreprocessCallback;
         static PreprocessURLCallback PreprocessCallback;
+        static ProxyForURLCallback ProxyCallback;
     };
 
 } // namespace WebCore
