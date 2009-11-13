@@ -567,6 +567,54 @@
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSBarInfo.h"
 				>
 			</File>
+                        <File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSBeforeLoadEvent.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Internal|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSBeforeLoadEvent.h"
+				>
+			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSCanvasGradient.cpp"
 				>
@@ -17450,11 +17498,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\loader\PolicyCheck.cpp"
+				RelativePath="..\loader\PolicyCallback.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\loader\PolicyCheck.h"
+				RelativePath="..\loader\PolicyCallback.h"
+				>
+			</File>
+			<File
+				RelativePath="..\loader\PolicyChecker.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\loader\PolicyChecker.h"
 				>
 			</File>
 			<File
@@ -23916,6 +23972,10 @@
 				RelativePath="..\dom\Attribute.h"
 				>
 			</File>
+                        <File
+				RelativePath="..\dom\BeforeLoadEvent.h"
+				>
+			</File>
 			<File
 				RelativePath="..\dom\BeforeTextInsertedEvent.cpp"
 				>
@@ -28940,6 +29000,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\bindings\js\JSCallbackData.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JSCallbackData.h"
+					>
+				</File>
+				<File
 					RelativePath="..\bindings\js\JSAbstractWorkerCustom.cpp"
 					>
 				</File>
@@ -29653,6 +29721,14 @@
 				</File>
 				<File
 					RelativePath="..\bindings\js\ScriptValue.h"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\SerializedScriptValue.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\SerializedScriptValue.h"
 					>
 				</File>
 				<File
@@ -31565,6 +31641,10 @@
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\inspector.css"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\inspectorSyntaxHighlight.css"
 					>
 				</File>
 				<File

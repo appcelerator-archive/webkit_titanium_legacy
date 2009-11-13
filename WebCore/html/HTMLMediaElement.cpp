@@ -28,6 +28,9 @@
 #if ENABLE(VIDEO)
 #include "HTMLMediaElement.h"
 
+#include "ClientRect.h"
+#include "ClientRectList.h"
+#include "ChromeClient.h"
 #include "CSSHelper.h"
 #include "CSSPropertyNames.h"
 #include "CSSValueKeywords.h"
@@ -39,6 +42,7 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
+#include "FrameView.h"
 #include "HTMLDocument.h"
 #include "HTMLNames.h"
 #include "HTMLSourceElement.h"
@@ -53,6 +57,7 @@
 #include "Page.h"
 #include "ProgressEvent.h"
 #include "RenderVideo.h"
+#include "RenderView.h"
 #include "ScriptEventListener.h"
 #include "TimeRanges.h"
 #include <limits>
@@ -111,6 +116,7 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document* doc)
     , m_sentEndEvent(false)
     , m_pausedInternal(false)
     , m_sendProgressEvents(true)
+    , m_isFullscreen(false)
 #if ENABLE(PLUGIN_PROXY_FOR_VIDEO)
     , m_needWidgetUpdate(false)
 #endif
@@ -161,6 +167,8 @@ void HTMLMediaElement::parseMappedAttribute(MappedAttribute* attr)
             m_player->setAutobuffer(!attr->isNull());
     } else if (attrName == onabortAttr)
         setAttributeEventListener(eventNames().abortEvent, createAttributeEventListener(this, attr));
+    else if (attrName == onbeforeloadAttr)
+        setAttributeEventListener(eventNames().beforeloadEvent, createAttributeEventListener(this, attr));
     else if (attrName == oncanplayAttr)
         setAttributeEventListener(eventNames().canplayEvent, createAttributeEventListener(this, attr));
     else if (attrName == oncanplaythroughAttr)
@@ -241,6 +249,12 @@ void HTMLMediaElement::insertedIntoDocument()
         scheduleLoad();
 }
 
+void HTMLMediaElement::willRemove()
+{
+    if (m_isFullscreen)
+        exitFullscreen();
+    HTMLElement::willRemove();
+}
 void HTMLMediaElement::removedFromDocument()
 {
     if (m_networkState > NETWORK_EMPTY)
@@ -524,7 +538,7 @@ void HTMLMediaElement::selectMediaResource()
     ContentType contentType("");
     if (!mediaSrc.isEmpty()) {
         KURL mediaURL = document()->completeURL(mediaSrc);
-        if (isSafeToLoadURL(mediaURL, Complain)) {
+        if (isSafeToLoadURL(mediaURL, Complain) && dispatchBeforeLoadEvent(mediaURL.string())) {
             m_loadState = LoadingFromSrcAttr;
             loadResource(mediaURL, contentType);
         } else 
@@ -553,9 +567,20 @@ void HTMLMediaElement::loadNextSourceChild()
     loadResource(mediaURL, contentType);
 }
 
-void HTMLMediaElement::loadResource(const KURL& url, ContentType& contentType)
+void HTMLMediaElement::loadResource(const KURL& initialURL, ContentType& contentType)
 {
-    ASSERT(isSafeToLoadURL(url, Complain));
+    ASSERT(isSafeToLoadURL(initialURL, Complain));
+
+    Frame* frame = document()->frame();
+    if (!frame)
+        return;
+    FrameLoader* loader = frame->loader();
+    if (!loader)
+        return;
+
+    KURL url(initialURL);
+    if (!loader->willLoadMediaElementURL(url))
+        return;
 
     // The resource fetch algorithm 
     m_networkState = NETWORK_LOADING;
@@ -577,7 +602,13 @@ void HTMLMediaElement::loadResource(const KURL& url, ContentType& contentType)
     updateVolume();
 
     m_player->load(m_currentSrc, contentType);
-    
+
+    if (isVideo() && m_player->canLoadPoster()) {
+        KURL posterUrl = static_cast<HTMLVideoElement*>(this)->poster();
+        if (!posterUrl.isEmpty())
+            m_player->setPoster(posterUrl);
+    }
+
     if (renderer())
         renderer()->updateFromElement();
 }
@@ -588,7 +619,7 @@ bool HTMLMediaElement::isSafeToLoadURL(const KURL& url, InvalidSourceAction acti
     FrameLoader* loader = frame ? frame->loader() : 0;
 
     // don't allow remote to local urls, and check with the frame loader client.
-    if (!loader || !loader->canLoad(url, String(), document()) || !loader->client()->shouldLoadMediaElementURL(url)) {
+    if (!loader || !SecurityOrigin::canLoad(url, String(), document())) {
         if (actionIfInvalid == Complain)
             FrameLoader::reportLocalLoadFailed(frame, url.string());
         return false;
@@ -1355,7 +1386,7 @@ KURL HTMLMediaElement::selectNextSourceChild(ContentType *contentType, InvalidSo
 
         // Is it safe to load this url?
         mediaURL = source->src();
-        if (!mediaURL.isValid() || !isSafeToLoadURL(mediaURL, actionIfInvalid))
+        if (!mediaURL.isValid() || !isSafeToLoadURL(mediaURL, actionIfInvalid) || !dispatchBeforeLoadEvent(mediaURL.string()))
             goto check_again;
 
         // Making it this far means the <source> looks reasonable
@@ -1514,7 +1545,12 @@ PassRefPtr<TimeRanges> HTMLMediaElement::seekable() const
 
 bool HTMLMediaElement::potentiallyPlaying() const
 {
-    return !paused() && m_readyState >= HAVE_FUTURE_DATA && !endedPlayback() && !stoppedDueToErrors() && !pausedForUserInteraction();
+    return m_readyState >= HAVE_FUTURE_DATA && couldPlayIfEnoughData();
+}
+
+bool HTMLMediaElement::couldPlayIfEnoughData() const
+{
+    return !paused() && !endedPlayback() && !stoppedDueToErrors() && !pausedForUserInteraction();
 }
 
 bool HTMLMediaElement::endedPlayback() const
@@ -1598,7 +1634,8 @@ void HTMLMediaElement::updatePlayState()
         float time = currentTime();
         if (time > m_lastSeekTime)
             addPlayedRange(m_lastSeekTime, time);
-    }
+    } else if (couldPlayIfEnoughData() && playerPaused)
+        m_player->prepareToPlay();
     
     if (renderer())
         renderer()->updateFromElement();
@@ -1696,6 +1733,14 @@ void HTMLMediaElement::mediaVolumeDidChange()
     updateVolume();
 }
 
+const IntRect HTMLMediaElement::screenRect()
+{
+    IntRect elementRect;
+    if (renderer())
+        elementRect = renderer()->view()->frameView()->contentsToScreen(renderer()->absoluteBoundingBoxRect());
+    return elementRect;
+}
+    
 void HTMLMediaElement::defaultEventHandler(Event* event)
 {
 #if ENABLE(PLUGIN_PROXY_FOR_VIDEO)
@@ -1768,6 +1813,28 @@ void HTMLMediaElement::finishParsingChildren()
 
 #endif
 
+void HTMLMediaElement::enterFullscreen()
+{
+    ASSERT(!m_isFullscreen);
+    if (!renderer())
+        return;
+    if (document() && document()->page())
+        document()->page()->chrome()->client()->enterFullscreenForNode(this);
+    m_isFullscreen = true;
+}
+
+void HTMLMediaElement::exitFullscreen()
+{
+    ASSERT(m_isFullscreen);
+    if (document() && document()->page())
+        document()->page()->chrome()->client()->exitFullscreenForNode(this);
+    m_isFullscreen = false;
+}
+
+PlatformMedia HTMLMediaElement::platformMedia() const
+{
+    return m_player ? m_player->platformMedia() : NoPlatformMedia;
+}        
 }
 
 #endif

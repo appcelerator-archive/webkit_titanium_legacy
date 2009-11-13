@@ -6,6 +6,7 @@
  * Copyright (C) 2006 Simon Hausmann <hausmann@kde.org>
  * Copyright (C) 2009 Kenneth Christiansen <kenneth@webkit.org>
  * Copyright (C) 2009 Antonio Gomes <antonio.gomes@openbossa.org>
+ * Copyright (C) 2009 Girish Ramakrishnan <girish@forwardbias.in>
  *
  * All rights reserved.
  *
@@ -101,6 +102,20 @@ public slots:
 #endif
     }
 
+    void animatedFlip()
+    {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+        QSizeF center = m_mainWidget->boundingRect().size() / 2;
+        QPointF centerPoint = QPointF(center.width(), center.height());
+        m_mainWidget->setTransformOriginPoint(centerPoint);
+
+        QPropertyAnimation* animation = new QPropertyAnimation(m_mainWidget, "rotation", this);
+        animation->setDuration(1000);
+        animation->setStartValue(m_mainWidget->rotation());
+        animation->setEndValue(m_mainWidget->rotation() + 180);
+        animation->start(QAbstractAnimation::DeleteWhenStopped);
+#endif
+    }
 private:
     QGraphicsWidget* m_mainWidget;
 };
@@ -160,7 +175,7 @@ public:
 
         view->setMainWidget(scene->webView());
 
-        connect(scene->webView(), SIGNAL(loadFinished()), this, SLOT(loadFinished()));
+        connect(scene->webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
         connect(scene->webView(), SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));
         connect(scene->webView()->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
@@ -200,7 +215,7 @@ protected slots:
         load(urlEdit->text());
     }
 
-    void loadFinished()
+    void loadFinished(bool)
     {
         QUrl url = scene->webView()->url();
         urlEdit->setText(url.toString());
@@ -235,6 +250,10 @@ public slots:
         view->flip();
     }
 
+    void animatedFlip()
+    {
+        view->animatedFlip();
+    }
 private:
     void buildUI()
     {
@@ -261,6 +280,7 @@ private:
 
         QMenu* fxMenu = menuBar()->addMenu("&Effects");
         fxMenu->addAction("Flip", this, SLOT(flip()));
+        fxMenu->addAction("Animated Flip", this, SLOT(animatedFlip()));
     }
 
 private:

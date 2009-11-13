@@ -232,6 +232,62 @@ bool HTMLInputElement::tooLong() const
     return false;
 }
 
+bool HTMLInputElement::rangeUnderflow() const
+{
+    if (inputType() == NUMBER) {
+        double min = 0.0;
+        double doubleValue = 0.0;
+        if (formStringToDouble(getAttribute(minAttr), &min) && formStringToDouble(value(), &doubleValue))
+            return doubleValue < min;
+    } else if (inputType() == RANGE) {
+        double doubleValue;
+        if (formStringToDouble(value(), &doubleValue))
+            return doubleValue < rangeMinimum();
+    }
+    return false;
+}
+
+bool HTMLInputElement::rangeOverflow() const
+{
+    if (inputType() == NUMBER) {
+        double max = 0.0;
+        double doubleValue = 0.0;
+        if (formStringToDouble(getAttribute(maxAttr), &max) && formStringToDouble(value(), &doubleValue))
+            return doubleValue > max;
+    } else if (inputType() == RANGE) {
+        double doubleValue;
+        if (formStringToDouble(value(), &doubleValue))
+            return doubleValue > rangeMaximum();
+    }
+    return false;
+}
+
+double HTMLInputElement::rangeMinimum() const
+{
+    ASSERT(inputType() == RANGE);
+    // The range type's "default minimum" is 0.
+    double min = 0.0;
+    formStringToDouble(getAttribute(minAttr), &min);
+    return min;
+}
+
+double HTMLInputElement::rangeMaximum() const
+{
+    ASSERT(inputType() == RANGE);
+    // The range type's "default maximum" is 100.
+    static const double defaultMaximum = 100.0;
+    double max = defaultMaximum;
+    formStringToDouble(getAttribute(maxAttr), &max);
+    const double min = rangeMinimum();
+
+    if (max < min) {
+        // A remedy for the inconsistent min/max values.
+        // Sets the maxmimum to the default (100.0) or the minimum value.
+        max = min < defaultMaximum ? defaultMaximum : min;
+    }
+    return max;
+}
+
 static inline CheckedRadioButtons& checkedRadioButtons(const HTMLInputElement *element)
 {
     if (HTMLFormElement* form = element->form())
@@ -418,6 +474,7 @@ void HTMLInputElement::setInputType(const String& t)
         }
 
         InputElement::notifyFormStateChanged(this);
+        updateValidity();
     }
     m_haveType = true;
 
@@ -638,6 +695,7 @@ void HTMLInputElement::parseMappedAttribute(MappedAttribute *attr)
         checkedRadioButtons(this).removeButton(this);
         m_data.setName(attr->value());
         checkedRadioButtons(this).addButton(this);
+        HTMLFormControlElementWithState::parseMappedAttribute(attr);
     } else if (attr->name() == autocompleteAttr) {
         if (equalIgnoringCase(attr->value(), "off")) {
             m_autocomplete = Off;
@@ -657,12 +715,14 @@ void HTMLInputElement::parseMappedAttribute(MappedAttribute *attr)
         if (m_data.value().isNull())
             setNeedsStyleRecalc();
         setFormControlValueMatchesRenderer(false);
+        updateValidity();
     } else if (attr->name() == checkedAttr) {
         m_defaultChecked = !attr->isNull();
         if (m_useDefaultChecked) {
             setChecked(m_defaultChecked);
             m_useDefaultChecked = true;
         }
+        updateValidity();
     } else if (attr->name() == maxlengthAttr)
         InputElement::parseMaxLengthAttribute(m_data, this, this, attr);
     else if (attr->name() == sizeAttr)
@@ -701,7 +761,7 @@ void HTMLInputElement::parseMappedAttribute(MappedAttribute *attr)
         setAttributeEventListener(eventNames().searchEvent, createAttributeEventListener(this, attr));
     } else if (attr->name() == resultsAttr) {
         int oldResults = m_maxResults;
-        m_maxResults = !attr->isNull() ? min(attr->value().toInt(), maxSavedResults) : -1;
+        m_maxResults = !attr->isNull() ? std::min(attr->value().toInt(), maxSavedResults) : -1;
         // FIXME: Detaching just for maxResults change is not ideal.  We should figure out the right
         // time to relayout for this change.
         if (m_maxResults != oldResults && (m_maxResults <= 0 || oldResults <= 0) && attached()) {
@@ -716,6 +776,8 @@ void HTMLInputElement::parseMappedAttribute(MappedAttribute *attr)
              attr->name() == multipleAttr ||
              attr->name() == precisionAttr)
         setNeedsStyleRecalc();
+    else if (attr->name() == patternAttr)
+        updateValidity();
 #if ENABLE(DATALIST)
     else if (attr->name() == listAttr)
         m_hasNonEmptyList = !attr->isEmpty();
@@ -1096,6 +1158,7 @@ void HTMLInputElement::setValue(const String& value)
             cacheSelection(max, max);
     }
     InputElement::notifyFormStateChanged(this);
+    updateValidity();
 }
 
 String HTMLInputElement::placeholder() const
@@ -1119,6 +1182,7 @@ void HTMLInputElement::setValueFromRenderer(const String& value)
     ASSERT(inputType() != FILE);
     updatePlaceholderVisibility(false);
     InputElement::setValueFromRenderer(m_data, this, this, value);
+    updateValidity();
 }
 
 void HTMLInputElement::setFileListFromRenderer(const Vector<String>& paths)
@@ -1130,6 +1194,7 @@ void HTMLInputElement::setFileListFromRenderer(const Vector<String>& paths)
 
     setFormControlValueMatchesRenderer(true);
     InputElement::notifyFormStateChanged(this);
+    updateValidity();
 }
 
 bool HTMLInputElement::storesValueSeparateFromAttribute() const

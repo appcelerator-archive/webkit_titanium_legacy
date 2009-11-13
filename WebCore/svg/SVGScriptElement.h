@@ -73,6 +73,15 @@ namespace WebCore {
         virtual void dispatchErrorEvent();
 
     private:
+        // SVGURIReference
+        ANIMATED_PROPERTY_DECLARATIONS(SVGScriptElement, SVGURIReferenceIdentifier, XLinkNames::hrefAttrString, String, Href, href)
+
+        // SVGExternalResourcesRequired
+        ANIMATED_PROPERTY_DECLARATIONS(SVGExternalResourcesRequired, SVGExternalResourcesRequiredIdentifier,
+                                       SVGNames::externalResourcesRequiredAttrString, bool,
+                                       ExternalResourcesRequired, externalResourcesRequired)
+
+    private:
         ScriptElementData m_data;
         String m_type;
     };

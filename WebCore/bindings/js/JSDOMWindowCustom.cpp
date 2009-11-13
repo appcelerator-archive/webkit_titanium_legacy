@@ -79,7 +79,9 @@
 #include "RegisteredEventListener.h"
 #include "ScheduledAction.h"
 #include "ScriptController.h"
+#include "SerializedScriptValue.h"
 #include "Settings.h"
+#include "SharedWorkerRepository.h"
 #include "WindowFeatures.h"
 #include <runtime/Error.h>
 #include <runtime/JSFunction.h>
@@ -713,7 +715,9 @@ JSValue JSDOMWindow::worker(ExecState* exec) const
 #if ENABLE(SHARED_WORKERS)
 JSValue JSDOMWindow::sharedWorker(ExecState* exec) const
 {
-    return getDOMConstructor<JSSharedWorkerConstructor>(exec, this);
+    if (SharedWorkerRepository::isAvailable())
+        return getDOMConstructor<JSSharedWorkerConstructor>(exec, this);
+    return jsUndefined();
 }
 #endif
 
@@ -767,7 +771,7 @@ static Frame* createWindow(ExecState* exec, Frame* lexicalFrame, Frame* dynamicF
         return 0;
 
     newFrame->loader()->setOpener(openerFrame);
-    newFrame->loader()->setOpenedByDOM();
+    newFrame->page()->setOpenedByDOM();
 
     JSDOMWindow* newWindow = toJSDOMWindow(newFrame);
 
@@ -949,7 +953,7 @@ JSValue JSDOMWindow::postMessage(ExecState* exec, const ArgList& args)
     DOMWindow* window = impl();
 
     DOMWindow* source = asJSDOMWindow(exec->lexicalGlobalObject())->impl();
-    String message = args.at(0).toString(exec);
+    PassRefPtr<SerializedScriptValue> message = SerializedScriptValue::create(exec, args.at(0));
 
     if (exec->hadException())
         return jsUndefined();

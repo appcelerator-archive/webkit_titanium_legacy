@@ -77,6 +77,14 @@ namespace WebCore {
         ANIMATED_PROPERTY_DECLARATIONS(SVGUseElement, SVGNames::useTagString, SVGNames::widthAttrString, SVGLength, Width, width)
         ANIMATED_PROPERTY_DECLARATIONS(SVGUseElement, SVGNames::useTagString, SVGNames::heightAttrString, SVGLength, Height, height)
 
+        // SVGURIReference
+        ANIMATED_PROPERTY_DECLARATIONS(SVGUseElement, SVGURIReferenceIdentifier, XLinkNames::hrefAttrString, String, Href, href)
+
+        // SVGExternalResourcesRequired
+        ANIMATED_PROPERTY_DECLARATIONS(SVGExternalResourcesRequired, SVGExternalResourcesRequiredIdentifier,
+                                       SVGNames::externalResourcesRequiredAttrString, bool,
+                                       ExternalResourcesRequired, externalResourcesRequired)
+
     private:
         // Instance tree handling
         void buildInstanceTree(SVGElement* target, SVGElementInstance* targetInstance, bool& foundCycle);

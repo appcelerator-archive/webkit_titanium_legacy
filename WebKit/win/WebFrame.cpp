@@ -94,6 +94,7 @@
 #include <WebCore/TextIterator.h>
 #include <WebCore/JSDOMBinding.h>
 #include <WebCore/ScriptController.h>
+#include <WebCore/SecurityOrigin.h>
 #include <JavaScriptCore/APICast.h>
 #include <wtf/MathExtras.h>
 #pragma warning(pop)
@@ -1159,7 +1160,7 @@ HRESULT WebFrame::allowsFollowingLink(BSTR url, BOOL* result)
     if (!frame)
         return E_FAIL;
 
-    *result = FrameLoader::canLoad(MarshallingHelpers::BSTRToKURL(url), String(), frame->document());
+    *result = SecurityOrigin::canLoad(MarshallingHelpers::BSTRToKURL(url), String(), frame->document());
     return S_OK;
 }
 
@@ -1340,7 +1341,7 @@ void WebFrame::dispatchWillSubmitForm(FramePolicyFunction function, PassRefPtr<F
     COMPtr<IWebFormDelegate> formDelegate;
 
     if (FAILED(d->webView->formDelegate(&formDelegate))) {
-        (coreFrame->loader()->*function)(PolicyUse);
+        (coreFrame->loader()->policyChecker()->*function)(PolicyUse);
         return;
     }
 
@@ -1359,7 +1360,7 @@ void WebFrame::dispatchWillSubmitForm(FramePolicyFunction function, PassRefPtr<F
         return;
 
     // FIXME: Add a sane default implementation
-    (coreFrame->loader()->*function)(PolicyUse);
+    (coreFrame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 void WebFrame::revertToProvisionalState(DocumentLoader*)
@@ -1525,7 +1526,7 @@ void WebFrame::receivedPolicyDecision(PolicyAction action)
     Frame* coreFrame = core(this);
     ASSERT(coreFrame);
 
-    (coreFrame->loader()->*function)(action);
+    (coreFrame->loader()->policyChecker()->*function)(action);
 }
 
 void WebFrame::dispatchDecidePolicyForMIMEType(FramePolicyFunction function, const String& mimeType, const ResourceRequest& request)
@@ -1542,7 +1543,7 @@ void WebFrame::dispatchDecidePolicyForMIMEType(FramePolicyFunction function, con
     if (SUCCEEDED(policyDelegate->decidePolicyForMIMEType(d->webView, BString(mimeType), urlRequest.get(), this, setUpPolicyListener(function).get())))
         return;
 
-    (coreFrame->loader()->*function)(PolicyUse);
+    (coreFrame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 void WebFrame::dispatchDecidePolicyForNewWindowAction(FramePolicyFunction function, const NavigationAction& action, const ResourceRequest& request, PassRefPtr<FormState> formState, const String& frameName)
@@ -1560,7 +1561,7 @@ void WebFrame::dispatchDecidePolicyForNewWindowAction(FramePolicyFunction functi
     if (SUCCEEDED(policyDelegate->decidePolicyForNewWindowAction(d->webView, actionInformation.get(), urlRequest.get(), BString(frameName), setUpPolicyListener(function).get())))
         return;
 
-    (coreFrame->loader()->*function)(PolicyUse);
+    (coreFrame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 void WebFrame::dispatchDecidePolicyForNavigationAction(FramePolicyFunction function, const NavigationAction& action, const ResourceRequest& request, PassRefPtr<FormState> formState)
@@ -1578,7 +1579,7 @@ void WebFrame::dispatchDecidePolicyForNavigationAction(FramePolicyFunction funct
     if (SUCCEEDED(policyDelegate->decidePolicyForNavigationAction(d->webView, actionInformation.get(), urlRequest.get(), this, setUpPolicyListener(function).get())))
         return;
 
-    (coreFrame->loader()->*function)(PolicyUse);
+    (coreFrame->loader()->policyChecker()->*function)(PolicyUse);
 }
 
 void WebFrame::dispatchUnableToImplementPolicy(const ResourceError& error)

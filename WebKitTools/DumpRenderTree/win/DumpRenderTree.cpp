@@ -743,6 +743,8 @@ static void resetDefaultsToConsistentValues(IWebPreferences* preferences)
         prefsPrivate->setOfflineWebApplicationCacheEnabled(TRUE);
     }
     setAlwaysAcceptCookies(false);
+
+    setlocale(LC_ALL, "");
 }
 
 static void resetWebViewToConsistentStateBeforeTesting()
@@ -783,6 +785,7 @@ static void resetWebViewToConsistentStateBeforeTesting()
         SetFocus(viewWindow);
 
     webViewPrivate->clearMainFrameName();
+    webViewPrivate->resetOriginAccessWhiteLists();
 
     sharedUIDelegate->resetUndoManager();
 

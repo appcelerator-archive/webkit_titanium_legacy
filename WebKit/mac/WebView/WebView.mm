@@ -84,6 +84,7 @@
 #import "WebPanelAuthenticationHandler.h"
 #import "WebPasteboardHelper.h"
 #import "WebPluginDatabase.h"
+#import "WebPluginHalterClient.h"
 #import "WebPolicyDelegate.h"
 #import "WebPreferenceKeysPrivate.h"
 #import "WebPreferencesPrivate.h"
@@ -93,6 +94,7 @@
 #import "WebTextIterator.h"
 #import "WebUIDelegate.h"
 #import "WebUIDelegatePrivate.h"
+#import "WebVideoFullscreenController.h"
 #import <CoreFoundation/CFSet.h>
 #import <Foundation/NSURLConnection.h>
 #import <WebCore/ApplicationCacheStorage.h>
@@ -619,7 +621,7 @@ static bool runningTigerMail()
         didOneTimeInitialization = true;
     }
 
-    _private->page = new Page(new WebChromeClient(self), new WebContextMenuClient(self), new WebEditorClient(self), new WebDragClient(self), new WebInspectorClient(self), 0);
+    _private->page = new Page(new WebChromeClient(self), new WebContextMenuClient(self), new WebEditorClient(self), new WebDragClient(self), new WebInspectorClient(self), new WebPluginHalterClient(self));
 
     _private->page->settings()->setLocalStorageDatabasePath([[self preferences] _localStorageDatabasePath]);
 
@@ -661,11 +663,11 @@ static bool runningTigerMail()
 
     if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITH_LOCAL_RESOURCE_SECURITY_RESTRICTION)) {
         // Originally, we allowed all local loads.
-        FrameLoader::setLocalLoadPolicy(FrameLoader::AllowLocalLoadsForAll);
+        SecurityOrigin::setLocalLoadPolicy(SecurityOrigin::AllowLocalLoadsForAll);
     } else if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITH_MORE_STRICT_LOCAL_RESOURCE_SECURITY_RESTRICTION)) {
         // Later, we allowed local loads for local URLs and documents loaded
         // with substitute data.
-        FrameLoader::setLocalLoadPolicy(FrameLoader::AllowLocalLoadsForLocalAndSubstituteData);
+        SecurityOrigin::setLocalLoadPolicy(SecurityOrigin::AllowLocalLoadsForLocalAndSubstituteData);
     }
 
     if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITHOUT_CONTENT_SNIFFING_FOR_FILE_URLS))
@@ -997,6 +999,8 @@ static bool fastDocumentTeardownEnabled()
         return;
     }
 
+    [self _exitFullscreen];
+
     if (Frame* mainFrame = [self _mainCoreFrame])
         mainFrame->loader()->detachFromParent();
 
@@ -1313,6 +1317,8 @@ static bool fastDocumentTeardownEnabled()
     settings->setXSSAuditorEnabled([preferences isXSSAuditorEnabled]);
     settings->setEnforceCSSMIMETypeInStrictMode(!WKAppVersionCheckLessThan(@"com.apple.iWeb", -1, 2.1));
     settings->setAcceleratedCompositingEnabled([preferences acceleratedCompositingEnabled]);
+    settings->setPluginHalterEnabled([preferences pluginHalterEnabled]);
+    settings->setPluginAllowedRunTime([preferences pluginAllowedRunTime]);
     settings->setWebGLEnabled([preferences webGLEnabled]);
 }
 
@@ -1414,6 +1420,7 @@ static inline IMP getMethod(id o, SEL s)
     cache->navigatedFunc = getMethod(delegate, @selector(webView:didNavigateWithNavigationData:inFrame:));
     cache->clientRedirectFunc = getMethod(delegate, @selector(webView:didPerformClientRedirectFromURL:toURL:inFrame:));
     cache->serverRedirectFunc = getMethod(delegate, @selector(webView:didPerformServerRedirectFromURL:toURL:inFrame:));
+    cache->setTitleFunc = getMethod(delegate, @selector(webView:updateHistoryTitle:forURL:));
 }
 
 - (id)_policyDelegateForwarder
@@ -2210,6 +2217,26 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     
     pageGroup->removeAllUserContent();
 }
+
+- (BOOL)cssAnimationsSuspended
+{
+    return _private->cssAnimationsSuspended;
+}
+
+- (void)setCSSAnimationsSuspended:(BOOL)suspended
+{
+    if (suspended == _private->cssAnimationsSuspended)
+        return;
+        
+    _private->cssAnimationsSuspended = suspended;
+    
+    Frame* frame = core([self mainFrame]);
+    if (suspended)
+        frame->animation()->suspendAnimations(frame->document());
+    else
+        frame->animation()->resumeAnimations(frame->document());
+}
+
 @end
 
 @implementation _WebSafeForwarder
@@ -5590,6 +5617,45 @@ static void layerSyncRunLoopObserverCallBack(CFRunLoopObserverRef, CFRunLoopActi
         runLoopOrder, layerSyncRunLoopObserverCallBack, &context);
 
     CFRunLoopAddObserver(CFRunLoopGetCurrent(), _private->layerSyncRunLoopObserver, kCFRunLoopCommonModes);
+}
+
+#endif
+
+#if ENABLE(VIDEO)
+
+- (void)_enterFullscreenForNode:(WebCore::Node*)node
+{
+    ASSERT(node->hasTagName(WebCore::HTMLNames::videoTag));
+    HTMLMediaElement* videoElement = static_cast<HTMLMediaElement*>(node);
+
+    if (_private->fullscreenController) {
+        if ([_private->fullscreenController mediaElement] == videoElement) {
+            // The backend may just warn us that the underlaying plaftormMovie()
+            // has changed. Just force an update.
+            [_private->fullscreenController setMediaElement:videoElement];
+            return; // No more to do.
+        }
+
+        // First exit Fullscreen for the old mediaElement.
+        [_private->fullscreenController mediaElement]->exitFullscreen();
+        // This previous call has to trigger _exitFullscreen,
+        // which has to clear _private->fullscreenController.
+        ASSERT(!_private->fullscreenController);
+    }
+    if (!_private->fullscreenController) {
+        _private->fullscreenController = [[WebVideoFullscreenController alloc] init];
+        [_private->fullscreenController setMediaElement:videoElement];
+        [_private->fullscreenController enterFullscreen:[[self window] screen]];        
+    }
+    else
+        [_private->fullscreenController setMediaElement:videoElement];
+}
+
+- (void)_exitFullscreen
+{
+    [_private->fullscreenController exitFullscreen];
+    [_private->fullscreenController release];
+    _private->fullscreenController = nil;
 }
 
 #endif

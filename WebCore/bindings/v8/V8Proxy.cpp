@@ -274,10 +274,32 @@ bool V8Proxy::handleOutOfMemory()
     return true;
 }
 
-void V8Proxy::evaluateInNewWorld(const Vector<ScriptSourceCode>& sources, int extensionGroup)
+void V8Proxy::evaluateInIsolatedWorld(int worldID, const Vector<ScriptSourceCode>& sources, int extensionGroup)
 {
     initContextIfNeeded();
-    V8IsolatedWorld::evaluate(sources, this, extensionGroup);
+
+    v8::HandleScope handleScope;
+    V8IsolatedWorld* world = 0;
+
+    if (worldID > 0) {
+        IsolatedWorldMap::iterator iter = m_isolatedWorlds.find(worldID);
+        if (iter != m_isolatedWorlds.end()) {
+            world = iter->second;
+        } else {
+            world = new V8IsolatedWorld(this, extensionGroup);
+            m_isolatedWorlds.set(worldID, world);
+        }
+    } else {
+        world = new V8IsolatedWorld(this, extensionGroup);
+    }
+
+    v8::Local<v8::Context> context = v8::Local<v8::Context>::New(world->context());
+    v8::Context::Scope context_scope(context);
+    for (size_t i = 0; i < sources.size(); ++i)
+      evaluate(sources[i], 0);
+
+    if (worldID == 0)
+      world->destroy();
 }
 
 void V8Proxy::evaluateInNewContext(const Vector<ScriptSourceCode>& sources, int extensionGroup)
@@ -708,9 +730,20 @@ void V8Proxy::disconnectEventListeners()
     m_listenerGuard->disconnectListeners();
     m_listenerGuard = V8ListenerGuard::create();
 }
+    
+void V8Proxy::resetIsolatedWorlds()
+{
+    for (IsolatedWorldMap::iterator iter = m_isolatedWorlds.begin();
+         iter != m_isolatedWorlds.end(); ++iter) {
+        iter->second->destroy();
+    }
+    m_isolatedWorlds.clear();
+}
 
 void V8Proxy::clearForClose()
 {
+    resetIsolatedWorlds();
+
     if (!context().IsEmpty()) {
         v8::HandleScope handleScope;
 
@@ -722,6 +755,8 @@ void V8Proxy::clearForClose()
 void V8Proxy::clearForNavigation()
 {
     disconnectEventListeners();
+    resetIsolatedWorlds();
+
     if (!context().IsEmpty()) {
         v8::HandleScope handle;
         clearDocumentWrapper();
@@ -912,6 +947,7 @@ v8::Persistent<v8::Context> V8Proxy::createNewContext(v8::Handle<v8::Object> glo
 
     // Install a security handler with V8.
     globalTemplate->SetAccessCheckCallbacks(V8Custom::v8DOMWindowNamedSecurityCheck, V8Custom::v8DOMWindowIndexedSecurityCheck, v8::Integer::New(V8ClassIndex::DOMWINDOW));
+    globalTemplate->SetInternalFieldCount(V8Custom::kDOMWindowInternalFieldCount);
 
     // Used to avoid sleep calls in unload handlers.
     if (!registeredExtensionWithV8(DateExtension::get()))
@@ -953,12 +989,14 @@ bool V8Proxy::installDOMWindow(v8::Handle<v8::Context> context, DOMWindow* windo
 
     // Wrap the window.
     V8DOMWrapper::setDOMWrapper(jsWindow, V8ClassIndex::ToInt(V8ClassIndex::DOMWINDOW), window);
+    V8DOMWrapper::setDOMWrapper(v8::Handle<v8::Object>::Cast(jsWindow->GetPrototype()), V8ClassIndex::ToInt(V8ClassIndex::DOMWINDOW), window);
 
     window->ref();
     V8DOMWrapper::setJSWrapperForDOMObject(window, v8::Persistent<v8::Object>::New(jsWindow));
 
     // Insert the window instance as the prototype of the shadow object.
     v8::Handle<v8::Object> v8Global = context->Global();
+    V8DOMWrapper::setDOMWrapper(v8::Handle<v8::Object>::Cast(v8Global->GetPrototype()), V8ClassIndex::ToInt(V8ClassIndex::DOMWINDOW), window);
     v8Global->Set(implicitProtoString, jsWindow);
     return true;
 }

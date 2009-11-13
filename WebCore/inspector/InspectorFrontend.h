@@ -70,6 +70,8 @@ namespace WebCore {
         bool updateResource(long long identifier, const ScriptObject& resourceObj);
         void removeResource(long long identifier);
 
+        void addCookieDomain(String);
+
         void updateFocusedNode(long long nodeId);
         void setAttachedWindow(bool attached);
         void showPanel(int panel);
@@ -95,7 +97,8 @@ namespace WebCore {
 
 #if ENABLE(DATABASE)
         bool addDatabase(const ScriptObject& dbObj);
-        void selectDatabase(Database* database);
+        void selectDatabase(int databaseId);
+        void didGetDatabaseTableNames(int callId, const ScriptArray& tableNames);
 #endif
         
 #if ENABLE(DOM_STORAGE)

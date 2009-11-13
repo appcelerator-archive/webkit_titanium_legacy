@@ -1,3 +1,193 @@
+2009-10-08  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Migrated some code that didn't belong out of Structure.
+        
+        SunSpider says maybe 1.03x faster.
+
+        * runtime/JSCell.h: Nixed Structure::markAggregate, and made marking of
+        a Structure's prototype the direct responsility of the object using it.
+        (Giving Structure a mark function was misleading because it implied that
+        all live structures get marked during GC, when they don't.)
+        
+        * runtime/JSGlobalObject.cpp:
+        (JSC::markIfNeeded):
+        (JSC::JSGlobalObject::markChildren): Added code to mark prototypes stored
+        on the global object. Maybe this wasn't necessary, but now we don't have
+        to wonder.
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::getPropertyNames):
+        (JSC::JSObject::getOwnPropertyNames):
+        (JSC::JSObject::getEnumerableNamesFromClassInfoTable):
+        * runtime/JSObject.h:
+        (JSC::JSObject::markChildrenDirect):
+        * runtime/PropertyNameArray.h:
+        * runtime/Structure.cpp:
+        * runtime/Structure.h:
+        (JSC::Structure::setEnumerationCache):
+        (JSC::Structure::enumerationCache): Moved property name gathering code
+        from Structure to JSObject because having a Structure iterate its JSObject
+        was a layering violation. A JSObject is implemented using a Structure; not
+        the other way around.
+
+2009-10-08  Zoltan Herczeg  <zherczeg@inf.u-szeged.hu>
+
+        Reviewed by Gavin Barraclough.
+
+        Fix for JIT'ed op_call instructions (evals, constructs, etc.)
+        when !ENABLE(JIT_OPTIMIZE_CALL) && USE(JSVALUE32_64)
+
+        https://bugs.webkit.org/show_bug.cgi?id=30201
+
+        * jit/JITCall.cpp:
+        (JSC::JIT::compileOpCall):
+
+2009-10-07  Geoffrey Garen  <ggaren@apple.com>
+
+        Windows build fix: removed no longer exported symbol.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-10-07  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Fixed <rdar://problem/5751979> Database code takes JSLock on secondary
+        thread, permanently slowing down JavaScript
+        
+        Removed the optional lock from Heap::protect, Heap::unprotect, and friends,
+        since WebCore no longer uses it.
+
+        * JavaScriptCore.exp:
+        * runtime/Collector.cpp:
+        (JSC::Heap::protect):
+        (JSC::Heap::unprotect):
+        (JSC::Heap::markProtectedObjects):
+        (JSC::Heap::protectedGlobalObjectCount):
+        (JSC::Heap::protectedObjectCount):
+        (JSC::Heap::protectedObjectTypeCounts):
+        * runtime/Collector.h:
+
+2009-10-07  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Allow custom memory allocation control for JavaScriptCore's IdentifierArena
+        https://bugs.webkit.org/show_bug.cgi?id=30158
+
+        Inherits IdentifierArena class from FastAllocBase because it has been
+        instantiated by 'new' in JavaScriptCore/parser/ParserArena.cpp:36.
+
+        * parser/ParserArena.h:
+
+2009-10-07  Adam Roben  <aroben@apple.com>
+
+        Export DateInstance::info in a way that works on Windows
+
+        Fixes <http://webkit.org/b/30171>
+        fast/dom/Window/window-postmessage-clone.html fails on Windows
+
+        Reviewed by Anders Carlsson.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+        Removed the export of DateInstance::info from here.
+
+        * runtime/DateInstance.h: Use JS_EXPORTDATA to export
+        DateInstance::info, which is the required way of exporting data on
+        Windows.
+
+2009-10-07  Jørgen Lind  <jorgen.lind@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        When enabling or disabling the JIT through .qmake.cache, make sure
+        to also toggle ENABLE_YARR_JIT.
+
+        * JavaScriptCore.pri:
+
+2009-10-06  Priit Laes  <plaes@plaes.org>
+
+        Reviewed by Gavin Barraclough.
+
+        Linking fails with "relocation R_X86_64_PC32 against symbol
+        `cti_vm_throw'"
+        https://bugs.webkit.org/show_bug.cgi?id=28422
+
+        * jit/JITStubs.cpp:
+        Mark cti_vm_throw symbol as PLT-indirect symbol, so it doesn't end up
+        in text segment causing relocation errors on amd64 architecture.
+        Introduced new define SYMBOL_STRING_RELOCATION for such symbols.
+
+2009-10-06  Oliver Hunt  <oliver@apple.com>
+
+        Windows linking fix
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore_debug.def:
+
+2009-10-06  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by NOBODY (build fix).
+
+        Windows build fix.
+
+        * runtime/DateInstance.cpp:
+
+2009-10-05  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Gavin Barraclough.
+
+        It should be possible to post (clone) built-in JS objects to Workers
+        https://bugs.webkit.org/show_bug.cgi?id=22878
+
+        Expose helpers to throw correct exceptions during object graph walk
+        used for cloning and add a helper function to create Date instances
+        without going through the JS Date constructor function.
+
+        * JavaScriptCore.exp:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * runtime/DateInstance.cpp:
+        (JSC::DateInstance::DateInstance):
+        * runtime/DateInstance.h:
+        * runtime/ExceptionHelpers.cpp:
+        (JSC::createTypeError):
+        * runtime/ExceptionHelpers.h:
+
+2009-10-06  David Levin  <levin@chromium.org>
+
+        Reviewed by Oliver Hunt.
+
+        StringImpl needs a method to get an instance for another thread which doesn't copy the underlying buffer.
+        https://bugs.webkit.org/show_bug.cgi?id=30095
+
+        * wtf/CrossThreadRefCounted.h:
+        Removed an unused function and assert improvement.
+        (WTF::CrossThreadRefCounted::isOwnedByCurrentThread): Moved out common code from asserts.
+        (WTF::CrossThreadRefCounted::ref): Changed assert to use the common method.
+        (WTF::CrossThreadRefCounted::deref): Changed assert to use the common method.
+        (WTF::CrossThreadRefCounted::crossThreadCopy): Since this includes a potentially
+        non-threadsafe operation, add an assert that the class is owned by the current thread.
+
+2009-10-05  Kevin Ollivier  <kevino@theolliviers.com>
+
+        wx build fix. Add Symbian files to the list of excludes.
+
+        * wscript:
+
+2009-10-05  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Remove precompiled header from JavaScriptCore compilation to
+        prevent qmake warning during autonomous compilation.
+        https://bugs.webkit.org/show_bug.cgi?id=30069
+
+        * JavaScriptCore.pro:
+
 2009-10-02  Geoffrey Garen  <ggaren@apple.com>
 
         Reviewed by Sam Weinig.

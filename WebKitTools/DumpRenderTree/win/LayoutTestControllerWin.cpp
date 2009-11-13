@@ -840,15 +840,19 @@ unsigned LayoutTestController::numberOfActiveAnimations() const
     return number;
 }
 
-void LayoutTestController::whiteListAccessFromOrigin(JSStringRef sourceOrigin, JSStringRef destinationProtocol, JSStringRef destinationHost, bool allowDestinationSubdomains)
-{
-    printf("LayoutTestController::whiteListAccessFromOrigin not implemented\n");
-}
-
 static _bstr_t bstrT(JSStringRef jsString)
 {
     // The false parameter tells the _bstr_t constructor to adopt the BSTR we pass it.
     return _bstr_t(JSStringCopyBSTR(jsString), false);
+}
+
+void LayoutTestController::whiteListAccessFromOrigin(JSStringRef sourceOrigin, JSStringRef destinationProtocol, JSStringRef destinationHost, bool allowDestinationSubdomains)
+{
+    COMPtr<IWebViewPrivate> webView;
+    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+        return;
+
+    webView->whiteListAccessFromOrigin(bstrT(sourceOrigin).GetBSTR(), bstrT(destinationProtocol).GetBSTR(), bstrT(destinationHost).GetBSTR(), allowDestinationSubdomains);
 }
 
 void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
@@ -868,4 +872,43 @@ void LayoutTestController::addUserStyleSheet(JSStringRef source)
         return;
 
     webView->addUserStyleSheetToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), 1, bstrT(source).GetBSTR(), 0, 0, 0, 0, 0);
+}
+
+void LayoutTestController::showWebInspector()
+{
+    COMPtr<IWebViewPrivate> webView;
+    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (SUCCEEDED(webView->inspector(&inspector)))
+        inspector->show();
+}
+
+void LayoutTestController::closeWebInspector()
+{
+    COMPtr<IWebViewPrivate> webView;
+    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (SUCCEEDED(webView->inspector(&inspector)))
+        inspector->close();
+}
+
+void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef script)
+{
+    COMPtr<IWebViewPrivate> webView;
+    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (FAILED(webView->inspector(&inspector)))
+        return;
+
+    COMPtr<IWebInspectorPrivate> inspectorPrivate(Query, inspector);
+    if (!inspectorPrivate)
+        return;
+
+    inspectorPrivate->evaluateInFrontend(callId, bstrT(script).GetBSTR());
 }

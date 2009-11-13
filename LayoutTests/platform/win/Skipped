@@ -105,6 +105,9 @@ editing/selection/drag-in-iframe.html
 fast/events/drag-in-frames.html
 fast/events/standalone-image-drag-to-editable.html
 
+# Windows drag-and-drop does not work correctly (https://bugs.webkit.org/show_bug.cgi?id=24731)
+fast/events/drag-and-drop-none.html
+
 # <rdar://problem/5643675> window.scrollTo scrolls a window with no scrollbars
 fast/events/attempt-scroll-with-no-scrollbars.html
 
@@ -615,6 +618,7 @@ http/tests/security/isolatedWorld/number-prototype.html
 http/tests/security/isolatedWorld/object-prototype.html
 http/tests/security/isolatedWorld/string-prototype.html
 http/tests/security/isolatedWorld/window-properties.html
+http/tests/security/isolatedWorld/world-reuse.html
 
 # New test with questionable results
 # See https://bugs.webkit.org/show_bug.cgi?id=28079 for explanation.
@@ -641,14 +645,6 @@ media/video-source-error.html
 
 # <http://webkit.org/b/28467>
 http/tests/loading/preload-img-test.html
-
-# Missing LayoutTestController implementation
-http/tests/xmlhttprequest/origin-whitelisting-all.html
-http/tests/xmlhttprequest/origin-whitelisting-exact-match.html
-http/tests/xmlhttprequest/origin-whitelisting-https.html
-http/tests/xmlhttprequest/origin-whitelisting-ip-addresses.html
-http/tests/xmlhttprequest/origin-whitelisting-ip-addresses-with-subdomains.html
-http/tests/xmlhttprequest/origin-whitelisting-subdomains.html
 
 # No TextInputController
 fast/forms/input-maxlength-ime-completed.html

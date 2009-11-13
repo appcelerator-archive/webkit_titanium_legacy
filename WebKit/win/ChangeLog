@@ -1,3 +1,185 @@
+2009-10-08  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Remove the shouldLoadMediaElementURL implementation.
+
+        * Interfaces/IWebPolicyDelegatePrivate.idl:
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::shouldUsePluginDocument):
+        * WebCoreSupport/WebFrameLoaderClient.h:
+
+2009-10-08  Adam Roben  <aroben@apple.com>
+
+        Make IWebInspectorPrivate be accessed in a more standard way
+
+        IWebViewPrivate::inspectorPrivate has been removed. Callers should
+        instead use IWebViewPrivate::inspector and then use QueryInterface to
+        get the IWebInspectorPrivate interface. This matches how our other COM
+        classes work.
+
+        Fixes <http://webkit.org/b/30215> Make IWebInspectorPrivate be
+        accessed in a more standard way
+
+        Reviewed by John Sullivan and Tim Hatcher.
+
+        * Interfaces/IWebViewPrivate.idl: Removed inspectorPrivate.
+
+        * WebInspector.cpp:
+        (WebInspector::QueryInterface): Support querying to
+        IWebInspectorPrivate.
+
+        * WebView.cpp:
+        * WebView.h:
+        Removed inspectorPrivate.
+
+2009-10-08  Adam Roben  <aroben@apple.com>
+
+        Move the new IWebViewPrivate::inspectorPrivate function after all
+        functions that existed when Safari 4.0.3 was released
+
+        Fixes <http://webkit.org/b/30085> REGRESSION (r49091): run-safari
+        crashes in Safari.dll
+
+        Reviewed by John Sullivan.
+
+        * Interfaces/IWebViewPrivate.idl: Moved inspectorPrivate to the end of
+        the interface, so it won't modify the vtable that Safari 4.0.3 sees.
+
+2009-10-07  Adam Roben  <aroben@apple.com>
+
+        Expose origin whitelisting in the WebKit API on Windows
+
+        Fixes <http://webkit.org/b/30185>.
+
+        Reviewed by Eric Seidel.
+
+        * Interfaces/IWebViewPrivate.idl: Added whiteListAccessFromOrigin and
+        resetOriginAccessWhiteLists, to match the Mac SPI.
+
+        * WebView.cpp:
+        (WebView::whiteListAccessFromOrigin):
+        (WebView::resetOriginAccessWhiteLists):
+        * WebView.h:
+        Added. These just call through to SecurityOrigin.
+
+2009-10-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Factor PolicyChecker out of FrameLoader
+        https://bugs.webkit.org/show_bug.cgi?id=30155
+
+        Move the policy callback to the policy object.
+
+        * WebFrame.cpp:
+        (WebFrame::dispatchWillSubmitForm):
+        (WebFrame::receivedPolicyDecision):
+        (WebFrame::dispatchDecidePolicyForMIMEType):
+        (WebFrame::dispatchDecidePolicyForNewWindowAction):
+        (WebFrame::dispatchDecidePolicyForNavigationAction):
+
+2009-10-07  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30102
+        And
+        <rdar://problem/5015957>
+        
+        Fixes an issue (in the Windows build) where the cursor does not change to the
+        not-allowed cursor when the drag-and-drop operation is not allowed.
+        
+        The allowed effects in WebDragClient::startDrag are hard-coded to be 
+        DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE. Instead, the list of 
+        allowed drop effects should be determined by the allowed operations of the
+        drag source.
+        
+        We cannot test this using DRT because DRT looks at the programmatic drop 
+        cursor and until bug #24731 is fixed this value is hard-coded to DragOperationCopy.
+        That is, there is a discrepancy in the Windows build between the Windows API-based 
+        drop effect and the WebKit drop effect. Because DRT cannot read the screen buffer 
+        to determine the cursor, a manual test is needed.
+
+        * WebCoreSupport/WebDragClient.cpp:
+        (draggingSourceOperationMaskToDragCursors): Added method.
+        (WebDragClient::startDrag):
+
+2009-10-07  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30176
+        <rdar://problem/7281553> Extra information in UA causes problems with gmail
+        
+        * WebKit.vcproj/WebKit.rc: Restore PRODUCTVERSION to build number only. Remove extra space.
+
+2009-10-06  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: default to an attached inspector window on Windows (as on Mac).
+
+        https://bugs.webkit.org/show_bug.cgi?id=30134
+
+        * WebCoreSupport/WebInspectorClient.cpp:
+        (WebInspectorClient::showWindowWithoutNotifications):
+
+2009-10-06  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Move FrameLoader::canLoad to SecurityOrigin
+        https://bugs.webkit.org/show_bug.cgi?id=30111
+
+        * WebFrame.cpp:
+        (WebFrame::allowsFollowingLink):
+
+2009-10-06  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: close inspector client view on
+        InspectorController::close API call.
+
+        In order to run batch web inspector layout tests (and not affect 
+        subsequent tests) we should close inspector client's view upon
+        InspectorController::close API call.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30009
+
+        * WebCoreSupport/WebInspectorClient.cpp:
+        (WebInspectorClient::createPage):
+
+2009-10-06  David Levin  <levin@chromium.org>
+
+        Reviewed by NOBODY (windows build fix).
+
+        Speculative build fix for windows (due to r49160).
+
+        * WebDownloadCFNet.cpp:
+        (WebDownload::initToResumeWithBundle):
+        * WebIconDatabase.cpp:
+        (WebIconDatabase::dispatchDidAddIconForPageURL):
+
+2009-10-05  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: add testing harness for Web Inspector.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30010
+
+        * Interfaces/IWebInspectorPrivate.idl: Added.
+        * Interfaces/IWebViewPrivate.idl:
+        * Interfaces/WebKit.idl:
+        * WebInspector.cpp:
+        (WebInspector::evaluateInFrontend):
+        * WebInspector.h:
+        * WebView.cpp:
+        (WebView::inspectorPrivate):
+        * WebView.h:
+
 2009-10-02  Dave Hyatt  <hyatt@apple.com>
 
         Reviewed by Adam Roben.

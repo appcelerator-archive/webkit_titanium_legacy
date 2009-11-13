@@ -13,6 +13,9 @@ symbian: {
 
     TARGET.UID3 = 0x200267C2
 }
+# RO-section in qtwebkit.dll exceeds allocated space in SBSv2. Move RW-section
+# base address to start from 0x800000 instead of the toolchain default 0x400000.
+symbian-sbsv2: MMP_RULES += "LINKEROPTION  armcc --rw-base 0x800000"
 
 include($$PWD/../WebKit.pri)
 
@@ -293,7 +296,8 @@ STYLESHEETS_EMBED = \
     $$PWD/css/svg.css \
     $$PWD/css/view-source.css \
     $$PWD/css/wml.css \
-    $$PWD/css/mediaControls.css
+    $$PWD/css/mediaControls.css \
+    $$PWD/css/mediaControlsQt.css
 
 DOMLUT_FILES += \
     bindings/js/JSDOMWindowBase.cpp \
@@ -327,6 +331,7 @@ IDL_BINDINGS += \
     css/WebKitCSSMatrix.idl \
     css/WebKitCSSTransformValue.idl \
     dom/Attr.idl \
+    dom/BeforeLoadEvent.idl \
     dom/CharacterData.idl \
     dom/ClientRect.idl \
     dom/ClientRectList.idl \
@@ -666,6 +671,7 @@ SOURCES += \
     accessibility/AccessibilityTableRow.cpp \    
     accessibility/AXObjectCache.cpp \
     bindings/js/GCController.cpp \
+    bindings/js/JSCallbackData.cpp \
     bindings/js/JSAttrCustom.cpp \
     bindings/js/JSCDATASectionCustom.cpp \
     bindings/js/JSCanvasRenderingContextCustom.cpp \
@@ -760,6 +766,7 @@ SOURCES += \
     bindings/js/ScriptState.cpp \
     bindings/js/ScriptValue.cpp \
     bindings/js/ScheduledAction.cpp \
+    bindings/js/SerializedScriptValue.cpp \
     bridge/IdentifierRep.cpp \
     bridge/NP_jsobject.cpp \
     bridge/npruntime.cpp \
@@ -1106,7 +1113,8 @@ SOURCES += \
     loader/NetscapePlugInStreamLoader.cpp \
     loader/PlaceholderDocument.cpp \
     loader/PluginDocument.cpp \
-    loader/PolicyCheck.cpp \
+    loader/PolicyCallback.cpp \
+    loader/PolicyChecker.cpp \
     loader/ProgressTracker.cpp \
     loader/RedirectScheduler.cpp \
     loader/Request.cpp \
@@ -1173,6 +1181,7 @@ SOURCES += \
     platform/DragImage.cpp \
     platform/FileChooser.cpp \
     platform/GeolocationService.cpp \
+    platform/image-decoders/qt/RGBA32BufferQt.cpp \
     platform/graphics/FontDescription.cpp \
     platform/graphics/FontFamily.cpp \
     platform/graphics/BitmapImage.cpp \
@@ -1366,6 +1375,7 @@ HEADERS += \
     bindings/js/CachedScriptSourceProvider.h \
     bindings/js/DOMObjectWithSVGContext.h \
     bindings/js/GCController.h \
+    bindings/js/JSCallbackData.h \
     bindings/js/JSAudioConstructor.h \
     bindings/js/JSCSSStyleDeclarationCustom.h \
     bindings/js/JSCustomPositionCallback.h \
@@ -1426,6 +1436,7 @@ HEADERS += \
     bindings/js/ScriptSourceProvider.h \
     bindings/js/ScriptState.h \
     bindings/js/ScriptValue.h \
+    bindings/js/SerializedScriptValue.h \
     bindings/js/StringSourceProvider.h \
     bindings/js/WorkerScriptController.h \
     bridge/c/c_class.h \
@@ -1849,6 +1860,7 @@ HEADERS += \
     platform/DragImage.h \
     platform/FileChooser.h \
     platform/GeolocationService.h \
+    platform/image-decoders/ImageDecoder.h \
     platform/mock/GeolocationServiceMock.h \
     platform/graphics/BitmapImage.h \
     platform/graphics/Color.h \
@@ -2332,7 +2344,6 @@ SOURCES += \
     platform/graphics/qt/ImageBufferQt.cpp \
     platform/graphics/qt/ImageDecoderQt.cpp \
     platform/graphics/qt/ImageQt.cpp \
-    platform/graphics/qt/ImageSourceQt.cpp \
     platform/graphics/qt/IntPointQt.cpp \
     platform/graphics/qt/IntRectQt.cpp \
     platform/graphics/qt/IntSizeQt.cpp \

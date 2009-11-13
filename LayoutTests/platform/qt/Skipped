@@ -35,6 +35,7 @@ http/tests/xmlhttprequest
 http/tests/uri/escaped-entity.html
 
 # Failing HTTP Loading tests
+http/tests/loading/bad-server-subframe.html
 http/tests/loading/bad-scheme-subframe.html
 http/tests/loading/basic-auth-resend-wrong-credentials.html
 http/tests/loading/basic.html
@@ -79,6 +80,7 @@ http/tests/security/isolatedWorld/number-prototype.html
 http/tests/security/isolatedWorld/object-prototype.html
 http/tests/security/isolatedWorld/string-prototype.html
 http/tests/security/isolatedWorld/window-properties.html
+http/tests/security/isolatedWorld/world-reuse.html
 
 # Missing DRT ability return a null request for willSendRequest redirect calls
 http/tests/misc/will-send-request-returns-null-on-redirect.html
@@ -86,8 +88,6 @@ http/tests/misc/will-send-request-returns-null-on-redirect.html
 # Failing test
 fast/canvas/quadraticCurveTo.xml
 
-# Crashing test on buildbot due to enabled phonon in Qt
-fast/table/008.html
 # ------- missing features
 accessibility
 media
@@ -127,8 +127,6 @@ fast/forms/input-maxlength-ime-completed.html
 
 # Missing layoutTestController.overridePreference()
 fast/events/pageshow-pagehide-on-back-cached.html
-fast/events/tab-focus-anchor.html
-fast/events/click-focus-anchor.html
 
 # Missing layoutTestController.overridePreference()
 fast/events/pageshow-pagehide-on-back-cached-with-frames.html
@@ -148,11 +146,6 @@ fast/events/drag-to-navigate.html
 fast/events/prevent-drag-to-navigate.html
 fast/forms/get-file-upload.html
 fast/events/drag-file-crash.html
-
-# ------- failing worker test
-# Currently fails because on QNetworkReply::ContentNotFound error we
-# still deliver the content instead of reporting it as failure to WebCore
-fast/workers/worker-constructor.html
 
 # ------- failing editing tests
 editing/deleting/delete-to-end-of-paragraph.html
@@ -327,10 +320,8 @@ fast/forms/input-list.html
 fast/forms/input-selectedoption.html
 fast/forms/access-key.html
 fast/forms/button-cannot-be-nested.html
-fast/forms/button-spacebar-click.html
 fast/forms/control-restrict-line-height.html
 fast/forms/drag-into-textarea.html
-fast/forms/focus-control-to-page.html
 fast/forms/focus-selection-input.html
 fast/forms/focus-selection-textarea.html
 fast/forms/input-readonly-autoscroll.html
@@ -1071,7 +1062,6 @@ fast/css/css2-system-fonts.html
 fast/css/namespaces/003.xml
 fast/css/namespaces/007.xml
 fast/doctypes/003.html
-fast/dom/assign-to-window-status.html
 fast/dom/frame-loading-via-document-write.html
 fast/dom/set-frame-src-while-running-script-in-frame.html
 fast/dom/wrapper-classes.html
@@ -1088,7 +1078,6 @@ fast/encoding/frame-default-enc.html
 fast/encoding/invalid-xml.html
 fast/encoding/mailto-always-utf-8.html
 fast/events/access-key-self-destruct.html
-fast/events/arrow-keys-on-body.html
 fast/events/attempt-scroll-with-no-scrollbars.html
 fast/events/contextmenu-scrolled-page-with-frame.html
 fast/events/key-events-in-input-button.html
@@ -1097,7 +1086,6 @@ fast/events/onchange-passwordfield.html
 fast/events/onchange-searchfield.html
 fast/events/onchange-textfield.html
 fast/events/onsearch-enter.html
-fast/forms/enter-clicks-buttons.html
 fast/forms/input-align-image.html
 fast/forms/input-align.html
 fast/forms/input-double-click-selection-gap-bug.html
@@ -1107,23 +1095,6 @@ fast/forms/legend-access-key.html
 fast/forms/slider-onchange-event.html
 fast/forms/textarea-rows-cols.html
 fast/forms/textfield-onchange-deletion.html
-fast/forms/mailto/advanced-get.html
-fast/forms/mailto/advanced-put.html
-fast/forms/mailto/get-multiple-items-text-plain.html
-fast/forms/mailto/get-multiple-items-x-www-form-urlencoded.html
-fast/forms/mailto/get-multiple-items.html
-fast/forms/mailto/get-non-ascii-always-utf-8.html
-fast/forms/mailto/get-non-ascii-text-plain-latin-1.html
-fast/forms/mailto/get-non-ascii-text-plain.html
-fast/forms/mailto/get-non-ascii.html
-fast/forms/mailto/get-overwrite-query.html
-fast/forms/mailto/post-append-query.html
-fast/forms/mailto/post-multiple-items-multipart-form-data.html
-fast/forms/mailto/post-multiple-items-text-plain.html
-fast/forms/mailto/post-multiple-items-x-www-form-urlencoded.html
-fast/forms/mailto/post-multiple-items.html
-fast/forms/mailto/post-text-plain-with-accept-charset.html
-fast/forms/mailto/post-text-plain.html
 fast/frames/onlyCommentInIFrame.html
 fast/history/subframe-is-visited.html
 fast/inline/positionedLifetime.html
@@ -2879,7 +2850,6 @@ fast/forms/preserveFormDuringResidualStyle.html
 fast/forms/radio-attr-order.html
 fast/forms/radio_checked_dynamic.html
 fast/forms/radio_checked.html
-fast/forms/radio_checked_name.html
 fast/forms/radio-nested-labels.html
 fast/forms/range-thumb-height-percentage.html
 fast/forms/search-cancel-button-style-sharing.html
@@ -4796,8 +4766,6 @@ fast/encoding/hebrew/8859-8-i.html
 fast/encoding/hebrew/logical.html
 fast/events/autoscroll-nonscrollable-iframe-in-scrollable-div.html
 fast/events/crash-on-mutate-during-drop.html
-fast/events/mouseup-from-button2.html
-fast/events/mouseup-outside-button.html
 fast/events/pointer-events-2.html
 fast/events/special-key-events-in-input-text.html
 fast/events/stopPropagation-submit.html
@@ -4861,14 +4829,8 @@ fast/dom/prototype-inheritance-2.html
 
 # Missing DRT ability to override 'standard' preferences.
 fast/dom/Window/timer-resume-on-navigation-back.html
-fast/harness/override-preferences.html
-fast/harness/override-preferences-2.html
-fast/harness/override-zzz-reset.html
 fast/harness/use-page-cache.html
 loader/go-back-to-different-window-size.html
-
-# A test that failed because eventSender cannot send function-key events.
-fast/events/keydown-function-keys.html
 
 # This port doesn't support Geolocation.
 fast/dom/Geolocation

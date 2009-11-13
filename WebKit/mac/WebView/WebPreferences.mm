@@ -353,6 +353,8 @@ static WebCacheModel cacheModelForMainBundle(void)
         [NSNumber numberWithBool:YES],  WebKitXSSAuditorEnabledPreferenceKey,
         [NSNumber numberWithBool:YES],  WebKitAcceleratedCompositingEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],   WebKitWebGLEnabledPreferenceKey,
+        [NSNumber numberWithBool:NO],   WebKitPluginHalterEnabledPreferenceKey,
+        [NSNumber numberWithUnsignedInt:4], WebKitPluginAllowedRunTimePreferenceKey,
         nil];
 
     // This value shouldn't ever change, which is assumed in the initialization of WebKitPDFDisplayModePreferenceKey above
@@ -1169,6 +1171,26 @@ static NSString *classIBCreatorID = nil;
 - (void)setWebGLEnabled:(BOOL)enabled
 {
     [self _setBoolValue:enabled forKey:WebKitWebGLEnabledPreferenceKey];
+}
+
+- (BOOL)pluginHalterEnabled
+{
+    return [self _boolValueForKey:WebKitPluginHalterEnabledPreferenceKey];
+}
+
+- (void)setPluginHalterEnabled:(BOOL)enabled
+{
+    [self _setBoolValue:enabled forKey:WebKitPluginHalterEnabledPreferenceKey];
+}
+
+- (unsigned)pluginAllowedRunTime
+{
+    return [self _integerValueForKey:WebKitPluginAllowedRunTimePreferenceKey];
+}
+
+- (void)setPluginAllowedRunTime:(unsigned)allowedRunTime
+{
+    return [self _setIntegerValue:allowedRunTime forKey:WebKitPluginAllowedRunTimePreferenceKey];
 }
 
 - (void)didRemoveFromWebView

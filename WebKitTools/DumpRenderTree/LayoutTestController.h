@@ -203,6 +203,12 @@ public:
     bool isGeolocationPermissionSet() const { return m_isGeolocationPermissionSet; }
     bool geolocationPermission() const { return m_geolocationPermission; }
 
+    void showWebInspector();
+    void closeWebInspector();
+    void evaluateInWebInspector(long callId, JSStringRef script);
+
+    void setPOSIXLocale(JSStringRef locale);
+
 private:
     bool m_dumpAsPDF;
     bool m_dumpAsText;

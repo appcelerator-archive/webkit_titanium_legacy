@@ -30,7 +30,9 @@
 #define InspectorController_h
 
 #include "Console.h"
+#include "Cookie.h"
 #include "PlatformString.h"
+#include "ScriptArray.h"
 #include "ScriptObject.h"
 #include "ScriptState.h"
 #include "ScriptValue.h"
@@ -39,6 +41,7 @@
 
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/ListHashSet.h>
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
 
@@ -90,8 +93,9 @@ class InspectorController
 public:
     typedef HashMap<long long, RefPtr<InspectorResource> > ResourcesMap;
     typedef HashMap<RefPtr<Frame>, ResourcesMap*> FrameResourcesMap;
-    typedef HashSet<RefPtr<InspectorDatabaseResource> > DatabaseResourcesSet;
-    typedef HashSet<RefPtr<InspectorDOMStorageResource> > DOMStorageResourcesSet;
+    typedef HashMap<int, RefPtr<InspectorDatabaseResource> > DatabaseResourcesMap;
+    typedef HashMap<int, RefPtr<InspectorDOMStorageResource> > DOMStorageResourcesMap;
+    typedef HashMap<String, Vector<String> > ObjectGroupsMap;
 
     typedef enum {
         CurrentPanel,
@@ -231,6 +235,8 @@ public:
 
     void mainResourceFiredLoadEvent(DocumentLoader*, const KURL&);
     void mainResourceFiredDOMContentEvent(DocumentLoader*, const KURL&);
+                                                        
+    void getCookies(long callId, const String& url);
 
 #if ENABLE(DATABASE)
     void didOpenDatabase(Database*, const String& domain, const String& name, const String& version);
@@ -300,21 +306,29 @@ private:
     // Following are used from InspectorFrontend only. We don't want to expose them to the
     // rest of the InspectorController clients.
     // TODO: extract these into a separate interface.
-    ScriptValue wrapObject(const ScriptValue& object);
+    ScriptValue wrapObject(const ScriptValue& object, const String& objectGroup);
     ScriptValue unwrapObject(const String& objectId);
+    void releaseWrapperObjectGroup(const String& objectGroup);
     
     void resetInjectedScript();
 
-    void deleteCookie(const String& cookieName);
+    void deleteCookie(const String& cookieName, const String& domain);
 
 #if ENABLE(JAVASCRIPT_DEBUGGER)
     void startUserInitiatedProfilingSoon();
     void toggleRecordButton(bool);
     void enableDebuggerFromFrontend(bool always);
 #endif
+#if ENABLE(DATABASE)
+    void selectDatabase(Database* database);
+    Database* databaseForId(int databaseId);
+#endif
 #if ENABLE(DOM_STORAGE)
     InspectorDOMStorageResource* getDOMStorageResourceForId(int storageId);
 #endif
+                                                        
+    ScriptObject buildObjectForCookie(const Cookie&);
+    ScriptArray buildArrayForCookies(ListHashSet<Cookie>&);
 
     void focusNode();
 
@@ -351,10 +365,10 @@ private:
     HashMap<String, double> m_times;
     HashMap<String, unsigned> m_counts;
 #if ENABLE(DATABASE)
-    DatabaseResourcesSet m_databaseResources;
+    DatabaseResourcesMap m_databaseResources;
 #endif
 #if ENABLE(DOM_STORAGE)
-    DOMStorageResourcesSet m_domStorageResources;
+    DOMStorageResourcesMap m_domStorageResources;
 #endif
     ScriptState* m_scriptState;
     bool m_windowVisible;
@@ -367,7 +381,9 @@ private:
     bool m_resourceTrackingEnabled;
     bool m_resourceTrackingSettingsLoaded;
     RefPtr<InspectorBackend> m_inspectorBackend;
-    HashMap<String, ScriptValue> m_idToConsoleObject;
+    HashMap<String, ScriptValue> m_idToWrappedObject;
+    ObjectGroupsMap m_objectGroups;
+
     long m_lastBoundObjectId;
     Vector<pair<long, String> > m_pendingEvaluateTestCommands;
 #if ENABLE(JAVASCRIPT_DEBUGGER)

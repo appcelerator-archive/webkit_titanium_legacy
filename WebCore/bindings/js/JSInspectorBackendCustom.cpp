@@ -122,27 +122,20 @@ JSValue JSInspectorBackend::search(ExecState* exec, const ArgList& args)
 }
 
 #if ENABLE(DATABASE)
-JSValue JSInspectorBackend::databaseTableNames(ExecState* exec, const ArgList& args)
+JSValue JSInspectorBackend::databaseForId(ExecState* exec, const ArgList& args)
 {
     if (args.size() < 1)
         return jsUndefined();
 
-    JSQuarantinedObjectWrapper* wrapper = JSQuarantinedObjectWrapper::asWrapper(args.at(0));
-    if (!wrapper)
+    InspectorController* ic = impl()->inspectorController();
+    if (!ic)
         return jsUndefined();
 
-    Database* database = toDatabase(wrapper->unwrappedObject());
+    Database* database = impl()->databaseForId(args.at(0).toInt32(exec));
     if (!database)
         return jsUndefined();
-
-    MarkedArgumentBuffer result;
-
-    Vector<String> tableNames = database->tableNames();
-    unsigned length = tableNames.size();
-    for (unsigned i = 0; i < length; ++i)
-        result.append(jsString(exec, tableNames[i]));
-
-    return constructArray(exec, result);
+    JSDOMWindow* inspectedWindow = toJSDOMWindow(ic->inspectedPage()->mainFrame());
+    return JSInspectedObjectWrapper::wrap(inspectedWindow->globalExec(), toJS(exec, database));
 }
 #endif
 
@@ -295,12 +288,12 @@ JSValue JSInspectorBackend::nodeForId(ExecState* exec, const ArgList& args)
     return JSInspectedObjectWrapper::wrap(inspectedWindow->globalExec(), toJS(exec, deprecatedGlobalObjectForPrototype(inspectedWindow->globalExec()), node));
 }
 
-JSValue JSInspectorBackend::wrapObject(ExecState*, const ArgList& args)
+JSValue JSInspectorBackend::wrapObject(ExecState* exec, const ArgList& args)
 {
-    if (args.size() < 1)
+    if (args.size() < 2)
         return jsUndefined();
 
-    return impl()->wrapObject(ScriptValue(args.at(0))).jsValue();
+    return impl()->wrapObject(ScriptValue(args.at(0)), args.at(1).toString(exec)).jsValue();
 }
 
 JSValue JSInspectorBackend::unwrapObject(ExecState* exec, const ArgList& args)

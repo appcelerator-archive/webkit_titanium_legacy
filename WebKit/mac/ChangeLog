@@ -1,3 +1,410 @@
+2009-10-08  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Remove the shouldLoadMediaElementURL implementation.
+
+        * WebCoreSupport/WebFrameLoaderClient.h:
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        * WebView/WebPolicyDelegatePrivate.h:
+
+2009-10-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Re-land 49269-49271 since reverting them did not fix the tests.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView drawRect:]):
+
+2009-10-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Revert 49269-49271 to see if it fixes test failures on SnowLeopard that do not
+        reproduce locally.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView drawRect:]):
+
+2009-10-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Factor PolicyChecker out of FrameLoader
+        https://bugs.webkit.org/show_bug.cgi?id=30155
+
+        Move the policy callback to the policy object.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::dispatchWillSubmitForm):
+        (WebFrameLoaderClient::receivedPolicyDecison):
+
+2009-10-07  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Send title changes to the global history delegate.
+        <rdar://problem/7285293> and https://webkit.org/b/29904
+
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::setTitle):
+        * WebView/WebDelegateImplementationCaching.h:
+        * WebView/WebHistoryDelegate.h:
+        * WebView/WebView.mm:
+        (-[WebView _cacheHistoryDelegateImplementations]):
+
+2009-10-07  Darin Adler  <darin@apple.com>
+
+        Reviewed by John Sullivan.
+
+        Make the setMetadataURL function foolproof by having it remove user info
+        https://bugs.webkit.org/show_bug.cgi?id=30178
+        rdar://problem/6544670
+
+        * Misc/WebNSFileManagerExtras.m:
+        (-[NSFileManager _webkit_setMetadataURL:referrer:atPath:]):
+        Call _web_URLByRemovingUserInfo on the passed in URL string after converting
+        it to a URL, and then convert it back to a string.
+
+        * Misc/WebNSURLExtras.h: Added _web_URLByRemovingUserInfo.
+        * Misc/WebNSURLExtras.mm: Removed unused WebKitURLComponents struct.
+        (-[NSURL _web_URLByTruncatingOneCharacterBeforeComponent:]): Renamed to be
+        clearer on what this does.
+        (-[NSURL _webkit_URLByRemovingFragment]): Changed to call new name.
+        (-[NSURL _webkit_URLByRemovingResourceSpecifier]): Ditto.
+        (-[NSURL _web_URLByRemovingComponentAndSubsequentCharacter:]): Added.
+        (-[NSURL _web_URLByRemovingUserInfo]): Added.
+
+2009-10-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Make Dan Bernstein happy.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView drawRect:]):
+
+2009-10-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Avoid Obj-C message dispatch when possible by storing accessed objects
+        in local variables.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView drawRect:]):
+
+2009-10-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Animation stalls for a few seconds partway through
+        https://bugs.webkit.org/show_bug.cgi?id=30182
+        
+        Make sure that we only call -disableScreenUpdatesUntilFlush when a window
+        update is actually going to happen, otherwise screen updates are disabled
+        for too long.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView drawRect:]):
+
+2009-10-06  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: default to an attached inspector window on Windows (as on Mac).
+
+        https://bugs.webkit.org/show_bug.cgi?id=30134
+
+        * WebCoreSupport/WebInspectorClient.mm:
+        (-[WebInspectorWindowController showWindow:]):
+
+2009-10-06  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Move FrameLoader::canLoad to SecurityOrigin
+        https://bugs.webkit.org/show_bug.cgi?id=30111
+
+        * Plugins/Hosted/HostedNetscapePluginStream.mm:
+        (WebKit::HostedNetscapePluginStream::HostedNetscapePluginStream):
+        * Plugins/Hosted/NetscapePluginInstanceProxy.mm:
+        (WebKit::NetscapePluginInstanceProxy::loadRequest):
+        * Plugins/WebBaseNetscapePluginStream.mm:
+        (WebNetscapePluginStream::WebNetscapePluginStream):
+        * Plugins/WebNetscapePluginView.mm:
+        (-[WebNetscapePluginView loadRequest:inTarget:withNotifyData:sendNotification:]):
+        * Plugins/WebPluginContainerCheck.mm:
+        (-[WebPluginContainerCheck _isForbiddenFileLoad]):
+        * WebView/WebFrame.mm:
+        (-[WebFrame _allowsFollowingLink:]):
+
+2009-10-06  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Move setLocalLoadPolicy and friends to SecurityOrigin
+        https://bugs.webkit.org/show_bug.cgi?id=30110
+
+        Call the new API.
+
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:usesDocumentViews:]):
+
+2009-10-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        accessibility/media-element.html crashes (and has incorrect result)
+        https://bugs.webkit.org/show_bug.cgi?id=30108
+
+        Fix up the accessibilty label for the newly added fullscreen button,
+        and update the test result accordingly.
+
+        * WebCoreSupport/WebViewFactory.mm:
+        (-[WebViewFactory localizedMediaControlElementString:]):
+        Handle "ControlsPanel" which is just an empty container, to avoid
+        asserting in debug builds.
+
+2009-10-06  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30107
+        
+        Fixes an issue where the Mac build does return the correct drop effect
+        with respect to the HTML 5 specification when effectAllowed == "none".
+        
+        Currently, when effectAllowed == "none" and dropEffect == "copy" or 
+        dropEffect == "move" the resulting drop effect is "copy" and "move",
+        respectively. However, the HTML 5 specification states that regardless
+        of the specified dropEffect, when effectAllowed == "none" the resulting
+        drop effect should be "none".
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView draggingSourceOperationMaskForLocal:]):
+
+2009-10-06  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: close inspector client view on
+        InspectorController::close API call.
+
+        In order to run batch web inspector layout tests (and not affect 
+        subsequent tests) we should close inspector client's view upon
+        InspectorController::close API call.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30009
+
+        * WebCoreSupport/WebInspectorClient.mm:
+        (WebInspectorClient::createPage):
+
+2009-10-05  Dan Bernstein  <mitz@apple.com>
+
+        Rubber-stamped by Mark Rowe.
+
+        Moved a WebPluginHalterClient out of the WebCore namesapce.
+
+        * WebCoreSupport/WebPluginHalterClient.h:
+
+2009-10-05  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Added new PluginHalter client, delegate and few more WebPreferences keys.
+
+        * WebView/WebPreferenceKeysPrivate.h: Added two new keys.
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]): Initialize newly added key.
+        (-[WebPreferences pluginAllowedRunTime]): Added.
+        (-[WebPreferences setPluginAllowedRunTime:]): Added.
+        * WebView/WebPreferencesPrivate.h: Added above two methods.
+        * WebView/WebUIDelegatePrivate.h: Added shouldHaltPlugin delegate.
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:usesDocumentViews:]):
+        Setup a new WebPluginHalterClient.
+        (-[WebView _preferencesChangedNotification:]): Update WebCore settings accordingly.
+        * WebCoreSupport/WebPluginHalterClient.h: Added.
+        * WebCoreSupport/WebPluginHalterClient.mm: Added.
+        (WebPluginHalterClient::WebPluginHalterClient):
+        (WebPluginHalterClient::shouldHaltPlugin): Added, invoke the delegate.
+
+2009-10-05  Simon Fraser  <simon.fraser@apple.com>
+
+        More build fixes for Tiger.
+
+        * WebView/WebVideoFullscreenController.mm:
+
+2009-10-05  Simon Fraser  <simon.fraser@apple.com>
+
+        More build fixes for Tiger.
+
+        * WebView/WebVideoFullscreenController.mm:
+        (-[WebVideoFullscreenWindow animationDidEnd:]):
+        * WebView/WebWindowAnimation.m:
+
+2009-10-05  Simon Fraser  <simon.fraser@apple.com>
+
+        More build fixes for Tiger.
+
+        * WebView/WebVideoFullscreenController.mm:
+        * WebView/WebVideoFullscreenHUDWindowController.mm:
+        (-[WebVideoFullscreenHUDWindow initWithContentRect:styleMask:backing:defer:]):
+        (-[WebVideoFullscreenHUDWindowController scheduleTimeUpdate]):
+        (-[WebVideoFullscreenHUDWindowController fadeWindowIn]):
+        (-[WebVideoFullscreenHUDWindowController fadeWindowOut]):
+        (-[WebVideoFullscreenHUDWindowController closeWindow]):
+
+2009-10-05  Simon Fraser  <simon.fraser@apple.com>
+
+        Build fixes for Tiger.
+
+        * WebView/WebVideoFullscreenHUDWindowController.h:
+        * WebView/WebVideoFullscreenHUDWindowController.mm:
+        (-[WebVideoFullscreenHUDWindow initWithContentRect:styleMask:backing:defer:]):
+        (-[WebVideoFullscreenHUDWindowController dealloc]):
+        (-[WebVideoFullscreenHUDWindowController closeWindow]):
+        (-[WebVideoFullscreenHUDWindowController windowDidLoad]):
+
+2009-10-05  Simon Fraser  <simon.fraser@apple.com>
+
+        Build fix. If you call Node::hasTagName(), you also have to include Element.h.
+
+        * WebCoreSupport/WebChromeClient.mm:
+
+2009-10-05  Pierre d'Herbemont  <pdherbemont@webkit.org>
+
+        Reviewed by Simon Fraser
+        
+        Support fullscreen in MediaPlayer (Mac)
+        https://bugs.webkit.org/show_bug.cgi?id=26742
+
+        Add a fullscreen button to the <video> controller if the media engine,
+        and the theme have support for fullscreen, and can show appropriate controls.
+        Clicking the button calls through the ChromeClient to the WebVideoFullscreenController
+        in WebKit to do a nice animation to fullscreen, with a custom controller.
+
+        * WebCoreSupport/WebChromeClient.h:
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::supportsFullscreenForNode):
+        (WebChromeClient::enterFullscreenForNode):
+        (WebChromeClient::exitFullscreenForNode):
+        New methods to ask whether fullscreen is possible for a given node, and
+        notifications on enterying and exiting fullscreen.
+        
+        * WebView/WebVideoFullscreenController.h: Added.
+        * WebView/WebVideoFullscreenController.mm: Added.
+        WebVideoFullscreenController is responsible for creating the fullscreen window,
+        and coordinating the various animations when going fullscreen.
+
+        * WebView/WebVideoFullscreenHUDWindowController.h: Added.
+        * WebView/WebVideoFullscreenHUDWindowController.mm: Added.
+        This class manages the heads-up display (HUD) control bar.
+
+        * WebView/WebView.mm:
+        (-[WebView _close]):
+        Make sure we come out of fullscreen if the WebView is torn down (e.g. if
+        you close a background window).
+
+        (-[WebView _enterFullscreenForNode:WebCore::]):
+        Make a WebVideoFullscreenController and tell is to start to go fullscreen.
+        
+        (-[WebView _exitFullscreen]):
+        Tell the WebVideoFullscreenController to come out of fullscreen, and clean up.
+        
+        * WebView/WebViewData.h:
+        * WebView/WebViewData.mm:
+        (-[WebViewPrivate dealloc]):
+        (-[WebViewPrivate finalize]):
+        * WebView/WebViewInternal.h:
+        Keep a pointer to the WebVideoFullscreenController.
+        
+        * WebView/WebWindowAnimation.h: Added.
+        * WebView/WebWindowAnimation.m: Added.
+        (WebWindowAnimationDurationFromDuration):
+        (scaledRect):
+        (squaredDistance):
+        Handle the animations used during the transitition to fullscreen.
+
+2009-10-05  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Kevin Decker.
+       
+        WebKit side of <rdar://problem/7179166>
+       
+        * Plugins/Hosted/NetscapePluginInstanceProxy.h:
+        Add an m_pluginIsWaitingForDraw member variable.
+        
+        * Plugins/Hosted/NetscapePluginInstanceProxy.mm:
+        (WebKit::NetscapePluginInstanceProxy::NetscapePluginInstanceProxy):
+        Initialize m_pluginIsWaitingForDraw.
+        
+        (WebKit::NetscapePluginInstanceProxy::invalidateRect):
+        Set m_pluginIsWaitingForDraw to true.
+        
+        (WebKit::NetscapePluginInstanceProxy::didDraw):
+        If m_pluginIsWaitingForDraw is true, call _WKPHPluginInstanceDidDraw.
+        
+        * Plugins/Hosted/WebHostedNetscapePluginView.mm:
+        (-[WebHostedNetscapePluginView drawRect:]):
+        Call didDraw.
+        
+        * Plugins/Hosted/WebKitPluginHost.defs:
+        Add PHPluginInstanceDidDraw.
+
+2009-10-02  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Adele Peterson.
+
+        Add functionality to pause/throttle CSS transitions/animations in a WebView
+        https://bugs.webkit.org/show_bug.cgi?id=29942
+
+        Added both a setter and getter function
+
+        * WebView/WebView.mm:
+        (-[WebView cssAnimationsSuspended]):
+        (-[WebView setCSSAnimationsSuspended:]):
+        * WebView/WebViewData.h:
+        * WebView/WebViewData.mm:
+        (-[WebViewPrivate init]):
+        * WebView/WebViewPrivate.h:
+
+2009-10-04  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        <rdar://problem/7273363> Plug-ins should use PluginHalter
+        
+        * Plugins/WebBaseNetscapePluginView.h: Add WebHaltablePlugin forward declare and _haltable ivar.
+        * Plugins/WebBaseNetscapePluginView.mm:
+        (WebHaltablePlugin::WebHaltablePlugin): Added.
+        (WebHaltablePlugin::halt): New method that stops a plug-in.
+        (WebHaltablePlugin::restart): New method that starts a plug-in.
+        (WebHaltablePlugin::node): Added. Provides the DOMNode corresponding to the plug-in in WebBaseNetscapePluginView.
+        (-[WebBaseNetscapePluginView initWithFrame:pluginPackage:URL:baseURL:MIMEType:attributeKeys:attributeValues:loadManually:element:WebCore::]):
+        Initialize new _haltable ivar.
+        (-[WebBaseNetscapePluginView start]): Call the page's didStartPlugin() upon starting a plug-in.
+        (-[WebBaseNetscapePluginView stop]): Call the page's didStopPlugin() upon stopping a plug-in.
+
+2009-10-05  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: add testing harness for Web Inspector.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30010
+
+        * WebInspector/WebInspector.mm:
+        (-[WebInspector evaluateInFrontend:callId:script:]):
+        * WebInspector/WebInspectorPrivate.h: Added.
+
+2009-10-04  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Cameron Zwarich.
+
+        * WebView/WebPreferenceKeysPrivate.h: Added new key.
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]): Leave plug-in halting disabled by default.
+        (-[WebPreferences pluginHalterEnabled]): Added.
+        (-[WebPreferences setPluginHalterEnabled:]): Ditto.
+        * WebView/WebPreferencesPrivate.h: Added above new methods. 
+
 2009-10-02  Dave Hyatt  <hyatt@apple.com>
 
         Reviewed by Adam Roben.

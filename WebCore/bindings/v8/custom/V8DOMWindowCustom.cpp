@@ -49,6 +49,7 @@
 #include "PlatformScreen.h"
 #include "ScheduledAction.h"
 #include "ScriptSourceCode.h"
+#include "SerializedScriptValue.h"
 #include "Settings.h"
 #include "WindowFeatures.h"
 
@@ -197,11 +198,7 @@ ACCESSOR_GETTER(DOMWindowCrypto)
 
 ACCESSOR_SETTER(DOMWindowLocation)
 {
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return;
-
-    DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
+    DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     WindowSetLocation(imp, toWebCoreString(value));
 }
 
@@ -325,7 +322,7 @@ CALLBACK_FUNC_DECL(DOMWindowPostMessage)
     ASSERT(source->frame());
 
     v8::TryCatch tryCatch;
-    String message = toWebCoreString(args[0]);
+    RefPtr<SerializedScriptValue> message = SerializedScriptValue::create(toWebCoreString(args[0]));
     MessagePortArray portArray;
     String targetOrigin;
 
@@ -345,7 +342,7 @@ CALLBACK_FUNC_DECL(DOMWindowPostMessage)
         return v8::Undefined();
 
     ExceptionCode ec = 0;
-    window->postMessage(message, &portArray, targetOrigin, source, ec);
+    window->postMessage(message.release(), &portArray, targetOrigin, source, ec);
     return throwError(ec);
 }
 
@@ -496,7 +493,7 @@ static Frame* createWindow(Frame* callingFrame,
         return 0;
 
     newFrame->loader()->setOpener(openerFrame);
-    newFrame->loader()->setOpenedByDOM();
+    newFrame->page()->setOpenedByDOM();
 
     // Set dialog arguments on the global object of the new frame.
     if (!dialogArgs.IsEmpty()) {
@@ -742,11 +739,8 @@ CALLBACK_FUNC_DECL(DOMWindowOpen)
 INDEXED_PROPERTY_GETTER(DOMWindow)
 {
     INC_STATS("DOM.DOMWindow.IndexedPropertyGetter");
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return notHandledByInterceptor();
 
-    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
+    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     if (!window)
         return notHandledByInterceptor();
 
@@ -766,11 +760,8 @@ NAMED_PROPERTY_GETTER(DOMWindow)
 {
     INC_STATS("DOM.DOMWindow.NamedPropertyGetter");
 
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
-    if (holder.IsEmpty())
-        return notHandledByInterceptor();
-
-    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, holder);
+    // TODO(antonm): investigate what convertToNativeObject does for the case of DOMWINDOW.
+    DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     if (!window)
         return notHandledByInterceptor();
 
@@ -786,7 +777,7 @@ NAMED_PROPERTY_GETTER(DOMWindow)
         return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, child->domWindow());
 
     // Search IDL functions defined in the prototype
-    v8::Handle<v8::Value> result = holder->GetRealNamedPropertyInPrototypeChain(name);
+    v8::Handle<v8::Value> result = info.Holder()->GetRealNamedProperty(name);
     if (!result.IsEmpty())
         return result;
 

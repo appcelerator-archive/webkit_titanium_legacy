@@ -129,6 +129,7 @@ void LayoutTestController::reset()
     m_waitForDone = false;
     m_dumpTitleChanges = false;
     m_dumpDatabaseCallbacks = false;
+    m_dumpStatusCallbacks = false;
     m_timeoutTimer.stop();
     m_topLoadingFrame = 0;
     m_waitForPolicy = false;
@@ -374,17 +375,57 @@ EventSender::EventSender(QWebPage *parent)
     m_page = parent;
 }
 
-void EventSender::mouseDown()
+void EventSender::mouseDown(int button)
 {
+    Qt::MouseButton mouseButton;
+    switch (button) {
+    case 0:
+        mouseButton = Qt::LeftButton;
+        break;
+    case 1:
+        mouseButton = Qt::MidButton;
+        break;
+    case 2:
+        mouseButton = Qt::RightButton;
+        break;
+    case 3:
+        // fast/events/mouse-click-events expects the 4th button to be treated as the middle button
+        mouseButton = Qt::MidButton;
+        break;
+    default:
+        mouseButton = Qt::LeftButton;
+        break;
+    }
+
 //     qDebug() << "EventSender::mouseDown" << frame;
-    QMouseEvent event(QEvent::MouseButtonPress, m_mousePos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QMouseEvent event(QEvent::MouseButtonPress, m_mousePos, mouseButton, mouseButton, Qt::NoModifier);
     QApplication::sendEvent(m_page, &event);
 }
 
-void EventSender::mouseUp()
+void EventSender::mouseUp(int button)
 {
+    Qt::MouseButton mouseButton;
+    switch (button) {
+    case 0:
+        mouseButton = Qt::LeftButton;
+        break;
+    case 1:
+        mouseButton = Qt::MidButton;
+        break;
+    case 2:
+        mouseButton = Qt::RightButton;
+        break;
+    case 3:
+        // fast/events/mouse-click-events expects the 4th button to be treated as the middle button
+        mouseButton = Qt::MidButton;
+        break;
+    default:
+        mouseButton = Qt::LeftButton;
+        break;
+    }
+
 //     qDebug() << "EventSender::mouseUp" << frame;
-    QMouseEvent event(QEvent::MouseButtonRelease, m_mousePos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QMouseEvent event(QEvent::MouseButtonRelease, m_mousePos, mouseButton, mouseButton, Qt::NoModifier);
     QApplication::sendEvent(m_page, &event);
 }
 
@@ -482,8 +523,14 @@ void EventSender::keyDown(const QString &string, const QStringList &modifiers)
             code = string.unicode()->toUpper().unicode();
     } else {
         qDebug() << ">>>>>>>>> keyDown" << string;
+
+        if (string.startsWith(QLatin1Char('F')) && string.count() <= 3) {
+            s = s.mid(1);
+            int functionKey = s.toInt();
+            Q_ASSERT(functionKey >= 1 && functionKey <= 35);
+            code = Qt::Key_F1 + (functionKey - 1);
         // map special keycode strings used by the tests to something that works for Qt/X11
-        if (string == QLatin1String("leftArrow")) {
+        } else if (string == QLatin1String("leftArrow")) {
             s = QString();
             code = Qt::Key_Left;
         } else if (string == QLatin1String("rightArrow")) {
@@ -514,6 +561,8 @@ void EventSender::keyDown(const QString &string, const QStringList &modifiers)
     }
     QKeyEvent event(QEvent::KeyPress, code, modifs, s);
     QApplication::sendEvent(m_page, &event);
+    QKeyEvent event2(QEvent::KeyRelease, code, modifs, s);
+    QApplication::sendEvent(m_page, &event2);
 }
 
 void EventSender::contextClick()

@@ -33,6 +33,7 @@
 
 #include "V8Attr.h"
 #include "V8BarInfo.h"
+#include "V8BeforeLoadEvent.h"
 #include "V8CanvasRenderingContext.h"
 #include "V8CanvasRenderingContext2D.h"
 #include "V8CanvasGradient.h"
@@ -366,7 +367,6 @@
 #include "V8SVGTransform.h"
 #include "V8SVGTransformList.h"
 #include "V8SVGUnitTypes.h"
-#include "V8SVGURIReference.h"
 #include "V8SVGZoomEvent.h"
 #endif
 

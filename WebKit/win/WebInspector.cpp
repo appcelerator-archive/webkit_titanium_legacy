@@ -76,6 +76,8 @@ HRESULT STDMETHODCALLTYPE WebInspector::QueryInterface(REFIID riid, void** ppvOb
     *ppvObject = 0;
     if (IsEqualGUID(riid, IID_IWebInspector))
         *ppvObject = static_cast<IWebInspector*>(this);
+    else if (IsEqualGUID(riid, IID_IWebInspectorPrivate))
+        *ppvObject = static_cast<IWebInspectorPrivate*>(this);
     else if (IsEqualGUID(riid, IID_IUnknown))
         *ppvObject = static_cast<IWebInspector*>(this);
     else
@@ -281,5 +283,19 @@ HRESULT STDMETHODCALLTYPE WebInspector::setLocalizedStringsURL(BSTR url)
     String localizedStringsURL(url, SysStringLen(url));
     m_webInspectorClient->setLocalizedStringsURL(localizedStringsURL);
 
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE  WebInspector::evaluateInFrontend(ULONG callId, BSTR bScript)
+{
+    if (!m_webView)
+        return S_OK;
+
+    Page* page = m_webView->page();
+    if (!page)
+        return S_OK;
+
+    String script(bScript, SysStringLen(bScript));
+    page->inspectorController()->evaluateForTestInFrontend(callId, script);
     return S_OK;
 }

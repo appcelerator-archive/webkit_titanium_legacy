@@ -133,8 +133,12 @@ WebInspector.ResourcesPanel = function()
     this.enableToggleButton.addEventListener("click", this._toggleResourceTracking.bind(this), false);
 
     this.largerResourcesButton = new WebInspector.StatusBarButton(WebInspector.UIString("Use small resource rows."), "resources-larger-resources-status-bar-item");
-    this.largerResourcesButton.toggled = true;
+    this.largerResourcesButton.toggled = Preferences.resourcesLargeRows;
     this.largerResourcesButton.addEventListener("click", this._toggleLargerResources.bind(this), false);
+    if (!Preferences.resourcesLargeRows) {
+        Preferences.resourcesLargeRows = !Preferences.resourcesLargeRows;
+        this._toggleLargerResources(); // this will toggle the preference back to the original
+    }
 
     this.sortingSelectElement = document.createElement("select");
     this.sortingSelectElement.className = "status-bar-item";
@@ -825,6 +829,8 @@ WebInspector.ResourcesPanel.prototype = {
             return;
 
         this.resourcesTreeElement.smallChildren = !this.resourcesTreeElement.smallChildren;
+        Preferences.resourcesLargeRows = !Preferences.resourcesLargeRows;
+        InspectorController.setSetting("resources-large-rows", Preferences.resourcesLargeRows);
 
         if (this.resourcesTreeElement.smallChildren) {
             this.resourcesGraphsElement.addStyleClass("small");
@@ -1263,13 +1269,12 @@ WebInspector.ResourceSidebarTreeElement.prototype = {
     {
         WebInspector.SidebarTreeElement.prototype.onattach.call(this);
 
-        var link = document.createElement("a");
-        link.href = this.resource.url;
-        link.className = "invisible";
-        while (this._listItemNode.firstChild)
-            link.appendChild(this._listItemNode.firstChild);
-        this._listItemNode.appendChild(link);
         this._listItemNode.addStyleClass("resources-category-" + this.resource.category.name);
+        this._listItemNode.draggable = true;
+        
+        // FIXME: should actually add handler to parent, to be resolved via
+        // https://bugs.webkit.org/show_bug.cgi?id=30227
+        this._listItemNode.addEventListener("dragstart", this.ondragstart.bind(this), false);
     },
 
     onselect: function()
@@ -1280,6 +1285,13 @@ WebInspector.ResourceSidebarTreeElement.prototype = {
     ondblclick: function(treeElement, event)
     {
         InjectedScriptAccess.openInInspectedWindow(this.resource.url, function() {});
+    },
+
+    ondragstart: function(event) {
+        event.dataTransfer.setData("text/plain", this.resource.url);
+        event.dataTransfer.setData("text/uri-list", this.resource.url + "\r\n");
+        event.dataTransfer.effectAllowed = "copy";
+        return true;
     },
 
     get mainTitle()

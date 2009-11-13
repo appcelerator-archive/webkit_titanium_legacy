@@ -222,6 +222,9 @@ void tst_QWebPage::infiniteLoopJS()
 
 void tst_QWebPage::loadFinished()
 {
+    qRegisterMetaType<QWebFrame*>("QWebFrame*");
+    qRegisterMetaType<QNetworkRequest*>("QNetworkRequest*");
+    QSignalSpy spyNetworkRequestStarted(m_page, SIGNAL(networkRequestStarted(QWebFrame*, QNetworkRequest*)));
     QSignalSpy spyLoadStarted(m_view, SIGNAL(loadStarted()));
     QSignalSpy spyLoadFinished(m_view, SIGNAL(loadFinished(bool)));
 
@@ -232,6 +235,7 @@ void tst_QWebPage::loadFinished()
 
     QTest::qWait(3000);
 
+    QVERIFY(spyNetworkRequestStarted.count() > 1);
     QVERIFY(spyLoadStarted.count() > 1);
     QVERIFY(spyLoadFinished.count() > 1);
 
@@ -1354,8 +1358,10 @@ void tst_QWebPage::testOptionalJSObjects()
     webPage1.currentFrame()->setHtml(QString("<html><body>test</body></html>"), QUrl());
     webPage2.currentFrame()->setHtml(QString("<html><body>test</body></html>"), QUrl());
 
+    QEXPECT_FAIL("","Feature enabled/disabled checking problem. Look at bugs.webkit.org/show_bug.cgi?id=29867", Continue);
     QCOMPARE(testFlag(webPage1, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", false), false);
     QCOMPARE(testFlag(webPage2, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", true),  true);
+    QEXPECT_FAIL("","Feature enabled/disabled checking problem. Look at bugs.webkit.org/show_bug.cgi?id=29867", Continue);
     QCOMPARE(testFlag(webPage1, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", false), false);
     QCOMPARE(testFlag(webPage2, QWebSettings::OfflineWebApplicationCacheEnabled, "applicationCache", false), true);
 

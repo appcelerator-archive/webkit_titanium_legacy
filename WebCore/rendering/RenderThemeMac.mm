@@ -473,6 +473,7 @@ void RenderThemeMac::adjustRepaintRect(const RenderObject* o, IntRect& r)
         case RadioPart:
         case PushButtonPart:
         case SquareButtonPart:
+        case ListButtonPart:
         case DefaultButtonPart:
         case ButtonPart:
             return RenderTheme::adjustRepaintRect(o, r);
@@ -1421,7 +1422,7 @@ bool RenderThemeMac::paintSearchFieldResultsButton(RenderObject* o, const Render
 #if ENABLE(VIDEO)
 typedef enum {
     MediaControllerThemeClassic   = 1,
-    MediaControllerThemeQT        = 2
+    MediaControllerThemeQuickTime = 2
 } MediaControllerThemeStyle;
 
 static int mediaControllerTheme()
@@ -1455,7 +1456,7 @@ static int mediaControllerTheme()
         return controllerTheme;
 #endif
 
-    controllerTheme = MediaControllerThemeQT;
+    controllerTheme = MediaControllerThemeQuickTime;
     return controllerTheme;
 }
 #endif
@@ -1478,10 +1479,10 @@ void RenderThemeMac::adjustSliderThumbSize(RenderObject* o) const
         int width = mediaSliderThumbWidth;
         int height = mediaSliderThumbHeight;
         
-        if (mediaControllerTheme() == MediaControllerThemeQT) {
+        if (mediaControllerTheme() == MediaControllerThemeQuickTime) {
             CGSize  size;
             
-            wkMeasureMediaUIPart(MediaSliderThumb, MediaControllerThemeQT, NULL, &size);
+            wkMeasureMediaUIPart(MediaSliderThumb, MediaControllerThemeQuickTime, NULL, &size);
             width = size.width;
             height = size.height;
         }
@@ -1517,7 +1518,7 @@ static FloatRect getUnzoomedRectAndAdjustCurrentContext(RenderObject* o, const R
 {
     float zoomLevel = o->style()->effectiveZoom();
     FloatRect unzoomedRect(originalRect);
-    if (zoomLevel != 1.0f && mediaControllerTheme() == MediaControllerThemeQT) {
+    if (zoomLevel != 1.0f && mediaControllerTheme() == MediaControllerThemeQuickTime) {
         unzoomedRect.setWidth(unzoomedRect.width() / zoomLevel);
         unzoomedRect.setHeight(unzoomedRect.height() / zoomLevel);
         paintInfo.context->translate(unzoomedRect.x(), unzoomedRect.y());
@@ -1691,12 +1692,21 @@ bool RenderThemeMac::paintMediaTimeRemaining(RenderObject* o, const RenderObject
 
 String RenderThemeMac::extraMediaControlsStyleSheet()
 {
-    if (mediaControllerTheme() == MediaControllerThemeQT) 
-        return String(mediaControlsQTUserAgentStyleSheet, sizeof(mediaControlsQTUserAgentStyleSheet));
+    if (mediaControllerTheme() == MediaControllerThemeQuickTime)
+        return String(mediaControlsQuickTimeUserAgentStyleSheet, sizeof(mediaControlsQuickTimeUserAgentStyleSheet));
     else
         return String();
 }
-#endif
+
+bool RenderThemeMac::shouldRenderMediaControlPart(ControlPart part, Element* e)
+{
+    if (part == MediaFullscreenButtonPart)
+        return mediaControllerTheme() == MediaControllerThemeQuickTime;
+
+    return RenderTheme::shouldRenderMediaControlPart(part, e);
+}
+
+#endif // ENABLE(VIDEO)
 
 NSPopUpButtonCell* RenderThemeMac::popupButton() const
 {

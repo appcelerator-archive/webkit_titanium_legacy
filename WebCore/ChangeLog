@@ -1,3 +1,784 @@
+2009-10-08  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Fixes <https://bugs.webkit.org/show_bug.cgi?id=30237>.
+        DOM Content and Load lines aren't shown if a page is loaded when the inspector is up.
+        
+        Make sure to call update script object if we have an InspectorFrontend to
+        call it on when we get one of the new events.
+
+        * inspector/InspectorController.cpp:
+        (WebCore::InspectorController::mainResourceFiredDOMContentEvent):
+        (WebCore::InspectorController::mainResourceFiredLoadEvent):
+
+2009-10-08  Geoffrey Garen  <ggaren@apple.com>
+
+        Build fix: updated for removal of Structure::markAggregate().
+
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::JSDOMGlobalObject::markChildren):
+
+2009-10-08  Jens Alfke  <snej@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Make AtomicString create its StringImpl via create(), not the constructor,
+        so it gets allocated in a single heap block, saving memory and CPU cycles.
+        This eliminates two StringImpl constructors, making the remaining ones
+        unambiguous, so the "AdoptBuffer" parameter is no longer needed.
+        Added const attribute to UChar* in StringImpl constructor, eliminating the
+        need for several const_casts in calls to it.
+        StringImpl also unfriends AtomicString (OMG drama!!!)
+        https://bugs.webkit.org/show_bug.cgi?id=30141
+
+        * platform/text/AtomicString.cpp:
+        (WebCore::CStringTranslator::translate): Call StringImpl::create().
+        (WebCore::UCharBufferTranslator::translate): Ditto.
+        (WebCore::HashAndCharactersTranslator::translate): Ditto.
+        * platform/text/StringImpl.cpp:
+        (WebCore::StringImpl::StringImpl): Remove unnecessary AdoptBuffer param.
+        (WebCore::StringImpl::adopt): Ditto.
+        (WebCore::StringImpl::createUninitialized): Ditto.
+        (WebCore::StringImpl::create): Ditto.
+        (WebCore::StringImpl::crossThreadString): Ditto.
+        * platform/text/StringImpl.h:
+        (WebCore::StringImpl::setHash): Used by AtomicString when creating StringImpls.
+
+2009-10-08  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Remove the shouldLoadMediaElementURL frame loader client function.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::willLoadMediaElementURL):
+
+2009-10-08  John Gregg  <johnnyg@google.com>
+
+        Reviewed by Dimitri Glazkov.
+
+        SVGURIReference Build problem for V8.  An additional stale reference to SVGURIReference bindings
+        which wasn't exposed until a clean build.
+        https://bugs.webkit.org/show_bug.cgi?id=30217
+
+        No new tests, just a build fix.
+
+        * bindings/v8/V8Index.cpp:
+
+2009-10-08  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Not reviewed. Sort XCode project file.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2009-10-08  Patrick Mueller  <Patrick_Mueller@us.ibm.com>
+
+        Reviewed by Timothy Hatcher.
+
+        unselectable resources in resource panel
+        https://bugs.webkit.org/show_bug.cgi?id=30079
+
+        manual test added
+        
+        Also changed the way DnD for resources in the Resources panel is 
+        handled.
+
+        * inspector/front-end/ResourcesPanel.js:
+        (WebInspector.ResourceSidebarTreeElement.prototype.onattach):
+        (WebInspector.ResourceSidebarTreeElement.prototype.ondragstart):
+        * manual-tests/inspector/duplicate-resource-urls.html: Added.
+
+2009-10-08  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Fixes <http://webkit.org/b/30233>
+        Local Storage and Cookies show Blank Titles on Local Files.
+
+        If a local storage or cookies sidebar item has no domain, set the 
+        title to "Local Files", because that is what it represents.
+
+        * English.lproj/localizedStrings.js:
+        * inspector/front-end/StoragePanel.js:
+        (WebInspector.DOMStorageSidebarTreeElement.prototype.get mainTitle):
+        (WebInspector.CookieSidebarTreeElement.prototype.get mainTitle):
+        (WebInspector.CookieSidebarTreeElement.prototype.set mainTitle):
+
+2009-10-08  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Fix failing media layout tests.  Don't make beforeload block loads of objects that aren't in the
+        document, since video/audio (and images eventually too) can load when not in the document yet.
+
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::dispatchBeforeLoadEvent):
+
+2009-10-08  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        Move SVGFitToViewBox ANIMATED_* macros in classes that inherit from it
+        https://bugs.webkit.org/show_bug.cgi?id=30230
+
+        This patch also devirtualizes viewBoxToViewTransform(), is it's superflous.
+        viewBoxToViewTransform() is now a simple static heper function in SVGFitToViewBox.
+        As a result, the SVGSVGElement::viewBoxToViewTransform() function now resuses the same logic.
+
+        As side-effect this patch fixes svg/custom/linking-a-03-b-transform.svg, the return
+        statement in SVGSVGElement::viewBoxToViewTransform() was clearly wrong.
+
+        * svg/SVGFitToViewBox.cpp:
+        (WebCore::SVGFitToViewBox::SVGFitToViewBox):
+        (WebCore::SVGFitToViewBox::viewBoxToViewTransform):
+        * svg/SVGFitToViewBox.h:
+        * svg/SVGMarkerElement.cpp:
+        (WebCore::SVGMarkerElement::SVGMarkerElement):
+        (WebCore::SVGMarkerElement::viewBoxToViewTransform):
+        * svg/SVGMarkerElement.h:
+        * svg/SVGPatternElement.cpp:
+        (WebCore::SVGPatternElement::SVGPatternElement):
+        (WebCore::SVGPatternElement::buildPattern):
+        * svg/SVGPatternElement.h:
+        * svg/SVGSVGElement.cpp:
+        (WebCore::SVGSVGElement::SVGSVGElement):
+        (WebCore::SVGSVGElement::viewBoxToViewTransform):
+        * svg/SVGSVGElement.h:
+        * svg/SVGSymbolElement.cpp:
+        (WebCore::SVGSymbolElement::SVGSymbolElement):
+        * svg/SVGSymbolElement.h:
+        * svg/SVGViewElement.cpp:
+        (WebCore::SVGViewElement::SVGViewElement):
+        * svg/SVGViewElement.h:
+        * svg/SVGViewSpec.cpp:
+        (WebCore::SVGViewSpec::SVGViewSpec):
+        * svg/SVGViewSpec.h:
+
+2009-10-08  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Jon Honeycutt.
+
+        Correct a typo that fixes the resizing of columns in Cookie view when you
+        resize the Inspector window.
+
+        * inspector/front-end/CookieItemsView.js:
+        (WebInspector.CookieItemsView.prototype.resize):
+
+2009-10-08  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Fixes <https://bugs.webkit.org/show_bug.cgi?id=29811>
+        Text in Inspector's Styles gear menu is invisible.
+        
+        Adds a style rule for the option text and hr's in the gear menu,
+        to prevent them from being transparent.
+
+        * inspector/front-end/inspector.css:
+
+2009-10-08  John Gregg  <johnnyg@google.com>
+
+        Reviewed by David Levin.
+
+        Fix build problem with SVGURIReference in V8.
+        https://bugs.webkit.org/show_bug.cgi?id=30217
+
+        No new tests, just a build fix.
+
+        * WebCore.gypi:
+        * bindings/v8/DerivedSourcesAllInOne.cpp:
+
+2009-10-07  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Eric Carlson.
+
+        Make beforeload work on <video>/<audio> elements.
+
+        Added fast/dom/beforeload/video-before-load.html
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::parseMappedAttribute):
+        (WebCore::HTMLMediaElement::selectMediaResource):
+        (WebCore::HTMLMediaElement::selectNextSourceChild):
+
+2009-10-08  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        Move SVGExternalResourcesRequired ANIMATED_* macros in classes that inherit from it
+        https://bugs.webkit.org/show_bug.cgi?id=30218
+
+        The long term goal is to kill the need for the virtual contextElement() function in SVG code. 
+        No change in functionality, thus no new tests.
+
+        * svg/SVGAElement.cpp:
+        (WebCore::SVGAElement::SVGAElement):
+        * svg/SVGAElement.h:
+        * svg/SVGAnimationElement.cpp:
+        (WebCore::SVGAnimationElement::SVGAnimationElement):
+        * svg/SVGAnimationElement.h:
+        * svg/SVGCircleElement.cpp:
+        (WebCore::SVGCircleElement::SVGCircleElement):
+        * svg/SVGCircleElement.h:
+        * svg/SVGClipPathElement.cpp:
+        (WebCore::SVGClipPathElement::SVGClipPathElement):
+        * svg/SVGClipPathElement.h:
+        * svg/SVGCursorElement.cpp:
+        (WebCore::SVGCursorElement::SVGCursorElement):
+        * svg/SVGCursorElement.h:
+        * svg/SVGDefsElement.cpp:
+        (WebCore::SVGDefsElement::SVGDefsElement):
+        * svg/SVGDefsElement.h:
+        * svg/SVGEllipseElement.cpp:
+        (WebCore::SVGEllipseElement::SVGEllipseElement):
+        * svg/SVGEllipseElement.h:
+        * svg/SVGExternalResourcesRequired.cpp:
+        (WebCore::SVGExternalResourcesRequired::SVGExternalResourcesRequired):
+        * svg/SVGExternalResourcesRequired.h:
+        * svg/SVGFEImageElement.cpp:
+        (WebCore::SVGFEImageElement::SVGFEImageElement):
+        * svg/SVGFEImageElement.h:
+        * svg/SVGFilterElement.cpp:
+        (WebCore::SVGFilterElement::SVGFilterElement):
+        * svg/SVGFilterElement.h:
+        * svg/SVGFontElement.cpp:
+        (WebCore::SVGFontElement::SVGFontElement):
+        * svg/SVGFontElement.h:
+        * svg/SVGForeignObjectElement.cpp:
+        (WebCore::SVGForeignObjectElement::SVGForeignObjectElement):
+        * svg/SVGForeignObjectElement.h:
+        * svg/SVGGElement.cpp:
+        (WebCore::SVGGElement::SVGGElement):
+        * svg/SVGGElement.h:
+        * svg/SVGGradientElement.cpp:
+        (WebCore::SVGGradientElement::SVGGradientElement):
+        * svg/SVGGradientElement.h:
+        * svg/SVGImageElement.cpp:
+        (WebCore::SVGImageElement::SVGImageElement):
+        * svg/SVGImageElement.h:
+        * svg/SVGLineElement.cpp:
+        (WebCore::SVGLineElement::SVGLineElement):
+        * svg/SVGLineElement.h:
+        * svg/SVGMPathElement.cpp:
+        (WebCore::SVGMPathElement::SVGMPathElement):
+        * svg/SVGMPathElement.h:
+        * svg/SVGMarkerElement.cpp:
+        (WebCore::SVGMarkerElement::SVGMarkerElement):
+        * svg/SVGMarkerElement.h:
+        * svg/SVGMaskElement.cpp:
+        (WebCore::SVGMaskElement::SVGMaskElement):
+        * svg/SVGMaskElement.h:
+        * svg/SVGPathElement.cpp:
+        (WebCore::SVGPathElement::SVGPathElement):
+        * svg/SVGPathElement.h:
+        * svg/SVGPatternElement.cpp:
+        (WebCore::SVGPatternElement::SVGPatternElement):
+        * svg/SVGPatternElement.h:
+        * svg/SVGPolyElement.cpp:
+        (WebCore::SVGPolyElement::SVGPolyElement):
+        * svg/SVGPolyElement.h:
+        * svg/SVGRectElement.cpp:
+        (WebCore::SVGRectElement::SVGRectElement):
+        * svg/SVGRectElement.h:
+        * svg/SVGSVGElement.cpp:
+        (WebCore::SVGSVGElement::SVGSVGElement):
+        * svg/SVGSVGElement.h:
+        * svg/SVGScriptElement.cpp:
+        (WebCore::SVGScriptElement::SVGScriptElement):
+        * svg/SVGScriptElement.h:
+        * svg/SVGSwitchElement.cpp:
+        (WebCore::SVGSwitchElement::SVGSwitchElement):
+        * svg/SVGSwitchElement.h:
+        * svg/SVGSymbolElement.cpp:
+        (WebCore::SVGSymbolElement::SVGSymbolElement):
+        * svg/SVGSymbolElement.h:
+        * svg/SVGTextContentElement.cpp:
+        (WebCore::SVGTextContentElement::SVGTextContentElement):
+        * svg/SVGTextContentElement.h:
+        * svg/SVGUseElement.cpp:
+        (WebCore::SVGUseElement::SVGUseElement):
+        * svg/SVGUseElement.h:
+        * svg/SVGViewElement.cpp:
+        (WebCore::SVGViewElement::SVGViewElement):
+        * svg/SVGViewElement.h:
+
+2009-10-08  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        SVG feComposite: operator over mixes up inputs
+        [https://bugs.webkit.org/show_bug.cgi?id=30205]
+
+        SVG feComposite operator over mixed up the inputs.
+        The pixel-test svg/filters/feComposite.svg can already test this.
+        No new test result is needed as long as filters are disabled.
+
+        * platform/graphics/filters/FEComposite.cpp:
+        (WebCore::FEComposite::apply):
+
+2009-10-08  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by George Staikos.
+
+        Move SVGURIReference ANIMATED_* macros in classes that inherit from it
+        https://bugs.webkit.org/show_bug.cgi?id=30184
+
+        The long term goal is to kill the need for the virtual contextElement() function in SVG code. 
+        No change in functionality, thus no new tests.
+
+        * svg/SVGAElement.cpp:
+        (WebCore::SVGAElement::SVGAElement):
+        * svg/SVGAElement.h:
+        * svg/SVGAltGlyphElement.cpp:
+        (WebCore::SVGAltGlyphElement::SVGAltGlyphElement):
+        * svg/SVGAltGlyphElement.h:
+        * svg/SVGCursorElement.cpp:
+        (WebCore::SVGCursorElement::SVGCursorElement):
+        * svg/SVGCursorElement.h:
+        * svg/SVGFEImageElement.cpp:
+        (WebCore::SVGFEImageElement::SVGFEImageElement):
+        * svg/SVGFEImageElement.h:
+        * svg/SVGFilterElement.cpp:
+        (WebCore::SVGFilterElement::SVGFilterElement):
+        * svg/SVGFilterElement.h:
+        * svg/SVGForeignObjectElement.cpp:
+        (WebCore::SVGForeignObjectElement::SVGForeignObjectElement):
+        * svg/SVGForeignObjectElement.h:
+        * svg/SVGGradientElement.cpp:
+        (WebCore::SVGGradientElement::SVGGradientElement):
+        * svg/SVGGradientElement.h:
+        * svg/SVGImageElement.cpp:
+        (WebCore::SVGImageElement::SVGImageElement):
+        * svg/SVGImageElement.h:
+        * svg/SVGMPathElement.cpp:
+        (WebCore::SVGMPathElement::SVGMPathElement):
+        (WebCore::SVGMPathElement::pathElement):
+        * svg/SVGMPathElement.h:
+        * svg/SVGMaskElement.cpp:
+        (WebCore::SVGMaskElement::SVGMaskElement):
+        * svg/SVGMaskElement.h:
+        * svg/SVGPatternElement.cpp:
+        (WebCore::SVGPatternElement::SVGPatternElement):
+        * svg/SVGPatternElement.h:
+        * svg/SVGScriptElement.cpp:
+        (WebCore::SVGScriptElement::SVGScriptElement):
+        * svg/SVGScriptElement.h:
+        * svg/SVGTRefElement.cpp:
+        (WebCore::SVGTRefElement::SVGTRefElement):
+        * svg/SVGTRefElement.h:
+        * svg/SVGTextPathElement.cpp:
+        (WebCore::SVGTextPathElement::SVGTextPathElement):
+        * svg/SVGTextPathElement.h:
+        * svg/SVGURIReference.cpp:
+        (WebCore::SVGURIReference::SVGURIReference):
+        * svg/SVGURIReference.h:
+        * svg/SVGUseElement.cpp:
+        (WebCore::SVGUseElement::SVGUseElement):
+        * svg/SVGUseElement.h:
+
+2009-10-08  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Re-add the QApplication::syncX() line for plugin windows removed
+        by r49169. Also changed the location of the sync just after the
+        creation instead of just before sending it to the plugin.
+        https://bugs.webkit.org/show_bug.cgi?id=25053
+
+        * plugins/qt/PluginViewQt.cpp:
+        (WebCore::PluginView::platformStart):
+
+2009-10-08  Joseph Pecoraro  <joepeck@webkit.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Inspector: NodeLists Don't Display Well in the Console
+        https://bugs.webkit.org/show_bug.cgi?id=28061
+
+        * inspector/front-end/InjectedScript.js:
+        (Object.type):
+
+2009-10-08  Girish Ramakrishnan  <girish@forwardbias.in>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Windowless plugins: Remove unnecessary XSync for opaque mode.
+        
+        The reason for the XSync was that the plugin would not know about the
+        Drawable. It turns out that the real reason behind this is that even
+        though XCreatePixmap returns a handle, this id is unknown to the server
+        until we flush the connection.
+        
+        So, move the XSync to right after we create the Pixmap.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30207
+
+        * plugins/qt/PluginViewQt.cpp:
+        (WebCore::PluginView::updatePluginWidget):
+        (WebCore::PluginView::paint):
+
+2009-10-07  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30188
+        
+        Fixes an issue where performing a non DHTML drag-and-drop operation 
+        does not work as expected. For instance, dragging some selected text 
+        to an external application, such as TextEdit.
+        
+        This issue was a regression that arose from patching bug #30107.
+        
+        This change is covered by the manual test: 
+        drag-out-of-background-window.html
+
+        * page/DragController.cpp:
+        (WebCore::DragController::startDrag): When performing a non-DHTML drag 
+        operation then default to drag operations DragOperationGeneric and 
+        DragOperationCopy according to similar functionality removed when fixing
+        bug #30107, see: 
+        http://trac.webkit.org/browser/trunk/WebKit/mac/WebView/WebHTMLView.mm?rev=48526#L3430 
+
+2009-10-07  Xan Lopez  <xlopez@igalia.com>
+
+        Fix more breakage in the GTK+ build.
+
+        * GNUmakefile.am:
+
+2009-10-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Move PolicyChecker to it's own file
+        https://bugs.webkit.org/show_bug.cgi?id=30193
+
+        This is just moving code around and re-naming things.
+
+        * GNUmakefile.am:
+        * WebCore.gypi:
+        * WebCore.pro:
+        * WebCore.vcproj/WebCore.vcproj:
+        * WebCore.xcodeproj/project.pbxproj:
+        * loader/FrameLoader.cpp:
+        * loader/FrameLoader.h:
+        * loader/PolicyCallback.cpp: Added.
+        (WebCore::PolicyCallback::PolicyCallback):
+        (WebCore::PolicyCallback::~PolicyCallback):
+        (WebCore::PolicyCallback::clear):
+        (WebCore::PolicyCallback::set):
+        (WebCore::PolicyCallback::call):
+        (WebCore::PolicyCallback::clearRequest):
+        (WebCore::PolicyCallback::cancel):
+        * loader/PolicyCallback.h: Added.
+        (WebCore::PolicyCallback::request):
+        * loader/PolicyCheck.cpp: Removed.
+        * loader/PolicyCheck.h: Removed.
+
+2009-10-07  Joel Stanley  <joel@jms.id.au>
+
+        Reviewed by Mark Rowe.
+
+        Include <limits> for std::numeric_limits.  Required by gcc-4.4
+        https://bugs.webkit.org/show_bug.cgi?id=30197
+
+        * html/canvas/CanvasByteArray.h:
+        * html/canvas/CanvasIntArray.h:
+        * html/canvas/CanvasShortArray.h:
+        * html/canvas/CanvasUnsignedByteArray.h:
+        * html/canvas/CanvasUnsignedIntArray.h:
+        * html/canvas/CanvasUnsignedShortArray.h:
+
+2009-10-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Factor PolicyChecker out of FrameLoader
+        https://bugs.webkit.org/show_bug.cgi?id=30155
+
+        This patch separates PolicyChecker from FrameLoader.  Loader policy is
+        in change of managing the FrameLoaderClient callbacks.  Ideally, it
+        shouldn't know anything about FrameLoader, but I couldn't quite remove
+        all knowledge (although we might be able to do more later).  In a
+        future patch, I'll move PolicyChecker into a separate file.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::FrameLoader):
+        (WebCore::FrameLoader::loadURL):
+        (WebCore::FrameLoader::load):
+        (WebCore::FrameLoader::loadWithDocumentLoader):
+        (WebCore::PolicyChecker::handleUnimplementablePolicy):
+        (WebCore::PolicyChecker::cannotShowMIMEType):
+        (WebCore::PolicyChecker::PolicyChecker):
+        (WebCore::PolicyChecker::checkNavigationPolicy):
+        (WebCore::PolicyChecker::checkContentPolicy):
+        (WebCore::FrameLoader::shouldReloadToHandleUnreachableURL):
+        (WebCore::FrameLoader::stopAllLoaders):
+        (WebCore::PolicyChecker::cancelCheck):
+        (WebCore::PolicyChecker::stopCheck):
+        (WebCore::PolicyChecker::continueAfterContentPolicy):
+        (WebCore::PolicyChecker::continueLoadAfterWillSubmitForm):
+        (WebCore::FrameLoader::continueLoadAfterWillSubmitForm):
+        (WebCore::FrameLoader::loadPostRequest):
+        (WebCore::FrameLoader::continueFragmentScrollAfterNavigationPolicy):
+        (WebCore::PolicyChecker::checkNewWindowPolicy):
+        (WebCore::PolicyChecker::continueAfterNewWindowPolicy):
+        (WebCore::PolicyChecker::continueAfterNavigationPolicy):
+        (WebCore::FrameLoader::continueLoadAfterNavigationPolicy):
+        * loader/FrameLoader.h:
+        (WebCore::PolicyChecker::loadType):
+        (WebCore::PolicyChecker::setLoadType):
+        (WebCore::PolicyChecker::delegateIsDecidingNavigationPolicy):
+        (WebCore::PolicyChecker::delegateIsHandlingUnimplementablePolicy):
+        (WebCore::FrameLoader::policy):
+        * loader/FrameLoaderClient.h:
+        * loader/MainResourceLoader.cpp:
+        (WebCore::MainResourceLoader::didCancel):
+        (WebCore::MainResourceLoader::willSendRequest):
+        (WebCore::MainResourceLoader::continueAfterContentPolicy):
+        (WebCore::MainResourceLoader::didReceiveResponse):
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::dataChanged):
+
+2009-10-07  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Fixed <rdar://problem/5751979> Database code takes JSLock on secondary
+        thread, permanently slowing down JavaScript
+
+        Changed callback objects to use a standard helper object. The helper
+        object ASSERTs that it is deleted on the main thread, so no lock is
+        required when unprotecting its members. It also centralizes some previously
+        duplicated code.
+        
+        Callback objects that might be deleted on a secondary thread use
+        callOnMainThread to delete their helper objects on the main thread.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCallbackData.cpp: Copied from bindings/js/JSCustomSQLTransactionCallback.cpp.
+        (WebCore::JSCallbackData::deleteData):
+        (WebCore::JSCallbackData::invokeCallback):
+        * bindings/js/JSCallbackData.h: Copied from bindings/js/JSCustomSQLTransactionCallback.cpp.
+        (WebCore::JSCallbackData::JSCallbackData):
+        (WebCore::JSCallbackData::~JSCallbackData):
+        (WebCore::JSCallbackData::callback):
+        * bindings/js/JSCustomPositionCallback.cpp:
+        (WebCore::JSCustomPositionCallback::JSCustomPositionCallback):
+        (WebCore::JSCustomPositionCallback::handleEvent):
+        * bindings/js/JSCustomPositionCallback.h:
+        * bindings/js/JSCustomPositionErrorCallback.cpp:
+        (WebCore::JSCustomPositionErrorCallback::JSCustomPositionErrorCallback):
+        (WebCore::JSCustomPositionErrorCallback::handleEvent):
+        * bindings/js/JSCustomPositionErrorCallback.h:
+        * bindings/js/JSCustomSQLStatementCallback.cpp:
+        (WebCore::JSCustomSQLStatementCallback::JSCustomSQLStatementCallback):
+        (WebCore::JSCustomSQLStatementCallback::~JSCustomSQLStatementCallback):
+        (WebCore::JSCustomSQLStatementCallback::handleEvent):
+        * bindings/js/JSCustomSQLStatementCallback.h:
+        * bindings/js/JSCustomSQLStatementErrorCallback.cpp:
+        (WebCore::JSCustomSQLStatementErrorCallback::JSCustomSQLStatementErrorCallback):
+        (WebCore::JSCustomSQLStatementErrorCallback::~JSCustomSQLStatementErrorCallback):
+        (WebCore::JSCustomSQLStatementErrorCallback::handleEvent):
+        * bindings/js/JSCustomSQLStatementErrorCallback.h:
+        * bindings/js/JSCustomSQLTransactionCallback.cpp:
+        (WebCore::JSCustomSQLTransactionCallback::JSCustomSQLTransactionCallback):
+        (WebCore::JSCustomSQLTransactionCallback::~JSCustomSQLTransactionCallback):
+        (WebCore::JSCustomSQLTransactionCallback::handleEvent):
+        * bindings/js/JSCustomSQLTransactionCallback.h:
+        * bindings/js/JSCustomSQLTransactionErrorCallback.cpp:
+        (WebCore::JSCustomSQLTransactionErrorCallback::JSCustomSQLTransactionErrorCallback):
+        (WebCore::JSCustomSQLTransactionErrorCallback::~JSCustomSQLTransactionErrorCallback):
+        (WebCore::JSCustomSQLTransactionErrorCallback::handleEvent):
+        * bindings/js/JSCustomSQLTransactionErrorCallback.h:
+        * bindings/js/JSCustomVoidCallback.cpp:
+        (WebCore::JSCustomVoidCallback::JSCustomVoidCallback):
+        (WebCore::JSCustomVoidCallback::~JSCustomVoidCallback):
+        (WebCore::JSCustomVoidCallback::handleEvent):
+        * bindings/js/JSCustomVoidCallback.h:
+        * storage/Database.cpp:
+        (WebCore::Database::Database):
+
+2009-10-07  Jens Alfke  <snej@chromium.org>
+
+        Reviewed by Dave Levin.
+
+        Fix StringImpl::m_buffer
+        https://bugs.webkit.org/show_bug.cgi?id=30189
+
+        Fix my previous StringImpl patch to avoid using an indefinite-length array member,
+        since MSVC doesn't like it. Instead, go back to offsetting by sizeof(StringImpl).
+
+        * platform/text/StringImpl.cpp:
+        (WebCore::StringImpl::StringImpl):
+        (WebCore::StringImpl::createUninitialized):
+        * platform/text/StringImpl.h:
+        (WebCore::StringImpl::bufferIsInternal):
+
+2009-10-07  Aaron Boodman  <aa@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Update isolated worlds under v8 to support world reuse.
+        https://bugs.webkit.org/show_bug.cgi?id=30145
+
+        * bindings/v8/ScriptController.cpp:
+        Replace evaluateInNewIsolatedWorld() withe evaluateInIsolatedWorld(id).
+        (WebCore::ScriptController::evaluateInIsolatedWorld):
+        * bindings/v8/ScriptController.h: Ditto.
+        * bindings/v8/V8Proxy.cpp: Ditto.
+        (WebCore::V8Proxy::~V8Proxy): Dittio.
+        (WebCore::V8Proxy::evaluateInIsolatedWorld): Ditto.
+        * bindings/v8/V8Proxy.h: Ditto.
+        * bindings/v8/V8IsolatedWorld.cpp:
+        Add support for controlling lifetime of a world, rather than relying on GC.
+        (WebCore::V8IsolatedWorld::contextWeakReferenceCallback): Ditto.
+        (WebCore::V8IsolatedWorld::V8IsolatedWorld): Ditto.
+        (WebCore::V8IsolatedWorld::destroy): Ditto.
+        * bindings/v8/V8IsolatedWorld.h: Ditto.
+
+2009-10-07  Jeremy Orlow  <jorlow@chromium.org>
+
+        Build fix for http://trac.webkit.org/changeset/49272 on Windows
+
+        * platform/text/StringImpl.h:
+
+2009-10-07  Jens Alfke  <snej@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Optimization of StringImpl:
+        - Remove unnecessary m_bufferIsInternal member (saves 4 bytes). Instead, check whether
+          m_data points to just past the end of the object's members.
+        - copy() and createWithTerminatingNullCharacter() create the string in a single malloc
+          block instead of 2 (saves ~20 bytes and considerable CPU cycles, increases locality).
+        - Move m_length next to m_hash to save 4 bytes of padding in 64-bit builds.
+          
+        https://bugs.webkit.org/show_bug.cgi?id=29500
+
+        * platform/text/StringImpl.cpp:
+        (WebCore::StringImpl::StringImpl): Re-ordered members.
+        (WebCore::StringImpl::~StringImpl): Change to is-buffer-internal check.
+        (WebCore::StringImpl::createUninitialized): Use new m_buffer member instead of sizeof()
+            to ensure chars are copied to correct location.
+        (WebCore::StringImpl::createWithTerminatingNullCharacter): Make sure copy is created
+            in a single malloc block.
+        (WebCore::StringImpl::threadsafeCopy): Make sure copy is created in a single malloc block.
+        (WebCore::StringImpl::crossThreadString): Make sure copy is created in a single malloc block.
+        (WebCore::StringImpl::sharedBuffer): Change to is-buffer-internal check.
+        * platform/text/StringImpl.h:
+        (WebCore::StringImpl::startsWith): Just fixed a confusing param name.
+        (WebCore::StringImpl::bufferIsInternal): Changed member var into accessor method.
+        (WebCore::StringImpl::m_data): Repositioned for optimal member packing in 64-bit.
+        (WebCore::StringImpl::m_buffer): Added to provide an explicit location for where internal buffer goes.
+
+2009-10-07  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30102
+        And
+        <rdar://problem/5015957>
+        
+        Manual test to confirm that the not-allowed cursor is shown for an
+        invalid drag-and-drop operation.
+        
+        We cannot test this using DRT because of a discrepancy between the Windows
+        API-based drop effect and the WebKit drop effect. See bug #24731 for more
+        details.
+
+        * manual-tests/drag-cursor-notallowed.html: Added.
+
+2009-10-07  Mark Rowe  <mrowe@apple.com>
+
+        Fix the build.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2009-10-07  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Fixes <http://webkit.org/b/30104>.
+        Inspector should show cookies of sub-resources on the page.
+        
+        This function implements showing cookies for all sub-resources of a page.
+        When the page is loaded, it populates the Storage Panel with a list of all
+        domains that were loaded as part of the full page load (iframes, ads, etc).
+        When the user selects one of the domains, the inspector calls back into the
+        controller, and the controller combines all of the cookies from that domain
+        into a list, and sends that list is sent back to the controller to render.
+        
+        A domain now needs to be passed into CookieItemsView, and CookieSidebarTreeElement.
+        
+        As a result of a previous patch, we now have detailed cookie information for
+        both Windows on CFNetwork and Mac. Additionally, this patch provides deleteCookie
+        support on Windows.
+
+        * bindings/js/ScriptObject.cpp:
+        (WebCore::ScriptObject::set):
+        * bindings/js/ScriptObject.h:
+        * inspector/InspectorBackend.cpp:
+        (WebCore::InspectorBackend::getCookies):
+        (WebCore::InspectorBackend::deleteCookie):
+        * inspector/InspectorBackend.h:
+        * inspector/InspectorBackend.idl:
+        * inspector/InspectorController.cpp:
+        (WebCore::InspectorController::populateScriptObjects):
+        (WebCore::InspectorController::didFinishLoading):
+        (WebCore::InspectorController::getCookies):
+        (WebCore::InspectorController::buildArrayForCookies):
+        (WebCore::InspectorController::buildObjectForCookie):
+        (WebCore::InspectorController::deleteCookie):
+        * inspector/InspectorController.h:
+        * inspector/InspectorDOMAgent.cpp:
+        * inspector/InspectorDOMAgent.h:
+        * inspector/InspectorFrontend.cpp:
+        (WebCore::InspectorFrontend::addCookieDomainForDocument):
+        * inspector/InspectorFrontend.h:
+        * inspector/front-end/CookieItemsView.js:
+        (WebInspector.CookieItemsView):
+        (WebInspector.CookieItemsView.prototype.update):
+        (WebInspector.CookieItemsView.prototype._deleteButtonClicked):
+        * inspector/front-end/DOMAgent.js:
+        (WebInspector.Cookies.getCookiesAsync):
+        * inspector/front-end/StoragePanel.js:
+        (WebInspector.StoragePanel):
+        (WebInspector.StoragePanel.prototype.reset):
+        (WebInspector.StoragePanel.prototype.addCookieDomain):
+        (WebInspector.StoragePanel.prototype.showCookies):
+        (WebInspector.CookieSidebarTreeElement):
+        (WebInspector.CookieSidebarTreeElement.prototype.onselect):
+        * inspector/front-end/inspector.js:
+        (WebInspector.addCookieDomain):
+        * platform/Cookie.h:
+        (WebCore::CookieHash::hash):
+        (WebCore::CookieHash::equal):
+        (WTF::):
+        * platform/network/win/CookieJarCFNetWin.cpp:
+        (WebCore::deleteCookie):
+
+2009-10-07  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: Add ScriptObject::set(const char*, unsigned).
+
+        https://bugs.webkit.org/show_bug.cgi?id=30104
+
+        * bindings/v8/ScriptObject.cpp:
+        (WebCore::ScriptObject::set):
+        * bindings/v8/ScriptObject.h:
+
+2009-10-07  Brent Fulgham  <bfulgham@webkit.org>
+
+        Unreviewed build fix for Windows (Cairo).
+
+        Provide implementation of new BitmapImage::create that was
+        added in @r49060.
+
+        * platform/graphics/win/ImageCairoWin.cpp:
+
 2009-10-07  Andrew Scherkus  <scherkus@chromium.org>
 
         Reviewed by Eric Carlson.

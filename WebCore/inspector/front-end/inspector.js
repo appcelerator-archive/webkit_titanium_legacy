@@ -29,7 +29,6 @@
  */
 
 var Preferences = {
-    ignoreWhitespace: true,
     showUserAgentStyles: true,
     maxInlineTextChildLength: 80,
     minConsoleHeight: 75,
@@ -43,7 +42,8 @@ var Preferences = {
     samplingCPUProfiler: false,
     showColorNicknames: true,
     colorFormat: "hex",
-    eventListenersFilter: "all"
+    eventListenersFilter: "all",
+    resourcesLargeRows: true
 }
 
 var WebInspector = {
@@ -143,6 +143,21 @@ var WebInspector = {
             this.panels.profiles = new WebInspector.ProfilesPanel();
         if (hiddenPanels.indexOf("storage") === -1 && hiddenPanels.indexOf("databases") === -1)
             this.panels.storage = new WebInspector.StoragePanel();      
+    },
+
+    _loadPreferences: function()
+    {
+        var colorFormat = InspectorController.setting("color-format");
+        if (colorFormat)
+            Preferences.colorFormat = colorFormat;
+
+        var eventListenersFilter = InspectorController.setting("event-listeners-filter");
+        if (eventListenersFilter)
+            Preferences.eventListenersFilter = eventListenersFilter;
+
+        var resourcesLargeRows = InspectorController.setting("resources-large-rows");
+        if (typeof resourcesLargeRows !== "undefined")
+            Preferences.resourcesLargeRows = resourcesLargeRows;
     },
 
     get attached()
@@ -351,13 +366,7 @@ WebInspector.loaded = function()
     var platform = InspectorController.platform();
     document.body.addStyleClass("platform-" + platform);
 
-    var colorFormat = InspectorController.setting("color-format");
-    if (colorFormat)
-        Preferences.colorFormat = colorFormat;
-
-    var eventListenersFilter = InspectorController.setting("event-listeners-filter");
-    if (eventListenersFilter)
-        Preferences.eventListenersFilter = eventListenersFilter;
+    this._loadPreferences();
 
     this.drawer = new WebInspector.Drawer();
     this.console = new WebInspector.ConsoleView(this.drawer);
@@ -449,8 +458,9 @@ WebInspector.loaded = function()
     searchField.addEventListener("keyup", this.searchKeyUp.bind(this), false);
     searchField.addEventListener("search", this.performSearch.bind(this), false); // when the search is emptied
 
-    document.getElementById("toolbar").addEventListener("mousedown", this.toolbarDragStart, true);
-    document.getElementById("close-button").addEventListener("click", this.close, true);
+    toolbarElement.addEventListener("mousedown", this.toolbarDragStart, true);
+    document.getElementById("close-button-left").addEventListener("click", this.close, true);
+    document.getElementById("close-button-right").addEventListener("click", this.close, true);
 
     InspectorController.loaded();
 }
@@ -1024,11 +1034,16 @@ WebInspector.removeResource = function(identifier)
 WebInspector.addDatabase = function(payload)
 {
     var database = new WebInspector.Database(
-        payload.database,
+        payload.id,
         payload.domain,
         payload.name,
         payload.version);
     this.panels.storage.addDatabase(database);
+}
+
+WebInspector.addCookieDomain = function(domain)
+{
+    this.panels.storage.addCookieDomain(domain);
 }
 
 WebInspector.addDOMStorage = function(payload)

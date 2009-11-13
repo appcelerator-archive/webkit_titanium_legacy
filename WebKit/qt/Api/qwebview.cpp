@@ -56,6 +56,8 @@ public:
     virtual int screenNumber() const;
     virtual WId winId() const;
 
+    virtual QObject* pluginParent() const;
+
     void _q_pageDestroyed();
 
     QWebView *view;
@@ -102,6 +104,11 @@ WId QWebViewPrivate::winId() const
         return view->winId();
 
     return 0;
+}
+
+QObject* QWebViewPrivate::pluginParent() const
+{
+    return view;
 }
 
 void QWebViewPrivate::_q_pageDestroyed()
@@ -202,7 +209,7 @@ QWebView::QWebView(QWidget *parent)
 {
     d = new QWebViewPrivate(this);
 
-#if !defined(Q_WS_QWS)
+#if !defined(Q_WS_QWS) && !defined(Q_OS_SYMBIAN)
     setAttribute(Qt::WA_InputMethodEnabled);
 #endif
 
@@ -654,6 +661,7 @@ qreal QWebView::textSizeMultiplier() const
     return page()->mainFrame()->textSizeMultiplier();
 }
 
+#if !defined(Q_OS_SYMBIAN)
 /*!
     \property QWebView::renderHints
     \since 4.6
@@ -665,6 +673,7 @@ qreal QWebView::textSizeMultiplier() const
 
     \sa QPainter::renderHints()
 */
+#endif
 QPainter::RenderHints QWebView::renderHints() const
 {
     return d->renderHints;

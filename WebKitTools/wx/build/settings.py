@@ -201,6 +201,8 @@ def common_set_options(opt):
     opt.tool_options('python')
     
     opt.add_option('--wxpython', action='store_true', default=False, help='Create the wxPython bindings.')
+    opt.add_option('--wx-compiler-prefix', action='store', default='vc',
+                   help='Specify a different compiler prefix (do this if you used COMPILER_PREFIX when building wx itself)')
 
 def common_configure(conf):
     """
@@ -326,7 +328,7 @@ def common_configure(conf):
         conf.env['LIB_XSLT'] = ['libxslt']
     else:    
         if build_port == 'wx':
-            conf.env.append_value('LIB', ['png', 'pthread'])
+            conf.env.append_value('LIB', ['jpeg', 'png', 'pthread'])
             conf.env.append_value('LIBPATH', os.path.join(wklibs_dir, 'unix', 'lib'))
             conf.env.append_value('CPPPATH', os.path.join(wklibs_dir, 'unix', 'include'))
             conf.env.append_value('CXXFLAGS', ['-fPIC', '-DPIC'])
