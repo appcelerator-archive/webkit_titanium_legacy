@@ -216,6 +216,14 @@ sub determineArchitecture
     }
 }
 
+sub jscPath($)
+{
+    my ($productDir) = @_;
+    my $jscName = "jsc";
+    $jscName .= "_debug"  if (isCygwin() && ($configuration eq "Debug"));
+    return "$productDir/$jscName";
+}
+
 sub argumentsForConfiguration()
 {
     determineConfiguration();
@@ -300,6 +308,16 @@ sub productDir
 {
     determineConfigurationProductDir();
     return $configurationProductDir;
+}
+
+sub jscProductDir
+{
+    my $productDir = productDir();
+    $productDir .= "/JavaScriptCore" if isQt();
+    $productDir .= "/$configuration" if (isQt() && isWindows());
+    $productDir .= "/Programs" if isGtk();
+
+    return $productDir;
 }
 
 sub configuration()
@@ -1122,7 +1140,12 @@ sub buildVisualStudioProject
         $action = "/clean";
     }
 
-    my @command = ($vcBuildPath, $winProjectPath, $action, $config);
+    my $useenv = "/useenv";
+    if (isChromium()) {
+        $useenv = "";
+    }
+
+    my @command = ($vcBuildPath, $useenv, $winProjectPath, $action, $config);
 
     print join(" ", @command), "\n";
     return system @command;

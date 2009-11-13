@@ -62,6 +62,7 @@ public:
     void queueLoadingScript(JSStringRef script);
     void queueNonLoadingScript(JSStringRef script);
     void queueReload();
+    void removeAllVisitedLinks();
     void setAcceptsEditing(bool acceptsEditing);
     void setAppCacheMaximumSize(unsigned long long quota);
     void setAuthorAndUserStylesEnabled(bool);
@@ -120,6 +121,9 @@ public:
     bool dumpFrameLoadCallbacks() const { return m_dumpFrameLoadCallbacks; }
     void setDumpFrameLoadCallbacks(bool dumpFrameLoadCallbacks) { m_dumpFrameLoadCallbacks = dumpFrameLoadCallbacks; }
 
+    bool dumpHistoryDelegateCallbacks() const { return m_dumpHistoryDelegateCallbacks; }
+    void setDumpHistoryDelegateCallbacks(bool dumpHistoryDelegateCallbacks) { m_dumpHistoryDelegateCallbacks = dumpHistoryDelegateCallbacks; }
+    
     bool dumpResourceLoadCallbacks() const { return m_dumpResourceLoadCallbacks; }
     void setDumpResourceLoadCallbacks(bool dumpResourceLoadCallbacks) { m_dumpResourceLoadCallbacks = dumpResourceLoadCallbacks; }
     
@@ -137,6 +141,9 @@ public:
 
     bool dumpTitleChanges() const { return m_dumpTitleChanges; }
     void setDumpTitleChanges(bool dumpTitleChanges) { m_dumpTitleChanges = dumpTitleChanges; }
+
+    bool dumpVisitedLinksCallback() const { return m_dumpVisitedLinksCallback; }
+    void setDumpVisitedLinksCallback(bool dumpVisitedLinksCallback) { m_dumpVisitedLinksCallback = dumpVisitedLinksCallback; }
     
     bool dumpWillCacheResponse() const { return m_dumpWillCacheResponse; }
     void setDumpWillCacheResponse(bool dumpWillCacheResponse) { m_dumpWillCacheResponse = dumpWillCacheResponse; }
@@ -219,12 +226,14 @@ private:
     bool m_dumpDatabaseCallbacks;
     bool m_dumpEditingCallbacks;
     bool m_dumpFrameLoadCallbacks;
+    bool m_dumpHistoryDelegateCallbacks;
     bool m_dumpResourceLoadCallbacks;
     bool m_dumpResourceResponseMIMETypes;
     bool m_dumpSelectionRect;
     bool m_dumpSourceAsWebArchive;
     bool m_dumpStatusCallbacks;
     bool m_dumpTitleChanges;
+    bool m_dumpVisitedLinksCallback;
     bool m_dumpWillCacheResponse;
     bool m_callCloseOnWebViews;
     bool m_canOpenWindows;

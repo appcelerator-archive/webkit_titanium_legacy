@@ -91,7 +91,8 @@ static bool paintMediaPlayButton(RenderObject* object, const RenderObject::Paint
     static Image* mediaPause = platformResource("mediaPause");
     static Image* mediaPlayDisabled = platformResource("mediaPlayDisabled");
 
-    if (mediaElement->networkState() == HTMLMediaElement::NETWORK_NO_SOURCE)
+    if (mediaElement->networkState() == HTMLMediaElement::NETWORK_EMPTY ||
+        mediaElement->networkState() == HTMLMediaElement::NETWORK_NO_SOURCE)
         return paintMediaButton(paintInfo.context, rect, mediaPlayDisabled);
 
     return paintMediaButton(paintInfo.context, rect, mediaElement->paused() ? mediaPlay : mediaPause);
@@ -119,10 +120,9 @@ static bool paintMediaSlider(RenderObject* object, const RenderObject::PaintInfo
 
     // Draw the buffered ranges.
     // FIXME: Draw multiple ranges if there are multiple buffered ranges.
-    // FIXME: percentLoaded() doesn't always hit 1.0 so we're using round().
     IntRect bufferedRect = rect;
     bufferedRect.inflate(-style->borderLeftWidth());
-    bufferedRect.setWidth(round((bufferedRect.width() * mediaElement->percentLoaded())));
+    bufferedRect.setWidth((bufferedRect.width() * mediaElement->percentLoaded()));
 
     // Don't bother drawing an empty area.
     if (!bufferedRect.isEmpty()) {

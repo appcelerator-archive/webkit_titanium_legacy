@@ -594,6 +594,13 @@ void WebChromeClient::reachedMaxAppCacheSize(int64_t spaceNeeded)
 
 void WebChromeClient::populateVisitedLinks()
 {
+    COMPtr<IWebHistoryDelegate> historyDelegate;
+    m_webView->historyDelegate(&historyDelegate);
+    if (historyDelegate) {
+        historyDelegate->populateVisitedLinksForWebView(m_webView);
+        return;
+    }
+
     WebHistory* history = WebHistory::sharedHistory();
     if (!history)
         return;

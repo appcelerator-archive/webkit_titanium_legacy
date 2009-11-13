@@ -333,6 +333,11 @@ void LayoutTestController::overridePreference(JSStringRef key, JSStringRef value
     [[WebPreferences standardPreferences] _setPreferenceForTestWithValue:valueNS forKey:keyNS];
 }
 
+void LayoutTestController::removeAllVisitedLinks()
+{
+    [WebHistory _removeAllVisitedLinks];
+}
+
 void LayoutTestController::setPersistentUserStyleSheetLocation(JSStringRef jsURL)
 {
     RetainPtr<CFStringRef> urlString(AdoptCF, JSStringCopyCFString(0, jsURL));
@@ -482,24 +487,26 @@ void LayoutTestController::addUserScript(JSStringRef source, bool runAtStart)
 {
     RetainPtr<CFStringRef> sourceCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, source));
     NSString *sourceNS = (NSString *)sourceCF.get();
-    [WebView _addUserScriptToGroup:@"org.webkit.DumpRenderTree" source:sourceNS url:nil worldID:1 whitelist:nil blacklist:nil injectionTime:(runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd)];
+    [WebView _addUserScriptToGroup:@"org.webkit.DumpRenderTree" worldID:1 source:sourceNS url:nil whitelist:nil blacklist:nil injectionTime:(runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd)];
 }
 
 void LayoutTestController::addUserStyleSheet(JSStringRef source)
 {
     RetainPtr<CFStringRef> sourceCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, source));
     NSString *sourceNS = (NSString *)sourceCF.get();
-    [WebView _addUserStyleSheetToGroup:@"org.webkit.DumpRenderTree" source:sourceNS url:nil worldID:1 whitelist:nil blacklist:nil];
+    [WebView _addUserStyleSheetToGroup:@"org.webkit.DumpRenderTree" worldID:1 source:sourceNS url:nil whitelist:nil blacklist:nil];
 }
 
 void LayoutTestController::showWebInspector()
 {
+    [[[mainFrame webView] preferences] setDeveloperExtrasEnabled:true];
     [[[mainFrame webView] inspector] show:nil];
 }
 
 void LayoutTestController::closeWebInspector()
 {
     [[[mainFrame webView] inspector] close:nil];
+    [[[mainFrame webView] preferences] setDeveloperExtrasEnabled:false];
 }
 
 void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef script)

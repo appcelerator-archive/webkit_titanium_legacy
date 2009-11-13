@@ -30,6 +30,9 @@
  */
 
 #include "DumpRenderTree.h"
+#include "EventSenderQt.h"
+#include "LayoutTestControllerQt.h"
+#include "TextInputControllerQt.h"
 #include "jsobjects.h"
 #include "testplugin.h"
 #include "WorkQueue.h"
@@ -287,7 +290,8 @@ void DumpRenderTree::resetToConsistentStateBeforeTesting()
     m_controller->reset();
     QWebSecurityOrigin::resetOriginAccessWhiteLists();
 
-    setlocale(LC_ALL, "");
+    QLocale qlocale;
+    QLocale::setDefault(qlocale); 
 }
 
 void DumpRenderTree::open(const QUrl& aurl)

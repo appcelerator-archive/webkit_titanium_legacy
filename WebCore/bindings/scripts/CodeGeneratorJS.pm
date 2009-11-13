@@ -605,13 +605,13 @@ sub GenerateHeader
         push(@headerContent,
             "    static PassRefPtr<JSC::Structure> createStructure(JSC::JSValue prototype)\n" .
             "    {\n" .
-            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType, JSC::ImplementsHasInstance | JSC::NeedsThisConversion));\n" .
+            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType, JSC::OverridesGetOwnPropertySlot | JSC::ImplementsHasInstance | JSC::NeedsThisConversion | JSC::OverridesMarkChildren | JSC::OverridesGetPropertyNames));\n" .
             "    }\n\n");
     } elsif ($hasGetter) {
         push(@headerContent,
             "    static PassRefPtr<JSC::Structure> createStructure(JSC::JSValue prototype)\n" .
             "    {\n" .
-            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType));\n" .
+            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType, JSC::OverridesGetOwnPropertySlot | JSC::OverridesMarkChildren | JSC::OverridesGetPropertyNames));\n" .
             "    }\n\n");
     }
 
@@ -791,13 +791,13 @@ sub GenerateHeader
         push(@headerContent,
             "    static PassRefPtr<JSC::Structure> createStructure(JSC::JSValue prototype)\n" .
             "    {\n" .
-            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType" . ($needsMarkChildren ? "" : ", JSC::HasDefaultMark") . "));\n" .
+            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType, JSC::OverridesGetOwnPropertySlot" . ($needsMarkChildren ? " | JSC::OverridesMarkChildren" : "") . " | JSC::OverridesGetPropertyNames));\n" .
             "    }\n");
     } elsif ($dataNode->extendedAttributes->{"CustomMarkFunction"}) {
         push(@headerContent,
             "    static PassRefPtr<JSC::Structure> createStructure(JSC::JSValue prototype)\n" .
             "    {\n" .
-            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType));\n" .
+            "        return JSC::Structure::create(prototype, JSC::TypeInfo(JSC::ObjectType, JSC::OverridesGetOwnPropertySlot | JSC::OverridesMarkChildren | JSC::OverridesGetPropertyNames));\n" .
             "    }\n");
     }
     if ($dataNode->extendedAttributes->{"DelegatingPrototypePutFunction"}) {
@@ -1323,10 +1323,11 @@ sub GenerateImplementation
                         my $reflect = $attribute->signature->extendedAttributes->{"Reflect"};
                         my $reflectURL = $attribute->signature->extendedAttributes->{"ReflectURL"};
                         if ($reflect || $reflectURL) {
-                            $implIncludes{"HTMLNames.h"} = 1;
                             my $contentAttributeName = (($reflect || $reflectURL) eq "1") ? $name : ($reflect || $reflectURL);
+                            my $namespace = $codeGenerator->NamespaceForAttributeName($interfaceName, $contentAttributeName);
+                            $implIncludes{"${namespace}.h"} = 1;
                             my $getAttributeFunctionName = $reflectURL ? "getURLAttribute" : "getAttribute";
-                            $value = "imp->$getAttributeFunctionName(HTMLNames::${contentAttributeName}Attr)"
+                            $value = "imp->$getAttributeFunctionName(${namespace}::${contentAttributeName}Attr)"
                         } else {
                             $value = "imp->$implGetterFunctionName()";
                         }
@@ -1483,9 +1484,10 @@ sub GenerateImplementation
                                 my $reflect = $attribute->signature->extendedAttributes->{"Reflect"};
                                 my $reflectURL = $attribute->signature->extendedAttributes->{"ReflectURL"};
                                 if ($reflect || $reflectURL) {
-                                    $implIncludes{"HTMLNames.h"} = 1;
                                     my $contentAttributeName = (($reflect || $reflectURL) eq "1") ? $name : ($reflect || $reflectURL);
-                                    push(@implContent, "    imp->setAttribute(HTMLNames::${contentAttributeName}Attr, $nativeValue");
+                                    my $namespace = $codeGenerator->NamespaceForAttributeName($interfaceName, $contentAttributeName);
+                                    $implIncludes{"${namespace}.h"} = 1;
+                                    push(@implContent, "    imp->setAttribute(${namespace}::${contentAttributeName}Attr, $nativeValue");
                                 } else {
                                     push(@implContent, "    imp->set$implSetterFunctionName($nativeValue");
                                 }
@@ -1933,6 +1935,8 @@ sub NativeToJSValue
     }
 
     if ($codeGenerator->IsSVGAnimatedType($type)) {
+        # Some SVGFE*Element.idl use 'operator' as attribute name, rewrite as '_operator' to avoid clashes with C/C++
+        $value =~ s/operator\(\)/_operator\(\)/ if ($value =~ /operator/);
         $value =~ s/\(\)//;
         $value .= "Animated()";
     }
@@ -2249,7 +2253,7 @@ public:
 
     static PassRefPtr<Structure> createStructure(JSValue proto) 
     { 
-        return Structure::create(proto, TypeInfo(ObjectType, ImplementsHasInstance)); 
+        return Structure::create(proto, TypeInfo(ObjectType, OverridesGetOwnPropertySlot | ImplementsHasInstance | OverridesMarkChildren | OverridesGetPropertyNames)); 
     }
 EOF
 

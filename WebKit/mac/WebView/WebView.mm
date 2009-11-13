@@ -34,6 +34,7 @@
 #import "DOMNodeInternal.h"
 #import "DOMRangeInternal.h"
 #import "WebBackForwardListInternal.h"
+#import "WebBaseNetscapePluginView.h"
 #import "WebCache.h"
 #import "WebChromeClient.h"
 #import "WebContextMenuClient.h"
@@ -124,6 +125,7 @@
 #import <WebCore/PageGroup.h>
 #import <WebCore/PlatformMouseEvent.h>
 #import <WebCore/ProgressTracker.h>
+#import <WebCore/RenderWidget.h>
 #import <WebCore/ResourceHandle.h>
 #import <WebCore/RuntimeApplicationChecks.h>
 #import <WebCore/ScriptController.h>
@@ -1187,7 +1189,7 @@ static bool fastDocumentTeardownEnabled()
             // If this item is showing , save away its current scroll and form state,
             // since that might have changed since loading and it is normally not saved
             // until we leave that page.
-            otherView->_private->page->mainFrame()->loader()->saveDocumentAndScrollState();
+            otherView->_private->page->mainFrame()->loader()->history()->saveDocumentAndScrollState();
         }
         RefPtr<HistoryItem> newItem = otherBackForwardList->itemAtIndex(i)->copy();
         if (i == 0) 
@@ -1317,7 +1319,6 @@ static bool fastDocumentTeardownEnabled()
     settings->setXSSAuditorEnabled([preferences isXSSAuditorEnabled]);
     settings->setEnforceCSSMIMETypeInStrictMode(!WKAppVersionCheckLessThan(@"com.apple.iWeb", -1, 2.1));
     settings->setAcceleratedCompositingEnabled([preferences acceleratedCompositingEnabled]);
-    settings->setPluginHalterEnabled([preferences pluginHalterEnabled]);
     settings->setPluginAllowedRunTime([preferences pluginAllowedRunTime]);
     settings->setWebGLEnabled([preferences webGLEnabled]);
 }
@@ -1421,6 +1422,7 @@ static inline IMP getMethod(id o, SEL s)
     cache->clientRedirectFunc = getMethod(delegate, @selector(webView:didPerformClientRedirectFromURL:toURL:inFrame:));
     cache->serverRedirectFunc = getMethod(delegate, @selector(webView:didPerformServerRedirectFromURL:toURL:inFrame:));
     cache->setTitleFunc = getMethod(delegate, @selector(webView:updateHistoryTitle:forURL:));
+    cache->populateVisitedLinksFunc = getMethod(delegate, @selector(populateVisitedLinksForWebView:));
 }
 
 - (id)_policyDelegateForwarder
@@ -2114,6 +2116,47 @@ static inline IMP getMethod(id o, SEL s)
 #endif
 }
 
+static WebBaseNetscapePluginView *_pluginViewForNode(DOMNode *node)
+{
+    if (!node)
+        return nil;
+    
+    Node* coreNode = core(node);
+    if (!coreNode)
+        return nil;
+    
+    RenderObject* renderer = coreNode->renderer();
+    if (!renderer || !renderer->isWidget())
+        return nil;
+    
+    Widget* widget = toRenderWidget(renderer)->widget();
+    if (!widget || !widget->platformWidget())
+        return nil;
+    
+    NSView *view = widget->platformWidget();
+    if (![view isKindOfClass:[WebBaseNetscapePluginView class]])
+        return nil;
+    
+    return (WebBaseNetscapePluginView *)view;
+}
+
++ (BOOL)_isNodeHaltedPlugin:(DOMNode *)node
+{
+    return [_pluginViewForNode(node) isHalted];
+}
+
++ (BOOL)_hasPluginForNodeBeenHalted:(DOMNode *)node
+{
+    return [_pluginViewForNode(node) hasBeenHalted];
+}
++ (void)_restartHaltedPluginForNode:(DOMNode *)node
+{
+    if (!node)
+        return;
+    
+    [_pluginViewForNode(node) resumeFromHalt];
+}
+
 - (NSPasteboard *)_insertionPasteboard
 {
     return _private ? _private->insertionPasteboard : nil;
@@ -2150,7 +2193,7 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     return patternsVector;
 }
 
-+ (void)_addUserScriptToGroup:(NSString *)groupName source:(NSString *)source url:(NSURL *)url worldID:(unsigned)worldID 
++ (void)_addUserScriptToGroup:(NSString *)groupName worldID:(unsigned)worldID source:(NSString *)source url:(NSURL *)url
                     whitelist:(NSArray *)whitelist blacklist:(NSArray *)blacklist injectionTime:(WebUserScriptInjectionTime)injectionTime
 {
     String group(groupName);
@@ -2161,11 +2204,11 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     if (!pageGroup)
         return;
     
-    pageGroup->addUserScript(source, url, toStringVector(whitelist), toStringVector(blacklist), worldID, 
-                             injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
+    pageGroup->addUserScriptToWorld(worldID, source, url, toStringVector(whitelist), toStringVector(blacklist), 
+                                    injectionTime == WebInjectAtDocumentStart ? InjectAtDocumentStart : InjectAtDocumentEnd);
 }
 
-+ (void)_addUserStyleSheetToGroup:(NSString *)groupName source:(NSString *)source url:(NSURL *)url worldID:(unsigned)worldID
++ (void)_addUserStyleSheetToGroup:(NSString *)groupName worldID:(unsigned)worldID source:(NSString *)source url:(NSURL *)url
                         whitelist:(NSArray *)whitelist blacklist:(NSArray *)blacklist
 {
     String group(groupName);
@@ -2176,10 +2219,10 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     if (!pageGroup)
         return;
 
-    pageGroup->addUserStyleSheet(source, url, toStringVector(whitelist), toStringVector(blacklist), worldID);
+    pageGroup->addUserStyleSheetToWorld(worldID, source, url, toStringVector(whitelist), toStringVector(blacklist));
 }
 
-+ (void)_removeUserContentFromGroup:(NSString *)groupName url:(NSURL *)url worldID:(unsigned)worldID
++ (void)_removeUserScriptFromGroup:(NSString *)groupName worldID:(unsigned)worldID url:(NSURL *)url
 {
     String group(groupName);
     if (group.isEmpty())
@@ -2189,10 +2232,10 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     if (!pageGroup)
         return;
 
-    pageGroup->removeUserContentWithURLForWorld(url, worldID);
+    pageGroup->removeUserScriptFromWorld(worldID, url);
 }
 
-+ (void)_removeUserContentFromGroup:(NSString *)groupName worldID:(unsigned)worldID
++ (void)_removeUserStyleSheetFromGroup:(NSString *)groupName worldID:(unsigned)worldID url:(NSURL *)url
 {
     String group(groupName);
     if (group.isEmpty())
@@ -2202,7 +2245,33 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     if (!pageGroup)
         return;
 
-    pageGroup->removeUserContentForWorld(worldID);
+    pageGroup->removeUserStyleSheetFromWorld(worldID, url);
+}
+
++ (void)_removeUserScriptsFromGroup:(NSString *)groupName worldID:(unsigned)worldID
+{
+    String group(groupName);
+    if (group.isEmpty())
+        return;
+    
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    if (!pageGroup)
+        return;
+
+    pageGroup->removeUserScriptsFromWorld(worldID);
+}
+
++ (void)_removeUserStyleSheetsFromGroup:(NSString *)groupName worldID:(unsigned)worldID
+{
+    String group(groupName);
+    if (group.isEmpty())
+        return;
+    
+    PageGroup* pageGroup = PageGroup::pageGroup(group);
+    if (!pageGroup)
+        return;
+
+    pageGroup->removeUserStyleSheetsFromWorld(worldID);
 }
 
 + (void)_removeAllUserContentFromGroup:(NSString *)groupName
@@ -4095,7 +4164,7 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSValue jsValu
         return nil;
     if (!coreFrame->document())
         return nil;
-    JSValue result = coreFrame->loader()->executeScript(script, true).jsValue();
+    JSValue result = coreFrame->script()->executeScript(script, true).jsValue();
     if (!result) // FIXME: pass errors
         return 0;
     JSLock lock(SilenceAssertionsOnly);
@@ -4255,6 +4324,24 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSValue jsValu
         return 0;
 
     return _private->page->mediaVolume();
+}
+
+- (void)addVisitedLinks:(NSArray *)visitedLinks
+{
+    PageGroup& group = core(self)->group();
+    
+    NSEnumerator *enumerator = [visitedLinks objectEnumerator];
+    while (NSString *url = [enumerator nextObject]) {
+        size_t length = [url length];
+        const UChar* characters = CFStringGetCharactersPtr(reinterpret_cast<CFStringRef>(url));
+        if (characters)
+            group.addVisitedLink(characters, length);
+        else {
+            Vector<UChar, 512> buffer(length);
+            [url getCharacters:buffer.data()];
+            group.addVisitedLink(buffer.data(), length);
+        }
+    }
 }
 
 @end

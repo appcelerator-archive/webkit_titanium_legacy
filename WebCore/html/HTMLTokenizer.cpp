@@ -43,6 +43,7 @@
 #include "HTMLParser.h"
 #include "HTMLScriptElement.h"
 #include "HTMLViewSourceDocument.h"
+#include "ImageLoader.h"
 #include "InspectorTimelineAgent.h"
 #include "MappedAttribute.h"
 #include "Page.h"
@@ -569,10 +570,11 @@ HTMLTokenizer::State HTMLTokenizer::scriptExecution(const ScriptSourceCode& sour
 #endif
 
     m_state = state;
+
     if (!m_scriptEvaluator || m_scriptMimeType.length() == 0 || !m_scriptEvaluator->matchesMimeType(m_scriptMimeType)) {
-        m_doc->frame()->loader()->executeScript(sourceCode);
+        m_doc->frame()->script()->executeScript(sourceCode);
     } else {
-        m_doc->frame()->loader()->executeScript(sourceCode, m_scriptMimeType, m_scriptEvaluator);
+        m_doc->frame()->script()->executeScript(sourceCode, m_scriptMimeType, m_scriptEvaluator);
         m_scriptMimeType = "";
     }
     state = m_state;
@@ -1815,6 +1817,9 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 
     if (m_noMoreData && !m_inWrite && !state.loadingExtScript() && !m_executingScript && !m_timer.isActive())
         end(); // this actually causes us to be deleted
+    
+    // After parsing, go ahead and dispatch image beforeload/load events.
+    ImageLoader::dispatchPendingEvents();
 }
 
 void HTMLTokenizer::stopParsing()

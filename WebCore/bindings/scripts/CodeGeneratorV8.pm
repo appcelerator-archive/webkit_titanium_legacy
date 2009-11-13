@@ -460,6 +460,7 @@ sub GenerateNormalAttrGetter
     my $dataNode = shift;
     my $classIndex = shift;
     my $implClassName = shift;
+    my $interfaceName = shift;
 
     my $attrExt = $attribute->signature->extendedAttributes;
 
@@ -562,10 +563,11 @@ END
         my $reflect = $attribute->signature->extendedAttributes->{"Reflect"};
         my $reflectURL = $attribute->signature->extendedAttributes->{"ReflectURL"};
         if ($reflect || $reflectURL) {
-            $implIncludes{"HTMLNames.h"} = 1;
             my $contentAttributeName = ($reflect || $reflectURL) eq "1" ? $attrName : ($reflect || $reflectURL);
+            my $namespace = $codeGenerator->NamespaceForAttributeName($interfaceName, $contentAttributeName);
+            $implIncludes{"${namespace}.h"} = 1;
             my $getAttributeFunctionName = $reflectURL ? "getURLAttribute" : "getAttribute";
-            $getterString = "imp->$getAttributeFunctionName(HTMLNames::${contentAttributeName}Attr";
+            $getterString = "imp->$getAttributeFunctionName(${namespace}::${contentAttributeName}Attr";
         } else {
             $getterString = "imp->$getterFunc(";
         }
@@ -677,6 +679,7 @@ sub GenerateNormalAttrSetter
     my $dataNode = shift;
     my $classIndex = shift;
     my $implClassName = shift;
+    my $interfaceName = shift;
 
     my $attrExt = $attribute->signature->extendedAttributes;
 
@@ -755,9 +758,10 @@ END
         my $reflect = $attribute->signature->extendedAttributes->{"Reflect"};
         my $reflectURL = $attribute->signature->extendedAttributes->{"ReflectURL"};
         if ($reflect || $reflectURL) {
-            $implIncludes{"HTMLNames.h"} = 1;
             my $contentAttributeName = ($reflect || $reflectURL) eq "1" ? $attrName : ($reflect || $reflectURL);
-            push(@implContentDecls, "    imp->setAttribute(HTMLNames::${contentAttributeName}Attr, $result");
+            my $namespace = $codeGenerator->NamespaceForAttributeName($interfaceName, $contentAttributeName);
+            $implIncludes{"${namespace}.h"} = 1;
+            push(@implContentDecls, "    imp->setAttribute(${namespace}::${contentAttributeName}Attr, $result");
         } elsif ($attribute->signature->type eq "EventListener") {
             $implIncludes{"V8AbstractEventListener.h"} = 1;
             $implIncludes{"V8CustomBinding.h"} = 1;
@@ -944,126 +948,134 @@ sub GenerateBatchedAttributeData
     my $attributes = shift;
 
     foreach my $attribute (@$attributes) {
-        my $attrName = $attribute->signature->name;
-        my $attrExt = $attribute->signature->extendedAttributes;
-
-        my $accessControl = "v8::DEFAULT";
-        if ($attrExt->{"DoNotCheckDomainSecurityOnGet"}) {
-            $accessControl = "v8::ALL_CAN_READ";
-        } elsif ($attrExt->{"DoNotCheckDomainSecurityOnSet"}) {
-            $accessControl = "v8::ALL_CAN_WRITE";
-        } elsif ($attrExt->{"DoNotCheckDomainSecurity"}) {
-            $accessControl = "v8::ALL_CAN_READ";
-            if (!($attribute->type =~ /^readonly/) && !($attrExt->{"V8ReadOnly"})) {
-                $accessControl .= "|v8::ALL_CAN_WRITE";
-            }
-        }
-        if ($attrExt->{"V8DisallowShadowing"}) {
-            $accessControl .= "|v8::PROHIBITS_OVERWRITING";
-        }
-        $accessControl = "static_cast<v8::AccessControl>(" . $accessControl . ")";
-
-        my $customAccessor =
-            $attrExt->{"Custom"} ||
-            $attrExt->{"CustomSetter"} ||
-            $attrExt->{"CustomGetter"} ||
-            $attrExt->{"V8Custom"} ||
-            $attrExt->{"V8CustomSetter"} ||
-            $attrExt->{"V8CustomGetter"} ||
-            "";
-        if ($customAccessor eq 1) {
-            # use the naming convension, interface + (capitalize) attr name
-            $customAccessor = $interfaceName . $codeGenerator->WK_ucfirst($attrName);
-        }
-
-        my $getter;
-        my $setter;
-        my $propAttr = "v8::None";
-        my $hasCustomSetter = 0;
-
-        # Check attributes.
-        if ($attrExt->{"DontEnum"}) {
-            $propAttr .= "|v8::DontEnum";
-        }
-        if ($attrExt->{"V8DisallowShadowing"}) {
-            $propAttr .= "|v8::DontDelete";
-        }
-
-        my $on_proto = "0 /* on instance */";
-        my $data = "V8ClassIndex::INVALID_CLASS_INDEX /* no data */";
-
-        # Constructor
-        if ($attribute->signature->type =~ /Constructor$/) {
-            my $constructorType = $codeGenerator->StripModule($attribute->signature->type);
-            $constructorType =~ s/Constructor$//;
-            my $constructorIndex = uc($constructorType);
-            if ($customAccessor) {
-                $getter = "V8Custom::v8${customAccessor}AccessorGetter";
-            } else {
-                $data = "V8ClassIndex::${constructorIndex}";
-                $getter = "${interfaceName}Internal::${interfaceName}ConstructorGetter";
-            }
-            $setter = "0";
-            $propAttr = "v8::ReadOnly";
-
-        } else {
-            # Default Getter and Setter
-            $getter = "${interfaceName}Internal::${attrName}AttrGetter";
-            $setter = "${interfaceName}Internal::${attrName}AttrSetter";
-
-            # Custom Setter
-            if ($attrExt->{"CustomSetter"} || $attrExt->{"V8CustomSetter"} || $attrExt->{"Custom"} || $attrExt->{"V8Custom"}) {
-                $hasCustomSetter = 1;
-                $setter = "V8Custom::v8${customAccessor}AccessorSetter";
-            }
-
-            # Custom Getter
-            if ($attrExt->{"CustomGetter"} || $attrExt->{"Custom"} || $attrExt->{"V8Custom"}) {
-                $getter = "V8Custom::v8${customAccessor}AccessorGetter";
-            }
-        }
-
-        # Replaceable
-        if ($attrExt->{"Replaceable"} && !$hasCustomSetter) {
-            $setter = "0";
-            # Handle the special case of window.top being marked as Replaceable.
-            # FIXME: Investigate whether we could treat window.top as replaceable 
-            # and allow shadowing without it being a security hole.
-            if (!($interfaceName eq "DOMWindow" and $attrName eq "top")) { 
-                $propAttr .= "|v8::ReadOnly";
-            }
-        }
-
-        # Read only attributes
-        if ($attribute->type =~ /^readonly/ || $attrExt->{"V8ReadOnly"}) {
-            $setter = "0";
-        }
-
-        # An accessor can be installed on the proto
-        if ($attrExt->{"v8OnProto"}) {
-            $on_proto = "1 /* on proto */";
-        }
-
-        my $commentInfo = "Attribute '$attrName' (Type: '" . $attribute->type .
-                          "' ExtAttr: '" . join(' ', keys(%{$attrExt})) . "')";
-        
         my $conditionalString = GenerateConditionalString($attribute->signature);
         push(@implContent, "\n#if ${conditionalString}\n") if $conditionalString;
-
-        push(@implContent, <<END);
-  // $commentInfo
-  { "$attrName",
-    $getter,
-    $setter,
-    $data,
-    $accessControl,
-    static_cast<v8::PropertyAttribute>($propAttr),
-    $on_proto },
-END
+        GenerateSingleBatchedAttribute($interfaceName, $attribute, ",", "");
         push(@implContent, "\n#endif // ${conditionalString}\n") if $conditionalString;
     }
 }
 
+sub GenerateSingleBatchedAttribute
+{
+    my $interfaceName = shift;
+    my $attribute = shift;
+    my $delimiter = shift;
+    my $indent = shift;
+    my $attrName = $attribute->signature->name;
+    my $attrExt = $attribute->signature->extendedAttributes;
+
+    my $accessControl = "v8::DEFAULT";
+    if ($attrExt->{"DoNotCheckDomainSecurityOnGet"}) {
+        $accessControl = "v8::ALL_CAN_READ";
+    } elsif ($attrExt->{"DoNotCheckDomainSecurityOnSet"}) {
+        $accessControl = "v8::ALL_CAN_WRITE";
+    } elsif ($attrExt->{"DoNotCheckDomainSecurity"}) {
+        $accessControl = "v8::ALL_CAN_READ";
+        if (!($attribute->type =~ /^readonly/) && !($attrExt->{"V8ReadOnly"})) {
+            $accessControl .= "|v8::ALL_CAN_WRITE";
+        }
+    }
+    if ($attrExt->{"V8DisallowShadowing"}) {
+        $accessControl .= "|v8::PROHIBITS_OVERWRITING";
+    }
+    $accessControl = "static_cast<v8::AccessControl>(" . $accessControl . ")";
+
+    my $customAccessor =
+        $attrExt->{"Custom"} ||
+        $attrExt->{"CustomSetter"} ||
+        $attrExt->{"CustomGetter"} ||
+        $attrExt->{"V8Custom"} ||
+        $attrExt->{"V8CustomSetter"} ||
+        $attrExt->{"V8CustomGetter"} ||
+        "";
+    if ($customAccessor eq 1) {
+        # use the naming convension, interface + (capitalize) attr name
+        $customAccessor = $interfaceName . $codeGenerator->WK_ucfirst($attrName);
+    }
+
+    my $getter;
+    my $setter;
+    my $propAttr = "v8::None";
+    my $hasCustomSetter = 0;
+
+    # Check attributes.
+    if ($attrExt->{"DontEnum"}) {
+        $propAttr .= "|v8::DontEnum";
+    }
+    if ($attrExt->{"V8DisallowShadowing"}) {
+        $propAttr .= "|v8::DontDelete";
+    }
+
+    my $on_proto = "0 /* on instance */";
+    my $data = "V8ClassIndex::INVALID_CLASS_INDEX /* no data */";
+
+    # Constructor
+    if ($attribute->signature->type =~ /Constructor$/) {
+        my $constructorType = $codeGenerator->StripModule($attribute->signature->type);
+        $constructorType =~ s/Constructor$//;
+        my $constructorIndex = uc($constructorType);
+        if ($customAccessor) {
+            $getter = "V8Custom::v8${customAccessor}AccessorGetter";
+        } else {
+            $data = "V8ClassIndex::${constructorIndex}";
+            $getter = "${interfaceName}Internal::${interfaceName}ConstructorGetter";
+        }
+        $setter = "0";
+        $propAttr = "v8::ReadOnly";
+
+    } else {
+        # Default Getter and Setter
+        $getter = "${interfaceName}Internal::${attrName}AttrGetter";
+        $setter = "${interfaceName}Internal::${attrName}AttrSetter";
+
+        # Custom Setter
+        if ($attrExt->{"CustomSetter"} || $attrExt->{"V8CustomSetter"} || $attrExt->{"Custom"} || $attrExt->{"V8Custom"}) {
+            $hasCustomSetter = 1;
+            $setter = "V8Custom::v8${customAccessor}AccessorSetter";
+        }
+
+        # Custom Getter
+        if ($attrExt->{"CustomGetter"} || $attrExt->{"Custom"} || $attrExt->{"V8Custom"}) {
+            $getter = "V8Custom::v8${customAccessor}AccessorGetter";
+        }
+    }
+
+    # Replaceable
+    if ($attrExt->{"Replaceable"} && !$hasCustomSetter) {
+        $setter = "0";
+        # Handle the special case of window.top being marked as Replaceable.
+        # FIXME: Investigate whether we could treat window.top as replaceable
+        # and allow shadowing without it being a security hole.
+        if (!($interfaceName eq "DOMWindow" and $attrName eq "top")) {
+            $propAttr .= "|v8::ReadOnly";
+        }
+    }
+
+    # Read only attributes
+    if ($attribute->type =~ /^readonly/ || $attrExt->{"V8ReadOnly"}) {
+        $setter = "0";
+    }
+
+    # An accessor can be installed on the proto
+    if ($attrExt->{"v8OnProto"}) {
+        $on_proto = "1 /* on proto */";
+    }
+
+    my $commentInfo = "Attribute '$attrName' (Type: '" . $attribute->type .
+                      "' ExtAttr: '" . join(' ', keys(%{$attrExt})) . "')";
+
+    push(@implContent, $indent . "    {\n");
+    push(@implContent, $indent . "        \/\/ $commentInfo\n");
+    push(@implContent, $indent . "        \"$attrName\",\n");
+    push(@implContent, $indent . "        $getter,\n");
+    push(@implContent, $indent . "        $setter,\n");
+    push(@implContent, $indent . "        $data,\n");
+    push(@implContent, $indent . "        $accessControl,\n");
+    push(@implContent, $indent . "        static_cast<v8::PropertyAttribute>($propAttr),\n");
+    push(@implContent, $indent . "        $on_proto\n");
+    push(@implContent, $indent . "    }" . $delimiter . "\n");
+END
+}
 
 sub GenerateImplementation
 {
@@ -1136,7 +1148,7 @@ sub GenerateImplementation
         if ($attribute->signature->extendedAttributes->{"CustomGetter"}) {
             $implIncludes{"V8CustomBinding.h"} = 1;
         } else {
-            GenerateNormalAttrGetter($attribute, $dataNode, $classIndex, $implClassName);
+            GenerateNormalAttrGetter($attribute, $dataNode, $classIndex, $implClassName, $interfaceName);
         }
         if ($attribute->signature->extendedAttributes->{"CustomSetter"} ||
             $attribute->signature->extendedAttributes->{"V8CustomSetter"}) {
@@ -1145,7 +1157,7 @@ sub GenerateImplementation
             $dataNode->extendedAttributes->{"ExtendsDOMGlobalObject"} || die "Replaceable attribute can only be used in interface that defines ExtendsDOMGlobalObject attribute!";
             # GenerateReplaceableAttrSetter($implClassName);
         } elsif ($attribute->type !~ /^readonly/ && !$attribute->signature->extendedAttributes->{"V8ReadOnly"}) {
-            GenerateNormalAttrSetter($attribute, $dataNode, $classIndex, $implClassName);
+            GenerateNormalAttrSetter($attribute, $dataNode, $classIndex, $implClassName, $interfaceName);
         }
     }
 
@@ -1176,20 +1188,24 @@ sub GenerateImplementation
 
     # For the DOMWindow interface we partition the attributes into the
     # ones that disallows shadowing and the rest.
-    my @disallows_shadowing;
+    my @disallowsShadowing;
+    # Also separate out attributes that are enabled at runtime so we can process them specially.
+    my @enabledAtRuntime;
     my @normal;
-    if ($interfaceName eq "DOMWindow") {
-        foreach my $attribute (@$attributes) {
-            if ($attribute->signature->extendedAttributes->{"V8DisallowShadowing"}) {
-                push(@disallows_shadowing, $attribute);
-            } else {
-                push(@normal, $attribute);
-            }
+    foreach my $attribute (@$attributes) {
+        if ($interfaceName eq "DOMWindow" && $attribute->signature->extendedAttributes->{"V8DisallowShadowing"}) {
+            push(@disallowsShadowing, $attribute);
+        } elsif ($attribute->signature->extendedAttributes->{"EnabledAtRuntime"}) {
+            push(@enabledAtRuntime, $attribute);
+        } else {
+            push(@normal, $attribute);
         }
-        # Put the attributes that disallow shadowing on the shadow object.
-        $attributes = \@normal;
+    }
+    $attributes = \@normal;
+    # Put the attributes that disallow shadowing on the shadow object.
+    if (@disallowsShadowing) {
         push(@implContent, "static const BatchedAttribute shadow_attrs[] = {\n");
-        GenerateBatchedAttributeData($dataNode, \@disallows_shadowing);
+        GenerateBatchedAttributeData($dataNode, \@disallowsShadowing);
         push(@implContent, "};\n");
     }
 
@@ -1269,6 +1285,21 @@ END
         push(@implContent, <<END);
   batchConfigureAttributes(instance, proto, ${interfaceName}_attrs, sizeof(${interfaceName}_attrs)/sizeof(*${interfaceName}_attrs));
 END
+    }
+
+    # Setup the enable-at-runtime attrs if we have them
+    foreach my $runtime_attr (@enabledAtRuntime) {
+        $enable_function = $interfaceName . $codeGenerator->WK_ucfirst($runtime_attr->signature->name);
+        my $conditionalString = GenerateConditionalString($runtime_attr->signature);
+        push(@implContent, "\n#if ${conditionalString}\n") if $conditionalString;
+        push(@implContent, "    if (V8Custom::v8${enable_function}Enabled()) {\n");
+        push(@implContent, "        static const BatchedAttribute attrData =\\\n");
+        GenerateSingleBatchedAttribute($interfaceName, $runtime_attr, ";", "    ");
+        push(@implContent, <<END);
+        configureAttribute(instance, proto, attrData);
+    }
+END
+        push(@implContent, "\n#endif // ${conditionalString}\n") if $conditionalString;
     }
 
     # Define our functions with Set() or SetAccessor()
@@ -1620,6 +1651,7 @@ sub IsRefPtrType
 {
     my $type = shift;
     return 1 if $type eq "Attr";
+    return 1 if $type eq "CanvasActiveInfo";
     return 1 if $type eq "CanvasArray";
     return 1 if $type eq "CanvasArrayBuffer";
     return 1 if $type eq "CanvasBooleanArray";

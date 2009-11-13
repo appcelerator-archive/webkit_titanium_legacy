@@ -703,22 +703,6 @@ dom/xhtml/level3/core/entitygetxmlversion04.xhtml
 dom/xhtml/level3/core/nodegetbaseuri16.xhtml
 dom/xhtml/level3/core/nodegetbaseuri19.xhtml
 dom/xhtml/level3/core/nodegetbaseuri20.xhtml
-#   Tests generating new results
-dom/xhtml/level3/core/canonicalform08.xhtml
-dom/xhtml/level3/core/canonicalform09.xhtml
-dom/xhtml/level3/core/documentgetinputencoding03.xhtml
-dom/xhtml/level3/core/entitygetinputencoding02.xhtml
-dom/xhtml/level3/core/entitygetxmlversion02.xhtml
-dom/xhtml/level3/core/nodegetbaseuri05.xhtml
-dom/xhtml/level3/core/nodegetbaseuri07.xhtml
-dom/xhtml/level3/core/nodegetbaseuri09.xhtml
-dom/xhtml/level3/core/nodegetbaseuri10.xhtml
-dom/xhtml/level3/core/nodegetbaseuri11.xhtml
-dom/xhtml/level3/core/nodegetbaseuri15.xhtml
-dom/xhtml/level3/core/nodegetbaseuri17.xhtml
-dom/xhtml/level3/core/nodegetbaseuri18.xhtml
-dom/xhtml/level3/core/nodelookupnamespaceuri01.xhtml
-dom/xhtml/level3/core/nodelookupprefix19.xhtml
 
 # Tests in editing/ directory
 #   Tests failing
@@ -3369,7 +3353,6 @@ http/tests/misc/refresh-headers.php
 http/tests/misc/refresh-meta-with-newline.html
 http/tests/misc/single-character-pi-stylesheet.xhtml
 http/tests/misc/slow-preload-cancel.html
-http/tests/misc/submit-get-in-utf7.html
 http/tests/misc/text-refresh.html
 http/tests/misc/timer-vs-loading.html
 http/tests/misc/window-dot-stop.html
@@ -3524,6 +3507,12 @@ http/tests/webarchive/test-css-url-encoding-shift-jis.html
 http/tests/webarchive/test-css-url-encoding-utf-8.html
 http/tests/webarchive/test-css-url-encoding.html
 http/tests/webarchive/test-preload-resources.html
+
+# Tests in inspector/ directory
+#   Tests failing
+inspector/console-tests.html
+inspector/elements-panel-structure.html
+inspector/evaluate-in-frontend.html
 
 # Tests in media/ directory
 #   Tests failing
@@ -5291,7 +5280,9 @@ media/audio-delete-while-step-button-clicked.html
 scrollbars/scrollbar-miss-mousemove-disabled.html
 
 # Tests that require editing callbacks (and possibly Glib DOM bindings)
+editing/execCommand/indent-with-style.html
 editing/text-iterator/thai-cursor-movement.html
+editing/undo/undo-indent.html
 
 # Requires expected results that we don't have atm
 editing/inserting/break-blockquote-after-delete.html
@@ -5338,15 +5329,20 @@ media/controls-styling.html
 svg/batik/filters/feTile.svg
 svg/custom/createImageElement.svg
 svg/custom/createImageElement2.xhtml
+svg/custom/gradient-userSpaceOnUse-with-percentage.svg
 svg/custom/js-update-image-and-display2.svg
 svg/custom/js-update-image-and-display3.svg
 svg/custom/js-update-image-and-display.svg
+svg/custom/mask-with-default-value.svg
 svg/custom/outer-svg-unknown-feature.svg
 svg/filters/feComposite.svg
+svg/filters/feGaussianBlur.svg
 svg/filters/feMerge.svg
+svg/filters/feMerge-wrong-input.svg
 svg/filters/feOffset.svg
 svg/filters/feTile.svg
 svg/filters/sourceAlpha.svg
+svg/filters/subRegion-in-userSpace.svg
 
 # Requires expected results - related changeset: http://trac.webkit.org/changeset/47678
 fast/block/margin-collapse/block-inside-inline

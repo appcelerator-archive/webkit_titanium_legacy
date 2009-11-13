@@ -89,8 +89,10 @@ namespace WebCore {
         void profilerWasDisabled();
         void parsedScriptSource(const JSC::SourceCode&);
         void failedToParseScriptSource(const JSC::SourceCode&, int errorLine, const JSC::UString& errorMessage);
-        void addProfile(const JSC::JSValue& profile);
+        void addProfileHeader(const ScriptValue& profile);
         void setRecordingProfile(bool isProfiling);
+        void didGetProfileHeaders(int callId, const ScriptArray& headers);
+        void didGetProfile(int callId, const ScriptValue& profile);
         void pausedScript(const ScriptValue& callFrames);
         void resumedScript();
 #endif
@@ -120,9 +122,10 @@ namespace WebCore {
         void didGetChildNodes(int callId);
         void didApplyDomChange(int callId, bool success);
         void didGetEventListenersForNode(int callId, int nodeId, ScriptArray& listenersArray);
+        void didRemoveNode(int callId, int nodeId);
 
-        void timelineWasEnabled();
-        void timelineWasDisabled();
+        void timelineProfilerWasStarted();
+        void timelineProfilerWasStopped();
         void addItemToTimeline(const ScriptObject& itemObj);
 
         void didGetCookies(int callId, const ScriptArray& cookies, const String& cookiesString);

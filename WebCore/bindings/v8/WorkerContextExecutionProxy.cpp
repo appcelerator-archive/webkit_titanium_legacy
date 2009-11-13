@@ -43,6 +43,8 @@
 #include "EventException.h"
 #include "MessagePort.h"
 #include "RangeException.h"
+#include "SharedWorker.h"
+#include "SharedWorkerContext.h"
 #include "V8Binding.h"
 #include "V8DOMMap.h"
 #include "V8Index.h"
@@ -124,6 +126,11 @@ void WorkerContextExecutionProxy::initV8IfNeeded()
     // Tell V8 not to call the default OOM handler, binding code will handle it.
     v8::V8::IgnoreOutOfMemoryException();
     v8::V8::SetFatalErrorHandler(reportFatalErrorInV8);
+
+    v8::ResourceConstraints resource_constraints;
+    uint32_t here;
+    resource_constraints.set_stack_limit(&here - kWorkerMaxStackSize / sizeof(uint32_t*));
+    v8::SetResourceConstraints(&resource_constraints);
 
     v8Initialized = true;
 }

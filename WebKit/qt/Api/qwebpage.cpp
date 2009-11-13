@@ -279,9 +279,6 @@ QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
     page = new Page(chromeClient, contextMenuClient, editorClient,
                     new DragClientQt(q), new InspectorClientQt(q), 0);
 
-    // ### should be configurable
-    page->settings()->setDefaultTextEncodingName("iso-8859-1");
-
     settings = new QWebSettings(page->settings());
 
 #ifndef QT_NO_UNDOSTACK
@@ -584,8 +581,6 @@ void QWebPagePrivate::timerEvent(QTimerEvent *ev)
 
 void QWebPagePrivate::mouseMoveEvent(QGraphicsSceneMouseEvent* ev)
 {
-    q->setView(ev->widget());
-
     WebCore::Frame* frame = QWebFramePrivate::core(mainFrame);
     if (!frame->view())
         return;
@@ -606,8 +601,6 @@ void QWebPagePrivate::mouseMoveEvent(QMouseEvent *ev)
 
 void QWebPagePrivate::mousePressEvent(QGraphicsSceneMouseEvent* ev)
 {
-    q->setView(ev->widget());
-
     WebCore::Frame* frame = QWebFramePrivate::core(mainFrame);
     if (!frame->view())
         return;
@@ -663,8 +656,6 @@ void QWebPagePrivate::mousePressEvent(QMouseEvent *ev)
 
 void QWebPagePrivate::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *ev)
 {
-    q->setView(ev->widget());
-
     WebCore::Frame* frame = QWebFramePrivate::core(mainFrame);
     if (!frame->view())
         return;
@@ -750,8 +741,6 @@ void QWebPagePrivate::handleClipboard(QEvent* ev, Qt::MouseButton button)
 
 void QWebPagePrivate::mouseReleaseEvent(QGraphicsSceneMouseEvent* ev)
 {
-    q->setView(ev->widget());
-
     WebCore::Frame* frame = QWebFramePrivate::core(mainFrame);
     if (!frame->view())
         return;
@@ -833,8 +822,6 @@ QMenu *QWebPage::createStandardContextMenu()
 #ifndef QT_NO_WHEELEVENT
 void QWebPagePrivate::wheelEvent(QGraphicsSceneWheelEvent* ev)
 {
-    q->setView(ev->widget());
-
     WebCore::Frame* frame = QWebFramePrivate::core(mainFrame);
     if (!frame->view())
         return;
@@ -990,8 +977,6 @@ void QWebPagePrivate::focusOutEvent(QFocusEvent*)
 
 void QWebPagePrivate::dragEnterEvent(QGraphicsSceneDragDropEvent* ev)
 {
-    q->setView(ev->widget());
-
 #ifndef QT_NO_DRAGANDDROP
     DragData dragData(ev->mimeData(), ev->pos().toPoint(),
             QCursor::pos(), dropActionToDragOp(ev->possibleActions()));
@@ -1016,8 +1001,6 @@ void QWebPagePrivate::dragEnterEvent(QDragEnterEvent* ev)
 
 void QWebPagePrivate::dragLeaveEvent(QGraphicsSceneDragDropEvent* ev)
 {
-    q->setView(ev->widget());
-
 #ifndef QT_NO_DRAGANDDROP
     DragData dragData(0, IntPoint(), QCursor::pos(), DragOperationNone);
     page->dragController()->dragExited(&dragData);
@@ -1036,8 +1019,6 @@ void QWebPagePrivate::dragLeaveEvent(QDragLeaveEvent* ev)
 
 void QWebPagePrivate::dragMoveEvent(QGraphicsSceneDragDropEvent* ev)
 {
-    q->setView(ev->widget());
-
 #ifndef QT_NO_DRAGANDDROP
     DragData dragData(ev->mimeData(), ev->pos().toPoint(),
             QCursor::pos(), dropActionToDragOp(ev->possibleActions()));

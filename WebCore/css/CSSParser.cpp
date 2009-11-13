@@ -405,9 +405,6 @@ Document* CSSParser::document() const
 
 bool CSSParser::validUnit(CSSParserValue* value, Units unitflags, bool strict)
 {
-    if (unitflags & FNonNeg && value->fValue < 0)
-        return false;
-
     bool b = false;
     switch (value->unit) {
     case CSSPrimitiveValue::CSS_NUMBER:
@@ -451,6 +448,8 @@ bool CSSParser::validUnit(CSSParserValue* value, Units unitflags, bool strict)
     default:
         break;
     }
+    if (b && unitflags & FNonNeg && value->fValue < 0)
+        b = false;
     return b;
 }
 
@@ -894,6 +893,13 @@ bool CSSParser::parseValue(int propId, bool important)
         int propId1, propId2;
         bool result = false;
         if (parseFillProperty(propId, propId1, propId2, val1, val2)) {
+            OwnPtr<ShorthandScope> shorthandScope;
+            if (propId == CSSPropertyBackgroundPosition ||
+                propId == CSSPropertyBackgroundRepeat ||
+                propId == CSSPropertyWebkitMaskPosition ||
+                propId == CSSPropertyWebkitMaskRepeat) {
+                shorthandScope.set(new ShorthandScope(this, propId));
+            }
             addProperty(propId1, val1.release(), important);
             if (val2)
                 addProperty(propId2, val2.release(), important);

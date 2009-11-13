@@ -124,8 +124,8 @@ void PluginView::setFrameRect(const IntRect& rect)
 
     updatePluginWidget();
 
-#if PLATFORM(WIN_OS)
-    // On Windows, always call plugin to change geometry.
+#if PLATFORM(WIN_OS) || PLATFORM(SYMBIAN)
+    // On Windows and Symbian, always call plugin to change geometry.
     setNPWindowRect(rect);
 #elif XP_UNIX
     // On Unix, multiple calls to setNPWindow() in windowed mode causes Flash to crash
@@ -148,7 +148,7 @@ void PluginView::handleEvent(Event* event)
         handleMouseEvent(static_cast<MouseEvent*>(event));
     else if (event->isKeyboardEvent())
         handleKeyboardEvent(static_cast<KeyboardEvent*>(event));
-#if defined(Q_WS_X11)
+#if defined(Q_WS_X11) && ENABLE(NETSCAPE_PLUGIN_API)
     else if (event->type() == eventNames().DOMFocusOutEvent)
         handleFocusOutEvent();
     else if (event->type() == eventNames().DOMFocusInEvent)
@@ -450,7 +450,7 @@ void PluginView::performRequest(PluginRequest* request)
     
     // Executing a script can cause the plugin view to be destroyed, so we keep a reference to the parent frame.
     RefPtr<Frame> parentFrame = m_parentFrame;
-    JSValue result = m_parentFrame->loader()->executeScript(jsString, request->shouldAllowPopups()).jsValue();
+    JSValue result = m_parentFrame->script()->executeScript(jsString, request->shouldAllowPopups()).jsValue();
 
     if (targetFrameName.isNull()) {
         String resultString;
@@ -818,7 +818,7 @@ PluginView::PluginView(Frame* parentFrame, const IntSize& size, PluginPackage* p
     , m_drawingModel(NPDrawingModel(-1))
     , m_eventModel(NPEventModel(-1))
 #endif
-#if defined(Q_WS_X11)
+#if defined(Q_WS_X11) && ENABLE(NETSCAPE_PLUGIN_API)
     , m_hasPendingGeometryChange(false)
     , m_drawable(0)
     , m_visual(0)
@@ -828,6 +828,8 @@ PluginView::PluginView(Frame* parentFrame, const IntSize& size, PluginPackage* p
     , m_loadManually(loadManually)
     , m_manualStream(0)
     , m_isJavaScriptPaused(false)
+    , m_isHalted(false)
+    , m_hasBeenHalted(false)
 {
     if (!m_plugin) {
         m_status = PluginStatusCanNotFindPlugin;

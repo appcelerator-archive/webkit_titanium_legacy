@@ -139,8 +139,10 @@ var WebInspector = {
             this.panels.resources = new WebInspector.ResourcesPanel();
         if (hiddenPanels.indexOf("scripts") === -1)
             this.panels.scripts = new WebInspector.ScriptsPanel();
-        if (hiddenPanels.indexOf("profiles") === -1)
+        if (hiddenPanels.indexOf("profiles") === -1) {
             this.panels.profiles = new WebInspector.ProfilesPanel();
+            this.panels.profiles.registerProfileType(new WebInspector.CPUProfileType());
+        }
         if (hiddenPanels.indexOf("storage") === -1 && hiddenPanels.indexOf("databases") === -1)
             this.panels.storage = new WebInspector.StoragePanel();      
     },
@@ -486,7 +488,14 @@ window.addEventListener("load", windowLoaded, false);
 WebInspector.dispatch = function() {
     var methodName = arguments[0];
     var parameters = Array.prototype.slice.call(arguments, 1);
-    WebInspector[methodName].apply(this, parameters);
+
+    // We'd like to enforce asynchronous interaction between the inspector controller and the frontend.
+    // This is important to LayoutTests.
+    function delayDispatch()
+    {
+        WebInspector[methodName].apply(WebInspector, parameters);
+    }
+    setTimeout(delayDispatch, 0);
 }
 
 WebInspector.windowUnload = function(event)
@@ -547,10 +556,9 @@ WebInspector.documentClick = function(event)
 
             WebInspector.showResourceForURL(anchor.href, anchor.lineNumber, anchor.preferredPanel);
         } else {
-            var profileStringRegEx = new RegExp("webkit-profile://.+/([0-9]+)");
-            var profileString = profileStringRegEx.exec(anchor.href);
+            var profileString = WebInspector.ProfileType.URLRegExp.exec(anchor.href);
             if (profileString)
-                WebInspector.showProfileById(profileString[1])
+                WebInspector.showProfileForURL(anchor.href);
         }
     }
 
@@ -1043,7 +1051,8 @@ WebInspector.addDatabase = function(payload)
 
 WebInspector.addCookieDomain = function(domain)
 {
-    this.panels.storage.addCookieDomain(domain);
+    if (this.panels.storage)
+        this.panels.storage.addCookieDomain(domain);
 }
 
 WebInspector.addDOMStorage = function(payload)
@@ -1254,14 +1263,15 @@ WebInspector.log = function(message)
     logMessage(message);
 }
 
-WebInspector.addProfile = function(profile)
+WebInspector.addProfileHeader = function(profile)
 {
-    this.panels.profiles.addProfile(profile);
+    this.panels.profiles.addProfileHeader(WebInspector.CPUProfileType.TypeId, new WebInspector.CPUProfile(profile));
 }
 
 WebInspector.setRecordingProfile = function(isProfiling)
 {
-    this.panels.profiles.setRecordingProfile(isProfiling);
+    this.panels.profiles.getProfileType(WebInspector.CPUProfileType.TypeId).setRecordingProfile(isProfiling);
+    this.panels.profiles.updateProfileTypeButtons();
 }
 
 WebInspector.drawLoadingPieChart = function(canvas, percent) {
@@ -1367,13 +1377,9 @@ WebInspector.linkifyStringAsFragment = function(string)
         var nonLink = string.substring(0, linkIndex);
         container.appendChild(document.createTextNode(nonLink));
 
-        var profileStringRegEx = new RegExp("webkit-profile://(.+)/[0-9]+");
-        var profileStringMatches = profileStringRegEx.exec(title);
-        var profileTitle;
+        var profileStringMatches = WebInspector.ProfileType.URLRegExp.exec(title);
         if (profileStringMatches)
-            profileTitle = profileStringMatches[1];
-        if (profileTitle)
-            title = WebInspector.panels.profiles.displayTitleForProfileLink(profileTitle);
+            title = WebInspector.panels.profiles.displayTitleForProfileLink(profileStringMatches[2], profileStringMatches[1]);
 
         var realURL = (linkString.indexOf("www.") === 0 ? "http://" + linkString : linkString);
         container.appendChild(WebInspector.linkifyURLAsNode(realURL, title, null, (realURL in WebInspector.resourceURLMap)));
@@ -1386,9 +1392,9 @@ WebInspector.linkifyStringAsFragment = function(string)
     return container;
 }
 
-WebInspector.showProfileById = function(uid) {
+WebInspector.showProfileForURL = function(url) {
     WebInspector.showProfilesPanel();
-    WebInspector.panels.profiles.showProfileById(uid);
+    WebInspector.panels.profiles.showProfileForURL(url);
 }
 
 WebInspector.linkifyURLAsNode = function(url, linkText, classes, isExternal)
@@ -1628,11 +1634,6 @@ WebInspector._toolbarItemClicked = function(event)
 {
     var toolbarItem = event.currentTarget;
     this.currentPanel = toolbarItem.panel;
-}
-
-WebInspector.evaluateForTestInFrontend = function(callId, script)
-{
-    InspectorController.didEvaluateForTestInFrontend(callId, JSON.stringify(window.eval(script)));
 }
 
 // This table maps MIME types to the Resource.Types which are valid for them.

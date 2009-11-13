@@ -228,9 +228,9 @@ public:
     bool resourceTrackingEnabled() const { return m_resourceTrackingEnabled; }
     void ensureResourceTrackingSettingsLoaded();
 
-    void enableTimeline(bool always = false);
-    void disableTimeline(bool always = false);
-    bool timelineEnabled() const;
+    void startTimelineProfiler();
+    void stopTimelineProfiler();
+    bool timelineProfilerEnabled() const;
     InspectorTimelineAgent* timelineAgent() { return m_timelineAgent.get(); }
 
     void mainResourceFiredLoadEvent(DocumentLoader*, const KURL&);
@@ -265,7 +265,6 @@ public:
     void addProfile(PassRefPtr<JSC::Profile>, unsigned lineNumber, const JSC::UString& sourceURL);
     void addProfileFinishedMessageToConsole(PassRefPtr<JSC::Profile>, unsigned lineNumber, const JSC::UString& sourceURL);
     void addStartProfilingMessageToConsole(const JSC::UString& title, unsigned lineNumber, const JSC::UString& sourceURL);
-    const ProfilesArray& profiles() const { return m_profiles; }
 
     bool isRecordingUserInitiatedProfile() const { return m_recordingUserInitiatedProfile; }
 
@@ -315,9 +314,14 @@ private:
     void deleteCookie(const String& cookieName, const String& domain);
 
 #if ENABLE(JAVASCRIPT_DEBUGGER)
+    typedef HashMap<unsigned int, RefPtr<JSC::Profile> > ProfilesMap;
+
     void startUserInitiatedProfilingSoon();
     void toggleRecordButton(bool);
     void enableDebuggerFromFrontend(bool always);
+    void getProfileHeaders(long callId);
+    void getProfile(long callId, unsigned uid);
+    ScriptObject createProfileHeader(const JSC::Profile& profile);
 #endif
 #if ENABLE(DATABASE)
     void selectDatabase(Database* database);
@@ -394,7 +398,7 @@ private:
     int m_currentUserInitiatedProfileNumber;
     unsigned m_nextUserInitiatedProfileNumber;
     Timer<InspectorController> m_startProfiling;
-    ProfilesArray m_profiles;
+    ProfilesMap m_profiles;
 #endif
 };
 

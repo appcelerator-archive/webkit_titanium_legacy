@@ -517,7 +517,7 @@ fi
 AC_MSG_CHECKING([whether to enable Web Sockets support])
 AC_ARG_ENABLE(web_sockets,
               AC_HELP_STRING([--enable-web-sockets],
-                             [enable support for Web Sockets [default=yes]]),
+                             [enable support for Web Sockets [default=no]]),
               [],[enable_web_sockets="no"])
 AC_MSG_RESULT([$enable_web_sockets])
 
@@ -656,7 +656,15 @@ if test "$enable_icon_database" = "yes" || \
    test "$enable_database" = "yes" || \
    test "$enable_offline_web_applications" = "yes" || \
    test "$enable_dom_storage" = "yes"; then
-   PKG_CHECK_MODULES([SQLITE3], [sqlite3 >= $SQLITE_REQUIRED_VERSION])
+   PKG_CHECK_MODULES([SQLITE3],
+                     [sqlite3 >= $SQLITE_REQUIRED_VERSION],
+                     [sqlite3_has_pkg_config=yes],
+                     [sqlite3_has_pkg_config=no])
+   if test "$sqlite3_has_pkg_config" = "no"; then
+      AC_SEARCH_LIBS([sqlite3_open16], [sqlite3],
+                     [SQLITE3_LIBS="$LIBS";SQLITE3_CFLAGS="-I $srcdir/WebKitLibraries/WebCoreSQLite3"],
+                     [AC_MSG_ERROR([SQLite3 is required to enable Database support])])
+   fi
    AC_SUBST([SQLITE3_CFLAGS])
    AC_SUBST([SQLITE3_LIBS])
 fi

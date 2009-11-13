@@ -70,6 +70,7 @@ DOM_CLASSES = \
     CSSValueList \
     CSSVariablesRule \
     CSSVariablesDeclaration \
+    CanvasActiveInfo \
     CanvasArray \
     CanvasArrayBuffer \
     CanvasBuffer \
@@ -288,6 +289,7 @@ DOM_CLASSES = \
     SVGFEImageElement \
     SVGFEMergeElement \
     SVGFEMergeNodeElement \
+    SVGFEMorphologyElement \
     SVGFEOffsetElement \
     SVGFEPointLightElement \
     SVGFESpecularLightingElement \

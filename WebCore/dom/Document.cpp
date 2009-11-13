@@ -943,7 +943,7 @@ Element* Document::elementFromPoint(int x, int y) const
         return 0;
 
     float zoomFactor = frame->pageZoomFactor();
-    IntPoint point = roundedIntPoint(FloatPoint(x * zoomFactor, y * zoomFactor)) + view()->scrollOffset();
+    IntPoint point = roundedIntPoint(FloatPoint((x + view()->scrollX()) * zoomFactor, (y + view()->scrollY()) * zoomFactor));
 
     if (!frameView->visibleContentRect().contains(point))
         return 0;
@@ -973,7 +973,7 @@ PassRefPtr<Range> Document::caretRangeFromPoint(int x, int y)
         return 0;
 
     float zoomFactor = frame->pageZoomFactor();
-    IntPoint point = roundedIntPoint(FloatPoint(x * zoomFactor, y * zoomFactor)) + view()->scrollOffset();
+    IntPoint point = roundedIntPoint(FloatPoint((x + view()->scrollX()) * zoomFactor, (y + view()->scrollY()) * zoomFactor));
 
     if (!frameView->visibleContentRect().contains(point))
         return 0;
@@ -1561,6 +1561,9 @@ void Document::open(Document* ownerDocument)
 
     implicitOpen();
 
+    if (DOMWindow* domWindow = this->domWindow())
+        domWindow->removeAllEventListeners();
+
     if (m_frame)
         m_frame->loader()->didExplicitOpen();
 }
@@ -1582,7 +1585,11 @@ void Document::implicitOpen()
 {
     cancelParsing();
 
-    clear();
+    delete m_tokenizer;
+    m_tokenizer = 0;
+
+    removeChildren();
+
     m_tokenizer = createTokenizer();
     setParsing(true);
 
@@ -1711,7 +1718,7 @@ void Document::implicitClose()
     if (f)
         f->animation()->resumeAnimations(this);
 
-    ImageLoader::dispatchPendingLoadEvents();
+    ImageLoader::dispatchPendingEvents();
     dispatchWindowLoadEvent();
     dispatchWindowEvent(PageTransitionEvent::create(eventNames().pageshowEvent, false), this);
     if (f)
@@ -1858,16 +1865,6 @@ void Document::finishParsing()
     // (3) Data is still remaining to be parsed.
     if (m_tokenizer)
         m_tokenizer->finish();
-}
-
-void Document::clear()
-{
-    delete m_tokenizer;
-    m_tokenizer = 0;
-
-    removeChildren();
-    if (DOMWindow* domWindow = this->domWindow())
-        domWindow->removeAllEventListeners();
 }
 
 const KURL& Document::virtualURL() const
@@ -2357,8 +2354,8 @@ void Document::removePendingSheet()
     if (!m_pendingStylesheets && m_tokenizer)
         m_tokenizer->executeScriptsWaitingForStylesheets();
 
-    if (!m_pendingStylesheets && m_gotoAnchorNeededAfterStylesheetsLoad && m_frame)
-        m_frame->loader()->gotoAnchor();
+    if (!m_pendingStylesheets && m_gotoAnchorNeededAfterStylesheetsLoad && view())
+        view()->scrollToFragment(m_frame->loader()->url());
 }
 
 void Document::updateStyleSelector()
@@ -2960,6 +2957,8 @@ void Document::addListenerTypeIfNeeded(const AtomicString& eventType)
         addListenerType(ANIMATIONITERATION_LISTENER);
     else if (eventType == eventNames().webkitTransitionEndEvent)
         addListenerType(TRANSITIONEND_LISTENER);
+    else if (eventType == eventNames().beforeloadEvent)
+        addListenerType(BEFORELOAD_LISTENER);
 }
 
 CSSStyleDeclaration* Document::getOverrideStyle(Element*, const String&)
@@ -4025,8 +4024,8 @@ void Document::finishedParsing()
 
         if (InspectorController* controller = page()->inspectorController())
             controller->mainResourceFiredDOMContentEvent(f->loader()->documentLoader(), url());
-    }
 #endif
+    }
 }
 
 Vector<String> Document::formElementsState() const
@@ -4503,7 +4502,7 @@ void Document::resourceRetrievedByXMLHttpRequest(unsigned long identifier, const
     Frame* frame = this->frame();
     if (frame) {
         FrameLoader* frameLoader = frame->loader();
-        frameLoader->didLoadResourceByXMLHttpRequest(identifier, sourceString);
+        frameLoader->notifier()->didLoadResourceByXMLHttpRequest(identifier, sourceString);
     }
 }
 

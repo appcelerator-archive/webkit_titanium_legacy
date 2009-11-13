@@ -100,7 +100,9 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #if ENABLE(SHARED_WORKERS)
 #define SHARED_WORKER_ACTIVE_OBJECT_WRAPPER_TYPES(V)                    \
     V(SHAREDWORKER, SharedWorker)
-#define SHARED_WORKER_NONNODE_WRAPPER_TYPES(V)
+
+#define SHARED_WORKER_NONNODE_WRAPPER_TYPES(V)                          \
+    V(SHAREDWORKERCONTEXT, SharedWorkerContext)
 #else
 #define SHARED_WORKER_ACTIVE_OBJECT_WRAPPER_TYPES(V)
 #define SHARED_WORKER_NONNODE_WRAPPER_TYPES(V)
@@ -450,6 +452,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 #if ENABLE(3D_CANVAS)
 #define DOM_OBJECT_3D_CANVAS_TYPES(V)                                   \
+    V(CANVASACTIVEINFO, CanvasActiveInfo)                               \
     V(CANVASARRAY, CanvasArray)                                         \
     V(CANVASARRAYBUFFER, CanvasArrayBuffer)                             \
     V(CANVASBUFFER, CanvasBuffer)                                       \

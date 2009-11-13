@@ -197,14 +197,14 @@ void InspectorFrontend::resourceTrackingWasDisabled()
     callSimpleFunction("resourceTrackingWasDisabled");
 }
 
-void InspectorFrontend::timelineWasEnabled()
+void InspectorFrontend::timelineProfilerWasStarted()
 {
-    callSimpleFunction("timelineWasEnabled");
+    callSimpleFunction("timelineProfilerWasStarted");
 }
 
-void InspectorFrontend::timelineWasDisabled()
+void InspectorFrontend::timelineProfilerWasStopped()
 {
-    callSimpleFunction("timelineWasDisabled");
+    callSimpleFunction("timelineProfilerWasStopped");
 }
 
 void InspectorFrontend::addItemToTimeline(const ScriptObject& itemObj)
@@ -261,9 +261,9 @@ void InspectorFrontend::failedToParseScriptSource(const JSC::SourceCode& source,
     function->call();
 }
 
-void InspectorFrontend::addProfile(const JSC::JSValue& profile)
+void InspectorFrontend::addProfileHeader(const ScriptValue& profile)
 {
-    OwnPtr<ScriptFunctionCall> function(newFunctionCall("addProfile"));
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("addProfileHeader"));
     function->appendArgument(profile);
     function->call();
 }
@@ -272,6 +272,22 @@ void InspectorFrontend::setRecordingProfile(bool isProfiling)
 {
     OwnPtr<ScriptFunctionCall> function(newFunctionCall("setRecordingProfile"));
     function->appendArgument(isProfiling);
+    function->call();
+}
+
+void InspectorFrontend::didGetProfileHeaders(int callId, const ScriptArray& headers)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didGetProfileHeaders"));
+    function->appendArgument(callId);
+    function->appendArgument(headers);
+    function->call();
+}
+
+void InspectorFrontend::didGetProfile(int callId, const ScriptValue& profile)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didGetProfile"));
+    function->appendArgument(callId);
+    function->appendArgument(profile);
     function->call();
 }
 
@@ -340,6 +356,14 @@ void InspectorFrontend::attributesUpdated(int id, const ScriptArray& attributes)
     OwnPtr<ScriptFunctionCall> function(newFunctionCall("attributesUpdated"));
     function->appendArgument(id);
     function->appendArgument(attributes);
+    function->call();
+}
+
+void InspectorFrontend::didRemoveNode(int callId, int nodeId)
+{
+    OwnPtr<ScriptFunctionCall> function(newFunctionCall("didRemoveNode"));
+    function->appendArgument(callId);
+    function->appendArgument(nodeId);
     function->call();
 }
 

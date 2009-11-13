@@ -199,6 +199,9 @@ namespace WebCore {
         virtual void restart();
         virtual Node* node() const;
 
+        bool isHalted() const { return m_isHalted; }
+        bool hasBeenHalted() const { return m_hasBeenHalted; }
+
         static bool isCallingPlugin();
 
         bool start();
@@ -255,7 +258,7 @@ namespace WebCore {
 
         void handleKeyboardEvent(KeyboardEvent*);
         void handleMouseEvent(MouseEvent*);
-#if defined(Q_WS_X11)
+#if defined(Q_WS_X11) && ENABLE(NETSCAPE_PLUGIN_API)
         void handleFocusInEvent();
         void handleFocusOutEvent();
 #endif
@@ -311,7 +314,7 @@ public:
 
 private:
 
-#if defined(XP_UNIX) || defined(Q_WS_X11)
+#if defined(XP_UNIX) || defined(Q_WS_X11) || PLATFORM(SYMBIAN)
         void setNPWindowIfNeeded();
 #elif defined(XP_MACOSX)
         NP_CGContext m_npCgContext;
@@ -324,7 +327,7 @@ private:
         Point globalMousePosForPlugin() const;
 #endif
 
-#if defined(Q_WS_X11)
+#if defined(Q_WS_X11) && ENABLE(NETSCAPE_PLUGIN_API)
         bool m_hasPendingGeometryChange;
         Pixmap m_drawable;
         Visual* m_visual;
@@ -341,6 +344,9 @@ private:
         RefPtr<PluginStream> m_manualStream;
 
         bool m_isJavaScriptPaused;
+
+        bool m_isHalted;
+        bool m_hasBeenHalted;
 
         static PluginView* s_currentPluginView;
     };

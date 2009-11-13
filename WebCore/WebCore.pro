@@ -164,7 +164,7 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 
 # Nescape plugins support (NPAPI)
 !contains(DEFINES, ENABLE_NETSCAPE_PLUGIN_API=.) {
-    unix|win32-*:!embedded:!wince*:!symbian {
+    unix|win32-*:!embedded:!wince*: {
         DEFINES += ENABLE_NETSCAPE_PLUGIN_API=1
     } else {
         DEFINES += ENABLE_NETSCAPE_PLUGIN_API=0
@@ -547,6 +547,7 @@ IDL_BINDINGS += \
     svg/SVGFEImageElement.idl \
     svg/SVGFEMergeElement.idl \
     svg/SVGFEMergeNodeElement.idl \
+    svg/SVGFEMorphologyElement.idl \
     svg/SVGFEOffsetElement.idl \
     svg/SVGFEPointLightElement.idl \
     svg/SVGFESpecularLightingElement.idl \
@@ -767,6 +768,7 @@ SOURCES += \
     bindings/js/ScriptValue.cpp \
     bindings/js/ScheduledAction.cpp \
     bindings/js/SerializedScriptValue.cpp \
+    bindings/ScriptControllerBase.cpp \
     bridge/IdentifierRep.cpp \
     bridge/NP_jsobject.cpp \
     bridge/npruntime.cpp \
@@ -1101,6 +1103,7 @@ SOURCES += \
     loader/DocumentThreadableLoader.cpp \
     loader/FormState.cpp \
     loader/FrameLoader.cpp \
+    loader/HistoryController.cpp \
     loader/FTPDirectoryDocument.cpp \
     loader/FTPDirectoryParser.cpp \
     loader/icon/IconLoader.cpp \
@@ -1119,6 +1122,7 @@ SOURCES += \
     loader/RedirectScheduler.cpp \
     loader/Request.cpp \
     loader/ResourceLoader.cpp \
+    loader/ResourceLoadNotifier.cpp \
     loader/SubresourceLoader.cpp \
     loader/TextDocument.cpp \
     loader/TextResourceDecoder.cpp \
@@ -2160,6 +2164,7 @@ HEADERS += \
     svg/SVGFELightElement.h \
     svg/SVGFEMergeElement.h \
     svg/SVGFEMergeNodeElement.h \
+    svg/SVGFEMorphologyElement.h \
     svg/SVGFEOffsetElement.h \
     svg/SVGFEPointLightElement.h \
     svg/SVGFESpecularLightingElement.h \
@@ -2453,46 +2458,61 @@ contains(DEFINES, ENABLE_NETSCAPE_PLUGIN_API=1) {
 
     SOURCES += plugins/npapi.cpp
 
-    unix {
-        DEFINES += ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH=1
+    symbian {
+        SOURCES += \
+        plugins/symbian/PluginPackageSymbian.cpp \
+        plugins/symbian/PluginDatabaseSymbian.cpp \
+        plugins/symbian/PluginViewSymbian.cpp \
+        plugins/symbian/PluginContainerSymbian.cpp
 
-        mac {
-            SOURCES += \
-                plugins/mac/PluginPackageMac.cpp \
-                plugins/mac/PluginViewMac.cpp
-            OBJECTIVE_SOURCES += \
-                platform/text/mac/StringImplMac.mm \
-                platform/mac/WebCoreNSStringExtras.mm
-            INCLUDEPATH += platform/mac
-            # Note: XP_MACOSX is defined in npapi.h
-        } else {
-            !embedded: CONFIG += x11
-            SOURCES += \
-                plugins/qt/PluginContainerQt.cpp \
-                plugins/qt/PluginPackageQt.cpp \
-                plugins/qt/PluginViewQt.cpp
-            HEADERS += \
-                plugins/qt/PluginContainerQt.h
-            DEFINES += XP_UNIX
+        HEADERS += \
+        plugins/symbian/PluginContainerSymbian.h \
+        plugins/symbian/npinterface.h
+
+        LIBS += -lefsrv
+
+    } else {
+
+        unix {
+    
+            mac {
+                SOURCES += \
+                    plugins/mac/PluginPackageMac.cpp \
+                    plugins/mac/PluginViewMac.cpp
+                OBJECTIVE_SOURCES += \
+                    platform/text/mac/StringImplMac.mm \
+                    platform/mac/WebCoreNSStringExtras.mm
+                INCLUDEPATH += platform/mac
+                # Note: XP_MACOSX is defined in npapi.h
+            } else {
+                !embedded: CONFIG += x11
+                SOURCES += \
+                    plugins/qt/PluginContainerQt.cpp \
+                    plugins/qt/PluginPackageQt.cpp \
+                    plugins/qt/PluginViewQt.cpp
+                HEADERS += \
+                    plugins/qt/PluginContainerQt.h
+                DEFINES += XP_UNIX
+            }
         }
-    }
-
-    win32-* {
-        INCLUDEPATH += $$PWD/plugins/win
-
-        SOURCES += page/win/PageWin.cpp \
-                   plugins/win/PluginDatabaseWin.cpp \
-                   plugins/win/PluginPackageWin.cpp \
-                   plugins/win/PluginMessageThrottlerWin.cpp \
-                   plugins/win/PluginViewWin.cpp
-
-        LIBS += \
-            -ladvapi32 \
-            -lgdi32 \
-            -lshell32 \
-            -lshlwapi \
-            -luser32 \
-            -lversion
+    
+        win32-* {
+            INCLUDEPATH += $$PWD/plugins/win
+    
+            SOURCES += page/win/PageWin.cpp \
+                       plugins/win/PluginDatabaseWin.cpp \
+                       plugins/win/PluginPackageWin.cpp \
+                       plugins/win/PluginMessageThrottlerWin.cpp \
+                       plugins/win/PluginViewWin.cpp
+    
+            LIBS += \
+                -ladvapi32 \
+                -lgdi32 \
+                -lshell32 \
+                -lshlwapi \
+                -luser32 \
+                -lversion
+        }
     }
 
 } else {
@@ -2900,6 +2920,7 @@ contains(DEFINES, ENABLE_SVG=1) {
         svg/SVGFELightElement.cpp \
         svg/SVGFEMergeElement.cpp \
         svg/SVGFEMergeNodeElement.cpp \
+        svg/SVGFEMorphologyElement.cpp \
         svg/SVGFEOffsetElement.cpp \
         svg/SVGFEPointLightElement.cpp \
         svg/SVGFESpecularLightingElement.cpp \

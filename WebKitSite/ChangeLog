@@ -1,3 +1,35 @@
+2009-10-16  Darin Adler  <darin@apple.com>
+
+        * coding/RefPtr.html: Minor revision, updating a link and tweaking
+        wording a bit in few places.
+
+2009-10-14  Evan Martin  <evan@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Document what state the build tree is expected to be in after a patch.
+
+        * coding/contributing.html:
+
+2009-10-11  Cameron McCormack  <cam@mcc.id.au>
+
+        Reviewed by Eric Seidel.
+
+        Change <a name> to id="" to fix styling problems
+        https://bugs.webkit.org/show_bug.cgi?id=30283
+
+        This prevents the headings from being styled like links.
+
+        * coding/contributing.html:
+
+2009-10-08  Alex Milowski  <alex@milowski.com>
+
+        Reviewed by Darin Adler.
+
+        Added a basic description of the layout and rendering project and added links to the blog entries on rendering.
+
+        * projects/layout/index.html:
+
 2009-10-07  Sam Weinig  <sam@webkit.org>
 
         Reviewed by Dan Bernstein.

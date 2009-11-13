@@ -876,34 +876,68 @@ void LayoutTestController::addUserStyleSheet(JSStringRef source)
 
 void LayoutTestController::showWebInspector()
 {
-    COMPtr<IWebViewPrivate> webView;
-    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+
+    COMPtr<IWebPreferencesPrivate> prefsPrivate(Query, preferences);
+    if (!prefsPrivate)
+        return;
+
+    prefsPrivate->setDeveloperExtrasEnabled(true);
+
+    COMPtr<IWebViewPrivate> viewPrivate(Query, webView);
+    if (!viewPrivate)
         return;
 
     COMPtr<IWebInspector> inspector;
-    if (SUCCEEDED(webView->inspector(&inspector)))
+    if (SUCCEEDED(viewPrivate->inspector(&inspector)))
         inspector->show();
 }
 
 void LayoutTestController::closeWebInspector()
 {
-    COMPtr<IWebViewPrivate> webView;
-    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebViewPrivate> viewPrivate(Query, webView);
+    if (!viewPrivate)
         return;
 
     COMPtr<IWebInspector> inspector;
-    if (SUCCEEDED(webView->inspector(&inspector)))
-        inspector->close();
+    if (FAILED(viewPrivate->inspector(&inspector)))
+        return;
+
+    inspector->close();
+
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+
+    COMPtr<IWebPreferencesPrivate> prefsPrivate(Query, preferences);
+    if (!prefsPrivate)
+        return;
+
+    prefsPrivate->setDeveloperExtrasEnabled(false);
 }
 
 void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef script)
 {
-    COMPtr<IWebViewPrivate> webView;
-    if (FAILED(WebKitCreateInstance(__uuidof(WebView), 0, __uuidof(webView), reinterpret_cast<void**>(&webView))))
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebViewPrivate> viewPrivate(Query, webView);
+    if (!viewPrivate)
         return;
 
     COMPtr<IWebInspector> inspector;
-    if (FAILED(webView->inspector(&inspector)))
+    if (FAILED(viewPrivate->inspector(&inspector)))
         return;
 
     COMPtr<IWebInspectorPrivate> inspectorPrivate(Query, inspector);
@@ -911,4 +945,21 @@ void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef scrip
         return;
 
     inspectorPrivate->evaluateInFrontend(callId, bstrT(script).GetBSTR());
+}
+
+void LayoutTestController::removeAllVisitedLinks()
+{
+    COMPtr<IWebHistory> history;
+    if (FAILED(WebKitCreateInstance(CLSID_WebHistory, 0, __uuidof(history), reinterpret_cast<void**>(&history))))
+        return;
+
+    COMPtr<IWebHistory> sharedHistory;
+    if (FAILED(history->optionalSharedHistory(&sharedHistory)) || !sharedHistory)
+        return;
+
+    COMPtr<IWebHistoryPrivate> sharedHistoryPrivate;
+    if (FAILED(sharedHistory->QueryInterface(&sharedHistoryPrivate)))
+        return;
+
+    sharedHistoryPrivate->removeAllVisitedLinks();
 }
