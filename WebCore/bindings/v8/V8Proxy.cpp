@@ -211,6 +211,14 @@ static void reportFatalErrorInV8(const char* location, const char* message)
     handleFatalErrorInV8();
 }
 
+V8Proxy::V8Proxy(Frame* frame)
+    : m_frame(frame),
+      m_context(SharedPersistent<v8::Context>::create()),
+      m_listenerGuard(V8ListenerGuard::create()),
+      m_inlineCode(false),
+      m_timerCallback(false),
+      m_recursion(0) { }
+
 V8Proxy::~V8Proxy()
 {
     clearForClose();
@@ -226,22 +234,6 @@ void V8Proxy::destroyGlobal()
         m_global.Dispose();
         m_global.Clear();
     }
-}
-
-static void disconnectEventListenersInList(V8EventListenerList& list)
-{
-    V8EventListenerList::iterator it = list.begin();
-    while (it != list.end()) {
-        (*it)->disconnectFrame();
-        ++it;
-    }
-    list.clear();
-}
-
-void V8Proxy::disconnectEventListeners()
-{
-    disconnectEventListenersInList(m_eventListeners);
-    disconnectEventListenersInList(m_objectListeners);
 }
 
 v8::Handle<v8::Script> V8Proxy::compileScript(v8::Handle<v8::String> code, const String& fileName, int baseLine)
@@ -432,6 +424,17 @@ v8::Local<v8::Value> V8Proxy::callFunction(v8::Handle<v8::Function> function, v8
     v8::Local<v8::Value> result;
     {
         V8ConsoleMessage::Scope scope;
+
+        if (m_recursion >= kMaxRecursionDepth) {
+            v8::Local<v8::String> code = v8::String::New("throw new RangeError('Maximum call stack size exceeded.')");
+            if (code.IsEmpty())
+                return result;
+            v8::Local<v8::Script> script = v8::Script::Compile(code);
+            if (script.IsEmpty())
+                return result;
+            script->Run();
+            return result;
+        }
 
         // Evaluating the JavaScript could cause the frame to be deallocated,
         // so we start the keep alive timer here.
@@ -700,6 +703,12 @@ void V8Proxy::releaseStorageMutex()
         page->group().localStorage()->unlock();
 }
 
+void V8Proxy::disconnectEventListeners()
+{
+    m_listenerGuard->disconnectListeners();
+    m_listenerGuard = V8ListenerGuard::create();
+}
+
 void V8Proxy::clearForClose()
 {
     if (!context().IsEmpty()) {
@@ -713,7 +722,6 @@ void V8Proxy::clearForClose()
 void V8Proxy::clearForNavigation()
 {
     disconnectEventListeners();
-
     if (!context().IsEmpty()) {
         v8::HandleScope handle;
         clearDocumentWrapper();

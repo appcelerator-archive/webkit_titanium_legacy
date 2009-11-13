@@ -77,7 +77,6 @@ static const int computedProperties[] = {
     CSSPropertyBorderTopStyle,
     CSSPropertyBorderTopWidth,
     CSSPropertyBottom,
-    CSSPropertyBoxShadow,
     CSSPropertyCaptionSide,
     CSSPropertyClear,
     CSSPropertyClip,
@@ -129,6 +128,7 @@ static const int computedProperties[] = {
     CSSPropertyTextAlign,
     CSSPropertyTextDecoration,
     CSSPropertyTextIndent,
+    CSSPropertyTextRendering,
     CSSPropertyTextShadow,
     CSSPropertyTextOverflow,
     CSSPropertyTextTransform,
@@ -170,6 +170,7 @@ static const int computedProperties[] = {
     CSSPropertyWebkitBoxOrient,
     CSSPropertyWebkitBoxPack,
     CSSPropertyWebkitBoxReflect,
+    CSSPropertyWebkitBoxShadow,
     CSSPropertyWebkitBoxSizing,
     CSSPropertyWebkitColumnBreakAfter,
     CSSPropertyWebkitColumnBreakBefore,
@@ -252,7 +253,6 @@ static const int computedProperties[] = {
     CSSPropertyStrokeMiterlimit,
     CSSPropertyStrokeOpacity,
     CSSPropertyStrokeWidth,
-    CSSPropertyTextRendering,
     CSSPropertyAlignmentBaseline,
     CSSPropertyBaselineShift,
     CSSPropertyDominantBaseline,
@@ -767,7 +767,7 @@ PassRefPtr<CSSValue> CSSComputedStyleDeclaration::getPropertyCSSValue(int proper
         }
         case CSSPropertyWebkitBoxReflect:
             return valueForReflection(style->boxReflect());
-        case CSSPropertyBoxShadow:
+        case CSSPropertyWebkitBoxShadow:
             return valueForShadow(style->boxShadow(), static_cast<CSSPropertyID>(propertyID));
         case CSSPropertyCaptionSide:
             return CSSPrimitiveValue::create(style->captionSide());
@@ -1052,6 +1052,8 @@ PassRefPtr<CSSValue> CSSComputedStyleDeclaration::getPropertyCSSValue(int proper
             return CSSPrimitiveValue::create(style->textIndent());
         case CSSPropertyTextShadow:
             return valueForShadow(style->textShadow(), static_cast<CSSPropertyID>(propertyID));
+        case CSSPropertyTextRendering:
+            return CSSPrimitiveValue::create(style->fontDescription().textRenderingMode());
         case CSSPropertyTextOverflow:
             if (style->textOverflow())
                 return CSSPrimitiveValue::createIdentifier(CSSValueEllipsis);

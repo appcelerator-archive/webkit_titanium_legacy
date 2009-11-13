@@ -1686,7 +1686,7 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 
     State state = m_state;
 
-    while (!m_src.isEmpty() && (!frame || !frame->loader()->isScheduledLocationChangePending())) {
+    while (!m_src.isEmpty() && (!frame || !frame->redirectScheduler()->locationChangePending())) {
         if (!continueProcessing(processedCount, startTime, state))
             break;
 

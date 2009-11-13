@@ -1,3 +1,149 @@
+2009-10-02  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Removed the concept of a "fast access cutoff" in arrays, because it
+        punished some patterns of array access too much, and made things too
+        complex for inlining in some cases.
+        
+        1.3% speedup on SunSpider.
+
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emitSlow_op_get_by_val):
+        (JSC::JIT::emitSlow_op_put_by_val):
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emit_op_get_by_val):
+        (JSC::JIT::emitSlow_op_get_by_val):
+        (JSC::JIT::emit_op_put_by_val):
+        (JSC::JIT::emitSlow_op_put_by_val):
+        * jit/JITStubs.cpp:
+        * jit/JITStubs.h:
+        (JSC::): Check m_vectorLength instead of m_fastAccessCutoff when
+        getting / putting from / to an array. Inline putting past the end of
+        the array.
+
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::JSArray):
+        (JSC::JSArray::getOwnPropertySlot):
+        (JSC::JSArray::getOwnPropertyDescriptor):
+        (JSC::JSArray::put):
+        (JSC::JSArray::putSlowCase):
+        (JSC::JSArray::deleteProperty):
+        (JSC::JSArray::getOwnPropertyNames):
+        (JSC::JSArray::increaseVectorLength):
+        (JSC::JSArray::setLength):
+        (JSC::JSArray::pop):
+        (JSC::JSArray::push):
+        (JSC::JSArray::sort):
+        (JSC::JSArray::fillArgList):
+        (JSC::JSArray::copyToRegisters):
+        (JSC::JSArray::compactForSorting):
+        (JSC::JSArray::checkConsistency):
+        * runtime/JSArray.h:
+        (JSC::JSArray::canGetIndex):
+        (JSC::JSArray::canSetIndex):
+        (JSC::JSArray::setIndex):
+        (JSC::JSArray::markChildrenDirect): Removed m_fastAccessCutoff, and
+        replaced with checks for JSValue() to detect reads and writes from / to
+        uninitialized parts of the array.
+
+2009-10-02  Jonni Rainisto  <jonni.rainisto@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Math.random() gives too low values on Win32 when _CRT_RAND_S is not defined
+        https://bugs.webkit.org/show_bug.cgi?id=29956
+
+        * wtf/RandomNumber.cpp:
+        (WTF::randomNumber): Added PLATFORM(WIN_OS) to handle 15bit rand()
+
+2009-10-02  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Take one branch instead of two to test for JSValue().
+        
+        1.1% SunSpider speedup.
+
+        * jit/JITCall.cpp:
+        (JSC::JIT::compileOpCall):
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_to_jsnumber):
+        (JSC::JIT::emit_op_create_arguments):
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emitSlow_op_get_by_val):
+        (JSC::JIT::emit_op_put_by_val): Test for the empty value tag, instead
+        of testing for the cell tag with a 0 payload.
+
+        * runtime/JSValue.cpp:
+        (JSC::JSValue::description): Added support for dumping the new empty value,
+        and deleted values, in debug builds.
+
+        * runtime/JSValue.h:
+        (JSC::JSValue::JSValue()): Construct JSValue() with the empty value tag.
+
+        (JSC::JSValue::JSValue(JSCell*)): Convert null pointer to the empty value
+        tag, to avoid having two different c++ versions of null / empty.
+
+        (JSC::JSValue::operator bool): Test for the empty value tag, instead
+        of testing for the cell tag with a 0 payload.
+
+2009-10-02  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        <https://bugs.webkit.org/show_bug.cgi?id=29989>
+        Safari version number shouldn't be exposed in WebKit code
+        
+        For a WebKit version of 532.3.4:
+        Product version is: 5.32.3.4 (was 4.0.3.0)
+        File version is: 5.32.3.4 (was 4.532.3.4)
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.rc:
+
+2009-10-02  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Rubber-stamped by Simon Hausmann.
+
+        Fix the Qt on Mac OS X build.
+
+        * wtf/FastMalloc.cpp:
+
+2009-10-02  Jørgen Lind  <jorgen.lind@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Allow enabling and disabling of the JIT through a qmake variable.
+
+        Qt's configure may set this variable through .qmake.cache if a
+        commandline option is given and/or the compile test for hwcap.h
+        failed/succeeded.
+
+        * JavaScriptCore.pri:
+
+2009-10-01  Mark Rowe  <mrowe@apple.com>
+
+        Fix the Tiger build.  Don't unconditionally enable 3D canvas as it is not supported on Tiger.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2009-10-01  Yongjun Zhang  <yongjun.zhang@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29187
+
+        Don't inline ~ListRefPtr() to work around winscw compiler forward declaration
+        bug regarding templated classes.
+
+        The compiler bug is reported at:
+        https://xdabug001.ext.nokia.com/bugzilla/show_bug.cgi?id=9812
+
+        The change will be reverted when the above bug is fixed in winscw compiler.
+
+        * wtf/ListRefPtr.h:
+        (WTF::::~ListRefPtr):
+
 2009-10-01  Zoltan Horvath  <zoltan@webkit.org>
 
         Reviewed by Simon Hausmann.

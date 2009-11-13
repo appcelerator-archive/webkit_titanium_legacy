@@ -253,10 +253,6 @@ http/tests/xmlhttprequest/cookies.html
 # <rdar://5723191>
 http/tests/navigation/javascriptlink-frames.html
 
-
-#<rdar://problem/5829342> REGRESSION: fast/canvas/toDataURL-supportedTypes.html fails on Windows
-fast/canvas/toDataURL-supportedTypes.html
-
 #<rdar://problem/5829202> new subframe reload tests fail on Windows
 http/tests/navigation/reload-subframe-object.html
 
@@ -690,3 +686,6 @@ fast/dom/Window/slow_unload_handler.html
 
 # This port doesn't have a global history delegate yet
 http/tests/globalhistory
+
+# <https://bugs.webkit.org/show_bug.cgi?id=29966>
+fast/inline/relative-positioned-overflow.html

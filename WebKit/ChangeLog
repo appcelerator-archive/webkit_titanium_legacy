@@ -1,3 +1,38 @@
+2009-10-02  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Added gyp_webkit that does a subset of the things gyp_chromium does
+        plus some specialization for an upstream chromium build.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29986
+
+        * chromium/DEPS: Points to gyp_webkit instead of gyp_chromium.
+        * chromium/gyp_webkit: A new python file.
+
+2009-10-01  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Make it possible to override the list of feature defines when building
+        downstream.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29979
+
+        * chromium/features.gypi:
+
+2009-10-01  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Added windows-specific dependencies, updated some revisions and
+        re-organized file to make revision tracking easier. Also removed
+        extensions/v8 dependency that is no longer needed upstream.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29973
+
+        * chromium/DEPS:
+
 2009-09-30  Yaar Schnitman  <yaar@chromium.org>
 
         Reviewed by Dimitri Glazkov.

@@ -1,3 +1,312 @@
+2009-10-02  Yuta Kitamura  <yutak@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Update pixel test image for fast/table/vertical-align-baseline.html.
+
+        Expected render tree dump for this test was modified in r40146
+        <http://trac.webkit.org/changeset/40146>, but the image was not updated with it.
+
+        * platform/mac/fast/table/vertical-align-baseline-expected.checksum:
+        * platform/mac/fast/table/vertical-align-baseline-expected.png:
+
+2009-10-02  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Setting zero size on a container of a video element doesn't hide the controller
+        https://bugs.webkit.org/show_bug.cgi?id=30031
+
+        Testcase with a video element inside a positioned div with overflow.
+        
+        * compositing/geometry/clipped-video-controller.html: Added.
+        * platform/mac/compositing/geometry/clipped-video-controller-expected.checksum: Added.
+        * platform/mac/compositing/geometry/clipped-video-controller-expected.png: Added.
+        * platform/mac/compositing/geometry/clipped-video-controller-expected.txt: Added.
+
+2009-10-02  Vitaly Repeshko  <vitalyr@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Test that having infinite recursion in XMLHttpRequest event handler does not crash.
+        https://bugs.webkit.org/show_bug.cgi?id=29974
+
+        * fast/xmlhttprequest/xmlhttprequest-recursive-sync-event-expected.txt: Added.
+        * fast/xmlhttprequest/xmlhttprequest-recursive-sync-event.html: Added.
+
+2009-10-02  Victor Wang  <victorw@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29619
+
+        Patch http://trac.webkit.org/changeset/35290 adds win support for
+        JPEG and GIF for toDataURL encoding canvases and the test was
+        rewritten to not output the encoded image data, it should pass
+        on Win now.
+
+        * platform/win/Skipped:
+        * platform/win/fast/canvas/toDataURL-supportedTypes-expected.txt: Removed.
+
+2009-10-02  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Adele Peterson.
+
+        Added test case.
+        <rdar://problem/7148712> Assertion failure in CompositeEditCommand::moveParagraphs() and crash in Node::nodeIndex() when pasting.
+        https://bugs.webkit.org/show_bug.cgi?id=28992
+
+        * editing/selection/replace-selection-crash-expected.txt: Added.
+        * editing/selection/replace-selection-crash.html: Added.
+
+2009-10-02  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Implement per-storage-area quotas for LocalStorage
+        https://bugs.webkit.org/show_bug.cgi?id=29991
+
+        I put 90% of the code in StorageMap since the decision to allow an update is
+        closely tied to quota tracking.  The quota is set via a page's Settings class. 
+        Like with the local storage path and whether it's enabled, it's assumed that
+        all pages in the same group will have the same settings.  The setting defaults
+        to 5mb which is what the spec suggests, but it can easily be changed to
+        anything else--including StorageMap::noQuota.  Any values in LocalStorage are
+        grandfathered in regarudless of quota, so importItem only tracks (and will
+        never block) imports.
+
+        I believe this change is a good transition to more complex quota management. 
+        For example, if we wanted to track quotas in the SQLite DB, then we'd just add
+        a function to the StorageMap that sets the quota.  This would be fine since all
+        use of LocalStorage is blocked on the import completing, so you'd never hit a
+        quota error in the mean time.  Also, if embedders wanted to ask the user
+        whether to expand the quota whenever it's hit (before deciding whether or not
+        to raise an exception), a callback via the chrome client should be fairly easy.
+        That said, I think it's best to add these features in steps rather than one
+        huge patch.  (Both of these are on my TODO list, btw.)
+
+        Included is a layout test that verifies the behavior.  It assumes the default
+        quota is 5mb (since that's what Settings defaults to).
+
+        * storage/domstorage/localstorage/quota-expected.txt: Added.
+        * storage/domstorage/localstorage/quota.html: Added.
+        * storage/domstorage/script-tests/quota.js: Added.
+        (runTest):
+
+2009-10-02  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        WebGL crashes with recent CanvasArray change
+        https://bugs.webkit.org/show_bug.cgi?id=30018
+
+        * fast/canvas/webgl/array-unit-tests-expected.html: Added.
+        * fast/canvas/webgl/array-unit-tests.html: Added.
+
+2009-10-02  Ben Murdoch  <benm@google.com>
+
+        Reviewed by  David Kilzer.
+
+        Stale database version persists through browser refresh (changeVersion doesn't work)
+        https://bugs.webkit.org/show_bug.cgi?id=27836
+
+        * storage/change-version-expected.txt: Added.
+        * storage/change-version-handle-reuse-expected.txt: Added.
+        * storage/change-version-handle-reuse.html: Added.
+        * storage/change-version.html: Added.
+
+2009-10-01  Drew Wilson  <atwilson@chromium.org>
+
+        Reviewed by David Levin.
+
+        Remove clone count from worker-cloneport.html as it's flakey on multi-process ports like Chromium.
+        https://bugs.webkit.org/show_bug.cgi?id=29698
+
+        * fast/workers/worker-cloneport-expected.txt:
+        * fast/workers/worker-cloneport.html:
+
+2009-10-01  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Turn on ENABLE_3D_CANVAS in TOT
+        https://bugs.webkit.org/show_bug.cgi?id=29906
+
+        Fixed layout tests which failed with flag on
+
+        * fast/canvas/webgl/gl-get-calls.html:
+        * fast/dom/Window/window-properties.html:
+        * fast/dom/script-tests/constructed-objects-prototypes.js:
+        (constructorPropertiesOnWindow):
+        * fast/dom/script-tests/prototype-inheritance-2.js:
+        (constructorNamesForWindow):
+        * fast/dom/script-tests/prototype-inheritance.js:
+        * fast/js/script-tests/global-constructors.js:
+
+2009-10-01  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Updated test results for <rdar://problem/7264725> Re-add a vendor 
+        prefix to box-shadow (29927)
+        -and corresponding-
+        https://bugs.webkit.org/show_bug.cgi?id=29927
+
+        * platform/mac/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/mac/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/qt/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/qt/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2009-10-01  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Adam Roben.
+
+        Added fast/inline/relative-positioned-overflow.html to Skipped list because
+        it hits an asssert in Windows debug builds. Assertion failure is being tracked
+        by <https://bugs.webkit.org/show_bug.cgi?id=29966>.
+
+        * platform/win/Skipped:
+
+2009-10-01  Beth Dakin  <bdakin@apple.com>
+
+        Rubber-stamped by Sam Weinig.
+
+        Appeasing the Bot. 
+
+        * platform/mac/svg/W3C-SVG-1.1/filters-conv-01-f-expected.txt:
+
+2009-10-01  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Beth Dakin.
+
+        Update expected Windows results after new CSS Text Kerning changes.
+
+        * platform/win/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/win/fast/css/text-rendering-expected.txt: Added.
+
+2009-10-01  Drew Wilson  <atwilson@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        REGRESSION: fast/workers/dedicated-worker-lifecycle.html failing intermittently on leopard bot
+        https://bugs.webkit.org/show_bug.cgi?id=29344
+
+        * fast/workers/resources/dedicated-worker-lifecycle.js:
+        (runTests):
+        Allocate objects on the stack to try to force a GC to eliminate flakiness.
+        * fast/workers/resources/worker-util.js:
+        (gc):
+        Added an optional "forceAlloc" parameter which causes a more extensive stack-clobbering algorithm to be run.
+        (waitUntilThreadCountMatches):
+        Pass the forceAlloc flag to gc() to try to force unreferenced workers to get GC'd.
+
+2009-10-01  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        Disable HTTP loading tests that fail on the buildbot.
+
+        * platform/qt/Skipped:
+
+2009-10-01  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        Enable Local tests for Qt.
+
+        * platform/qt/Skipped:
+
+2009-10-01  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        Enable HTTP loading tests for Qt.
+
+        * platform/qt/Skipped:
+
+2009-10-01  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Tests for <rdar://problem/6934421> Support CSS for Text Kerning and 
+        ligature
+        -and corresponding-
+        https://bugs.webkit.org/show_bug.cgi?id=6136
+
+        New tests.
+        * fast/css/parsing-text-rendering-expected.txt: Added.
+        * fast/css/parsing-text-rendering.html: Added.
+        * fast/css/resources/parsing-text-rendering.js: Added.
+        (test):
+        * fast/css/text-rendering.html: Added.
+        * platform/mac/fast/css/text-rendering-expected.checksum: Added.
+        * platform/mac/fast/css/text-rendering-expected.png: Added.
+        * platform/mac/fast/css/text-rendering-expected.txt: Added.
+
+        New and improved results.
+        * platform/mac/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/mac/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/filters-conv-01-f-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/filters-conv-01-f-expected.png:
+        * platform/mac/svg/W3C-SVG-1.1/filters-conv-01-f-expected.txt:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2009-10-01  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Add baseline pngs for a couple of tests that currently only have checksums.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28322
+
+        * platform/mac/fast/borders/border-radius-constraints-expected.png: Added.
+        * platform/mac/fast/borders/border-radius-split-inline-expected.png: Added.
+
+2009-10-01  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        Enable URI tests for Qt, skip the single test we don't pass.
+
+        * platform/qt/Skipped:
+
+2009-10-01  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        Enable HTTP tests for Qt, and skip the subdirs we don't pass yet.
+
+        * platform/qt/Skipped:
+
+2009-10-01  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Odd color transitions on anchors with transition-property: all
+        https://bugs.webkit.org/show_bug.cgi?id=29911
+        
+        Testcase for 'color' changing with -webkit-transition-property: all,
+        to test whether -webkit-text-fill-color animates.
+
+        * transitions/color-transition-all-expected.txt: Added.
+        * transitions/color-transition-all.html: Added.
+
+2009-10-01  Victor Wang  <victorw@chromium.org>
+
+        Reviewed by Oliver Hunt.
+
+        Allow dragging a node who has child nodes.
+
+        https://bugs.webkit.org/show_bug.cgi?id=28632
+
+        * fast/events/drag-parent-node-expected.txt: Added.
+        * fast/events/drag-parent-node.html: Added.
+        * fast/events/resources/bookmark.gif: Added.
+
 2009-10-01  Adam Roben  <aroben@apple.com>
 
         Land expected failure results for two tests on Windows

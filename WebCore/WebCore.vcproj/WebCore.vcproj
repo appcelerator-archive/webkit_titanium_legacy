@@ -17450,11 +17450,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\loader\PolicyCheck.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\loader\PolicyCheck.h"
+				>
+			</File>
+			<File
 				RelativePath="..\loader\ProgressTracker.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\loader\ProgressTracker.h"
+				>
+			</File>
+			<File
+				RelativePath="..\loader\RedirectScheduler.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\loader\RedirectScheduler.h"
 				>
 			</File>
 			<File
@@ -32059,6 +32075,10 @@
 		</Filter>
 		<File
 			RelativePath="..\config.h"
+			>
+		</File>
+		<File
+			RelativePath="..\platform\graphics\TextRenderingMode.h"
 			>
 		</File>
 		<File

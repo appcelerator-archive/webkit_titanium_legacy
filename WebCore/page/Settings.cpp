@@ -61,6 +61,7 @@ Settings::Settings(Page* page)
     , m_defaultFontSize(0)
     , m_defaultFixedFontSize(0)
     , m_maximumDecodedImageSize(numeric_limits<size_t>::max())
+    , m_localStorageQuota(5 * 1024 * 1024)  // Suggested by the HTML5 spec.
     , m_pluginAllowedRunTime(numeric_limits<unsigned>::max())
     , m_isJavaEnabled(false)
     , m_loadsImagesAutomatically(false)
@@ -117,7 +118,7 @@ Settings::Settings(Page* page)
     , m_acceleratedCompositingEnabled(true)
     , m_experimentalNotificationsEnabled(false)
     , m_pluginHalterEnabled(false)
-    , m_experimentalWebGLEnabled(false)
+    , m_webGLEnabled(false)
 #if ENABLE(WEB_SOCKETS)
     , m_experimentalWebSocketsEnabled(false)
 #endif
@@ -260,6 +261,11 @@ void Settings::setLocalStorageEnabled(bool localStorageEnabled)
 void Settings::setSessionStorageEnabled(bool sessionStorageEnabled)
 {
     m_sessionStorageEnabled = sessionStorageEnabled;
+}
+
+void Settings::setLocalStorageQuota(unsigned localStorageQuota)
+{
+    m_localStorageQuota = localStorageQuota;
 }
 
 void Settings::setPrivateBrowsingEnabled(bool privateBrowsingEnabled)
@@ -532,9 +538,9 @@ void Settings::setShouldUseHighResolutionTimers(bool shouldUseHighResolutionTime
 }
 #endif
 
-void Settings::setExperimentalWebGLEnabled(bool enabled)
+void Settings::setWebGLEnabled(bool enabled)
 {
-    m_experimentalWebGLEnabled = enabled;
+    m_webGLEnabled = enabled;
 }
 
 #if ENABLE(WEB_SOCKETS)

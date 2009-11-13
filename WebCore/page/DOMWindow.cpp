@@ -1296,6 +1296,14 @@ void DOMWindow::dispatchLoadEvent()
         ownerEvent->setTarget(ownerElement);
         ownerElement->dispatchGenericEvent(ownerEvent.release());
     }
+
+#if ENABLE(INSPECTOR)
+    if (!frame() || !frame()->page())
+        return;
+
+    if (InspectorController* controller = frame()->page()->inspectorController())
+        controller->mainResourceFiredLoadEvent(frame()->loader()->documentLoader(), url());
+#endif
 }
 
 bool DOMWindow::dispatchEvent(PassRefPtr<Event> prpEvent, PassRefPtr<EventTarget> prpTarget)

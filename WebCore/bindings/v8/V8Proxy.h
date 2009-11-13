@@ -35,8 +35,8 @@
 #include "ScriptSourceCode.h" // for WebCore::ScriptSourceCode
 #include "SecurityOrigin.h" // for WebCore::SecurityOrigin
 #include "SharedPersistent.h"
+#include "V8AbstractEventListener.h"
 #include "V8DOMWrapper.h"
-#include "V8EventListenerList.h"
 #include "V8GCController.h"
 #include "V8Index.h"
 #include <v8.h>
@@ -58,7 +58,6 @@ namespace WebCore {
     class ScriptExecutionContext;
     class String;
     class V8EventListener;
-    class V8ObjectEventListener;
 
     // FIXME: use standard logging facilities in WebCore.
     void logInfo(Frame*, const String& message, const String& url);
@@ -117,12 +116,7 @@ namespace WebCore {
             GeneralError
         };
 
-        explicit V8Proxy(Frame* frame)
-            : m_frame(frame),
-              m_context(SharedPersistent<v8::Context>::create()),
-              m_inlineCode(false),
-              m_timerCallback(false),
-              m_recursion(0) { }
+        explicit V8Proxy(Frame*);
 
         ~V8Proxy();
 
@@ -159,9 +153,6 @@ namespace WebCore {
         void disconnectFrame();
 
         bool isEnabled();
-
-        V8EventListenerList* eventListeners() { return &m_eventListeners; }
-        V8EventListenerList* objectListeners() { return &m_objectListeners; }
 
 #if ENABLE(SVG)
         static void setSVGContext(void*, SVGElement*);
@@ -306,6 +297,11 @@ namespace WebCore {
             return m_context;
         }
 
+        PassRefPtr<V8ListenerGuard> listenerGuard()
+        {
+            return m_listenerGuard;
+        }
+
         bool setContextDebugId(int id);
         static int contextDebugId(v8::Handle<v8::Context>);
 
@@ -334,7 +330,6 @@ namespace WebCore {
         static const char* kContextDebugDataType;
         static const char* kContextDebugDataValue;
 
-        void disconnectEventListeners();
         void setSecurityToken();
         void clearDocumentWrapper();
 
@@ -351,6 +346,8 @@ namespace WebCore {
         // If m_recursionCount is 0, let LocalStorage know so we can release
         // the storage mutex.
         void releaseStorageMutex();
+
+        void disconnectEventListeners();
 
         static bool canAccessPrivate(DOMWindow*);
 
@@ -386,6 +383,8 @@ namespace WebCore {
 
         RefPtr<SharedPersistent<v8::Context> > m_context;
 
+        RefPtr<V8ListenerGuard> m_listenerGuard;
+
         // For each possible type of wrapper, we keep a boilerplate object.
         // The boilerplate is used to create additional wrappers of the same
         // type.  We keep a single persistent handle to an array of the
@@ -399,14 +398,6 @@ namespace WebCore {
         static v8::Persistent<v8::Context> m_utilityContext;
 
         int m_handlerLineNumber;
-
-        // A list of event listeners created for this frame,
-        // the list gets cleared when removing all timeouts.
-        V8EventListenerList m_eventListeners;
-
-        // A list of event listeners create for XMLHttpRequest object for this frame,
-        // the list gets cleared when removing all timeouts.
-        V8EventListenerList m_objectListeners;
 
         // True for <a href="javascript:foo()"> and false for <script>foo()</script>.
         // Only valid during execution.
