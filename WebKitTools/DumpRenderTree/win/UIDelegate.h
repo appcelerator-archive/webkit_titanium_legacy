@@ -52,6 +52,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE createWebViewWithRequest( 
         /* [in] */ IWebView *sender,
         /* [in] */ IWebURLRequest *request,
+        /* [in] */ IPropertyBag *features,
         /* [retval][out] */ IWebView **newWebView);
 
     virtual HRESULT STDMETHODCALLTYPE webViewShow( 
