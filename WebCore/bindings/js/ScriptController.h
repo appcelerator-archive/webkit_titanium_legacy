@@ -54,6 +54,7 @@ class EventListener;
 class HTMLPlugInElement;
 class Frame;
 class Node;
+class ScriptEvaluator;
 class ScriptSourceCode;
 class ScriptValue;
 class String;
@@ -82,6 +83,7 @@ public:
 
     ScriptValue executeScript(const ScriptSourceCode&);
     ScriptValue executeScript(const String& script, bool forceUserGesture = false);
+    ScriptValue executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator *evaluator);
 
     // Returns true if argument is a JavaScript URL.
     bool executeIfJavaScriptURL(const KURL&, bool userGesture = false, bool replaceDocument = true);

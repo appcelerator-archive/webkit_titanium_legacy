@@ -23,6 +23,7 @@
 
 #include "Frame.h"
 #include "Page.h"
+#include "ScriptEvaluator.h"
 #include "ScriptSourceCode.h"
 #include "ScriptValue.h"
 #include "Settings.h"
@@ -52,6 +53,31 @@ ScriptValue ScriptController::executeScript(const ScriptSourceCode& sourceCode)
 
     return result;
 }
+
+ScriptValue ScriptController::executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator *evaluator)
+{
+    if (!evaluator || mimeType.length() == 0) {
+        return executeScript(sourceCode);
+    }
+
+    if (!isEnabled() || isPaused())
+        return ScriptValue();
+
+    bool wasInExecuteScript = m_inExecuteScript;
+    m_inExecuteScript = true;
+
+    // FIXME, we should eventually pull this from the ScriptEvaluator
+    ScriptValue result = ScriptValue();
+    evaluator->evaluate(mimeType, sourceCode, (void*) windowShell()->window()->globalExec());
+
+    if (!wasInExecuteScript) {
+        m_inExecuteScript = false;
+        Document::updateStyleForAllDocuments();
+    }
+
+    return result;
+}
+
 
 bool ScriptController::executeIfJavaScriptURL(const KURL& url, bool userGesture, bool replaceDocument)
 {
