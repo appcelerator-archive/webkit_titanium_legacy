@@ -862,6 +862,7 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         String usernamePassword = proxy.substring(0, credentialsEnd);
         proxy = proxy.substring(credentialsEnd + 1);
         curl_easy_setopt(d->m_handle, CURLOPT_PROXYUSERPWD, usernamePassword.utf8().data());
+        curl_easy_setopt(d->m_handle, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
     }
 
     curl_easy_setopt(d->m_handle, CURLOPT_PROXY, proxy.utf8().data());
