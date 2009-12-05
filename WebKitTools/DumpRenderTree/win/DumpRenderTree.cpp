@@ -1113,7 +1113,7 @@ IWebView* createWebViewAndOffscreenWindow(HWND* webViewWindow)
     RECT clientRect;
     clientRect.bottom = clientRect.left = clientRect.top = clientRect.right = 0;
     BSTR groupName = SysAllocString(L"org.webkit.DumpRenderTree");
-    bool failed = FAILED(webView->initWithFrame(clientRect, 0, groupName));
+    bool failed = FAILED(webView->initWithFrame(clientRect, 0, groupName, 0));
     SysFreeString(groupName);
     if (failed)
         return 0;
