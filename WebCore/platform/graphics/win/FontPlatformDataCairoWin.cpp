@@ -50,7 +50,7 @@ void FontPlatformData::platformDataInit(HFONT font, float size, HDC hdc, WCHAR* 
     if (!fontOptions)
     {
        fontOptions = cairo_font_options_create();
-       cairo_font_options_set_antialias(fontOptions, CAIRO_ANTIALIAS_SUBPIXEL);
+       cairo_font_options_set_antialias(fontOptions, CAIRO_ANTIALIAS_GRAY);
     }
 
     m_scaledFont = cairo_scaled_font_create(m_fontFace, &sizeMatrix, &ctm, fontOptions);

@@ -122,7 +122,7 @@ Page* WebInspectorClient::createPage()
 
     RECT rect;
     GetClientRect(m_hwnd, &rect);
-    if (FAILED(m_webView->initWithFrame(rect, 0, 0)))
+    if (FAILED(m_webView->initWithFrame(rect, 0, 0, 0)))
         return 0;
 
     COMPtr<WebInspectorDelegate> delegate(AdoptCOM, WebInspectorDelegate::createInstance());
