@@ -502,6 +502,7 @@ void PluginView::paintWindowedPluginIntoContext(GraphicsContext* context, const 
     IntPoint locationInWindow = static_cast<FrameView*>(parent())->contentsToWindow(frameRect().location());
 
     HDC hdc = context->getWindowsContext(frameRect(), false);
+    printf("gotWindowsContext\n");
 
     XFORM originalTransform;
     GetWorldTransform(hdc, &originalTransform);
@@ -518,6 +519,7 @@ void PluginView::paintWindowedPluginIntoContext(GraphicsContext* context, const 
 
     SetWorldTransform(hdc, &originalTransform);
 
+    printf("release windows context\n");
     context->releaseWindowsContext(hdc, frameRect(), false);
 #endif
 }
@@ -533,6 +535,7 @@ void PluginView::paint(GraphicsContext* context, const IntRect& rect)
     if (context->paintingDisabled())
         return;
 
+    printf("isWindowed ? %s\n", m_isWindowed? "true":"false");
     if (m_isWindowed) {
 #if !PLATFORM(WINCE)
         if (context->shouldIncludeChildWindows())
@@ -560,6 +563,7 @@ void PluginView::paint(GraphicsContext* context, const IntRect& rect)
     }
 #endif
 
+    printf("windowless plugin\n");
     m_npWindow.type = NPWindowTypeDrawable;
     m_npWindow.window = hdc;
 
@@ -966,13 +970,19 @@ bool PluginView::platformStart()
         setUpOffscreenPaintingHooks(hookedBeginPaint, hookedEndPaint);
 #endif
 
-        DWORD flags = WS_CHILD;
+        //DWORD flags = WS_CHILD;
+        DWORD flags = WS_EX_APPWINDOW;
         if (isSelfVisible())
             flags |= WS_VISIBLE;
 
         HWND parentWindowHandle = windowHandleForPageClient(m_parentFrame->view()->hostWindow()->platformPageClient());
+        //HWND window = ::CreateWindowEx(0, kWebPluginViewdowClassName, 0, flags,
+        //                               0, 0, 0, 0, parentWindowHandle, 0, Page::instanceHandle(), 0);
         HWND window = ::CreateWindowEx(0, kWebPluginViewdowClassName, 0, flags,
-                                       0, 0, 0, 0, parentWindowHandle, 0, Page::instanceHandle(), 0);
+                                       0, 0, 0, 0, 0, 0, Page::instanceHandle(), 0);
+        long windowStyle = GetWindowLong(window, GWL_STYLE);
+        windowStyle &= ~(WS_CAPTION | WS_BORDER | WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU);
+        SetWindowLong(window, GWL_STYLE, windowStyle);
 
 #if PLATFORM(WIN_OS) && PLATFORM(QT)
         m_window = window;
