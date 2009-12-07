@@ -793,7 +793,7 @@ public:
 
     bool transparent() const { return m_transparent; }
     bool hasParentWindow() const { return !!m_hostWindow; }
-    
+
     bool onIMEStartComposition();
     bool onIMEComposition(LPARAM);
     bool onIMEEndComposition();

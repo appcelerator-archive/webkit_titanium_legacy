@@ -3085,12 +3085,10 @@ HRESULT STDMETHODCALLTYPE WebView::searchFor(
 
 bool WebView::active()
 {
-    HWND parent = m_topLevelParent;
-    if (!hasParentWindow())
-        parent = m_viewWindow;
-    
     HWND activeWindow = GetActiveWindow();
-    return (activeWindow && parent == findTopLevelParent(activeWindow));
+    if (!m_hostWindow)
+        return activeWindow == m_viewWindow;
+    return (activeWindow && m_topLevelParent == findTopLevelParent(activeWindow));
 }
 
 void WebView::updateActiveState()

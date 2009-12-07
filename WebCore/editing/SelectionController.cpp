@@ -990,7 +990,6 @@ void SelectionController::paintCaret(GraphicsContext* p, int tx, int ty, const I
     IntRect drawingRect = localCaretRect();
     drawingRect.move(tx, ty);
     IntRect caret = intersection(drawingRect, clipRect);
-
     if (!caret.isEmpty()) {
         Color caretColor = Color::black;
         Element* element = rootEditableElement();
