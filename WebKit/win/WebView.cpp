@@ -718,7 +718,7 @@ bool WebView::ensureBackingStore()
         void* pixels = NULL;
         m_backingStoreBitmap.set(::CreateDIBSection(NULL, &bitmapInfo, DIB_RGB_COLORS, &pixels, NULL, 0));
 
-        if (m_uiDelegate && !m_hostWindow)
+        if (m_uiDelegate && !hasParentWindow())
             m_uiDelegate->paint(this, (OLE_HANDLE) m_backingStoreBitmap.get());
 
         return true;
@@ -889,7 +889,7 @@ void WebView::updateBackingStore(FrameView* frameView, HDC dc, bool backingStore
 
 void WebView::paint(HDC dc, LPARAM options)
 {
-    if (!m_hostWindow) {
+    if (!hasParentWindow()) {
         transparentPaint(dc);
         return;
     }
@@ -3085,8 +3085,12 @@ HRESULT STDMETHODCALLTYPE WebView::searchFor(
 
 bool WebView::active()
 {
+    HWND parent = m_topLevelParent;
+    if (!hasParentWindow())
+        parent = m_viewWindow;
+    
     HWND activeWindow = GetActiveWindow();
-    return (activeWindow && m_topLevelParent == findTopLevelParent(activeWindow));
+    return (activeWindow && parent == findTopLevelParent(activeWindow));
 }
 
 void WebView::updateActiveState()
@@ -5706,7 +5710,8 @@ HRESULT STDMETHODCALLTYPE WebView::forwardingWindowProc(
     /* [in] */ OLE_HANDLE hWndHandle, /* [in] */ UINT message,
     /* [in] */ WPARAM wParam, /* [in] */ LPARAM lParam)
 {
-    return WebViewWndProc(reinterpret_cast<HWND>(hWndHandle), message, wParam, lParam);
+    return WebViewWndProc(
+        reinterpret_cast<HWND>(hWndHandle), message, wParam, lParam);
 }
 
 
