@@ -30,22 +30,24 @@
 #include <wtf/RefCounted.h>
 
 namespace WebCore {
-    
-    class WebGLArrayBuffer : public RefCounted<WebGLArrayBuffer> {
-    public:
-        static PassRefPtr<WebGLArrayBuffer> create(unsigned sizeInBytes);
 
-        void* data();
-        unsigned byteLength() const;
+class WebGLArrayBuffer : public RefCounted<WebGLArrayBuffer> {
+  public:
+    static PassRefPtr<WebGLArrayBuffer> create(unsigned sizeInBytes);
+    static PassRefPtr<WebGLArrayBuffer> create(WebGLArrayBuffer*);
 
-        ~WebGLArrayBuffer();
+    void* data();
+    const void* data() const;
+    unsigned byteLength() const;
 
-    private:
-        WebGLArrayBuffer(unsigned sizeInBytes);
-        unsigned m_sizeInBytes;
-        void* m_data;
-    };
-    
+    ~WebGLArrayBuffer();
+
+  private:
+    WebGLArrayBuffer(unsigned sizeInBytes);
+    unsigned m_sizeInBytes;
+    void* m_data;
+};
+
 } // namespace WebCore
 
 #endif // WebGLArrayBuffer_h

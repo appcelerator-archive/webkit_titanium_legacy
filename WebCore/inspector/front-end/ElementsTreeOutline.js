@@ -41,6 +41,8 @@ WebInspector.ElementsTreeOutline = function() {
     this.showInElementsPanelEnabled = false;
     this.rootDOMNode = null;
     this.focusedDOMNode = null;
+
+    this.element.addEventListener("contextmenu", this._contextMenuEventFired.bind(this), true);
 }
 
 WebInspector.ElementsTreeOutline.prototype = {
@@ -83,7 +85,7 @@ WebInspector.ElementsTreeOutline.prototype = {
             this.focusedNodeChanged();
 
             if (x && !this.suppressSelectHighlight) {
-                InspectorController.highlightDOMNode(x.id);
+                InspectorBackend.highlightDOMNode(x.id);
 
                 if ("_restorePreviousHighlightNodeTimeout" in this)
                     clearTimeout(this._restorePreviousHighlightNodeTimeout);
@@ -92,9 +94,9 @@ WebInspector.ElementsTreeOutline.prototype = {
                 {
                     var hoveredNode = WebInspector.hoveredDOMNode;
                     if (hoveredNode)
-                        InspectorController.highlightDOMNode(hoveredNode.id);
+                        InspectorBackend.highlightDOMNode(hoveredNode.id);
                     else
-                        InspectorController.hideDOMNodeHighlight();
+                        InspectorBackend.hideDOMNodeHighlight();
                 }
 
                 this._restorePreviousHighlightNodeTimeout = setTimeout(restoreHighlightToHoveredNode, 2000);
@@ -195,8 +197,8 @@ WebInspector.ElementsTreeOutline.prototype = {
         if (!selectedElement)
             return;
 
-        // Delete or backspace pressed, delete the node.
-        if (event.keyCode === 8 || event.keyCode === 46) {
+        if (event.keyCode === WebInspector.KeyboardShortcut.KeyCodes.Backspace ||
+                event.keyCode === WebInspector.KeyboardShortcut.KeyCodes.Delete) {
             selectedElement.remove();
             event.preventDefault();
             return;
@@ -259,6 +261,23 @@ WebInspector.ElementsTreeOutline.prototype = {
         }
 
         WebInspector.hoveredDOMNode = null;
+    },
+
+    _contextMenuEventFired: function(event)
+    {
+        var listItem = event.target.enclosingNodeOrSelfWithNodeName("LI");
+        if (!listItem || !listItem.treeElement)
+            return;
+
+        var contextMenu = new WebInspector.ContextMenu();
+
+        var tag = event.target.enclosingNodeOrSelfWithClass("webkit-html-tag");
+        var textNode = event.target.enclosingNodeOrSelfWithClass("webkit-html-text-node");
+        if (tag)
+            listItem.treeElement._populateTagContextMenu(contextMenu, event);
+        else if (textNode)
+            listItem.treeElement._populateTextContextMenu(contextMenu, textNode);
+        contextMenu.show(event);
     }
 }
 
@@ -323,6 +342,26 @@ WebInspector.ElementsTreeElement.prototype = {
                 this.toggleNewAttributeButton(false);
             }
         }
+    },
+
+    createTooltipForImageNode: function(node, callback)
+    {
+        function createTooltipThenCallback(properties)
+        {
+            if (!properties) {
+                callback();
+                return;
+            }
+
+            var tooltipText = null;
+            if (properties.offsetHeight === properties.naturalHeight && properties.offsetWidth === properties.naturalWidth)
+                tooltipText = WebInspector.UIString("%d × %d pixels", properties.offsetWidth, properties.offsetHeight);
+            else
+                tooltipText = WebInspector.UIString("%d × %d pixels (Natural: %d × %d pixels)", properties.offsetWidth, properties.offsetHeight, properties.naturalWidth, properties.naturalHeight);
+            callback(tooltipText);
+        }
+        var objectProxy = new WebInspector.ObjectProxy(node.id);
+        WebInspector.ObjectProxy.getPropertiesAsync(objectProxy, ["naturalHeight", "naturalWidth", "offsetHeight", "offsetWidth"], createTooltipThenCallback);
     },
 
     toggleNewAttributeButton: function(visible)
@@ -529,12 +568,12 @@ WebInspector.ElementsTreeElement.prototype = {
             event.preventDefault();
     },
 
-    ondblclick: function(treeElement, event)
+    ondblclick: function(event)
     {
         if (this._editing)
             return;
 
-        if (this._startEditingFromEvent(event, treeElement))
+        if (this._startEditingFromEvent(event))
             return;
 
         if (this.hasChildren && !this.expanded)
@@ -556,7 +595,7 @@ WebInspector.ElementsTreeElement.prototype = {
         this.updateSelection();
     },
 
-    _startEditingFromEvent: function(event, treeElement)
+    _startEditingFromEvent: function(event)
     {
         if (this.treeOutline.focusedDOMNode != this.representedObject)
             return;
@@ -574,9 +613,29 @@ WebInspector.ElementsTreeElement.prototype = {
 
         var newAttribute = event.target.enclosingNodeOrSelfWithClass("add-attribute");
         if (newAttribute)
-            return this._addNewAttribute(treeElement.listItemElement);
+            return this._addNewAttribute();
 
         return false;
+    },
+
+    _populateTagContextMenu: function(contextMenu, event)
+    {
+        var attribute = event.target.enclosingNodeOrSelfWithClass("webkit-html-attribute");
+        var newAttribute = event.target.enclosingNodeOrSelfWithClass("add-attribute");
+
+        // Add attribute-related actions.
+        contextMenu.appendItem(WebInspector.UIString("Add Attribute"), this._addNewAttribute.bind(this));
+        if (attribute && !newAttribute)
+            contextMenu.appendItem(WebInspector.UIString("Edit Attribute"), this._startEditingAttribute.bind(this, attribute, event.target));
+        contextMenu.appendSeparator();
+
+        // Add node-related actions.
+        contextMenu.appendItem(WebInspector.UIString("Delete Node"), this.remove.bind(this));
+    },
+
+    _populateTextContextMenu: function(contextMenu, textNode)
+    {
+        contextMenu.appendItem(WebInspector.UIString("Edit Text"), this._startEditingTextNode.bind(this, textNode));
     },
 
     _startEditing: function()
@@ -592,7 +651,7 @@ WebInspector.ElementsTreeElement.prototype = {
             if (attribute)
                 return this._startEditingAttribute(attribute, attribute.getElementsByClassName("webkit-html-attribute-value")[0]);
 
-            return this._addNewAttribute(listItem);
+            return this._addNewAttribute();
         }
 
         if (this.representedObject.nodeType === Node.TEXT_NODE) {
@@ -603,7 +662,7 @@ WebInspector.ElementsTreeElement.prototype = {
         }
     },
 
-    _addNewAttribute: function(listItemElement)
+    _addNewAttribute: function()
     {
         var attr = document.createElement("span");
         attr.className = "webkit-html-attribute";
@@ -617,7 +676,7 @@ WebInspector.ElementsTreeElement.prototype = {
         attr.appendChild(name);
         attr.appendChild(value);
 
-        var tag = listItemElement.getElementsByClassName("webkit-html-tag")[0];
+        var tag = this.listItemElement.getElementsByClassName("webkit-html-tag")[0];
         this._insertInLastAttributePosition(tag, attr);
         return this._startEditingAttribute(attr, attr);
     },
@@ -787,14 +846,24 @@ WebInspector.ElementsTreeElement.prototype = {
         if (this._editing)
             return;
 
-        var title = this._nodeTitleInfo(this.representedObject, this.hasChildren, WebInspector.linkifyURL).title;
-        this.title = "<span class=\"highlight\">" + title + "</span>";
-        delete this.selectionElement;
-        this.updateSelection();
-        this._preventFollowingLinksOnDoubleClick();
+        var self = this;
+        function callback(tooltipText)
+        {
+            var title = self._nodeTitleInfo(self.representedObject, self.hasChildren, WebInspector.linkifyURL, tooltipText).title;
+            self.title = "<span class=\"highlight\">" + title + "</span>";
+            delete self.selectionElement;
+            self.updateSelection();
+            self._preventFollowingLinksOnDoubleClick();
+        };
+
+        // TODO: Replace with InjectedScriptAccess.getBasicProperties(obj, [names]).
+        if (this.representedObject.nodeName.toLowerCase() !== "img")
+            callback();
+        else
+            this.createTooltipForImageNode(this.representedObject, callback);
     },
 
-    _nodeTitleInfo: function(node, hasChildren, linkify)
+    _nodeTitleInfo: function(node, hasChildren, linkify, tooltipText)
     {
         var info = {title: "", hasChildren: hasChildren};
         
@@ -814,7 +883,7 @@ WebInspector.ElementsTreeElement.prototype = {
                         var value = attr.value;
                         if (linkify && (attr.name === "src" || attr.name === "href")) {
                             var value = value.replace(/([\/;:\)\]\}])/g, "$1\u200B");
-                            info.title += linkify(attr.value, value, "webkit-html-attribute-value", node.nodeName.toLowerCase() == "a");
+                            info.title += linkify(attr.value, value, "webkit-html-attribute-value", node.nodeName.toLowerCase() == "a", tooltipText);
                         } else {
                             var value = value.escapeHTML();
                             value = value.replace(/([\/;:\)\]\}])/g, "$1&#8203;");
@@ -915,7 +984,7 @@ WebInspector.ElementsTreeElement.prototype = {
         }
 
         var callId = WebInspector.Callback.wrap(removeNodeCallback);
-        InspectorController.removeNode(callId, this.representedObject.id);
+        InspectorBackend.removeNode(callId, this.representedObject.id);
     }
 }
 

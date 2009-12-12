@@ -88,6 +88,8 @@ public:
         return windowShell(world)->window();
     }
 
+    static void getAllWorlds(Vector<DOMWrapperWorld*>&);
+
     ScriptValue executeScript(const ScriptSourceCode&);
     ScriptValue executeScript(const String& script, bool forceUserGesture = false);
     ScriptValue executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator* evaluator);

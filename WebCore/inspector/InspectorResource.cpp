@@ -46,7 +46,7 @@
 
 namespace WebCore {
 
-InspectorResource::InspectorResource(long long identifier, DocumentLoader* loader)
+InspectorResource::InspectorResource(unsigned long identifier, DocumentLoader* loader)
     : m_identifier(identifier)
     , m_loader(loader)
     , m_frame(loader->frame())
@@ -70,7 +70,7 @@ InspectorResource::~InspectorResource()
 {
 }
 
-PassRefPtr<InspectorResource> InspectorResource::createCached(long long identifier, DocumentLoader* loader, const CachedResource* cachedResource)
+PassRefPtr<InspectorResource> InspectorResource::createCached(unsigned long identifier, DocumentLoader* loader, const CachedResource* cachedResource)
 {
     PassRefPtr<InspectorResource> resource = create(identifier, loader);
 
@@ -105,6 +105,11 @@ void InspectorResource::updateResponse(const ResourceResponse& response)
 {
     m_expectedContentLength = response.expectedContentLength();
     m_mimeType = response.mimeType();
+    if (m_mimeType.isEmpty() && response.httpStatusCode() == 304) {
+        CachedResource* cachedResource = cache()->resourceForURL(response.url().string());
+        if (cachedResource)
+            m_mimeType = cachedResource->response().mimeType();
+    }
     m_responseHeaderFields = response.httpHeaderFields();
     m_responseStatusCode = response.httpStatusCode();
     m_suggestedFilename = response.suggestedFilename();
@@ -128,6 +133,7 @@ void InspectorResource::createScriptObject(InspectorFrontend* frontend)
         ScriptObject requestHeaders = frontend->newScriptObject();
         populateHeadersObject(&requestHeaders, m_requestHeaderFields);
         jsonObject.set("requestHeaders", requestHeaders);
+        jsonObject.set("documentURL", m_frame->document()->url().string());
         jsonObject.set("requestURL", requestURL());
         jsonObject.set("host", m_requestURL.host());
         jsonObject.set("path", m_requestURL.path());
@@ -156,6 +162,7 @@ void InspectorResource::updateScriptObject(InspectorFrontend* frontend)
     ScriptObject jsonObject = frontend->newScriptObject();
     if (m_changes.hasChange(RequestChange)) {
         jsonObject.set("url", requestURL());
+        jsonObject.set("documentURL", m_frame->document()->url().string());
         jsonObject.set("domain", m_requestURL.host());
         jsonObject.set("path", m_requestURL.path());
         jsonObject.set("lastPathComponent", m_requestURL.lastPathComponent());
@@ -184,7 +191,7 @@ void InspectorResource::updateScriptObject(InspectorFrontend* frontend)
         jsonObject.set("type", static_cast<int>(type()));
         jsonObject.set("didTypeChange", true);
     }
-    
+
     if (m_changes.hasChange(LengthChange)) {
         jsonObject.set("contentLength", m_length);
         jsonObject.set("didLengthChange", true);
@@ -279,9 +286,9 @@ InspectorResource::Type InspectorResource::type() const
 
     if (m_loader->frameLoader() && m_requestURL == m_loader->frameLoader()->iconURL())
         return Image;
-    
+
     return cachedResourceType();
-    
+
 }
 
 void InspectorResource::setXMLHttpResponseText(const ScriptString& data)
@@ -374,6 +381,12 @@ void InspectorResource::addLength(int lengthReceived)
 {
     m_length += lengthReceived;
     m_changes.set(LengthChange);
+
+    // Update load time, otherwise the resource will
+    // have start time == end time and  0 load duration
+    // until its loading is completed.
+    m_endTime = currentTime();
+    m_changes.set(TimingChange);
 }
 
 } // namespace WebCore

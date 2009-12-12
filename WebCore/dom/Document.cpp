@@ -98,6 +98,7 @@
 #include "PageGroup.h"
 #include "PageTransitionEvent.h"
 #include "PlatformKeyboardEvent.h"
+#include "PopStateEvent.h"
 #include "ProcessingInstruction.h"
 #include "ProgressEvent.h"
 #include "RegisteredEventListener.h"
@@ -363,7 +364,6 @@ Document::Document(Frame* frame, bool isXHTML)
     m_ignoreAutofocus = false;
 
     m_frame = frame;
-    m_renderArena = 0;
 
     m_axObjectCache = 0;
     
@@ -371,7 +371,6 @@ Document::Document(Frame* frame, bool isXHTML)
 
     visuallyOrdered = false;
     m_bParsing = false;
-    m_tokenizer = 0;
     m_wellFormed = false;
 
     setParseMode(Strict);
@@ -442,8 +441,7 @@ void Document::removedLastRef()
         deleteAllValues(m_markers);
         m_markers.clear();
 
-        delete m_tokenizer;
-        m_tokenizer = 0;
+        m_tokenizer.clear();
 
         m_cssCanvasElements.clear();
 
@@ -477,18 +475,15 @@ Document::~Document()
     forgetAllDOMNodesForDocument(this);
 #endif
 
-    delete m_tokenizer;
+    m_tokenizer.clear();
     m_document = 0;
     delete m_styleSelector;
-    delete m_docLoader;
-    
-    if (m_renderArena) {
-        delete m_renderArena;
-        m_renderArena = 0;
-    }
+    m_docLoader.clear();
+
+    m_renderArena.clear();
 
 #if ENABLE(XBL)
-    delete m_bindingManager;
+    m_bindingManager.clear();
 #endif
 
     deleteAllValues(m_markers);
@@ -1401,7 +1396,7 @@ void Document::attach()
         m_renderArena = new RenderArena();
     
     // Create the rendering tree
-    setRenderer(new (m_renderArena) RenderView(this, view()));
+    setRenderer(new (m_renderArena.get()) RenderView(this, view()));
 #if USE(ACCELERATED_COMPOSITING)
     renderView()->didMoveOnscreen();
 #endif
@@ -1462,17 +1457,19 @@ void Document::detach()
     if (render)
         render->destroy();
     
+    HashSet<RefPtr<HistoryItem> > associatedHistoryItems;
+    associatedHistoryItems.swap(m_associatedHistoryItems);
+    HashSet<RefPtr<HistoryItem> >::iterator end = associatedHistoryItems.end();
+    for (HashSet<RefPtr<HistoryItem> >::iterator i = associatedHistoryItems.begin(); i != end; ++i)
+        (*i)->documentDetached(this);
+    
     // This is required, as our Frame might delete itself as soon as it detaches
     // us. However, this violates Node::detach() symantics, as it's never
     // possible to re-attach. Eventually Document::detach() should be renamed,
     // or this setting of the frame to 0 could be made explicit in each of the
     // callers of Document::detach().
     m_frame = 0;
-    
-    if (m_renderArena) {
-        delete m_renderArena;
-        m_renderArena = 0;
-    }
+    m_renderArena.clear();
 }
 
 void Document::removeAllEventListeners()
@@ -1587,8 +1584,7 @@ void Document::cancelParsing()
         // the onload handler when closing as a side effect of a cancel-style
         // change, such as opening a new document or closing the window while
         // still parsing
-        delete m_tokenizer;
-        m_tokenizer = 0;
+        m_tokenizer.clear();
         close();
     }
 }
@@ -1597,8 +1593,7 @@ void Document::implicitOpen()
 {
     cancelParsing();
 
-    delete m_tokenizer;
-    m_tokenizer = 0;
+    m_tokenizer.clear();
 
     removeChildren();
 
@@ -1695,8 +1690,7 @@ void Document::implicitClose()
 
     // We have to clear the tokenizer, in case someone document.write()s from the
     // onLoad event handler, as in Radar 3206524.
-    delete m_tokenizer;
-    m_tokenizer = 0;
+    m_tokenizer.clear();
 
     // Parser should have picked up all preloads by now
     m_docLoader->clearPreloads();
@@ -1733,6 +1727,9 @@ void Document::implicitClose()
     ImageLoader::dispatchPendingEvents();
     dispatchWindowLoadEvent();
     dispatchWindowEvent(PageTransitionEvent::create(eventNames().pageshowEvent, false), this);
+    if (m_pendingStateObject)
+        dispatchWindowEvent(PopStateEvent::create(m_pendingStateObject.release()));
+    
     if (f)
         f->loader()->handledOnloadEvents();
 #ifdef INSTRUMENT_LAYOUT_SCHEDULING
@@ -2173,8 +2170,10 @@ void Document::processHttpEquiv(const String& equiv, const String& content)
         }
     } else if (equalIgnoringCase(equiv, "set-cookie")) {
         // FIXME: make setCookie work on XML documents too; e.g. in case of <html:meta .....>
-        if (isHTMLDocument())
-            static_cast<HTMLDocument*>(this)->setCookie(content);
+        if (isHTMLDocument()) {
+            ExceptionCode ec; // Exception (for sandboxed documents) ignored.
+            static_cast<HTMLDocument*>(this)->setCookie(content, ec);
+        }
     } else if (equalIgnoringCase(equiv, "content-language"))
         setContentLanguage(content);
     else if (equalIgnoringCase(equiv, "x-dns-prefetch-control"))
@@ -2652,14 +2651,14 @@ bool Document::setFocusedNode(PassRefPtr<Node> newFocusedNode)
             oldFocusedNode->setActive(false);
 
         oldFocusedNode->setFocus(false);
-                
+
         // Dispatch a change event for text fields or textareas that have been edited
         RenderObject* r = oldFocusedNode->renderer();
-        if (r && r->isTextControl() && toRenderTextControl(r)->isEdited()) {
-            oldFocusedNode->dispatchEvent(Event::create(eventNames().changeEvent, true, false));
+        if (r && r->isTextControl() && toRenderTextControl(r)->wasChangedSinceLastChangeEvent()) {
+            static_cast<Element*>(oldFocusedNode.get())->dispatchFormControlChangeEvent();
             r = oldFocusedNode->renderer();
             if (r && r->isTextControl())
-                toRenderTextControl(r)->setEdited(false);
+                toRenderTextControl(r)->setChangedSinceLastChangeEvent(false);
         }
 
         // Dispatch the blur event and let the node do any other blur related activities (important for text fields)
@@ -2978,6 +2977,10 @@ void Document::addListenerTypeIfNeeded(const AtomicString& eventType)
         addListenerType(TRANSITIONEND_LISTENER);
     else if (eventType == eventNames().beforeloadEvent)
         addListenerType(BEFORELOAD_LISTENER);
+    else if (eventType == eventNames().touchstartEvent
+             || eventType == eventNames().touchmoveEvent
+             || eventType == eventNames().touchendEvent)
+        addListenerType(TOUCH_LISTENER);
 }
 
 CSSStyleDeclaration* Document::getOverrideStyle(Element*, const String&)
@@ -2992,10 +2995,19 @@ Element* Document::ownerElement() const
     return frame()->ownerElement();
 }
 
-String Document::cookie() const
+String Document::cookie(ExceptionCode& ec) const
 {
     if (page() && !page()->cookieEnabled())
         return String();
+
+    // FIXME: The HTML5 DOM spec states that this attribute can raise an
+    // INVALID_STATE_ERR exception on getting if the Document has no
+    // browsing context.
+
+    if (securityOrigin()->isSandboxed(SandboxOrigin)) {
+        ec = SECURITY_ERR;
+        return String();
+    }
 
     KURL cookieURL = this->cookieURL();
     if (cookieURL.isEmpty())
@@ -3004,10 +3016,19 @@ String Document::cookie() const
     return cookies(this, cookieURL);
 }
 
-void Document::setCookie(const String& value)
+void Document::setCookie(const String& value, ExceptionCode& ec)
 {
     if (page() && !page()->cookieEnabled())
         return;
+
+    // FIXME: The HTML5 DOM spec states that this attribute can raise an
+    // INVALID_STATE_ERR exception on setting if the Document has no
+    // browsing context.
+
+    if (securityOrigin()->isSandboxed(SandboxOrigin)) {
+        ec = SECURITY_ERR;
+        return;
+    }
 
     KURL cookieURL = this->cookieURL();
     if (cookieURL.isEmpty())
@@ -3735,7 +3756,7 @@ void Document::repaintMarkers(DocumentMarker::MarkerType markerType)
     }
 }
 
-void Document::setRenderedRectForMarker(Node* node, DocumentMarker marker, const IntRect& r)
+void Document::setRenderedRectForMarker(Node* node, const DocumentMarker& marker, const IntRect& r)
 {
     MarkerMapVectorPair* vectorPair = m_markers.get(node);
     if (!vectorPair) {
@@ -4257,6 +4278,8 @@ void Document::initSecurityContext()
     m_cookieURL = url;
     ScriptExecutionContext::setSecurityOrigin(SecurityOrigin::create(url));
 
+    updateSandboxFlags();
+ 
     if (SecurityOrigin::allowSubstituteDataAccessToLocal()) {
         // If this document was loaded with substituteData, then the document can
         // load local resources.  See https://bugs.webkit.org/show_bug.cgi?id=16756
@@ -4305,6 +4328,46 @@ void Document::setSecurityOrigin(SecurityOrigin* securityOrigin)
     // FIXME: Find a better place to enable DNS prefetch, which is a loader concept,
     // not applicable to arbitrary documents.
     initDNSPrefetch();
+}
+
+void Document::updateURLForPushOrReplaceState(const KURL& url)
+{
+    Frame* f = frame();
+    if (!f)
+        return;
+
+    setURL(url);
+    f->loader()->documentLoader()->replaceRequestURLForSameDocumentNavigation(url);
+}
+
+void Document::statePopped(SerializedScriptValue* stateObject)
+{
+    Frame* f = frame();
+    if (!f)
+        return;
+    
+    if (f->loader()->isComplete())
+        dispatchWindowEvent(PopStateEvent::create(stateObject));
+    else
+        m_pendingStateObject = stateObject;
+}
+
+void Document::registerHistoryItem(HistoryItem* item)
+{
+    ASSERT(!m_associatedHistoryItems.contains(item));
+    m_associatedHistoryItems.add(item);
+}
+
+void Document::unregisterHistoryItem(HistoryItem* item)
+{
+    ASSERT(m_associatedHistoryItems.contains(item) || m_associatedHistoryItems.isEmpty());
+    m_associatedHistoryItems.remove(item);
+}
+
+void Document::updateSandboxFlags()
+{
+    if (m_frame && securityOrigin())
+        securityOrigin()->setSandboxFlags(m_frame->loader()->sandboxFlags());
 }
 
 void Document::updateFocusAppearanceSoon()
@@ -4536,9 +4599,51 @@ void Document::scriptImported(unsigned long identifier, const String& sourceStri
 #endif
 }
 
+class ScriptExecutionContextTaskTimer : public TimerBase {
+public:
+    ScriptExecutionContextTaskTimer(PassRefPtr<Document> context, PassOwnPtr<ScriptExecutionContext::Task> task)
+        : m_context(context)
+        , m_task(task)
+    {
+    }
+
+private:
+    virtual void fired()
+    {
+        m_task->performTask(m_context.get());
+        delete this;
+    }
+
+    RefPtr<Document> m_context;
+    OwnPtr<ScriptExecutionContext::Task> m_task;
+};
+
+struct PerformTaskContext : Noncopyable {
+    PerformTaskContext(ScriptExecutionContext* scriptExecutionContext, PassOwnPtr<ScriptExecutionContext::Task> task)
+        : scriptExecutionContext(scriptExecutionContext)
+        , task(task)
+    {
+    }
+
+    ScriptExecutionContext* scriptExecutionContext; // The context should exist until task execution.
+    OwnPtr<ScriptExecutionContext::Task> task;
+};
+
+static void performTask(void* ctx)
+{
+    PerformTaskContext* ptctx = reinterpret_cast<PerformTaskContext*>(ctx);
+    ptctx->task->performTask(ptctx->scriptExecutionContext);
+    delete ptctx;
+}
+
 void Document::postTask(PassOwnPtr<Task> task)
 {
-    postTaskToMainThread(task);
+    if (isMainThread()) {
+        ScriptExecutionContextTaskTimer* timer = new ScriptExecutionContextTaskTimer(static_cast<Document*>(this), task);
+        timer->startOneShot(0);
+    } else {
+        callOnMainThread(performTask, new PerformTaskContext(this, task));
+    }
 }
 
 Element* Document::findAnchor(const String& name)

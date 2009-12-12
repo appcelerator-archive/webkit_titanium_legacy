@@ -327,7 +327,7 @@ bool HTMLAnchorElement::draggable() const
 
 KURL HTMLAnchorElement::href() const
 {
-    return document()->completeURL(getAttribute(hrefAttr));
+    return document()->completeURL(deprecatedParseURL(getAttribute(hrefAttr)));
 }
 
 void HTMLAnchorElement::setHref(const AtomicString& value)
@@ -343,7 +343,7 @@ bool HTMLAnchorElement::hasRel(uint32_t relation) const
 void HTMLAnchorElement::setRel(const String& value)
 {
     m_linkRelations = 0;
-    ClassNames newLinkRelations(value, true);
+    SpaceSplitString newLinkRelations(value, true);
     // FIXME: Add link relations as they are implemented
     if (newLinkRelations.contains("noreferrer"))
         m_linkRelations |= RelationNoReferrer;
@@ -386,7 +386,7 @@ String HTMLAnchorElement::host() const
     const KURL& url = href();
     if (url.hostEnd() == url.pathStart())
         return url.host();
-    if (SecurityOrigin::isDefaultPortForProtocol(url.port(), url.protocol()))
+    if (isDefaultPortForProtocol(url.port(), url.protocol()))
         return url.host();
     return url.host() + ":" + String::number(url.port());
 }
@@ -414,7 +414,7 @@ void HTMLAnchorElement::setHost(const String& value)
             // requires setting the port to "0" if it is set to empty string.
             url.setHostAndPort(value.substring(0, separator + 1) + "0");
         } else {
-            if (SecurityOrigin::isDefaultPortForProtocol(port, url.protocol()))
+            if (isDefaultPortForProtocol(port, url.protocol()))
                 url.setHostAndPort(value.substring(0, separator));
             else
                 url.setHostAndPort(value.substring(0, portEnd));
@@ -482,7 +482,7 @@ void HTMLAnchorElement::setPort(const String& value)
     // specifically goes against RFC 3986 (p3.2) and
     // requires setting the port to "0" if it is set to empty string.
     unsigned port = value.toUInt();
-    if (SecurityOrigin::isDefaultPortForProtocol(port, url.protocol()))
+    if (isDefaultPortForProtocol(port, url.protocol()))
         url.removePort();
     else
         url.setPort(port);
@@ -507,7 +507,7 @@ void HTMLAnchorElement::setProtocol(const String& value)
     KURL url = href();
     // Following Firefox 3.5.2 which removes anything after the first ":"
     String newProtocol = value.substring(0, separator);
-    if (!protocolIsValid(newProtocol))
+    if (!isValidProtocol(newProtocol))
         return;
     url.setProtocol(newProtocol);
 

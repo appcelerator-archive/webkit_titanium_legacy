@@ -145,6 +145,11 @@ void WebSettingsImpl::setDeveloperExtrasEnabled(bool enabled)
     m_settings->setDeveloperExtrasEnabled(enabled);
 }
 
+void WebSettingsImpl::setNeedsSiteSpecificQuirks(bool enabled)
+{
+    m_settings->setNeedsSiteSpecificQuirks(enabled);
+}
+
 void WebSettingsImpl::setShrinksStandaloneImagesToFit(bool shrinkImages)
 {
     m_settings->setShrinksStandaloneImagesToFit(shrinkImages);
@@ -242,6 +247,11 @@ void WebSettingsImpl::setOfflineWebApplicationCacheEnabled(bool enabled)
 void WebSettingsImpl::setExperimentalWebGLEnabled(bool enabled)
 {
     m_settings->setWebGLEnabled(enabled);
+}
+
+void WebSettingsImpl::setGeolocationEnabled(bool enabled)
+{
+    m_settings->setGeolocationEnabled(enabled);
 }
 
 } // namespace WebKit

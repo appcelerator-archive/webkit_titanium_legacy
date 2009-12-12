@@ -42,6 +42,7 @@
 #include "Page.h"
 #include "PlatformString.h"
 #include "ResourceRequest.h"
+#include "ScriptController.h"
 #include "WebView.h"
 
 #include <Message.h>
@@ -203,6 +204,21 @@ void FrameLoaderClientHaiku::dispatchWillPerformClientRedirect(const KURL&, doub
 }
 
 void FrameLoaderClientHaiku::dispatchDidChangeLocationWithinPage()
+{
+    notImplemented();
+}
+
+void FrameLoaderClientHaiku::dispatchDidPushStateWithinPage()
+{
+    notImplemented();
+}
+
+void FrameLoaderClientHaiku::dispatchDidReplaceStateWithinPage()
+{
+    notImplemented();
+}
+
+void FrameLoaderClientHaiku::dispatchDidPopStateWithinPage()
 {
     notImplemented();
 }
@@ -459,6 +475,18 @@ bool FrameLoaderClientHaiku::shouldGoToHistoryItem(WebCore::HistoryItem*) const
 {
     notImplemented();
     return true;
+}
+
+void FrameLoaderClientHaiku::dispatchDidAddBackForwardItem(WebCore::HistoryItem*) const
+{
+}
+
+void FrameLoaderClientHaiku::dispatchDidRemoveBackForwardItem(WebCore::HistoryItem*) const
+{
+}
+
+void FrameLoaderClientHaiku::dispatchDidChangeBackForwardIndex() const
+{
 }
 
 void FrameLoaderClientHaiku::saveScrollPositionAndViewStateToItem(WebCore::HistoryItem*)
@@ -759,8 +787,11 @@ String FrameLoaderClientHaiku::overrideMediaType() const
     return String();
 }
 
-void FrameLoaderClientHaiku::windowObjectCleared()
+void FrameLoaderClientHaiku::dispatchDidClearWindowObjectInWorld(DOMWrapperWorld* world)
 {
+    if (world != mainThreadNormalWorld())
+        return;
+
     if (m_webView) {
         BMessage message(JAVASCRIPT_WINDOW_OBJECT_CLEARED);
         m_messenger->SendMessage(&message);

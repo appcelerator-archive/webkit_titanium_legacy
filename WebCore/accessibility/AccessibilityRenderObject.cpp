@@ -833,7 +833,7 @@ String AccessibilityRenderObject::valueDescription() const
     
 float AccessibilityRenderObject::valueForRange() const
 {
-    if (!isProgressIndicator() && !isSlider())
+    if (!isProgressIndicator() && !isSlider() && !isScrollbar())
         return 0.0f;
 
     return getAttribute(aria_valuenowAttr).toFloat();
@@ -860,6 +860,9 @@ String AccessibilityRenderObject::stringValue() const
     if (!m_renderer || isPasswordField())
         return String();
     
+    if (ariaRoleAttribute() == StaticTextRole)
+        return text();
+        
     if (m_renderer->isText())
         return textUnderElement();
     
@@ -1054,6 +1057,7 @@ String AccessibilityRenderObject::title() const
         || ariaRole == MenuItemRole
         || ariaRole == MenuButtonRole
         || ariaRole == RadioButtonRole
+        || ariaRole == CheckBoxRole
         || ariaRole == TabRole
         || isHeading())
         return textUnderElement();
@@ -1112,12 +1116,7 @@ String AccessibilityRenderObject::accessibilityDescription() const
         if (owner && owner->isHTMLElement())
             return static_cast<HTMLElement*>(owner)->getAttribute(nameAttr);
     }
-    
-    if (roleValue() == DefinitionListTermRole)
-        return AXDefinitionListTermText();
-    if (roleValue() == DefinitionListDefinitionRole)
-        return AXDefinitionListDefinitionText();
-    
+
     return String();
 }
 
@@ -1262,6 +1261,8 @@ void AccessibilityRenderObject::addRadioButtonGroupMembers(AccessibilityChildren
 // or an internal anchor connection
 void AccessibilityRenderObject::linkedUIElements(AccessibilityChildrenVector& linkedUIElements) const
 {
+    ariaFlowToElements(linkedUIElements);
+
     if (isAnchor()) {
         AccessibilityObject* linkedAXElement = internalLinkElement();
         if (linkedAXElement)
@@ -1272,6 +1273,71 @@ void AccessibilityRenderObject::linkedUIElements(AccessibilityChildrenVector& li
         addRadioButtonGroupMembers(linkedUIElements);
 }
 
+bool AccessibilityRenderObject::hasTextAlternative() const
+{
+    // ARIA: section 2A, bullet #3 says if aria-labeledby or aria-label appears, it should
+    // override the "label" element association.
+    if (!ariaLabeledByAttribute().isEmpty() || !getAttribute(aria_labelAttr).string().isEmpty())
+        return true;
+        
+    return false;   
+}
+    
+bool AccessibilityRenderObject::supportsARIAFlowTo() const
+{
+    return !getAttribute(aria_flowtoAttr).string().isEmpty();
+}
+    
+void AccessibilityRenderObject::ariaFlowToElements(AccessibilityChildrenVector& flowTo) const
+{
+    Vector<Element*> elements;
+    elementsFromAttribute(elements, aria_flowtoAttr);
+    
+    AXObjectCache* cache = axObjectCache();
+    unsigned count = elements.size();
+    for (unsigned k = 0; k < count; ++k) {
+        Element* element = elements[k];
+        AccessibilityObject* flowToElement = cache->getOrCreate(element->renderer());
+        if (flowToElement)
+            flowTo.append(flowToElement);
+    }
+        
+}
+    
+bool AccessibilityRenderObject::supportsARIADropping()
+{
+    const AtomicString& dropEffect = getAttribute(aria_dropeffectAttr).string();
+    return !dropEffect.isEmpty();
+}
+
+bool AccessibilityRenderObject::supportsARIADragging()
+{
+    const AtomicString& grabbed = getAttribute(aria_grabbedAttr).string();
+    return equalIgnoringCase(grabbed, "true") || equalIgnoringCase(grabbed, "false");   
+}
+
+bool AccessibilityRenderObject::isARIAGrabbed()
+{
+    return elementAttributeValue(aria_grabbedAttr);
+}
+
+void AccessibilityRenderObject::setARIAGrabbed(bool grabbed)
+{
+    setElementAttributeValue(aria_grabbedAttr, grabbed);
+}
+
+void AccessibilityRenderObject::determineARIADropEffects(Vector<String>& effects)
+{
+    String dropEffects = getAttribute(aria_dropeffectAttr).string();
+    if (dropEffects.isEmpty()) {
+        effects.clear();
+        return;
+    }
+    
+    dropEffects.replace('\n', ' ');
+    dropEffects.split(' ', effects);
+}
+    
 bool AccessibilityRenderObject::exposesTitleUIElement() const
 {
     if (!isControl())
@@ -1279,6 +1345,9 @@ bool AccessibilityRenderObject::exposesTitleUIElement() const
 
     // checkbox or radio buttons don't expose the title ui element unless it has a title already
     if (isCheckboxOrRadio() && getAttribute(titleAttr).isEmpty())
+        return false;
+    
+    if (hasTextAlternative())
         return false;
     
     return true;
@@ -1320,6 +1389,16 @@ bool AccessibilityRenderObject::ariaIsHidden() const
     return false;
 }
 
+bool AccessibilityRenderObject::isDescendantOfBarrenParent() const
+{
+    for (AccessibilityObject* object = parentObject(); object; object = object->parentObject()) {
+        if (!object->canHaveChildren())
+            return true;
+    }
+    
+    return false;
+}
+    
 bool AccessibilityRenderObject::accessibilityIsIgnored() const
 {
     // Is the platform interested in this object?
@@ -1340,6 +1419,10 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
     if (isPresentationalChildOfAriaRole())
         return true;
         
+    // If this element is within a parent that cannot have children, it should not be exposed.
+    if (isDescendantOfBarrenParent())
+        return true;    
+    
     if (roleValue() == IgnoredRole)
         return true;
     
@@ -1352,7 +1435,7 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
     // find out if this element is inside of a label element.
     // if so, it may be ignored because it's the label for a checkbox or radio button
     AccessibilityObject* controlObject = correspondingControlForLabelElement();
-    if (controlObject && !controlObject->exposesTitleUIElement())
+    if (controlObject && !controlObject->exposesTitleUIElement() && controlObject->isCheckboxOrRadio())
         return true;
         
     AccessibilityRole ariaRole = ariaRoleAttribute();
@@ -1452,6 +1535,10 @@ int AccessibilityRenderObject::layoutCount() const
 
 String AccessibilityRenderObject::text() const
 {
+    // If this is a user defined static text, use the accessible name computation.
+    if (ariaRoleAttribute() == StaticTextRole)
+        return accessibilityDescription();
+    
     if (!isTextControl() || isPasswordField())
         return String();
     
@@ -1670,10 +1757,6 @@ bool AccessibilityRenderObject::isSelected() const
     if (equalIgnoringCase(ariaSelected, "true"))
         return true;    
     
-    // ARIA says that selection should follow focus unless specifically set otherwise.
-    if (!equalIgnoringCase(ariaSelected, "false") && isFocused())
-        return true;
-    
     if (isTabItem() && isTabItemSelected())
         return true;
 
@@ -1807,6 +1890,29 @@ void AccessibilityRenderObject::setValue(const String& string)
     }
 }
 
+void AccessibilityRenderObject::ariaOwnsElements(AccessibilityChildrenVector& axObjects) const
+{
+    Vector<Element*> elements;
+    elementsFromAttribute(elements, aria_ownsAttr);
+    
+    unsigned count = elements.size();
+    for (unsigned k = 0; k < count; ++k) {
+        RenderObject* render = elements[k]->renderer();
+        AccessibilityObject* obj = axObjectCache()->getOrCreate(render);
+        if (obj)
+            axObjects.append(obj);
+    }
+}
+
+bool AccessibilityRenderObject::supportsARIAOwns() const
+{
+    if (!m_renderer)
+        return false;
+    const AtomicString& ariaOwns = getAttribute(aria_ownsAttr).string();
+
+    return !ariaOwns.isEmpty();
+}
+    
 bool AccessibilityRenderObject::isEnabled() const
 {
     ASSERT(m_renderer);
@@ -2333,14 +2439,14 @@ bool AccessibilityRenderObject::shouldFocusActiveDescendant() const
     case ProgressIndicatorRole:
     case ToolbarRole:
     case OutlineRole:
+    case TreeRole:
+    case GridRole:
     /* FIXME: replace these with actual roles when they are added to AccessibilityRole
     composite
     alert
     alertdialog
-    grid
     status
     timer
-    tree
     */
         return true;
     default:
@@ -2350,19 +2456,22 @@ bool AccessibilityRenderObject::shouldFocusActiveDescendant() const
 
 AccessibilityObject* AccessibilityRenderObject::activeDescendant() const
 {
-    if (renderer()->node() && !renderer()->node()->isElementNode())
+    if (!m_renderer)
         return 0;
-    Element* element = static_cast<Element*>(renderer()->node());
+    
+    if (m_renderer->node() && !m_renderer->node()->isElementNode())
+        return 0;
+    Element* element = static_cast<Element*>(m_renderer->node());
         
     String activeDescendantAttrStr = element->getAttribute(aria_activedescendantAttr).string();
     if (activeDescendantAttrStr.isNull() || activeDescendantAttrStr.isEmpty())
         return 0;
     
-    Element* target = renderer()->document()->getElementById(activeDescendantAttrStr);
+    Element* target = document()->getElementById(activeDescendantAttrStr);
     if (!target)
         return 0;
     
-    AccessibilityObject* obj = renderer()->document()->axObjectCache()->getOrCreate(target->renderer());
+    AccessibilityObject* obj = axObjectCache()->getOrCreate(target->renderer());
     if (obj && obj->isAccessibilityRenderObject())
     // an activedescendant is only useful if it has a renderer, because that's what's needed to post the notification
         return obj;
@@ -2381,7 +2490,7 @@ void AccessibilityRenderObject::handleActiveDescendantChanged()
     AccessibilityRenderObject* activedescendant = static_cast<AccessibilityRenderObject*>(activeDescendant());
     
     if (activedescendant && shouldFocusActiveDescendant())
-        doc->axObjectCache()->postNotification(activedescendant->renderer(), AXObjectCache::AXFocusedUIElementChanged, true);
+        doc->axObjectCache()->postNotification(m_renderer, AXObjectCache::AXActiveDescendantChanged, true);
 }
 
 AccessibilityObject* AccessibilityRenderObject::correspondingControlForLabelElement() const
@@ -2420,89 +2529,6 @@ AccessibilityObject* AccessibilityRenderObject::observableObject() const
     }
     
     return 0;
-}
-    
-typedef HashMap<String, AccessibilityRole, CaseFoldingHash> ARIARoleMap;
-
-struct RoleEntry {
-    String ariaRole;
-    AccessibilityRole webcoreRole;
-};
-
-static const ARIARoleMap& createARIARoleMap()
-{
-    const RoleEntry roles[] = {
-        { "alert", ApplicationAlertRole },
-        { "alertdialog", ApplicationAlertDialogRole },
-        { "application", LandmarkApplicationRole },
-        { "article", DocumentArticleRole },
-        { "banner", LandmarkBannerRole },
-        { "button", ButtonRole },
-        { "checkbox", CheckBoxRole },
-        { "complementary", LandmarkComplementaryRole },
-        { "contentinfo", LandmarkContentInfoRole },
-        { "dialog", ApplicationDialogRole },
-        { "grid", TableRole },
-        { "gridcell", CellRole },
-        { "columnheader", ColumnHeaderRole },
-        { "combobox", ComboBoxRole },
-        { "definition", DefinitionListDefinitionRole },
-        { "document", DocumentRole },
-        { "rowheader", RowHeaderRole },
-        { "group", GroupRole },
-        { "heading", HeadingRole },
-        { "img", ImageRole },
-        { "link", WebCoreLinkRole },
-        { "list", ListRole },        
-        { "listitem", GroupRole },        
-        { "listbox", ListBoxRole },
-        { "log", ApplicationLogRole },
-        // "option" isn't here because it may map to different roles depending on the parent element's role
-        { "main", LandmarkMainRole },
-        { "marquee", ApplicationMarqueeRole },
-        { "menu", MenuRole },
-        { "menubar", GroupRole },
-        // "menuitem" isn't here because it may map to different roles depending on the parent element's role
-        { "menuitemcheckbox", MenuItemRole },
-        { "menuitemradio", MenuItemRole },
-        { "note", DocumentNoteRole },
-        { "navigation", LandmarkNavigationRole },
-        { "option", ListBoxOptionRole },
-        { "presentation", IgnoredRole },
-        { "progressbar", ProgressIndicatorRole },
-        { "radio", RadioButtonRole },
-        { "radiogroup", RadioGroupRole },
-        { "region", DocumentRegionRole },
-        { "row", RowRole },
-        { "range", SliderRole },
-        { "search", LandmarkSearchRole },
-        { "separator", SplitterRole },
-        { "slider", SliderRole },
-        { "spinbutton", ProgressIndicatorRole },
-        { "status", ApplicationStatusRole },
-        { "tab", TabRole },
-        { "tablist", TabListRole },
-        { "tabpanel", TabPanelRole },
-        { "textbox", TextAreaRole },
-        { "timer", ApplicationTimerRole },
-        { "toolbar", ToolbarRole },
-        { "tooltip", UserInterfaceTooltipRole },
-        { "tree", TreeRole },
-        { "treeitem", TreeItemRole }
-    };
-    ARIARoleMap& roleMap = *new ARIARoleMap;
-        
-    const unsigned numRoles = sizeof(roles) / sizeof(roles[0]);
-    for (unsigned i = 0; i < numRoles; ++i)
-        roleMap.set(roles[i].ariaRole, roles[i].webcoreRole);
-    return roleMap;
-}
-
-static AccessibilityRole ariaRoleToWebCoreRole(String value)
-{
-    ASSERT(!value.isEmpty() && !value.isNull());
-    static const ARIARoleMap& roleMap = createARIARoleMap();
-    return roleMap.get(value);
 }
 
 AccessibilityRole AccessibilityRenderObject::determineAriaRoleAttribute() const
@@ -2619,6 +2645,17 @@ AccessibilityRole AccessibilityRenderObject::determineAccessibilityRole()
     return UnknownRole;
 }
 
+AccessibilityOrientation AccessibilityRenderObject::orientation() const
+{
+    const AtomicString& ariaOrientation = getAttribute(aria_orientationAttr).string();
+    if (equalIgnoringCase(ariaOrientation, "horizontal"))
+        return AccessibilityOrientationHorizontal;
+    if (equalIgnoringCase(ariaOrientation, "vertical"))
+        return AccessibilityOrientationVertical;
+    
+    return AccessibilityObject::orientation();
+}
+    
 bool AccessibilityRenderObject::isPresentationalChildOfAriaRole() const
 {
     // Walk the parent chain looking for a parent that has presentational children
@@ -2730,6 +2767,7 @@ bool AccessibilityRenderObject::canHaveChildren() const
     case TabRole:
     case StaticTextRole:
     case ListBoxOptionRole:
+    case ScrollBarRole:
         return false;
     default:
         return true;
@@ -2804,6 +2842,14 @@ void AccessibilityRenderObject::ariaTreeSelectedRows(AccessibilityChildrenVector
 
     // Determine which rows are selected.
     bool isMultiselectable = elementAttributeValue(aria_multiselectableAttr);
+
+    // Prefer active descendant over aria-selected.
+    AccessibilityObject* activeDesc = activeDescendant();
+    if (activeDesc && activeDesc->isTreeItem()) {
+        result.append(activeDesc);    
+        if (!isMultiselectable)
+            return;
+    }
 
     unsigned count = allRows.size();
     for (unsigned k = 0; k < count; ++k) {

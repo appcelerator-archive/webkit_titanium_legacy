@@ -88,6 +88,7 @@ DOM_CLASSES = \
     WebGLShader \
     WebGLShortArray \
     WebGLTexture \
+    WebGLUniformLocation \
     WebGLUnsignedByteArray \
     WebGLUnsignedIntArray \
     WebGLUnsignedShortArray \
@@ -96,6 +97,7 @@ DOM_CLASSES = \
     ClientRectList \
     Clipboard \
     Comment \
+    CompositionEvent \
     Console \
     Coordinates \
     Counter \
@@ -198,7 +200,9 @@ DOM_CLASSES = \
     HTMLVideoElement \
     History \
     ImageData \
+    InjectedScriptHost \
     InspectorBackend \
+    InspectorFrontendHost \
     KeyboardEvent \
     Location \
     Media \
@@ -224,6 +228,7 @@ DOM_CLASSES = \
     PageTransitionEvent \
     Plugin \
     PluginArray \
+    PopStateEvent \
     PositionError \
     ProcessingInstruction \
     ProgressEvent \
@@ -802,8 +807,11 @@ ifeq ($(shell gcc -E -P -dM $(FRAMEWORK_FLAGS) WebCore/ForwardingHeaders/wtf/Pla
     WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.NPAPI.exp
 endif
 
-ifeq ($(shell gcc -E -P -dM $(FRAMEWORK_FLAGS) WebCore/ForwardingHeaders/wtf/Platform.h | grep WTF_USE_PLUGIN_HOST_PROCESS | cut -d' ' -f3), 1)
+# FIXME: WTF_USE_PLUGIN_HOST_PROCESS is only true when building for x86_64, but we shouldn't have to know about that here.
+ifeq ($(findstring x86_64,$(ARCHS)) $(findstring x86_64,$(VALID_ARCHS)), x86_64 x86_64)
+ifeq ($(shell gcc -arch x86_64 -E -P -dM $(FRAMEWORK_FLAGS) WebCore/ForwardingHeaders/wtf/Platform.h | grep WTF_USE_PLUGIN_HOST_PROCESS | cut -d' ' -f3), 1)
     WEBCORE_EXPORT_DEPENDENCIES := $(WEBCORE_EXPORT_DEPENDENCIES) WebCore.PluginHostProcess.exp
+endif
 endif
 
 ifeq ($(findstring ENABLE_3D_RENDERING,$(FEATURE_DEFINES)), ENABLE_3D_RENDERING)

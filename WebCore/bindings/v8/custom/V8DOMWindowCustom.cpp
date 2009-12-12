@@ -175,6 +175,9 @@ ACCESSOR_GETTER(DOMWindowEvent)
         return v8::Undefined();
 
     v8::Local<v8::Context> context = V8Proxy::context(frame);
+    if (context.IsEmpty())
+        return v8::Undefined();
+
     v8::Local<v8::String> eventSymbol = v8::String::NewSymbol("event");
     v8::Handle<v8::Value> jsEvent = context->Global()->GetHiddenValue(eventSymbol);
     if (jsEvent.IsEmpty())
@@ -193,6 +196,9 @@ ACCESSOR_SETTER(DOMWindowEvent)
         return;
 
     v8::Local<v8::Context> context = V8Proxy::context(frame);
+    if (context.IsEmpty())
+        return;
+
     v8::Local<v8::String> eventSymbol = v8::String::NewSymbol("event");
     context->Global()->SetHiddenValue(eventSymbol, value);
 }
@@ -543,6 +549,10 @@ static Frame* createWindow(Frame* callingFrame,
 {
     ASSERT(callingFrame);
     ASSERT(enteredFrame);
+
+    // Sandboxed iframes cannot open new auxiliary browsing contexts.
+    if (callingFrame && callingFrame->loader()->isSandboxed(SandboxNavigation))
+        return 0;
 
     ResourceRequest request;
 

@@ -147,6 +147,8 @@ private slots:
     void inputMethods();
     void defaultTextEncoding();
     void errorPageExtension();
+    void errorPageExtensionInIFrames();
+    void errorPageExtensionInFrameset();
 
     void crashTests_LazyInitializationOfMainFrame();
 
@@ -448,7 +450,7 @@ void tst_QWebPage::modified()
     m_page->mainFrame()->setUrl(QUrl("data:text/html,<body>This is fourth page"));
     QVERIFY(m_page->history()->count() == 2);
     m_page->mainFrame()->setUrl(QUrl("data:text/html,<body>This is fifth page"));
-    QVERIFY(::waitForSignal(m_page, SIGNAL(saveFrameStateRequested(QWebFrame*, QWebHistoryItem*))));
+    QVERIFY(::waitForSignal(m_page, SIGNAL(saveFrameStateRequested(QWebFrame*,QWebHistoryItem*))));
 }
 
 void tst_QWebPage::contextMenuCrash()
@@ -484,7 +486,7 @@ void tst_QWebPage::database()
         QFile::remove(dbFileName);
 
     qRegisterMetaType<QWebFrame*>("QWebFrame*");
-    QSignalSpy spy(m_page, SIGNAL(databaseQuotaExceeded(QWebFrame *, QString)));
+    QSignalSpy spy(m_page, SIGNAL(databaseQuotaExceeded(QWebFrame*,QString)));
     m_view->setHtml(QString("<html><head><script>var db; db=openDatabase('testdb', '1.0', 'test database API', 50000); </script></head><body><div></div></body></html>"), QUrl("http://www.myexample.com"));
     QTRY_COMPARE(spy.count(), 1);
     m_page->mainFrame()->evaluateJavaScript("var db2; db2=openDatabase('testdb', '1.0', 'test database API', 50000);");
@@ -1486,6 +1488,21 @@ void tst_QWebPage::inputMethods()
     QVERIFY(!(inputMethodHints(view) & Qt::ImhHiddenText));
 #endif
 
+    page->mainFrame()->setHtml("<html><body><p>nothing to input here");
+    viewEventSpy.clear();
+
+    QWebElement para = page->mainFrame()->findFirstElement("p");
+    {
+        QMouseEvent evpres(QEvent::MouseButtonPress, para.geometry().center(), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        page->event(&evpres);
+        QMouseEvent evrel(QEvent::MouseButtonRelease, para.geometry().center(), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        page->event(&evrel);
+    }
+
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    QVERIFY(!viewEventSpy.contains(QEvent::RequestSoftwareInputPanel));
+#endif
+
     delete container;
 }
 
@@ -1517,10 +1534,17 @@ void tst_QWebPage::protectBindingsRuntimeObjectsFromCollector()
 void tst_QWebPage::localURLSchemes()
 {
     int i = QWebSecurityOrigin::localSchemes().size();
+
     QWebSecurityOrigin::removeLocalScheme("file");
     QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
     QWebSecurityOrigin::addLocalScheme("file");
     QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
+
+    QWebSecurityOrigin::removeLocalScheme("qrc");
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i - 1);
+    QWebSecurityOrigin::addLocalScheme("qrc");
+    QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i);
+
     QString myscheme = "myscheme";
     QWebSecurityOrigin::addLocalScheme(myscheme);
     QTRY_COMPARE(QWebSecurityOrigin::localSchemes().size(), i + 1);
@@ -1626,15 +1650,10 @@ public:
 
     virtual bool extension(Extension, const ExtensionOption* option, ExtensionReturn* output)
     {
-        const ErrorPageExtensionOption* info = static_cast<const ErrorPageExtensionOption*>(option);
         ErrorPageExtensionReturn* errorPage = static_cast<ErrorPageExtensionReturn*>(output);
 
-        if (info->frame == mainFrame()) {
-            errorPage->content = "data:text/html,error";
-            return true;
-        }
-
-        return false;
+        errorPage->content = "data:text/html,error";
+        return true;
     }
 };
 
@@ -1645,17 +1664,63 @@ void tst_QWebPage::errorPageExtension()
 
     QSignalSpy spyLoadFinished(m_view, SIGNAL(loadFinished(bool)));
 
-    page->mainFrame()->load(QUrl("qrc:///frametest/index.html"));
+    m_view->setUrl(QUrl("data:text/html,foo"));
     QTRY_COMPARE(spyLoadFinished.count(), 1);
 
     page->mainFrame()->setUrl(QUrl("http://non.existent/url"));
-    QTest::qWait(2000);
     QTRY_COMPARE(spyLoadFinished.count(), 2);
     QCOMPARE(page->mainFrame()->toPlainText(), QString("data:text/html,error"));
     QCOMPARE(page->history()->count(), 2);
     QCOMPARE(page->history()->currentItem().url(), QUrl("http://non.existent/url"));
     QCOMPARE(page->history()->canGoBack(), true);
     QCOMPARE(page->history()->canGoForward(), false);
+
+    page->triggerAction(QWebPage::Back);
+    QTest::qWait(2000);
+    QCOMPARE(page->history()->canGoBack(), false);
+    QCOMPARE(page->history()->canGoForward(), true);
+
+    page->triggerAction(QWebPage::Forward);
+    QTest::qWait(2000);
+    QCOMPARE(page->history()->canGoBack(), true);
+    QCOMPARE(page->history()->canGoForward(), false);
+
+    page->triggerAction(QWebPage::Back);
+    QTest::qWait(2000);
+    QCOMPARE(page->history()->canGoBack(), false);
+    QCOMPARE(page->history()->canGoForward(), true);
+    QCOMPARE(page->history()->currentItem().url(), QUrl("data:text/html,foo"));
+
+    m_view->setPage(0);
+}
+
+void tst_QWebPage::errorPageExtensionInIFrames()
+{
+    ErrorPage* page = new ErrorPage;
+    m_view->setPage(page);
+
+    m_view->setHtml(QString("data:text/html,"
+                            "<h1>h1</h1>"
+                            "<iframe src='data:text/html,<p/>p'></iframe>"
+                            "<iframe src='non-existent.html'></iframe>"));
+    QSignalSpy spyLoadFinished(m_view, SIGNAL(loadFinished(bool)));
+    QTRY_COMPARE(spyLoadFinished.count(), 1);
+
+    QCOMPARE(page->mainFrame()->childFrames()[1]->toPlainText(), QString("data:text/html,error"));
+
+    m_view->setPage(0);
+}
+
+void tst_QWebPage::errorPageExtensionInFrameset()
+{
+    ErrorPage* page = new ErrorPage;
+    m_view->setPage(page);
+
+    m_view->load(QUrl("qrc:///frametest/index.html"));
+
+    QSignalSpy spyLoadFinished(m_view, SIGNAL(loadFinished(bool)));
+    QTRY_COMPARE(spyLoadFinished.count(), 1);
+    QCOMPARE(page->mainFrame()->childFrames()[1]->toPlainText(), QString("data:text/html,error"));
 
     m_view->setPage(0);
 }

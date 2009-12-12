@@ -2,7 +2,7 @@ AC_PREREQ(2.59)
 
 m4_define([webkit_major_version], [1])
 m4_define([webkit_minor_version], [1])
-m4_define([webkit_micro_version], [17])
+m4_define([webkit_micro_version], [18])
 
 # This is the version we'll be using as part of our User-Agent string
 # e.g., AppleWebKit/$(webkit_user_agent_version) ...
@@ -35,7 +35,7 @@ AC_CONFIG_SRCDIR([WebCore/config.h])
 
 dnl # Libtool library version, not to confuse with API version
 dnl # see http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html#Libtool-versioning
-LIBWEBKITGTK_VERSION=14:0:12
+LIBWEBKITGTK_VERSION=15:0:13
 AC_SUBST([LIBWEBKITGTK_VERSION])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects tar-ustar])
@@ -464,8 +464,8 @@ AC_MSG_RESULT([$enable_svg_animation])
 AC_MSG_CHECKING([whether to enable support for filters])
 AC_ARG_ENABLE(filters,
               AC_HELP_STRING([--enable-filters],
-                             [enable support for filters (experimental) [default=no]]),
-              [],[enable_filters="no"])
+                             [enable support for filters (experimental) [default=yes]]),
+              [],[enable_filters="yes"])
 AC_MSG_RESULT([$enable_filters])
 
 # check whether to enable support for SVG fonts
@@ -634,6 +634,15 @@ PKG_CHECK_MODULES([LIBSOUP],
                   [libsoup-2.4 >= $LIBSOUP_REQUIRED_VERSION])
 AC_SUBST([LIBSOUP_CFLAGS])
 AC_SUBST([LIBSOUP_LIBS])
+
+# check if we can use libSoup 2.29.3 features
+PKG_CHECK_MODULES([LIBSOUP_2_29_3],
+                  [libsoup-2.4 >= 2.29.3],
+                  [have_libsoup_2_29_3=yes],
+                  [have_libsoup_2_29_3=no])
+if test "$have_libsoup_2_29_3" = "yes"; then
+   AC_DEFINE([HAVE_LIBSOUP_2_29_3], 1, [Whether libSoup 2.29.3 features are available])
+fi
 
 # check if FreeType/FontConfig are available
 if test "$with_font_backend" = "freetype"; then

@@ -98,3 +98,22 @@ fast/ruby
 
 # Accessibility tests without results
 accessibility/document-attributes.html
+
+# Need to add functionality to DumpRenderTree to handle error pages
+fast/history/back-forward-reset-after-error-handling.html
+
+# Need to implement this in plugins code in WebKit
+plugins/reloadplugins-and-pages.html
+plugins/reloadplugins-no-pages.html
+
+# These test require Qt Widgets
+plugins/qt-qwidget-plugin.html
+
+# This test requires ogg codecs
+media/media-can-play-ogg.html
+
+# This test requires new pywebsocket
+websocket/tests/sub-protocol-with-space.html
+
+# This test requires touch support
+fast/events/basic-touch-events.html

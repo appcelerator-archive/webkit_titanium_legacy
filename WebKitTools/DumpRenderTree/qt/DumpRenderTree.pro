@@ -1,5 +1,6 @@
 TARGET = DumpRenderTree
 CONFIG  -= app_bundle
+CONFIG += uitools
 
 mac:!static:contains(QT_CONFIG, qt_framework):!CONFIG(webkit_no_framework) {
     CONFIG -= debug
@@ -42,10 +43,6 @@ SOURCES = $$BASEDIR/WorkQueue.cpp \
 
 unix:!mac {
     QMAKE_RPATHDIR = $$OUTPUT_DIR/lib $$QMAKE_RPATHDIR
-}
-
-lessThan(QT_MINOR_VERSION, 4) {
-    DEFINES += QT_BEGIN_NAMESPACE="" QT_END_NAMESPACE=""
 }
 
 DEFINES+=USE_SYSTEM_MALLOC

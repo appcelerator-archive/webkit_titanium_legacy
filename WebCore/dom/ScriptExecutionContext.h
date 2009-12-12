@@ -31,6 +31,7 @@
 #include "KURL.h"
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/PassOwnPtr.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/Threading.h>
 
@@ -113,9 +114,6 @@ namespace WebCore {
         // Note: It is dangerous to change the security origin of a script context
         //       that already contains content.
         void setSecurityOrigin(PassRefPtr<SecurityOrigin>);
-
-        // Helper for contexts that live on the main thread.
-        void postTaskToMainThread(PassOwnPtr<Task>);
 
     private:
         virtual const KURL& virtualURL() const = 0;

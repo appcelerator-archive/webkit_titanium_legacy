@@ -12,6 +12,9 @@ symbian: {
     DEPLOYMENT += webkitlibs
 
     TARGET.UID3 = 0x200267C2
+    # Need to guarantee that these come before system includes of /epoc32/include
+    MMP_RULES += "USERINCLUDE rendering"
+    MMP_RULES += "USERINCLUDE platform/text"
     # RO text (code) section in qtwebkit.dll exceeds allocated space for gcce udeb target.
     # Move RW-section base address to start from 0xE00000 instead of the toolchain default 0x400000.
     MMP_RULES += "LINKEROPTION  armcc --rw-base 0xE00000"
@@ -47,7 +50,6 @@ GENERATED_SOURCES_DIR_SLASH = $$GENERATED_SOURCES_DIR${QMAKE_DIR_SEP}
 
 unix {
     QMAKE_PKGCONFIG_REQUIRES = QtCore QtGui QtNetwork
-    lessThan(QT_MINOR_VERSION, 4): QMAKE_PKGCONFIG_REQUIRES += QtXml
 }
 
 unix:!mac:*-g++*:QMAKE_CXXFLAGS += -ffunction-sections -fdata-sections 
@@ -128,7 +130,7 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 }
 
 !contains(DEFINES, ENABLE_DASHBOARD_SUPPORT=.): DEFINES += ENABLE_DASHBOARD_SUPPORT=0
-!contains(DEFINES, ENABLE_FILTERS=.): DEFINES += ENABLE_FILTERS=0
+!contains(DEFINES, ENABLE_FILTERS=.): DEFINES += ENABLE_FILTERS=1
 !contains(DEFINES, ENABLE_XPATH=.): DEFINES += ENABLE_XPATH=1
 #!contains(DEFINES, ENABLE_XBL=.): DEFINES += ENABLE_XBL=1
 !contains(DEFINES, ENABLE_WCSS=.): DEFINES += ENABLE_WCSS=0
@@ -177,7 +179,10 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
     else:DEFINES += ENABLE_XSLT=0
 }
 
-DEFINES += WTF_USE_JAVASCRIPTCORE_BINDINGS=1 WTF_CHANGES=1
+DEFINES += WTF_CHANGES=1
+
+# Enable touch event support with Qt 4.6
+!lessThan(QT_MINOR_VERSION, 6): DEFINES += ENABLE_TOUCH_EVENTS=1
 
 # Used to compute defaults for the build-webkit script
 CONFIG(compute_defaults) {
@@ -250,7 +255,6 @@ INCLUDEPATH = \
     $$INCLUDEPATH
 
 QT += network
-lessThan(QT_MINOR_VERSION, 4): QT += xml
 
 QMAKE_EXTRA_TARGETS += generated_files
 
@@ -331,6 +335,7 @@ IDL_BINDINGS += \
     dom/Clipboard.idl \
     dom/CDATASection.idl \
     dom/Comment.idl \
+    dom/CompositionEvent.idl \
     dom/DocumentFragment.idl \
     dom/Document.idl \
     dom/DocumentType.idl \
@@ -358,12 +363,16 @@ IDL_BINDINGS += \
     dom/Notation.idl \
     dom/OverflowEvent.idl \
     dom/PageTransitionEvent.idl \
+    dom/PopStateEvent.idl \
     dom/ProcessingInstruction.idl \
     dom/ProgressEvent.idl \
     dom/RangeException.idl \
     dom/Range.idl \
     dom/Text.idl \
     dom/TextEvent.idl \
+    dom/Touch.idl \
+    dom/TouchEvent.idl \
+    dom/TouchList.idl \
     dom/TreeWalker.idl \
     dom/UIEvent.idl \
     dom/WebKitAnimationEvent.idl \
@@ -463,7 +472,9 @@ IDL_BINDINGS += \
     html/TimeRanges.idl \
     html/ValidityState.idl \
     html/VoidCallback.idl \
+    inspector/InjectedScriptHost.idl \
     inspector/InspectorBackend.idl \
+    inspector/InspectorFrontendHost.idl \
     inspector/JavaScriptCallFrame.idl \
     loader/appcache/DOMApplicationCache.idl \
     page/BarInfo.idl \
@@ -492,6 +503,30 @@ IDL_BINDINGS += \
     storage/SQLResultSet.idl \
     storage/SQLResultSetRowList.idl \
     storage/SQLTransaction.idl \
+    websockets/WebSocket.idl \
+    workers/AbstractWorker.idl \
+    workers/DedicatedWorkerContext.idl \
+    workers/SharedWorker.idl \
+    workers/SharedWorkerContext.idl \
+    workers/Worker.idl \
+    workers/WorkerContext.idl \
+    workers/WorkerLocation.idl \
+    xml/DOMParser.idl \
+    xml/XMLHttpRequest.idl \
+    xml/XMLHttpRequestException.idl \
+    xml/XMLHttpRequestProgressEvent.idl \
+    xml/XMLHttpRequestUpload.idl \
+    xml/XMLSerializer.idl \
+    xml/XPathNSResolver.idl \
+    xml/XPathException.idl \
+    xml/XPathExpression.idl \
+    xml/XPathResult.idl \
+    xml/XPathEvaluator.idl \
+    xml/XSLTProcessor.idl
+
+contains(DEFINES, ENABLE_SVG=1) {
+
+  IDL_BINDINGS += \
     svg/SVGZoomEvent.idl \
     svg/SVGAElement.idl \
     svg/SVGAltGlyphElement.idl \
@@ -624,28 +659,9 @@ IDL_BINDINGS += \
     svg/SVGTSpanElement.idl \
     svg/SVGUnitTypes.idl \
     svg/SVGUseElement.idl \
-    svg/SVGViewElement.idl \
-    websockets/WebSocket.idl \
-    workers/AbstractWorker.idl \
-    workers/DedicatedWorkerContext.idl \
-    workers/SharedWorker.idl \
-    workers/SharedWorkerContext.idl \
-    workers/Worker.idl \
-    workers/WorkerContext.idl \
-    workers/WorkerLocation.idl \
-    xml/DOMParser.idl \
-    xml/XMLHttpRequest.idl \
-    xml/XMLHttpRequestException.idl \
-    xml/XMLHttpRequestProgressEvent.idl \
-    xml/XMLHttpRequestUpload.idl \
-    xml/XMLSerializer.idl \
-    xml/XPathNSResolver.idl \
-    xml/XPathException.idl \
-    xml/XPathExpression.idl \
-    xml/XPathResult.idl \
-    xml/XPathEvaluator.idl \
-    xml/XSLTProcessor.idl
+    svg/SVGViewElement.idl
 
+}
 
 SOURCES += \
     accessibility/AccessibilityImageMapLink.cpp \
@@ -716,8 +732,9 @@ SOURCES += \
     bindings/js/JSHTMLSelectElementCustom.cpp \
     bindings/js/JSImageConstructor.cpp \
     bindings/js/JSImageDataCustom.cpp \
+    bindings/js/JSInjectedScriptHostCustom.cpp \
     bindings/js/JSInspectedObjectWrapper.cpp \
-    bindings/js/JSInspectorBackendCustom.cpp \
+    bindings/js/JSInspectorFrontendHostCustom.cpp \
     bindings/js/JSInspectorCallbackWrapper.cpp \
     bindings/js/JSLocationCustom.cpp \
     bindings/js/JSNamedNodeMapCustom.cpp \
@@ -750,6 +767,7 @@ SOURCES += \
     bindings/js/JSEventListener.cpp \
     bindings/js/JSLazyEventListener.cpp \
     bindings/js/JSPluginElementFunctions.cpp \
+    bindings/js/JSPopStateEventCustom.cpp \
     bindings/js/ScriptArray.cpp \
     bindings/js/ScriptCachedFrameData.cpp \
     bindings/js/ScriptCallFrame.cpp \
@@ -758,7 +776,6 @@ SOURCES += \
     bindings/js/ScriptEventListener.cpp \
     bindings/js/ScriptFunctionCall.cpp \
     bindings/js/ScriptObject.cpp \
-    bindings/js/ScriptObjectQuarantine.cpp \
     bindings/js/ScriptState.cpp \
     bindings/js/ScriptValue.cpp \
     bindings/js/ScheduledAction.cpp \
@@ -845,13 +862,13 @@ SOURCES += \
     dom/CharacterData.cpp \
     dom/CheckedRadioButtons.cpp \
     dom/ChildNodeList.cpp \
-    dom/ClassNames.cpp \
     dom/ClassNodeList.cpp \
     dom/ClientRect.cpp \
     dom/ClientRectList.cpp \
     dom/Clipboard.cpp \
     dom/ClipboardEvent.cpp \
     dom/Comment.cpp \
+    dom/CompositionEvent.cpp \
     dom/ContainerNode.cpp \
     dom/CSSMappedAttributeDeclaration.cpp \
     dom/Document.cpp \
@@ -891,6 +908,7 @@ SOURCES += \
     dom/OptionElement.cpp \
     dom/OverflowEvent.cpp \
     dom/PageTransitionEvent.cpp \
+    dom/PopStateEvent.cpp \
     dom/Position.cpp \
     dom/PositionIterator.cpp \
     dom/ProcessingInstruction.cpp \
@@ -902,12 +920,16 @@ SOURCES += \
     dom/ScriptExecutionContext.cpp \
     dom/SelectElement.cpp \
     dom/SelectorNodeList.cpp \
+    dom/SpaceSplitString.cpp \
     dom/StaticNodeList.cpp \
     dom/StyledElement.cpp \
     dom/StyleElement.cpp \
     dom/TagNodeList.cpp \
     dom/Text.cpp \
     dom/TextEvent.cpp \
+    dom/Touch.cpp \
+    dom/TouchEvent.cpp \
+    dom/TouchList.cpp \
     dom/Traversal.cpp \
     dom/TreeWalker.cpp \
     dom/UIEvent.cpp \
@@ -1066,16 +1088,19 @@ SOURCES += \
     html/HTMLTokenizer.cpp \
     html/HTMLUListElement.cpp \
     html/HTMLViewSourceDocument.cpp \
+    html/ISODateTime.cpp \
     html/ImageData.cpp \
     html/PreloadScanner.cpp \
     html/ValidityState.cpp \
     inspector/ConsoleMessage.cpp \
+    inspector/InjectedScriptHost.cpp \
     inspector/InspectorBackend.cpp \
     inspector/InspectorController.cpp \
     inspector/InspectorDatabaseResource.cpp \
     inspector/InspectorDOMAgent.cpp \
     inspector/InspectorDOMStorageResource.cpp \
     inspector/InspectorFrontend.cpp \
+    inspector/InspectorFrontendHost.cpp \
     inspector/InspectorResource.cpp \
     inspector/InspectorTimelineAgent.cpp \
     inspector/TimelineRecordFactory.cpp \
@@ -1181,8 +1206,8 @@ SOURCES += \
     platform/FileChooser.cpp \
     platform/GeolocationService.cpp \
     platform/image-decoders/qt/RGBA32BufferQt.cpp \
-    platform/graphics/filters/FEGaussianBlur.cpp \
     platform/graphics/FontDescription.cpp \
+    platform/graphics/FontFallbackList.cpp \
     platform/graphics/FontFamily.cpp \
     platform/graphics/BitmapImage.cpp \
     platform/graphics/Color.cpp \
@@ -1193,6 +1218,7 @@ SOURCES += \
     platform/graphics/FloatSize.cpp \
     platform/graphics/FontData.cpp \
     platform/graphics/Font.cpp \
+    platform/graphics/FontCache.cpp \
     platform/graphics/GeneratedImage.cpp \
     platform/graphics/Gradient.cpp \
     platform/graphics/GraphicsContext.cpp \
@@ -1434,7 +1460,6 @@ HEADERS += \
     bindings/js/ScriptEventListener.h \
     bindings/js/ScriptFunctionCall.h \
     bindings/js/ScriptObject.h \
-    bindings/js/ScriptObjectQuarantine.h \
     bindings/js/ScriptSourceCode.h \
     bindings/js/ScriptSourceProvider.h \
     bindings/js/ScriptState.h \
@@ -1526,7 +1551,6 @@ HEADERS += \
     dom/CharacterData.h \
     dom/CheckedRadioButtons.h \
     dom/ChildNodeList.h \
-    dom/ClassNames.h \
     dom/ClassNodeList.h \
     dom/ClientRect.h \
     dom/ClientRectList.h \
@@ -1583,12 +1607,16 @@ HEADERS += \
     dom/ScriptExecutionContext.h \
     dom/SelectElement.h \
     dom/SelectorNodeList.h \
+    dom/SpaceSplitString.h \
     dom/StaticNodeList.h \
     dom/StyledElement.h \
     dom/StyleElement.h \
     dom/TagNodeList.h \
     dom/TextEvent.h \
     dom/Text.h \
+    dom/Touch.h \
+    dom/TouchEvent.h \
+    dom/TouchList.h \
     dom/TransformSource.h \
     dom/Traversal.h \
     dom/TreeWalker.h \
@@ -1746,16 +1774,19 @@ HEADERS += \
     html/HTMLUListElement.h \
     html/HTMLVideoElement.h \
     html/HTMLViewSourceDocument.h \
+    html/ISODateTime.h \
     html/ImageData.h \
     html/PreloadScanner.h \
     html/TimeRanges.h \
     html/ValidityState.h \
     inspector/ConsoleMessage.h \
+    inspector/InjectedScriptHost.h \
     inspector/InspectorBackend.h \
     inspector/InspectorController.h \
     inspector/InspectorDatabaseResource.h \
     inspector/InspectorDOMStorageResource.h \
     inspector/InspectorFrontend.h \
+    inspector/InspectorFrontendHost.h \
     inspector/InspectorResource.h \
     inspector/InspectorTimelineAgent.h \
     inspector/JavaScriptCallFrame.h \
@@ -1821,6 +1852,7 @@ HEADERS += \
     page/Chrome.h \
     page/Console.h \
     page/ContextMenuController.h \
+    page/ContextMenuSelectionHandler.h \
     page/Coordinates.h \
     page/DOMSelection.h \
     page/DOMTimer.h \
@@ -1929,6 +1961,8 @@ HEADERS += \
     platform/network/ResourceHandle.h \
     platform/network/ResourceRequestBase.h \
     platform/network/ResourceResponseBase.h \
+    platform/PlatformTouchEvent.h \
+    platform/PlatformTouchPoint.h \
     platform/qt/ClipboardQt.h \
     platform/qt/QWebPageClient.h \
     platform/qt/QWebPopup.h \
@@ -2345,7 +2379,6 @@ SOURCES += \
     platform/graphics/qt/TransformationMatrixQt.cpp \
     platform/graphics/qt/ColorQt.cpp \
     platform/graphics/qt/FontQt.cpp \
-    platform/graphics/qt/FontQt43.cpp \
     platform/graphics/qt/FontPlatformDataQt.cpp \
     platform/graphics/qt/FloatPointQt.cpp \
     platform/graphics/qt/FloatRectQt.cpp \
@@ -2379,7 +2412,6 @@ SOURCES += \
     platform/qt/SharedBufferQt.cpp \
     platform/graphics/qt/FontCacheQt.cpp \
     platform/graphics/qt/FontCustomPlatformData.cpp \
-    platform/graphics/qt/FontFallbackListQt.cpp \
     platform/graphics/qt/GlyphPageTreeNodeQt.cpp \
     platform/graphics/qt/SimpleFontDataQt.cpp \
     platform/qt/KURLQt.cpp \
@@ -2389,6 +2421,8 @@ SOURCES += \
     platform/qt/PlatformKeyboardEventQt.cpp \
     platform/qt/PlatformMouseEventQt.cpp \
     platform/qt/PlatformScreenQt.cpp \
+    platform/qt/PlatformTouchEventQt.cpp \
+    platform/qt/PlatformTouchPointQt.cpp \
     platform/qt/PopupMenuQt.cpp \
     platform/qt/QWebPopup.cpp \
     platform/qt/RenderThemeQt.cpp \
@@ -2401,7 +2435,7 @@ SOURCES += \
     platform/qt/LoggingQt.cpp \
     platform/text/qt/StringQt.cpp \
     platform/qt/TemporaryLinkStubs.cpp \
-    platform/text/qt/TextBoundaries.cpp \
+    platform/text/qt/TextBoundariesQt.cpp \
     platform/text/qt/TextBreakIteratorQt.cpp \
     platform/text/qt/TextCodecQt.cpp \
     platform/qt/WheelEventQt.cpp \
@@ -2447,20 +2481,6 @@ SOURCES += \
         LIBS += -lwinmm
     }
     wince*: LIBS += -lmmtimer
-
-    # Files belonging to the Qt 4.3 build
-    lessThan(QT_MINOR_VERSION, 4) {
-        HEADERS += \
-            $$PWD/../WebKit/qt/Api/qwebnetworkinterface.h \
-            $$PWD/../WebKit/qt/Api/qwebnetworkinterface_p.h \
-            $$PWD/../WebKit/qt/Api/qcookiejar.h
-
-        SOURCES += \
-            ../WebKit/qt/Api/qwebnetworkinterface.cpp \
-            ../WebKit/qt/Api/qcookiejar.cpp
-
-        DEFINES += QT_BEGIN_NAMESPACE="" QT_END_NAMESPACE=""
-     }
 
 contains(DEFINES, ENABLE_NETSCAPE_PLUGIN_API=1) {
 
@@ -2549,6 +2569,10 @@ contains(DEFINES, ENABLE_DATAGRID=1) {
 
 contains(DEFINES, ENABLE_EVENTSOURCE=1) {
     FEATURE_DEFINES_JAVASCRIPT += ENABLE_EVENTSOURCE=1
+}
+
+contains(DEFINES, ENABLE_TOUCH_EVENTS=1) {
+    FEATURE_DEFINES_JAVASCRIPT += ENABLE_TOUCH_EVENTS=1
 }
 
 contains(DEFINES, ENABLE_SQLITE=1) {

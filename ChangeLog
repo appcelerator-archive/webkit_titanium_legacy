@@ -1,3 +1,182 @@
+2009-12-10  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] Should provide an API to control the IconDatabase
+        https://bugs.webkit.org/show_bug.cgi?id=32334
+
+        Add test to make sure favicon reporting works.
+
+        * GNUmakefile.am:
+
+2009-12-09  Steve Block  <steveblock@google.com>
+
+        Reviewed by Adam Barth.
+
+        Adds Android Makefiles for building with V8.
+        https://bugs.webkit.org/show_bug.cgi?id=32278
+
+        * Android.mk: Modified. Includes Makefiles for V8.
+
+2009-12-08  Steve Block  <steveblock@google.com>
+
+        Reviewed by Adam Barth.
+
+        [Android] Adds Makefiles for Android port.
+        https://bugs.webkit.org/show_bug.cgi?id=31325
+
+        * Android.mk: Added.
+
+2009-12-08  Christian Dywan  <christian@twotoasts.de>
+
+        Reviewed by Xan Lopez.
+
+        * configure.ac: Require only libSoup 2.27.91 but check for 2.29.3
+        and define HAVE_LIBSOUP_2_29_3 in that case.
+
+2009-12-08  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Xan Lopez.
+
+        Late post-release version bump.
+
+        * configure.ac:
+
+2009-12-08  Dominik Röttsches  <dominik.roettsches@access-company.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [Gtk] Create a TextBreakIterator implementation based on GLib (without ICU)
+        https://bugs.webkit.org/show_bug.cgi?id=31469
+
+        Removing hybrid configuration for --with-unicode-backend=glib
+        ICU not required anymore.
+
+        * autotools/webkit.m4:
+
+2009-12-08  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Rubber-stamped by Maciej Stachowiak.
+
+        Turn on (SVG) Filters for Gtk.
+        https://bugs.webkit.org/show_bug.cgi?id=32224
+
+        * configure.ac:
+
+2009-12-07  Dmitry Titov  <dimich@chromium.org>
+
+        Rubber-stamped by Darin Adler.
+
+        Remove ENABLE_SHARED_SCRIPT flags
+        https://bugs.webkit.org/show_bug.cgi?id=32245
+        This patch was obtained by "git revert" command and then un-reverting of ChangeLog files.
+
+        * configure.ac:
+
+2009-12-06  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        Build the new API test.
+
+        [GTK] REGRESSION: webkit thinks it can render PDFs
+        https://bugs.webkit.org/show_bug.cgi?id=32183
+
+        * GNUmakefile.am:
+
+2009-12-05  Vincent Untz <vuntz@gnome.org>
+
+        Reviewed by Gustavo Noronha.
+
+        Fixes race for builds with introspection enabled, and parallel
+        make.
+
+        * GNUmakefile.am:
+
+2009-12-04  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        [GTK]Enable DNS prefetching
+        https://bugs.webkit.org/show_bug.cgi?id=23846
+
+        Bump libsoup required version to 2.29.3 for DNS prefetching.
+
+        * configure.ac:
+
+2009-11-30  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Xan Lopez.
+
+        Make sure we distribute and install GObject Introspection files.
+
+        * GNUmakefile.am:
+
+2009-11-30  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Build fix. Make sure JSCore-1.0.gir is added to the distributed
+        tarball.
+
+        * GNUmakefile.am:
+
+2009-11-30  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Bump versions for 1.1.17 release.
+
+        * configure.ac:
+
+2009-11-30  Jan-Arve Sæther  <jan-arve.saether@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Fix compilation with win32-icc
+
+        Include os-win32 for stdint.h since MS does not ship that in their PSDK.
+
+        * WebKit.pri:
+
+2009-11-26  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Oliver Hunt.
+
+        Move GOwnPtr* from wtf to wtf/gtk
+        https://bugs.webkit.org/show_bug.cgi?id=31793
+
+        * GNUmakefile.am: Add JavaScriptCore/wtf/gtk to 
+          the include path.
+
+2009-11-24  Dmitry Titov  <dimich@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Add ENABLE_SHARED_SCRIPT feature define and flag for build-webkit
+        https://bugs.webkit.org/show_bug.cgi?id=31444
+
+        * configure.ac:
+
+2009-11-24  Jason Smith  <dark.panda@gmail.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        RegExp#exec's returned Array-like object behaves differently from
+        regular Arrays
+        https://bugs.webkit.org/show_bug.cgi?id=31689
+
+        * LayoutTests/fast/js/regexp-in-and-foreach-handling.html: Added.
+        * LayoutTests/fast/js/script-tests/regexp-in-and-foreach-handling.js: Added.
+        * LayoutTests/fast/js/regexp-in-and-foreach-handling-expected.txt: Added.
+
+2009-11-24  Jens Alfke  <snej@chromium.org>
+
+        Reviewed by David Levin.
+
+        Ignore Chromium's Xcode projects that are auto-generated from .gyp files.
+        https://bugs.webkit.org/show_bug.cgi?id=31847
+        
+        * .gitignore:  Add three .xcodeproj files.
+
 2009-11-09  Priit Laes  <plaes@plaes.org>
 
         Reviewed by Oliver Hunt.

@@ -63,6 +63,7 @@ public:
     virtual void setPluginsEnabled(bool);
     virtual void setDOMPasteAllowed(bool);
     virtual void setDeveloperExtrasEnabled(bool);
+    virtual void setNeedsSiteSpecificQuirks(bool);
     virtual void setShrinksStandaloneImagesToFit(bool);
     virtual void setUsesEncodingDetector(bool);
     virtual void setTextAreasAreResizable(bool);
@@ -81,6 +82,7 @@ public:
     virtual void setTextDirectionSubmenuInclusionBehaviorNeverIncluded();
     virtual void setOfflineWebApplicationCacheEnabled(bool);
     virtual void setExperimentalWebGLEnabled(bool);
+    virtual void setGeolocationEnabled(bool);
 
 private:
     WebCore::Settings* m_settings;

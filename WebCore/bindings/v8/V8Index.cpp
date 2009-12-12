@@ -46,6 +46,7 @@
 #include "V8ClientRectList.h"
 #include "V8Clipboard.h"
 #include "V8Comment.h"
+#include "V8CompositionEvent.h"
 #include "V8Console.h"
 #include "V8Counter.h"
 #include "V8CSSStyleDeclaration.h"
@@ -219,7 +220,7 @@
 #include "V8SVGSetElement.h"
 #endif
 
-#if ENABLE(SVG_FILTERS)
+#if ENABLE(SVG) && ENABLE(FILTERS)
 #include "V8SVGComponentTransferFunctionElement.h"
 #include "V8SVGFEBlendElement.h"
 #include "V8SVGFEColorMatrixElement.h"
@@ -237,6 +238,7 @@
 #include "V8SVGFEImageElement.h"
 #include "V8SVGFEMergeElement.h"
 #include "V8SVGFEMergeNodeElement.h"
+#include "V8SVGFEMorphologyElement.h"
 #include "V8SVGFEOffsetElement.h"
 #include "V8SVGFEPointLightElement.h"
 #include "V8SVGFESpecularLightingElement.h"
@@ -406,6 +408,7 @@
 #include "V8WebGLShader.h"
 #include "V8WebGLShortArray.h"
 #include "V8WebGLTexture.h"
+#include "V8WebGLUniformLocation.h"
 #include "V8WebGLUnsignedByteArray.h"
 #include "V8WebGLUnsignedIntArray.h"
 #include "V8WebGLUnsignedShortArray.h"
@@ -432,8 +435,16 @@
 #endif
 
 #if ENABLE(INSPECTOR)
+#include "V8InjectedScriptHost.h"
 #include "V8InspectorBackend.h"
+#include "V8InspectorFrontendHost.h"
 #endif
+
+// Geolocation
+#include "V8Coordinates.h"
+#include "V8Geolocation.h"
+#include "V8Geoposition.h"
+#include "V8PositionError.h"
 
 namespace WebCore {
 

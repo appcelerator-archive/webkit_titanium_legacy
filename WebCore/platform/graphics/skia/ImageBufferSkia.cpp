@@ -105,13 +105,16 @@ Image* ImageBuffer::image() const
 void ImageBuffer::platformTransformColorSpace(const Vector<int>& lookUpTable)
 {
     const SkBitmap& bitmap = *context()->platformContext()->bitmap();
+    if (bitmap.isNull())
+        return;
+
     ASSERT(bitmap.config() == SkBitmap::kARGB_8888_Config);
     SkAutoLockPixels bitmapLock(bitmap);
     for (int y = 0; y < m_size.height(); ++y) {
         uint32_t* srcRow = bitmap.getAddr32(0, y);
         for (int x = 0; x < m_size.width(); ++x) {
             SkColor color = SkPMColorToColor(srcRow[x]);
-            srcRow[x] = SkPreMultiplyARGB(lookUpTable[SkColorGetA(color)],
+            srcRow[x] = SkPreMultiplyARGB(SkColorGetA(color),
                                           lookUpTable[SkColorGetR(color)],
                                           lookUpTable[SkColorGetG(color)],
                                           lookUpTable[SkColorGetB(color)]);

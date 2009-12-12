@@ -372,6 +372,23 @@ void LayoutTestController::setXSSAuditorEnabled(bool enabled)
     prefsPrivate->setXSSAuditorEnabled(enabled);
 }
 
+void LayoutTestController::setAllowUniversalAccessFromFileURLs(bool enabled)
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebPreferences> preferences;
+    if (FAILED(webView->preferences(&preferences)))
+        return;
+
+    COMPtr<IWebPreferencesPrivate> prefsPrivate(Query, preferences);
+    if (!prefsPrivate)
+        return;
+
+    prefsPrivate->setAllowUniversalAccessFromFileURLs(enabled);
+}
+
 void LayoutTestController::setPopupBlockingEnabled(bool enabled)
 {
     COMPtr<IWebView> webView;
@@ -396,6 +413,23 @@ void LayoutTestController::setTabKeyCyclesThroughElements(bool shouldCycle)
         return;
 
     viewPrivate->setTabKeyCyclesThroughElements(shouldCycle ? TRUE : FALSE);
+}
+
+void LayoutTestController::setTimelineProfilingEnabled(bool flag)
+{
+    COMPtr<IWebView> webView;
+    if (FAILED(frame->webView(&webView)))
+        return;
+
+    COMPtr<IWebViewPrivate> viewPrivate;
+    if (FAILED(webView->QueryInterface(&viewPrivate)))
+        return;
+
+    COMPtr<IWebInspector> inspector;
+    if (FAILED(viewPrivate->inspector(&inspector)))
+        return;
+
+    inspector->setTimelineProfilingEnabled(flag);
 }
 
 void LayoutTestController::setUseDashboardCompatibilityMode(bool flag)
@@ -659,7 +693,7 @@ static void CALLBACK waitUntilDoneWatchdogFired(HWND, UINT, UINT_PTR, DWORD)
 void LayoutTestController::setWaitToDump(bool waitUntilDone)
 {
     m_waitToDump = waitUntilDone;
-    if (false && m_waitToDump && !waitToDumpWatchdog)
+    if (m_waitToDump && !waitToDumpWatchdog)
         waitToDumpWatchdog = SetTimer(0, 0, waitToDumpWatchdogInterval * 1000, waitUntilDoneWatchdogFired);
 }
 
@@ -827,6 +861,31 @@ bool LayoutTestController::pauseTransitionAtTimeOnElementWithId(JSStringRef prop
     return SUCCEEDED(hr) && wasRunning;
 }
 
+bool LayoutTestController::sampleSVGAnimationForElementAtTime(JSStringRef animationId, double time, JSStringRef elementId)
+{
+    COMPtr<IDOMDocument> document;
+    if (FAILED(frame->DOMDocument(&document)))
+        return false;
+
+    BSTR idBSTR = JSStringCopyBSTR(animationId);
+    COMPtr<IDOMElement> element;
+    HRESULT hr = document->getElementById(idBSTR, &element);
+    SysFreeString(idBSTR);
+    if (FAILED(hr))
+        return false;
+
+    COMPtr<IWebFramePrivate> framePrivate(Query, frame);
+    if (!framePrivate)
+        return false;
+
+    BSTR elementIdBSTR = JSStringCopyBSTR(elementId);
+    BOOL wasRunning = FALSE;
+    hr = framePrivate->pauseSVGAnimation(elementIdBSTR, element.get(), time, &wasRunning);
+    SysFreeString(elementIdBSTR);
+
+    return SUCCEEDED(hr) && wasRunning;
+}
+
 unsigned LayoutTestController::numberOfActiveAnimations() const
 {
     COMPtr<IWebFramePrivate> framePrivate(Query, frame);
@@ -955,6 +1014,24 @@ void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef scrip
     inspectorPrivate->evaluateInFrontend(callId, bstrT(script).GetBSTR());
 }
 
+typedef HashMap<unsigned, COMPtr<IWebScriptWorld> > WorldMap;
+static WorldMap& worldMap()
+{
+    static WorldMap& map = *new WorldMap;
+    return map;
+}
+
+unsigned worldIDForWorld(IWebScriptWorld* world)
+{
+    WorldMap::const_iterator end = worldMap().end();
+    for (WorldMap::const_iterator it = worldMap().begin(); it != end; ++it) {
+        if (it->second == world)
+            return it->first;
+    }
+
+    return 0;
+}
+
 void LayoutTestController::evaluateScriptInIsolatedWorld(unsigned worldID, JSObjectRef globalObject, JSStringRef script)
 {
     COMPtr<IWebFramePrivate> framePrivate(Query, frame);
@@ -968,9 +1045,7 @@ void LayoutTestController::evaluateScriptInIsolatedWorld(unsigned worldID, JSObj
         if (FAILED(WebKitCreateInstance(__uuidof(WebScriptWorld), 0, __uuidof(world), reinterpret_cast<void**>(&world))))
             return;
     } else {
-        typedef HashMap<unsigned, COMPtr<IWebScriptWorld> > WorldMap;
-        static WorldMap& worldMap = *new WorldMap;
-        COMPtr<IWebScriptWorld>& worldSlot = worldMap.add(worldID, 0).first->second;
+        COMPtr<IWebScriptWorld>& worldSlot = worldMap().add(worldID, 0).first->second;
         if (!worldSlot && FAILED(WebKitCreateInstance(__uuidof(WebScriptWorld), 0, __uuidof(worldSlot), reinterpret_cast<void**>(&worldSlot))))
             return;
         world = worldSlot;

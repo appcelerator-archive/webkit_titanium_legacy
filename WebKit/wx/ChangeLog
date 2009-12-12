@@ -1,3 +1,105 @@
+2009-12-08  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        [wx] Mac plugins support.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32236
+
+        * WebKitSupport/FrameLoaderClientWx.cpp:
+        (WebCore::FrameLoaderClientWx::createPlugin):
+        (WebCore::FrameLoaderClientWx::redirectDataToPlugin):
+        * WebView.cpp:
+        (wxWebView::Create):
+
+2009-12-03  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        <rdar://problem/7214236> and http://webkit.org/b/32052 - Implement HTML5 state object history API
+
+        * WebKitSupport/FrameLoaderClientWx.cpp:
+        (WebCore::FrameLoaderClientWx::dispatchDidPushStateWithinPage):
+        (WebCore::FrameLoaderClientWx::dispatchDidReplaceStateWithinPage):
+        (WebCore::FrameLoaderClientWx::dispatchDidPopStateWithinPage):
+        * WebKitSupport/FrameLoaderClientWx.h:
+
+2009-12-03  Pavel Feldman  <pfeldman@dhcp-172-28-174-220.spb.corp.google.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: Simplify the settings support in inspector controller.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32076
+
+        * WebKitSupport/InspectorClientWx.cpp:
+        (WebCore::InspectorClientWx::populateSetting):
+        (WebCore::InspectorClientWx::storeSetting):
+        * WebKitSupport/InspectorClientWx.h:
+
+2009-12-03  Ben Murdoch  <benm@google.com>
+
+        Reviewed by Brady Eidson.
+
+        [Android] The FrameLoaderClient is unaware of BackForwardList changes.
+        https://bugs.webkit.org/show_bug.cgi?id=31914
+
+        * WebKitSupport/FrameLoaderClientWx.cpp:
+        (WebCore::FrameLoaderClientWx::dispatchDidAddBackForwardItem): Add an empty implementation. Method added to FrameLoaderClient by Android (see bug).
+        (WebCore::FrameLoaderClientWx::dispatchDidRemoveBackForwardItem): ditto.
+        (WebCore::FrameLoaderClientWx::dispatchDidChangeBackForwardIndex): ditto.
+        * WebKitSupport/FrameLoaderClientWx.h:
+
+2009-11-23  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        Include "config.h" to meet Coding Style Guidelines
+        https://bugs.webkit.org/show_bug.cgi?id=31792
+
+        * WebKitSupport/DragClientWx.cpp:
+
+2009-11-18  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        Enable wx plugin support using the Windows implementation as a base.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=31636
+
+        * WebKitSupport/FrameLoaderClientWx.cpp:
+        (WebCore::FrameLoaderClientWx::FrameLoaderClientWx):
+        (WebCore::FrameLoaderClientWx::finishedLoading):
+        (WebCore::FrameLoaderClientWx::committedLoad):
+        (WebCore::FrameLoaderClientWx::createPlugin):
+        (WebCore::FrameLoaderClientWx::redirectDataToPlugin):
+        (WebCore::FrameLoaderClientWx::shouldUsePluginDocument):
+        * WebKitSupport/FrameLoaderClientWx.h:
+        * WebView.cpp:
+        (wxWebView::Create):
+
+2009-11-13  Kevin Ollivier  <kevino@theolliviers.com>
+
+        wx build fix after r50923 change to externalRepresentation.
+
+        * WebFrame.cpp:
+        (wxWebFrame::GetExternalRepresentation):
+
+2009-11-13  Adam Roben  <aroben@apple.com>
+
+        Update for changes to FrameLoaderClient
+
+        Fixes <http://webkit.org/b/31124> Tell the WebFrameLoadDelegate when
+        window objects in isolated worlds are cleared
+
+        Reviewed by Dave Hyatt.
+
+        * WebKitSupport/FrameLoaderClientWx.cpp:
+        (WebCore::FrameLoaderClientWx::dispatchDidClearWindowObjectInWorld):
+        * WebKitSupport/FrameLoaderClientWx.h:
+        Replaced windowObjectCleared with this function. Does nothing if the
+        passed-in world is not the mainThreadNormalWorld().
+
 2009-11-10  Robin Dunn  <robin@alldunn.com>
 
         Reviewed by Kevin Ollivier.

@@ -108,7 +108,7 @@ void FrameLoaderClientImpl::frameLoaderDestroyed()
     m_webFrame->deref();
 }
 
-void FrameLoaderClientImpl::windowObjectCleared()
+void FrameLoaderClientImpl::dispatchDidClearWindowObjectInWorld(DOMWrapperWorld*)
 {
     if (m_webFrame->client())
         m_webFrame->client()->didClearWindowObject(m_webFrame);
@@ -216,6 +216,10 @@ void FrameLoaderClientImpl::detachedFromParent3()
     // go to a page and then navigate to a new page without getting any asserts
     // or crashes.
     m_webFrame->frame()->script()->proxy()->clearForClose();
+    
+    // Stop communicating with the WebFrameClient at this point since we are no
+    // longer associated with the Page.
+    m_webFrame->dropClient();
 }
 
 // This function is responsible for associating the |identifier| with a given
@@ -233,8 +237,8 @@ void FrameLoaderClientImpl::assignIdentifierToInitialRequest(
     }
 }
 
-// Determines whether the request being loaded by |loader| is a frame or a
-// subresource. A subresource in this context is anything other than a frame --
+// If the request being loaded by |loader| is a frame, update the ResourceType.
+// A subresource in this context is anything other than a frame --
 // this includes images and xmlhttp requests.  It is important to note that a
 // subresource is NOT limited to stuff loaded through the frame's subresource
 // loader. Synchronous xmlhttp requests for example, do not go through the
@@ -242,14 +246,16 @@ void FrameLoaderClientImpl::assignIdentifierToInitialRequest(
 //
 // The important edge cases to consider when modifying this function are
 // how synchronous resource loads are treated during load/unload threshold.
-static ResourceRequest::TargetType determineTargetTypeFromLoader(DocumentLoader* loader)
+static void setTargetTypeFromLoader(ResourceRequest& request, DocumentLoader* loader)
 {
     if (loader == loader->frameLoader()->provisionalDocumentLoader()) {
+        ResourceRequest::TargetType type;
         if (loader->frameLoader()->isLoadingMainFrame())
-            return ResourceRequest::TargetIsMainFrame;
-        return ResourceRequest::TargetIsSubFrame;
+            type = ResourceRequest::TargetIsMainFrame;
+        else
+            type = ResourceRequest::TargetIsSubframe;
+        request.setTargetType(type);
     }
-    return ResourceRequest::TargetIsSubResource;
 }
 
 void FrameLoaderClientImpl::dispatchWillSendRequest(
@@ -259,7 +265,13 @@ void FrameLoaderClientImpl::dispatchWillSendRequest(
     if (loader) {
         // We want to distinguish between a request for a document to be loaded into
         // the main frame, a sub-frame, or the sub-objects in that document.
-        request.setTargetType(determineTargetTypeFromLoader(loader));
+        setTargetTypeFromLoader(request, loader);
+
+        // Avoid repeating a form submission when navigating back or forward.
+        if (loader == loader->frameLoader()->provisionalDocumentLoader()
+            && request.httpMethod() == "POST"
+            && isBackForwardLoadType(loader->frameLoader()->loadType()))
+            request.setCachePolicy(ReturnCacheDataDontLoad);
     }
 
     // FrameLoader::loadEmptyDocumentSynchronously() creates an empty document
@@ -533,7 +545,16 @@ void FrameLoaderClientImpl::dispatchDidChangeLocationWithinPage()
     // Anchor fragment navigations are not normal loads, so we need to synthesize
     // some events for our delegate.
     WebViewImpl* webView = m_webFrame->viewImpl();
-    if (webView->client())
+
+    // Flag of whether frame loader is completed. Generate didStartLoading and
+    // didStopLoading only when loader is completed so that we don't fire
+    // them for fragment redirection that happens in window.onload handler.
+    // See https://bugs.webkit.org/show_bug.cgi?id=31838
+    bool loaderCompleted =
+        !m_webFrame->frame()->page()->mainFrame()->loader()->isLoading();
+
+    // Generate didStartLoading if loader is completed.
+    if (webView->client() && loaderCompleted)
         webView->client()->didStartLoading();
 
     WebDataSourceImpl* ds = m_webFrame->dataSourceImpl();
@@ -579,8 +600,24 @@ void FrameLoaderClientImpl::dispatchDidChangeLocationWithinPage()
     if (m_webFrame->client())
         m_webFrame->client()->didChangeLocationWithinPage(m_webFrame, isNewNavigation);
 
-    if (webView->client())
+    // Generate didStopLoading if loader is completed.
+    if (webView->client() && loaderCompleted)
         webView->client()->didStopLoading();
+}
+
+void FrameLoaderClientImpl::dispatchDidPushStateWithinPage()
+{
+    // FIXME
+}
+
+void FrameLoaderClientImpl::dispatchDidReplaceStateWithinPage()
+{
+    // FIXME
+}
+
+void FrameLoaderClientImpl::dispatchDidPopStateWithinPage()
+{
+    // FIXME
 }
 
 void FrameLoaderClientImpl::dispatchWillClose()
@@ -1038,6 +1075,18 @@ bool FrameLoaderClientImpl::shouldGoToHistoryItem(HistoryItem*) const
 {
     // FIXME
     return true;
+}
+
+void FrameLoaderClientImpl::dispatchDidAddBackForwardItem(HistoryItem*) const
+{
+}
+
+void FrameLoaderClientImpl::dispatchDidRemoveBackForwardItem(HistoryItem*) const
+{
+}
+
+void FrameLoaderClientImpl::dispatchDidChangeBackForwardIndex() const
+{
 }
 
 void FrameLoaderClientImpl::didDisplayInsecureContent()

@@ -96,6 +96,11 @@ bool Event::isTextEvent() const
     return false;
 }
 
+bool Event::isCompositionEvent() const
+{
+    return false;
+}
+
 bool Event::isDragEvent() const
 {
     return false;
@@ -127,6 +132,11 @@ bool Event::isOverflowEvent() const
 }
 
 bool Event::isPageTransitionEvent() const
+{
+    return false;
+}
+
+bool Event::isPopStateEvent() const
 {
     return false;
 }
@@ -176,7 +186,14 @@ bool Event::isErrorEvent() const
     return false;
 }
 #endif
-    
+
+#if ENABLE(TOUCH_EVENTS)
+bool Event::isTouchEvent() const
+{
+    return false;
+}
+#endif
+
 bool Event::storesResultAsString() const
 {
     return false;

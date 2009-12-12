@@ -41,6 +41,7 @@ vars = {
   'gyp_rev': '751',
   'icu_rev': '31724',
   'openvcdiff_rev': '28',
+  'ots_rev': '19',
   'skia_rev': '424',
   'v8_rev': '3276',
 
@@ -55,8 +56,6 @@ deps = {
   # build tools
   'build':
     Var('chromium_svn')+'/build@'+Var('chromium_rev'),
-  'webkit/build':
-      Var('chromium_svn')+'/webkit/build@'+Var('chromium_rev'),
   'tools/gyp':
     'http://gyp.googlecode.com/svn/trunk@'+Var('gyp_rev'),
 
@@ -120,6 +119,9 @@ deps = {
   'third_party/npapi':
     Var('chromium_svn')+'/third_party/npapi@'+Var('chromium_rev'),
 
+  'third_party/ots':
+    'http://ots.googlecode.com/svn/trunk@'+Var('ots_rev'),
+
   'third_party/sqlite':
     Var('chromium_svn')+'/third_party/sqlite@'+Var('chromium_rev'),
 
@@ -140,6 +142,14 @@ deps_os = {
 
     'third_party/pthreads-win32':
       Var('chromium_deps_svn')+'/pthreads-win32@'+Var('pthreads-win32_rev'),
+  },
+  'unix': {
+    # Linux, actually.
+    'third_party/harfbuzz':
+      Var('chromium_svn')+'/third_party/harfbuzz@'+Var('chromium_rev'),
+
+    'tools/xdisplaycheck':
+      Var('chromium_svn')+'/tools/xdisplaycheck@'+Var('chromium_rev'),
   },
 }
 

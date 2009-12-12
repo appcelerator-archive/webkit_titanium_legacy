@@ -203,12 +203,6 @@ QObject* QGraphicsWebViewPrivate::pluginParent() const
 */
 
 /*!
-    \fn void QGraphicsWebView::statusChanged()
-
-    This signal is emitted when the status bar text is changed by the page.
-*/
-
-/*!
     \fn void QGraphicsWebView::iconChanged()
 
     This signal is emitted whenever the icon of the page is loaded or changes.
@@ -224,7 +218,7 @@ QObject* QGraphicsWebViewPrivate::pluginParent() const
 
     This signal is emitted when a new load of the page is started.
 
-    \sa progressChanged(), loadFinished()
+    \sa loadProgress(), loadFinished()
 */
 
 /*!
@@ -235,22 +229,6 @@ QObject* QGraphicsWebViewPrivate::pluginParent() const
 
     \sa loadStarted()
 */
-
-/*!
-    \fn void QGraphicsWebView::progressChanged(qreal progress)
-
-    This signal is emitted every time an element in the web page
-    completes loading and the overall loading progress advances.
-
-    This signal tracks the progress of all child frames.
-
-    The current value is provided by \a progress and scales from 0.0 to 1.0,
-    which is the default range of QProgressBar.
-
-    \sa loadStarted(), loadFinished()
-*/
-
-
 
 /*!
     Constructs an empty QGraphicsWebView with parent \a parent.
@@ -264,6 +242,7 @@ QGraphicsWebView::QGraphicsWebView(QGraphicsItem* parent)
 #if QT_VERSION >= 0x040600
     setFlag(QGraphicsItem::ItemUsesExtendedStyleOption, true);
 #endif
+    setAcceptDrops(true);
     setAcceptHoverEvents(true);
     setFocusPolicy(Qt::StrongFocus);
 }
@@ -389,7 +368,6 @@ bool QGraphicsWebView::event(QEvent* event)
 #endif // QT_NO_CONTEXTMENU
         {
 #ifndef QT_NO_CURSOR
-#if QT_VERSION >= 0x040400
             if (event->type() == QEvent::CursorChange) {
                 // An unsetCursor will set the cursor to Qt::ArrowCursor.
                 // Thus this cursor change might be a QWidget::unsetCursor()
@@ -402,7 +380,6 @@ bool QGraphicsWebView::event(QEvent* event)
                 if (cursor().shape() == Qt::ArrowCursor)
                     d->resetCursor();
             }
-#endif
 #endif
         }
     }
@@ -441,22 +418,22 @@ void QGraphicsWebView::setPage(QWebPage* page)
 
     QWebFrame* mainFrame = d->page->mainFrame();
 
-    connect(mainFrame, SIGNAL(titleChanged(const QString&)),
-            this, SIGNAL(titleChanged(const QString&)));
+    connect(mainFrame, SIGNAL(titleChanged(QString)),
+            this, SIGNAL(titleChanged(QString)));
     connect(mainFrame, SIGNAL(iconChanged()),
             this, SIGNAL(iconChanged()));
-    connect(mainFrame, SIGNAL(urlChanged(const QUrl&)),
-            this, SIGNAL(urlChanged(const QUrl&)));
+    connect(mainFrame, SIGNAL(urlChanged(QUrl)),
+            this, SIGNAL(urlChanged(QUrl)));
     connect(d->page, SIGNAL(loadStarted()),
             this, SIGNAL(loadStarted()));
     connect(d->page, SIGNAL(loadProgress(int)),
             this, SIGNAL(loadProgress(int)));
     connect(d->page, SIGNAL(loadFinished(bool)),
             this, SLOT(_q_doLoadFinished(bool)));
-    connect(d->page, SIGNAL(statusBarMessage(const QString&)),
-            this, SIGNAL(statusBarMessage(const QString&)));
-    connect(d->page, SIGNAL(linkClicked(const QUrl &)),
-            this, SIGNAL(linkClicked(const QUrl &)));
+    connect(d->page, SIGNAL(statusBarMessage(QString)),
+            this, SIGNAL(statusBarMessage(QString)));
+    connect(d->page, SIGNAL(linkClicked(QUrl)),
+            this, SIGNAL(linkClicked(QUrl)));
 }
 
 /*!
@@ -897,10 +874,8 @@ bool QGraphicsWebView::focusNextPrevChild(bool next)
 void QGraphicsWebView::dragEnterEvent(QGraphicsSceneDragDropEvent* ev)
 {
 #ifndef QT_NO_DRAGANDDROP
-    //if (d->page)
-    //    d->page->event(ev);
-    //Just remove this line below when the code above is working
-    Q_UNUSED(ev);
+    if (d->page)
+        d->page->event(ev);
 #else
     Q_UNUSED(ev);
 #endif
@@ -999,54 +974,11 @@ void QGraphicsWebView::inputMethodEvent(QInputMethodEvent* ev)
     if (!ev->isAccepted())
         QGraphicsItem::inputMethodEvent(ev);
 }
-/*!
-    \fn void QGraphicsWebView::titleChanged(const QString &title)
-
-    This signal is emitted whenever the \a title of the main frame changes.
-
-    \sa title()
-*/
-
-/*!
-    \fn void QGraphicsWebView::urlChanged(const QUrl &url)
-
-    This signal is emitted when the \a url of the view changes.
-
-    \sa url(), load()
-*/
 
 /*!
     \fn void QGraphicsWebView::statusBarMessage(const QString& text)
 
     This signal is emitted when the statusbar \a text is changed by the page.
-*/
-
-/*!
-    \fn void QGraphicsWebView::iconChanged()
-
-    This signal is emitted whenever the icon of the page is loaded or changes.
-
-    In order for icons to be loaded, you will need to set an icon database path
-    using QWebSettings::setIconDatabasePath().
-
-    \sa icon(), QWebSettings::setIconDatabasePath()
-*/
-
-/*!
-    \fn void QGraphicsWebView::loadStarted()
-
-    This signal is emitted when a new load of the page is started.
-
-    \sa loadProgress(), loadFinished()
-*/
-
-/*!
-    \fn void QGraphicsWebView::loadFinished(bool ok)
-
-    This signal is emitted when a load of the page is finished.
-    \a ok will indicate whether the load was successful or any error occurred.
-
-    \sa loadStarted()
 */
 
 /*!

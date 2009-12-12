@@ -36,19 +36,23 @@
 #include "AccessibilityObject.h"
 #include "ApplicationCacheHost.h"
 #include "EditorInsertAction.h"
+#include "HTMLInputElement.h"
 #include "MediaPlayer.h"
 #include "NotificationPresenter.h"
 #include "PasteboardPrivate.h"
 #include "PlatformCursor.h"
+#include "StringImpl.h"
 #include "TextAffinity.h"
 #include "WebAccessibilityObject.h"
 #include "WebApplicationCacheHost.h"
 #include "WebClipboard.h"
 #include "WebCursorInfo.h"
 #include "WebEditingAction.h"
+#include "WebInputElement.h"
 #include "WebMediaPlayer.h"
 #include "WebNotificationPresenter.h"
 #include "WebTextAffinity.h"
+#include "WebTextCaseSensitivity.h"
 #include <wtf/Assertions.h>
 
 #define COMPILE_ASSERT_MATCHING_ENUM(webkit_name, webcore_name) \
@@ -123,6 +127,7 @@ COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleTabList, TabListRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleTabPanel, TabPanelRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleTreeRole, TreeRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleTreeItemRole, TreeItemRole);
+COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleDirectory, DirectoryRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleLandmarkApplication, LandmarkApplicationRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleLandmarkBanner, LandmarkBannerRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleLandmarkComplementary, LandmarkComplementaryRole);
@@ -139,6 +144,7 @@ COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleApplicationStatus, ApplicationS
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleApplicationTimer, ApplicationTimerRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleDocument, DocumentRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleDocumentArticle, DocumentArticleRole);
+COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleDocumentMath, DocumentMathRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleDocumentNote, DocumentNoteRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleDocumentRegion, DocumentRegionRole);
 COMPILE_ASSERT_MATCHING_ENUM(WebAccessibilityRoleUserInterfaceTooltip, UserInterfaceTooltipRole);
@@ -214,6 +220,31 @@ COMPILE_ASSERT_MATCHING_ENUM(WebEditingActionTyped, EditorInsertActionTyped);
 COMPILE_ASSERT_MATCHING_ENUM(WebEditingActionPasted, EditorInsertActionPasted);
 COMPILE_ASSERT_MATCHING_ENUM(WebEditingActionDropped, EditorInsertActionDropped);
 
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Text, HTMLInputElement::TEXT);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Password, HTMLInputElement::PASSWORD);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::IsIndex, HTMLInputElement::ISINDEX);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::CheckBox, HTMLInputElement::CHECKBOX);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Radio, HTMLInputElement::RADIO);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Submit, HTMLInputElement::SUBMIT);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Reset, HTMLInputElement::RESET);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::File, HTMLInputElement::FILE);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Hidden, HTMLInputElement::HIDDEN);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Image, HTMLInputElement::IMAGE);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Button, HTMLInputElement::BUTTON);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Search, HTMLInputElement::SEARCH);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Range, HTMLInputElement::RANGE);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Email, HTMLInputElement::EMAIL);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Number, HTMLInputElement::NUMBER);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Telephone, HTMLInputElement::TELEPHONE);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::URL, HTMLInputElement::URL);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Color, HTMLInputElement::COLOR);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Date, HTMLInputElement::DATE);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::DateTime, HTMLInputElement::DATETIME);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::DateTimeLocal, HTMLInputElement::DATETIMELOCAL);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Month, HTMLInputElement::MONTH);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Time, HTMLInputElement::TIME);
+COMPILE_ASSERT_MATCHING_ENUM(WebInputElement::Week, HTMLInputElement::WEEK);
+
 #if ENABLE(VIDEO)
 COMPILE_ASSERT_MATCHING_ENUM(WebMediaPlayer::Empty, MediaPlayer::Empty);
 COMPILE_ASSERT_MATCHING_ENUM(WebMediaPlayer::Idle, MediaPlayer::Idle);
@@ -243,3 +274,6 @@ COMPILE_ASSERT_MATCHING_ENUM(WebNotificationPresenter::PermissionDenied, Notific
 
 COMPILE_ASSERT_MATCHING_ENUM(WebTextAffinityUpstream, UPSTREAM);
 COMPILE_ASSERT_MATCHING_ENUM(WebTextAffinityDownstream, DOWNSTREAM);
+
+COMPILE_ASSERT_MATCHING_ENUM(WebTextCaseSensitive, TextCaseSensitive);
+COMPILE_ASSERT_MATCHING_ENUM(WebTextCaseInsensitive, TextCaseInsensitive);

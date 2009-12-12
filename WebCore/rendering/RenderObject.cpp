@@ -1335,6 +1335,50 @@ void RenderObject::showTreeForThis() const
         node()->showTreeForThis();
 }
 
+void RenderObject::showRenderObject() const
+{
+    showRenderObject(0);
+}
+
+void RenderObject::showRenderObject(int printedCharacters) const
+{
+    // As this function is intended to be used when debugging, the
+    // this pointer may be 0.
+    if (!this) {
+        fputs("(null)\n", stderr);
+        return;
+    }
+
+    printedCharacters += fprintf(stderr, "%s %p", renderName(), this);
+
+    if (node()) {
+        if (printedCharacters)
+            for (; printedCharacters < 39; printedCharacters++)
+                fputc(' ', stderr);
+        fputc('\t', stderr);
+        node()->showNode();
+    } else
+        fputc('\n', stderr);
+}
+
+void RenderObject::showRenderTreeAndMark(const RenderObject* markedObject1, const char* markedLabel1, const RenderObject* markedObject2, const char* markedLabel2, int depth) const
+{
+    int printedCharacters = 0;
+    if (markedObject1 == this && markedLabel1)
+        printedCharacters += fprintf(stderr, "%s", markedLabel1);
+    if (markedObject2 == this && markedLabel2)
+        printedCharacters += fprintf(stderr, "%s", markedLabel2);
+    for (; printedCharacters < depth * 2; printedCharacters++)
+        fputc(' ', stderr);
+
+    showRenderObject(printedCharacters);
+    if (!this)
+        return;
+
+    for (const RenderObject* child = firstChild(); child; child = child->nextSibling())
+        child->showRenderTreeAndMark(markedObject1, markedLabel1, markedObject2, markedLabel2, depth + 1);
+}
+
 #endif // NDEBUG
 
 Color RenderObject::selectionBackgroundColor() const
@@ -2366,9 +2410,20 @@ RenderBoxModelObject* RenderObject::offsetParent() const
 
 VisiblePosition RenderObject::createVisiblePosition(int offset, EAffinity affinity)
 {
-    // If this is a non-anonymous renderer, then it's simple.
-    if (Node* node = this->node())
+    // If this is a non-anonymous renderer in an editable area, then it's simple.
+    if (Node* node = this->node()) {
+        if (!node->isContentEditable()) {
+            // If it can be found, we prefer a visually equivalent position that is editable. 
+            Position position(node, offset);
+            Position candidate = position.downstream(Position::CanCrossEditingBoundary);
+            if (candidate.node()->isContentEditable())
+                return VisiblePosition(candidate, affinity);
+            candidate = position.upstream(Position::CanCrossEditingBoundary);
+            if (candidate.node()->isContentEditable())
+                return VisiblePosition(candidate, affinity);
+        }
         return VisiblePosition(node, offset, affinity);
+    }
 
     // We don't want to cross the boundary between editable and non-editable
     // regions of the document, but that is either impossible or at least
@@ -2468,6 +2523,21 @@ void showTree(const WebCore::RenderObject* ro)
 {
     if (ro)
         ro->showTreeForThis();
+}
+
+void showRenderTree(const WebCore::RenderObject* object1)
+{
+    showRenderTree(object1, 0);
+}
+
+void showRenderTree(const WebCore::RenderObject* object1, const WebCore::RenderObject* object2)
+{
+    if (object1) {
+        const WebCore::RenderObject* root = object1;
+        while (root->parent())
+            root = root->parent();
+        root->showRenderTreeAndMark(object1, "*", object2, "-", 0);
+    }
 }
 
 #endif

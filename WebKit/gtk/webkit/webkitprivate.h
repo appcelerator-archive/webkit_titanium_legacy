@@ -143,6 +143,8 @@ extern "C" {
         char* encoding;
         char* customEncoding;
 
+        char* iconURI;
+
         gboolean disposing;
 
         // These are hosted here because the DataSource object is
@@ -303,6 +305,9 @@ extern "C" {
 
     WEBKIT_API bool
     webkit_web_frame_pause_transition(WebKitWebFrame* frame, const gchar* name, double time, const gchar* element);
+
+    WEBKIT_API bool
+    webkit_web_frame_pause_svg_animation(WebKitWebFrame* frame, const gchar* animationId, double time, const gchar* elementId);
 
     WEBKIT_API unsigned int
     webkit_web_frame_number_of_active_animations(WebKitWebFrame* frame);

@@ -63,6 +63,7 @@ public:
     bool shouldDumpDatabaseCallbacks() const { return m_dumpDatabaseCallbacks; }
     bool shouldDumpStatusCallbacks() const { return m_dumpStatusCallbacks; }
     bool shouldWaitUntilDone() const { return m_waitForDone; }
+    bool shouldHandleErrorPages() const { return m_handleErrorPages; }
     bool canOpenWindows() const { return m_canOpenWindows; }
     bool shouldDumpTitleChanges() const { return m_dumpTitleChanges; }
     bool waitForPolicy() const { return m_waitForPolicy; }
@@ -87,6 +88,7 @@ public slots:
     void keepWebHistory();
     void notifyDone();
     void dumpBackForwardList() { m_dumpBackForwardList = true; }
+    void handleErrorPages() { m_handleErrorPages = true; }
     void dumpEditingCallbacks();
     void dumpResourceLoadCallbacks();
     void queueBackNavigation(int howFarBackward);
@@ -105,6 +107,9 @@ public slots:
     QString encodeHostName(const QString& host);
     QString decodeHostName(const QString& host);
     void dumpSelectionRect() const {}
+    void showWebInspector();
+    void hideWebInspector();
+    void setAllowUniversalAccessFromFileURLs(bool enable);
     void setJavaScriptProfilingEnabled(bool enable);
     void setFixedContentsSize(int width, int height);
     void setPrivateBrowsingEnabled(bool enable);
@@ -113,6 +118,8 @@ public slots:
 
     bool pauseAnimationAtTimeOnElementWithId(const QString& animationName, double time, const QString& elementId);
     bool pauseTransitionAtTimeOnElementWithId(const QString& propertyName, double time, const QString& elementId);
+    bool sampleSVGAnimationForElementAtTime(const QString& animationId, double time, const QString& elementId);
+
     unsigned numberOfActiveAnimations() const;
 
     void whiteListAccessFromOrigin(const QString& sourceOrigin, const QString& destinationProtocol, const QString& destinationHost, bool allowDestinationSubdomains);
@@ -140,6 +147,7 @@ private:
     bool m_dumpDatabaseCallbacks;
     bool m_dumpStatusCallbacks;
     bool m_waitForPolicy;
+    bool m_handleErrorPages;
 
     QBasicTimer m_timeoutTimer;
     QWebFrame* m_topLoadingFrame;

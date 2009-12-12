@@ -44,6 +44,7 @@
 #include "RenderView.h"
 #include "SelectionController.h"
 #include "Settings.h"
+#include "TransformState.h"
 #include <wtf/StdLibExtras.h>
 
 using namespace std;
@@ -58,7 +59,7 @@ static const int verticalLineClickFudgeFactor = 3;
 
 using namespace HTMLNames;
 
-struct ColumnInfo {
+struct ColumnInfo : public Noncopyable {
     ColumnInfo()
         : m_desiredColumnWidth(0)
         , m_desiredColumnCount(1)
@@ -616,15 +617,15 @@ void RenderBlock::finishDelayUpdateScrollInfo()
     if (gDelayUpdateScrollInfo == 0) {
         ASSERT(gDelayedUpdateScrollInfoSet);
 
-        for (DelayedUpdateScrollInfoSet::iterator it = gDelayedUpdateScrollInfoSet->begin(); it != gDelayedUpdateScrollInfoSet->end(); ++it) {
+        OwnPtr<DelayedUpdateScrollInfoSet> infoSet(gDelayedUpdateScrollInfoSet);
+        gDelayedUpdateScrollInfoSet = 0;
+
+        for (DelayedUpdateScrollInfoSet::iterator it = infoSet->begin(); it != infoSet->end(); ++it) {
             RenderBlock* block = *it;
             if (block->hasOverflowClip()) {
                 block->layer()->updateScrollInfoAfterLayout();
             }
         }
-
-        delete gDelayedUpdateScrollInfoSet;
-        gDelayedUpdateScrollInfoSet = 0;
     }
 }
 
@@ -1523,7 +1524,7 @@ void RenderBlock::paint(PaintInfo& paintInfo, int tx, int ty)
     // Our scrollbar widgets paint exactly when we tell them to, so that they work properly with
     // z-index.  We paint after we painted the background/border, so that the scrollbars will
     // sit above the background/border.
-    if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground))
+    if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground) && shouldPaintWithinRoot(paintInfo))
         layer()->paintOverflowControls(paintInfo.context, tx, ty, paintInfo.rect);
 }
 
@@ -1907,23 +1908,28 @@ bool RenderBlock::isSelectionRoot() const
     return false;
 }
 
-GapRects RenderBlock::selectionGapRectsForRepaint(RenderBoxModelObject* /*repaintContainer*/)
+GapRects RenderBlock::selectionGapRectsForRepaint(RenderBoxModelObject* repaintContainer)
 {
     ASSERT(!needsLayout());
 
     if (!shouldPaintSelectionGaps())
         return GapRects();
 
-    // FIXME: this is broken with transforms and a non-null repaintContainer
-    FloatPoint absContentPoint = localToAbsolute(FloatPoint());
+    // FIXME: this is broken with transforms
+    TransformState transformState(TransformState::ApplyTransformDirection, FloatPoint());
+    mapLocalToContainer(repaintContainer, false, false, transformState);
+    FloatPoint offsetFromRepaintContainer = transformState.mappedPoint();
+    int x = offsetFromRepaintContainer.x();
+    int y = offsetFromRepaintContainer.y();
+
     if (hasOverflowClip())
-        absContentPoint -= layer()->scrolledContentOffset();
+        layer()->subtractScrolledContentOffset(x, y);
 
     int lastTop = 0;
     int lastLeft = leftSelectionOffset(this, lastTop);
     int lastRight = rightSelectionOffset(this, lastTop);
     
-    return fillSelectionGaps(this, absContentPoint.x(), absContentPoint.y(), absContentPoint.x(), absContentPoint.y(), lastTop, lastLeft, lastRight);
+    return fillSelectionGaps(this, x, y, x, y, lastTop, lastLeft, lastRight);
 }
 
 void RenderBlock::paintSelection(PaintInfo& paintInfo, int tx, int ty)
@@ -1933,7 +1939,14 @@ void RenderBlock::paintSelection(PaintInfo& paintInfo, int tx, int ty)
         int lastLeft = leftSelectionOffset(this, lastTop);
         int lastRight = rightSelectionOffset(this, lastTop);
         paintInfo.context->save();
-        fillSelectionGaps(this, tx, ty, tx, ty, lastTop, lastLeft, lastRight, &paintInfo);
+        IntRect gapRectsBounds = fillSelectionGaps(this, tx, ty, tx, ty, lastTop, lastLeft, lastRight, &paintInfo);
+        if (!gapRectsBounds.isEmpty()) {
+            if (RenderLayer* layer = enclosingLayer()) {
+                IntSize offset = hasLayer() ? IntSize() : offsetFromAncestorContainer(layer->renderer());
+                gapRectsBounds.move(offset - IntSize(tx, ty));
+                layer->addBlockSelectionGapsBounds(gapRectsBounds);
+            }
+        }
         paintInfo.context->restore();
     }
 }
@@ -3406,7 +3419,7 @@ VisiblePosition RenderBlock::positionForPointWithInlineChildren(const IntPoint& 
     RootInlineBox* firstRootBoxWithChildren = 0;
     RootInlineBox* lastRootBoxWithChildren = 0;
     for (RootInlineBox* root = firstRootBox(); root; root = root->nextRootBox()) {
-        if (!root->firstChild())
+        if (!root->firstLeafChild())
             continue;
         if (!firstRootBoxWithChildren)
             firstRootBoxWithChildren = root;
@@ -3553,11 +3566,15 @@ void RenderBlock::calcColumnWidth()
             desiredColumnWidth = (availWidth - (desiredColumnCount - 1) * colGap) / desiredColumnCount;
         } else if (colGap < availWidth) {
             desiredColumnCount = availWidth / colGap;
+            if (desiredColumnCount < 1)
+                desiredColumnCount = 1;
             desiredColumnWidth = (availWidth - (desiredColumnCount - 1) * colGap) / desiredColumnCount;
         }
     } else if (style()->hasAutoColumnCount()) {
         if (colWidth < availWidth) {
             desiredColumnCount = (availWidth + colGap) / (colWidth + colGap);
+            if (desiredColumnCount < 1)
+                desiredColumnCount = 1;
             desiredColumnWidth = (availWidth - (desiredColumnCount - 1) * colGap) / desiredColumnCount;
         }
     } else {
@@ -3567,6 +3584,8 @@ void RenderBlock::calcColumnWidth()
             desiredColumnWidth = colWidth;
         } else if (colWidth < availWidth) {
             desiredColumnCount = (availWidth + colGap) / (colWidth + colGap);
+            if (desiredColumnCount < 1)
+                desiredColumnCount = 1;
             desiredColumnWidth = (availWidth - (desiredColumnCount - 1) * colGap) / desiredColumnCount;
         }
     }
@@ -4206,6 +4225,10 @@ void RenderBlock::calcInlinePrefWidths()
                 } else
                     inlineMax += childMax;
             }
+
+            // Ignore spaces after a list marker.
+            if (child->isListMarker())
+                stripFrontSpaces = true;
         } else {
             m_minPrefWidth = max(inlineMin, m_minPrefWidth);
             m_maxPrefWidth = max(inlineMax, m_maxPrefWidth);

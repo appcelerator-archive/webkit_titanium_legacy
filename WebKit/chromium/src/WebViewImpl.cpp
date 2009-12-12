@@ -33,6 +33,9 @@
 
 #include "AutocompletePopupMenuClient.h"
 #include "AXObjectCache.h"
+#include "ContextMenu.h"
+#include "ContextMenuController.h"
+#include "ContextMenuItem.h"
 #include "CSSStyleSelector.h"
 #include "CSSValueKeywords.h"
 #include "Cursor.h"
@@ -70,6 +73,7 @@
 #include "PluginInfoStore.h"
 #include "PopupMenuChromium.h"
 #include "PopupMenuClient.h"
+#include "ProgressTracker.h"
 #include "RenderView.h"
 #include "ResourceHandle.h"
 #include "SecurityOrigin.h"
@@ -96,6 +100,9 @@
 #include "KeyboardCodesWin.h"
 #include "RenderThemeChromiumWin.h"
 #else
+#if PLATFORM(LINUX)
+#include "RenderThemeChromiumLinux.h"
+#endif
 #include "KeyboardCodesPosix.h"
 #include "RenderTheme.h"
 #endif
@@ -460,7 +467,7 @@ bool WebViewImpl::keyEvent(const WebKeyboardEvent& event)
     PlatformKeyboardEventBuilder evt(event);
 
     if (handler->keyEvent(evt)) {
-        if (WebInputEvent::RawKeyDown == event.type && !evt.isSystemKey())
+        if (WebInputEvent::RawKeyDown == event.type)
             m_suppressNextKeypressEvent = true;
         return true;
     }
@@ -525,21 +532,23 @@ bool WebViewImpl::charEvent(const WebKeyboardEvent& event)
     // handled by Webkit. A keyDown event is typically associated with a
     // keyPress(char) event and a keyUp event. We reset this flag here as it
     // only applies to the current keyPress event.
-    if (m_suppressNextKeypressEvent) {
-        m_suppressNextKeypressEvent = false;
-        return true;
-    }
+    bool suppress = m_suppressNextKeypressEvent;
+    m_suppressNextKeypressEvent = false;
 
     Frame* frame = focusedWebCoreFrame();
     if (!frame)
-        return false;
+        return suppress;
 
     EventHandler* handler = frame->eventHandler();
     if (!handler)
-        return keyEventDefault(event);
+        return suppress || keyEventDefault(event);
 
     PlatformKeyboardEventBuilder evt(event);
     if (!evt.isCharacterKey())
+        return true;
+
+    // Accesskeys are triggered by char events and can't be suppressed.
+    if (handler->handleAccessKey(evt))
         return true;
 
     // Safari 3.1 does not pass off windows system key messages (WM_SYSCHAR) to
@@ -547,9 +556,9 @@ bool WebViewImpl::charEvent(const WebKeyboardEvent& event)
     // for now we are converting other platform's key events to windows key
     // events.
     if (evt.isSystemKey())
-        return handler->handleAccessKey(evt);
+        return false;
 
-    if (!handler->keyEvent(evt))
+    if (!suppress && !handler->keyEvent(evt))
         return keyEventDefault(event);
 
     return true;
@@ -587,11 +596,10 @@ bool WebViewImpl::sendContextMenuEvent(const WebKeyboardEvent& event)
     Position start = mainFrameImpl->selection()->selection().start();
     Position end = mainFrameImpl->selection()->selection().end();
 
-    if (!start.node() || !end.node()) {
-        location = IntPoint(
-            rightAligned ? view->contentsWidth() - kContextMenuMargin : kContextMenuMargin,
-            kContextMenuMargin);
-    } else {
+    Frame* focusedFrame = page()->focusController()->focusedOrMainFrame();
+    Node* focusedNode = focusedFrame->document()->focusedNode();
+
+    if (start.node() && end.node()) {
         RenderObject* renderer = start.node()->renderer();
         if (!renderer)
             return false;
@@ -601,6 +609,12 @@ bool WebViewImpl::sendContextMenuEvent(const WebKeyboardEvent& event)
 
         int x = rightAligned ? firstRect.right() : firstRect.x();
         location = IntPoint(x, firstRect.bottom());
+    } else if (focusedNode)
+        location = focusedNode->getRect().bottomLeft();
+    else {
+        location = IntPoint(
+            rightAligned ? view->contentsWidth() - kContextMenuMargin : kContextMenuMargin,
+            kContextMenuMargin);
     }
 
     location = view->contentsToWindow(location);
@@ -617,7 +631,6 @@ bool WebViewImpl::sendContextMenuEvent(const WebKeyboardEvent& event)
     // not run.
     page()->contextMenuController()->clearContextMenu();
 
-    Frame* focusedFrame = page()->focusController()->focusedOrMainFrame();
     focusedFrame->view()->setCursor(pointerCursor());
     WebMouseEvent mouseEvent;
     mouseEvent.button = WebMouseEvent::ButtonRight;
@@ -774,11 +787,6 @@ void WebViewImpl::close()
     if (m_devToolsAgent.get())
         m_devToolsAgent.clear();
 
-    // We drop the client after the page has been destroyed to support the
-    // WebFrameClient::didDestroyScriptContext method.
-    if (mainFrameImpl)
-        mainFrameImpl->dropClient();
-
     // Reset the delegate to prevent notifications being sent as we're being
     // deleted.
     m_client = 0;
@@ -920,11 +928,11 @@ void WebViewImpl::setFocus(bool enable)
                 Element* element = static_cast<Element*>(focusedNode);
                 if (element->isTextFormControl())
                     element->updateFocusAppearance(true);
-                else {
+                else if (focusedNode->isContentEditable()) {
                     // updateFocusAppearance() selects all the text of
                     // contentseditable DIVs. So we set the selection explicitly
                     // instead. Note that this has the side effect of moving the
-                    // caret back to the begining of the text.
+                    // caret back to the beginning of the text.
                     Position position(focusedNode, 0,
                                       Position::PositionIsOffsetInAnchor);
                     focusedFrame->selection()->setSelection(
@@ -1241,37 +1249,23 @@ void WebViewImpl::clearFocusedNode()
     }
 }
 
-void WebViewImpl::zoomIn(bool textOnly)
+int WebViewImpl::zoomLevel()
 {
-    Frame* frame = mainFrameImpl()->frame();
-    double multiplier = std::min(std::pow(textSizeMultiplierRatio, m_zoomLevel + 1),
-                                 maxTextSizeMultiplier);
-    float zoomFactor = static_cast<float>(multiplier);
-    if (zoomFactor != frame->zoomFactor()) {
-        ++m_zoomLevel;
-        frame->setZoomFactor(zoomFactor, textOnly);
-    }
+    return m_zoomLevel;
 }
 
-void WebViewImpl::zoomOut(bool textOnly)
+int WebViewImpl::setZoomLevel(bool textOnly, int zoomLevel)
 {
+    float zoomFactor = static_cast<float>(
+        std::max(std::min(std::pow(textSizeMultiplierRatio, zoomLevel),
+                          maxTextSizeMultiplier),
+                 minTextSizeMultiplier));
     Frame* frame = mainFrameImpl()->frame();
-    double multiplier = std::max(std::pow(textSizeMultiplierRatio, m_zoomLevel - 1),
-                                 minTextSizeMultiplier);
-    float zoomFactor = static_cast<float>(multiplier);
     if (zoomFactor != frame->zoomFactor()) {
-        --m_zoomLevel;
+        m_zoomLevel = zoomLevel;
         frame->setZoomFactor(zoomFactor, textOnly);
     }
-}
-
-void WebViewImpl::zoomDefault()
-{
-    // We don't change the zoom mode (text only vs. full page) here. We just want
-    // to reset whatever is already set.
-    m_zoomLevel = 0;
-    mainFrameImpl()->frame()->setZoomFactor(
-        1.0f, mainFrameImpl()->frame()->isZoomFactorTextOnly());
+    return m_zoomLevel;
 }
 
 void WebViewImpl::performMediaPlayerAction(const WebMediaPlayerAction& action,
@@ -1471,6 +1465,12 @@ int WebViewImpl::dragIdentity()
     return 0;
 }
 
+unsigned long WebViewImpl::createUniqueIdentifierForRequest() {
+    if (m_page)
+        return m_page->progress()->createUniqueIdentifier();
+    return 0;
+}
+
 void WebViewImpl::inspectElementAt(const WebPoint& point)
 {
     if (!m_page.get())
@@ -1584,6 +1584,19 @@ void WebViewImpl::hideAutofillPopup()
     hideAutoCompletePopup();
 }
 
+void WebViewImpl::performCustomContextMenuAction(unsigned action)
+{
+    if (!m_page)
+        return;
+    ContextMenu* menu = m_page->contextMenuController()->contextMenu();
+    if (!menu)
+        return;
+    ContextMenuItem* item = menu->itemWithAction(static_cast<ContextMenuAction>(ContextMenuItemBaseCustomTag + action));
+    if (item)
+        m_page->contextMenuController()->contextMenuItemSelected(item);
+    m_page->contextMenuController()->clearContextMenu();
+}
+
 // WebView --------------------------------------------------------------------
 
 bool WebViewImpl::setDropEffect(bool accept)
@@ -1622,6 +1635,16 @@ void WebViewImpl::setIsActive(bool active)
 bool WebViewImpl::isActive() const
 {
     return (page() && page()->focusController()) ? page()->focusController()->isActive() : false;
+}
+
+void WebViewImpl::setScrollbarColors(unsigned inactiveColor,
+                                     unsigned activeColor,
+                                     unsigned trackColor) {
+#if PLATFORM(LINUX)
+    RenderThemeChromiumLinux::setScrollbarColors(inactiveColor,
+                                                 activeColor,
+                                                 trackColor);
+#endif
 }
 
 void WebViewImpl::didCommitLoad(bool* isNewNavigation)

@@ -1,3 +1,841 @@
+2009-12-11  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Remove obsolete message handling methods from WebDevTools* interfaces
+
+        https://bugs.webkit.org/show_bug.cgi?id=32320
+
+        * public/WebDevToolsAgent.h:
+        * public/WebDevToolsAgentClient.h:
+        * public/WebDevToolsFrontend.h:
+        * public/WebDevToolsFrontendClient.h:
+
+2009-12-10  Mike Belshe  <mike@belshe.com>
+
+        Unreviewed, build fix for chromium.
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchWillSendRequest):
+
+2009-12-10  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        Changed WebGLRenderingContext to synthesize GL errors rather than
+        raising JavaScript exceptions. Removed internal getError() calls
+        after each graphics call. The GraphicsContext3D maintains the
+        synthetic exceptions because only it has complete information
+        about certain conditions requiring them to be raised.
+
+        Based on idea from Ilmari Heikkinen, added create3DDebugContext()
+        to webgl-test.js and changed the WebGL layout tests expecting
+        error conditions to use it. Updated expected.txt files, which now
+        implicitly test the OpenGL error as it is part of the exception's
+        message.
+
+        Added new targeted test covering aspects of synthetic errors as
+        well as regression tests for bugs uncovered during its development.
+
+        Test: fast/canvas/webgl/error-reporting.html
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::reshape):
+        (WebCore::GraphicsContext3DInternal::getError):
+        (WebCore::GraphicsContext3DInternal::synthesizeGLError):
+        (WebCore::GraphicsContext3D::getActiveAttrib):
+        (WebCore::GraphicsContext3D::getActiveUniform):
+        (WebCore::GraphicsContext3D::getError):
+        (WebCore::GraphicsContext3D::synthesizeGLError):
+
+2009-12-10  Mike Belshe  <mike@belshe.com>
+
+        Reviewed by Darin Fisher.
+
+        Fix FrameLoader to use the new ResourceTypes properly.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32336
+
+        * public/WebURLRequest.h:
+        (WebKit::WebURLRequest::):
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::setTargetTypeFromLoader):
+        (WebKit::FrameLoaderClientImpl::dispatchWillSendRequest):
+
+2009-12-10  Ilya Tikhonovsky <loislo@google.com>
+
+        Reviewed by Pavel Feldman.
+
+        Chromium: Expose devtools agent API for inspector layout tests.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32379
+
+        * public/WebDevToolsAgent.h:
+        (WebKit::WebDevToolsAgent::setTimelineProfilingEnabled):
+        (WebKit::WebDevToolsAgent::evaluateInWebInspector):
+
+2009-12-09  Yury Semikhatsky  <yurys@chromium.org>
+
+        Unreviewed, build fix.
+
+        Change forward declaration of WebContextMenuData from class to
+        struct to match its definition. The bug was introduced by
+        http://trac.webkit.org/changeset/51874
+
+        * src/ContextMenuClientImpl.h:
+
+2009-12-09  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32324
+        [Chromium] Suppress WebFrameClient callbacks from a detached frame.
+
+        This change means that we no longer need the ClientHandle class.
+        FrameLoaderClient::detachedFromParent3() is called on each frame
+        in the frame tree from within frameDetached().
+
+        Test: http/tests/loading/gmail-assert-on-load.html
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::detachedFromParent3):
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrameImpl::create):
+        (WebKit::WebFrameImpl::WebFrameImpl):
+        (WebKit::WebFrameImpl::createChildFrame):
+        * src/WebFrameImpl.h:
+        (WebKit::WebFrameImpl::client):
+        (WebKit::WebFrameImpl::dropClient):
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::close):
+
+2009-12-08  Stuart Morgan  <stuartmorgan@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Include clickCount when doing MouseEvent -> WebMouseEvent conversion
+        in Chromium API.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32289
+
+        * src/WebInputEventConversion.cpp:
+        (WebKit::WebMouseEventBuilder::WebMouseEventBuilder):
+
+2009-12-09  Yury Semikhatsky  <yurys@chromium.org>
+
+        Unreviewed, build fix.
+
+        Add return statement to default implementation of hostIdentifier method
+        introduced in http://trac.webkit.org/changeset/51897
+
+        * public/WebDevToolsAgentClient.h:
+        (WebKit::WebDevToolsAgentClient::hostIdentifier):
+
+2009-12-09  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Add declaration of static methods that allow to dispatch
+        DevTools messages on the IO thread and accept WebDevToolsMessageData
+        argument.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32314
+
+        * public/WebDevToolsAgent.h:
+        * public/WebDevToolsAgentClient.h:
+
+2009-12-09  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Introduce a class for devtools message data
+
+        https://bugs.webkit.org/show_bug.cgi?id=32314
+
+        * WebKit.gyp:
+        * public/WebDevToolsAgent.h:
+        * public/WebDevToolsAgentClient.h:
+        (WebKit::WebDevToolsAgentClient::sendMessageToFrontend):
+        (WebKit::WebDevToolsAgentClient::forceRepaint):
+        (WebKit::WebDevToolsAgentClient::hostIdentifier):
+        (WebKit::WebDevToolsAgentClient::runtimeFeatureStateChanged):
+        * public/WebDevToolsFrontend.h:
+        * public/WebDevToolsFrontendClient.h:
+        (WebKit::WebDevToolsFrontendClient::sendMessageToAgent):
+        * public/WebDevToolsMessageData.h: Added.
+
+2009-12-08  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Chromium: support custom WebCore context menu items in Chromium port.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32277
+
+        * public/WebContextMenuData.h:
+        * public/WebPopupMenuInfo.h:
+        (WebKit::WebPopupMenuInfo::Item::):
+        * public/WebView.h:
+        * src/ContextMenuClientImpl.cpp:
+        (WebKit::ContextMenuClientImpl::getCustomMenuFromDefaultItems):
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::executeCustomContextMenuAction):
+        * src/WebViewImpl.h:
+
+2009-12-08  Albert J. Wong  <ajwong@chromium.org>
+
+        Not reviewed: Chromium build fix.
+
+        r51859 changed the case for some of the ResourceRequest::TargetType
+        enums.
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::determineTargetTypeFromLoader):
+
+2009-12-07  Zhe Su  <suzhe@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] accesskey is not supported on Chromium Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=32213
+
+        This change fixes (partially) the accesskey issue by decoupling the
+        code for handling accesskeys and system keys. Because on Mac,
+        the modifiers of accesskeys are ctrl+alt, which are not marked as
+        system keys.
+        In order to fully fix this issue, some changes in Chromium code is
+        also required.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::keyEvent):
+        (WebKit::WebViewImpl::charEvent):
+
+2009-12-07  Evan Martin  <evan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Chromium: theme scrollbars to match GTK theme.
+        Add API to set the colors.
+
+        Since the change is to the Chromium WebKit API layer, testing will
+        be in Chromium's test shell.
+        http://bugs.webkit.org/show_bug.cgi?id=32048
+
+        Patch from Markus Gutschke <markus@chromium.org>.
+
+        * public/WebView.h:
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::setScrollbarColors):
+        * src/WebViewImpl.h:
+
+2009-12-07  Finnur Thorarinsson  <finnur.webkit@gmail.com>
+
+        Reviewed by Darin Fisher.
+
+        A patch for Chromium to restrict the scope of the Gmail focus fix,
+        where we set the Selection to 0,0 for content-editable fields and
+        also make sure we set the selection end-state for find to select the
+        text found (when not focusing a link we found).
+        WebKit bug: https://bugs.webkit.org/show_bug.cgi?id=32248
+
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrameImpl::setFindEndstateFocusAndSelection):
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::setFocus):
+
+2009-12-07  Dmitry Titov  <dimich@chromium.org>
+
+        Rubber-stamped by Darin Adler.
+
+        Remove ENABLE_SHARED_SCRIPT flags
+        https://bugs.webkit.org/show_bug.cgi?id=32245
+        This patch was obtained by "git revert" command and then un-reverting of ChangeLog files.
+
+        * features.gypi:
+
+2009-12-07  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        fixes to build-webkit --chromium
+        https://bugs.webkit.org/show_bug.cgi?id=32179
+
+        * DEPS:
+        * WebKit.gyp:
+        * gyp_webkit:
+
+2009-12-07  Mikhail Naganov  <mnaganov@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        [Chromium] Add declarations for DevTools message dispatching on IO thread
+        (see http://codereview.chromium.org/460018)
+
+        https://bugs.webkit.org/show_bug.cgi?id=32217
+
+        * public/WebDevToolsAgent.h:
+        * public/WebDevToolsAgentClient.h:
+
+2009-12-04  James Hawkins  <jhawkins@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32095
+        Implement WebRegularExpression, a WebKit API for accessing
+        WebCore::RegularExpression.
+
+        * WebKit.gyp:
+        * public/WebRegularExpression.h: Added.
+        * public/WebTextCaseSensitivity.h: Added.
+        (WebKit::):
+        * src/AssertMatchingEnums.cpp:
+        * src/WebRegularExpression.cpp: Added.
+        (WebKit::WebRegularExpression::WebRegularExpression):
+        (WebKit::WebRegularExpression::~WebRegularExpression):
+        (WebKit::WebRegularExpression::match):
+
+2009-12-04  Peter Kasting  <pkasting@google.com>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] Simplify zoom-related APIs and add a zoom level getter,
+        part two: Remove deprecated APIs.
+        https://bugs.webkit.org/show_bug.cgi?id=31893
+
+        * public/WebView.h:
+        * src/WebViewImpl.cpp:
+        * src/WebViewImpl.h:
+
+2009-12-03  Jonathan Dixon  <joth@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Bug 32066 - Add enable geolocation flag to WebCore::Settings for Chromium
+        https://bugs.webkit.org/show_bug.cgi?id=32066
+
+        Add the plumbing to map WebSettings through to WebCore::Settings
+
+        * features.gypi:
+        * public/WebSettings.h: Add setGeolocationEnabled API to interface
+        * src/WebSettingsImpl.cpp:
+        (WebKit::WebSettingsImpl::setGeolocationEnabled): Calls through to WebCore::Settings::setGeolocationEnabled
+        * src/WebSettingsImpl.h: Add setGeolocationEnabled interface function
+
+2009-12-03  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        <rdar://problem/7214236> and http://webkit.org/b/32052 - Implement HTML5 state object history API
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchDidPushStateWithinPage):
+        (WebKit::FrameLoaderClientImpl::dispatchDidReplaceStateWithinPage):
+        (WebKit::FrameLoaderClientImpl::dispatchDidPopStateWithinPage):
+        * src/FrameLoaderClientImpl.h:
+
+2009-12-03  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Chromium: Add support for settings containing ":"
+
+        https://bugs.webkit.org/show_bug.cgi?id=32118
+
+        * src/InspectorClientImpl.cpp:
+        (WebKit::InspectorClientImpl::loadSettings):
+
+2009-12-03  Pavel Feldman  <pfeldman@dhcp-172-28-174-220.spb.corp.google.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: Simplify the settings support in inspector controller.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32076
+
+        * src/InspectorClientImpl.cpp:
+        (WebKit::InspectorClientImpl::hiddenPanels):
+        (WebKit::InspectorClientImpl::populateSetting):
+        (WebKit::InspectorClientImpl::storeSetting):
+        (WebKit::InspectorClientImpl::loadSettings):
+        (WebKit::InspectorClientImpl::saveSettings):
+        * src/InspectorClientImpl.h:
+
+2009-12-03  Ben Murdoch  <benm@google.com>
+
+        Reviewed by Brady Eidson.
+
+        [Android] The FrameLoaderClient is unaware of BackForwardList changes.
+        https://bugs.webkit.org/show_bug.cgi?id=31914
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchDidAddBackForwardItem): Add an empty implementation. Method added to FrameLoaderClient by Android (see bug).
+        (WebKit::FrameLoaderClientImpl::dispatchDidRemoveBackForwardItem): ditto.
+        (WebKit::FrameLoaderClientImpl::dispatchDidChangeBackForwardIndex): dito.
+        * src/FrameLoaderClientImpl.h:
+
+2009-12-02  Yusuke Sato  <yusukes@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Sanitize web fonts using the OTS library 
+        https://bugs.webkit.org/show_bug.cgi?id=31106
+
+        * DEPS: Added dependency to the OpenType sanitizer library.
+        * features.gypi: Added ENABLE_OPENTYPE_SANITIZER=1.
+
+2009-12-02  Evan Stade  <estade@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32029
+        Mousewheel event delta has reversed sign on Linux Chrome.
+
+        No new tests (layout tests don't cover event conversion code).
+        Manual test: http://www.switchonthecode.com/tutorials/javascript-tutorial-the-scroll-wheel
+
+        * src/gtk/WebInputEventFactory.cpp:
+        (WebKit::WebInputEventFactory::mouseWheelEvent):
+
+2009-12-02  Anton Muhin  <antonm@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Allow to skip thread checks when accessing DOMDataStore for processes
+        which run V8 in single thread mode.
+        https://bugs.webkit.org/show_bug.cgi?id=31877
+
+        * src/WebScriptController.cpp:
+        (WebKit::WebScriptController::enableV8SingleThreadMode):
+
+2009-12-01  Peter Kasting  <pkasting@google.com>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] Simplify zoom-related APIs and add a zoom level getter,
+        part one: Add new APIs.  (Old APIs will be removed in a second pass.)
+        https://bugs.webkit.org/show_bug.cgi?id=31893
+
+        * public/WebView.h:
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::zoomLevel):
+        (WebKit::WebViewImpl::setZoomLevel):
+        * src/WebViewImpl.h:
+
+2009-12-01  Xiyuan Xia  <xiyuan@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Only fire start/stop events when main frame is not loading.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31838
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchDidChangeLocationWithinPage):
+
+2009-11-27  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Add separate method for pause command to WebDevToolsAgent
+        and WebDevToolsFrontendClient interfaces so that pause command
+        can be processed on the IO thread.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31934
+
+        * public/WebDevToolsAgent.h:
+        * public/WebDevToolsFrontendClient.h:
+        (WebKit::WebDevToolsFrontendClient::sendDebuggerCommandToAgent):
+        (WebKit::WebDevToolsFrontendClient::sendDebuggerPauseScript):
+        (WebKit::WebDevToolsFrontendClient::activateWindow):
+        (WebKit::WebDevToolsFrontendClient::closeWindow):
+        (WebKit::WebDevToolsFrontendClient::dockWindow):
+        (WebKit::WebDevToolsFrontendClient::undockWindow):
+
+2009-11-27  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        WebCore part of the fix that allows to view plugin
+        resources loaded by plugins. Methods that for resource
+        loading notifications are exposed through WebDevToolsAgent
+        interface to the glue code to allow Chromium's plugin
+        implementation to notify InspectorController about resource
+        loading in plugins.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31832
+
+        * public/WebDevToolsAgent.h:
+        * public/WebView.h:
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::createUniqueIdentifierForRequest):
+        * src/WebViewImpl.h:
+
+2009-11-26  Yury Semikhatsky  <yurys@chromium.org>
+
+        Not reviewed. Build fix: revert r51421.
+
+        * public/WebDevToolsAgent.h:
+        * public/WebView.h:
+        * src/WebViewImpl.cpp:
+        * src/WebViewImpl.h:
+
+2009-11-25  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Reviewed by David Levin.
+
+        [Chromium] Implement canSetValueAttribute in the API.
+        https://bugs.webkit.org/show_bug.cgi?id=31894
+
+        * public/WebAccessibilityObject.h: Added decl.
+        * src/WebAccessibilityCacheImpl.h: Cleaned up mis-include.
+        * src/WebAccessibilityObject.cpp:
+        (WebKit::WebAccessibilityObject::canSetValueAttribute): Added impl.
+
+2009-11-25  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] Plumb setNeedsSiteSpecificQuirks throught WebKit API.
+        https://bugs.webkit.org/show_bug.cgi?id=31878
+
+        * public/WebSettings.h: Added decl.
+        * src/WebSettingsImpl.cpp:
+        (WebKit::WebSettingsImpl::setNeedsSiteSpecificQuirks): Added impl.
+        * src/WebSettingsImpl.h:
+
+2009-11-24  Dmitry Titov  <dimich@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Add ENABLE_SHARED_SCRIPT feature define and flag for build-webkit
+        https://bugs.webkit.org/show_bug.cgi?id=31444
+
+        * features.gypi:
+
+2009-11-24  Evan Stade  <estade@chromium.org>
+
+        Reviewed by David Levin.
+
+        Linux Chromium sends too many click events
+        https://bugs.webkit.org/show_bug.cgi?id=31841
+
+        Manually count number of clicks for double/triple click events. This
+        makes us match Firefox on http://www.quirksmode.org/js/events_mouse.html
+        Chromium side of this patch is here:
+        http://codereview.chromium.org/431031/show
+
+        * src/gtk/WebInputEventFactory.cpp:
+        (WebKit::WebInputEventFactory::mouseEvent):
+
+2009-11-24  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        [Chromium] Renderer hang when using www.expedia.com
+        https://bugs.webkit.org/show_bug.cgi?id=31822
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchWillSendRequest):
+        Assign ReturnCacheDataDontLoad cache policy at the last moment
+        to match Safari.  This way the cache policy does not get stored
+        in DocumentLoader's originalRequest preventing it from being
+        inherited by subresource requests.
+        * src/ResourceHandle.cpp:
+        (WebCore::ResourceHandle::willLoadFromCache): Remove assignment
+        of ReturnCacheDataDontLoad cache policy so that it doesn't end
+        up applying to the DocumentLoader's originalRequest.
+
+2009-11-23  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        Change get... calls to latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=30091
+
+        Removed old versions of get calls on WebGLRenderingContext and
+        added new ones per spec returning "any". New code simplifies
+        GraphicsContext3D and fixes previously unimplemented routines.
+        Added custom JS and V8 bindings. Added exhaustive test case
+        exercising all new code paths. Updated preexisting test cases for
+        new APIs. Fixed preexisting bugs in WebKit's and Chrome's WebGL
+        implementations.
+
+        Ran WebGL layout tests in WebKit (clean) and Chrome (couple of
+        preexisting known failures) and manual WebGL tests in both
+        browsers.
+
+        Test: fast/canvas/webgl/gl-object-get-calls.html
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3D::createFramebuffer):
+        (WebCore::GraphicsContext3D::createRenderbuffer):
+        (WebCore::GraphicsContext3D::deleteFramebuffer):
+        (WebCore::GraphicsContext3D::deleteRenderbuffer):
+        (WebCore::GraphicsContext3D::checkFramebufferStatus):
+        (WebCore::GraphicsContext3D::getBooleanv):
+        (WebCore::GraphicsContext3D::getBufferParameteriv):
+        (WebCore::GraphicsContext3D::getFloatv):
+        (WebCore::GraphicsContext3D::getFramebufferAttachmentParameteriv):
+        (WebCore::GraphicsContext3D::getIntegerv):
+        (WebCore::GraphicsContext3D::getProgramiv):
+        (WebCore::GraphicsContext3D::getRenderbufferParameteriv):
+        (WebCore::GraphicsContext3D::getShaderiv):
+        (WebCore::GraphicsContext3D::getTexParameterfv):
+        (WebCore::GraphicsContext3D::getTexParameteriv):
+        (WebCore::GraphicsContext3D::getUniformfv):
+        (WebCore::GraphicsContext3D::getUniformiv):
+        (WebCore::GraphicsContext3D::getVertexAttribfv):
+        (WebCore::GraphicsContext3D::getVertexAttribiv):
+        (WebCore::GraphicsContext3D::isFramebuffer):
+        (WebCore::GraphicsContext3D::isRenderbuffer):
+
+2009-11-24  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Chromium: Expose method for reporting user stats
+        to the host. Also includes drive-by default implementation.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31830
+
+        * public/WebKitClient.h:
+
+2009-11-24  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        [Chromium] Fix DOM storage layout tests
+        https://bugs.webkit.org/show_bug.cgi?id=31833
+
+        The issue is, essentially, that this code assumes that
+        SecurityOrigin::createString can re-create a SecurityOrigin given
+        the string produced from SecurityOrigin::toString.  This is a bogus
+        assumption in a number of corner cases (e.g., document.domain,
+        @sandbox).  A recent patch (http://trac.webkit.org/changeset/51294)
+        make this assumption further invalid in the case of of file:// URLs.
+
+        The correct fix is for this code to use WebSecurityOrigin objects
+        (and not strings) to represent SecurityOrigin objects.  However, the
+        expert on this code is on vacation, and I don't want to do major
+        surgery here without his involvement.  This patch is a temporary fix
+        to get these tests passing again.  We'll do the right fix once
+        jorlow gets back from vacation.
+
+        Tests: Covered by a number of existing DOM storage tests.
+
+        * src/WebStorageNamespaceImpl.cpp:
+        (WebKit::WebStorageNamespaceImpl::createStorageArea):
+
+2009-11-23  Jian Li  <jianli@chromium.org>
+
+        Reviewed by NOBODY (Chromium build fix).
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3D::createShader):
+
+2009-11-20  Jian Li  <jianli@chromium.org>
+
+        Not reviewed. Fix chromium build.
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::):
+        * src/AssertMatchingEnums.cpp:
+
+2009-11-19  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Make chromium/webkit/glue/FormFieldValues use the WebKit API
+
+        https://bugs.webkit.org/show_bug.cgi?id=31650
+
+        * public/WebElement.h:
+        * public/WebFormElement.h:
+        * public/WebInputElement.h:
+        (WebKit::WebInputElement::):
+        * public/WebNode.h:
+        * src/AssertMatchingEnums.cpp:
+        * src/DOMUtilitiesPrivate.cpp:
+        (WebKit::nameOfInputElement):
+        * src/DOMUtilitiesPrivate.h:
+        * src/EditorClientImpl.cpp:
+        (WebKit::EditorClientImpl::autofill):
+        (WebKit::EditorClientImpl::doAutofill):
+        * src/WebFormElement.cpp:
+        (WebKit::WebFormElement::name):
+        (WebKit::WebFormElement::method):
+        (WebKit::WebFormElement::getNamedElements):
+        (WebKit::WebFormElement::getInputElements):
+        * src/WebInputElement.cpp:
+        (WebKit::WebInputElement::isEnabledFormControl):
+        (WebKit::WebInputElement::inputType):
+        (WebKit::WebInputElement::formControlType):
+        (WebKit::WebInputElement::value):
+        (WebKit::WebInputElement::dispatchFormControlChangeEvent):
+        (WebKit::WebInputElement::setSelectionRange):
+        (WebKit::WebInputElement::name):
+        (WebKit::WebInputElement::nameForAutofill):
+        * src/WebNode.cpp:
+        (WebKit::WebNode::frame):
+
+2009-11-18  Michelangelo De Simone  <micdesim@gmail.com>
+
+        Reviewed by Darin Adler.
+
+        Fix for <https://bugs.webkit.org/show_bug.cgi?id=27959>.
+        Support for validationMessage attribute, as per HTML5 specs.
+
+        * src/LocalizedStrings.cpp:
+        (WebCore::validationMessageValueMissingText):
+        (WebCore::validationMessageTypeMismatchText):
+        (WebCore::validationMessagePatternMismatchText):
+        (WebCore::validationMessageTooLongText):
+        (WebCore::validationMessageRangeUnderflowText):
+        (WebCore::validationMessageRangeOverflowText):
+        (WebCore::validationMessageStepMismatchText):
+
+2009-11-18  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Remove Chromium port's dependency on some dummy pthreads header
+        files that live in the Chromium repository.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31648
+
+        * DEPS: Remove reference to chromium svn's webkit/build/ directory.
+
+2009-11-18  Evan Stade  <estade@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Menu button shows wrong content in Chromium
+        https://bugs.webkit.org/show_bug.cgi?id=31448
+
+        Make context menu button (VK_APPS) show context menu for node that has
+        keyboard focus. This affects both the content and the positioning.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::sendContextMenuEvent):
+
+2009-11-17  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Dmitry Titov.
+
+        Minor cleanup in WebKit API
+        https://bugs.webkit.org/show_bug.cgi?id=31616
+
+        * public/WebFormElement.h: Add missing WEBKIT_API prefix.
+        * public/WebNode.h: Add missing WEBKIT_API prefix.
+        * src/WebFormElement.cpp:
+        (WebKit::WebFormElement::action): Make action getter const.
+        * src/WebNode.cpp:
+        (WebKit::WebNode::frame): Utilize WebFrameImpl::fromFrame.
+
+2009-11-17  Nicolas Weber  <thakis@chromium.org>
+
+        Reviewed by Darin Fisher, Dmitry Titov.
+
+        Revert r50887, it regressed handling of cmd-left when a text box is focused.
+        https://bugs.webkit.org/show_bug.cgi?id=31566
+
+        * src/mac/WebInputEventFactory.mm:
+        (WebKit::WebInputEventFactory::keyboardEvent):
+
+2009-11-16  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        Update API of WebGLArray and friends
+        https://bugs.webkit.org/show_bug.cgi?id=31175
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3D::bufferData):
+        (WebCore::GraphicsContext3D::bufferSubData):
+
+2009-11-15  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Unreviewed, build fix.
+
+        Correct an error in the previous commit
+
+        * public/WebAccessibilityRole.h: It should be WebAccessibilityRoleDirectory,
+          not WebAccessibilityDirectoryRole.
+
+2009-11-15  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Unreviewed, build fix.
+
+        Bring WebAccessibilityRole up to sync after
+        http://trac.webkit.org/changeset/51007.
+
+        * public/WebAccessibilityRole.h: Added WebAccessibilityRoleDirectory.
+        * src/AssertMatchingEnums.cpp: Added a match between DirectoryRole and
+          WebAccessibilityRoleDirectory.
+
+2009-11-13  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Unreviewed, build fix.
+
+        [Chromium] Rename windowObjectCleared to dispatchDidClearWindowObjectInWorld
+        to catch up http://trac.webkit.org/changeset/50973.
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchDidClearWindowObjectInWorld):
+        * src/FrameLoaderClientImpl.h:
+
+2009-11-13  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Chromium WebKit Port to compile as dynamic lib
+
+        https://bugs.webkit.org/show_bug.cgi?id=31478
+
+        * WebKit.gyp:
+
+2009-11-13  Aaron Boodman  <aa@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Adds a way to get the document element's scrollHeight,
+        which is sort of the moral equivalent to
+        RenderBox::minPrefWidth().
+
+        https://bugs.webkit.org/show_bug.cgi?id=31036
+
+        * public/WebFrame.h: Declare documentElementScrollHeight()
+        * src/WebFrameImpl.h: Ditto
+        * src/WebFrameImpl.cpp: Implement documentElementScrollHeight()
+        (WebKit::WebFrameImpl::documentElementScrollHeight): Return the
+        scroll height of the document element, or zero if there's no
+        documentElement.
+
+2009-11-12  Dumitru Daniliuc  <dumi@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Adding Chromium's DatabaseTracker implementation.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31440
+
+        * WebKit.gyp:
+        * src/ChromeClientImpl.cpp:
+        (WebKit::ChromeClientImpl::exceededDatabaseQuota):
+        * src/DatabaseObserver.cpp: Added.
+        (WebCore::DatabaseObserver::databaseOpened):
+        (WebCore::DatabaseObserver::databaseModified):
+        (WebCore::DatabaseObserver::databaseClosed):
+        * src/WebDatabase.cpp:
+        (WebKit::WebDatabase::name):
+        (WebKit::WebDatabase::displayName):
+        (WebKit::WebDatabase::estimatedSize):
+        (WebKit::WebDatabase::securityOrigin):
+        (WebKit::WebDatabase::updateDatabaseSize):
+        * src/WebSecurityOrigin.cpp:
+        (WebKit::WebSecurityOrigin::toString):
+        (WebKit::WebSecurityOrigin::databaseIdentifier):
+
 2009-11-13  Yaar Schnitman  <yaar@chromium.org>
 
         Reviewed by Dimitri Glazkov.

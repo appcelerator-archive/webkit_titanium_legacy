@@ -54,12 +54,14 @@
 #include "WorkerContextExecutionProxy.h"
 
 #include <algorithm>
+#include <stdio.h>
 #include <utility>
 #include <v8.h>
 #include <v8-debug.h>
 #include <wtf/Assertions.h>
 #include <wtf/OwnArrayPtr.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/StringExtras.h>
 #include <wtf/UnusedParam.h>
 
 namespace WebCore {
@@ -68,9 +70,6 @@ v8::Persistent<v8::Context> V8Proxy::m_utilityContext;
 
 // Static list of registered extensions
 V8Extensions V8Proxy::m_extensions;
-
-const char* V8Proxy::kContextDebugDataType = "type";
-const char* V8Proxy::kContextDebugDataValue = "value";
 
 void batchConfigureAttributes(v8::Handle<v8::ObjectTemplate> instance, 
                               v8::Handle<v8::ObjectTemplate> proto, 
@@ -311,7 +310,11 @@ void V8Proxy::evaluateInIsolatedWorld(int worldID, const Vector<ScriptSourceCode
             m_isolatedWorlds.set(worldID, world);
 
             // Setup context id for JS debugger.
-            setInjectedScriptContextDebugId(world->context());
+            if (!setInjectedScriptContextDebugId(world->context())) {
+                m_isolatedWorlds.take(worldID);
+                delete world;
+                return;
+            }
         }
     } else {
         world = new V8IsolatedWorld(this, extensionGroup);
@@ -350,7 +353,10 @@ void V8Proxy::evaluateInNewContext(const Vector<ScriptSourceCode>& sources, int 
     v8::Context::Scope contextScope(context);
 
     // Setup context id for JS debugger.
-    setInjectedScriptContextDebugId(context);
+    if (!setInjectedScriptContextDebugId(context)) {
+        context.Dispose();
+        return;
+    }
 
     v8::Handle<v8::Object> global = context->Global();
 
@@ -376,19 +382,22 @@ void V8Proxy::evaluateInNewContext(const Vector<ScriptSourceCode>& sources, int 
     context.Dispose();
 }
 
-void V8Proxy::setInjectedScriptContextDebugId(v8::Handle<v8::Context> targetContext)
+bool V8Proxy::setInjectedScriptContextDebugId(v8::Handle<v8::Context> targetContext)
 {
     // Setup context id for JS debugger.
     v8::Context::Scope contextScope(targetContext);
-    v8::Handle<v8::Object> contextData = v8::Object::New();
+    if (m_context.IsEmpty())
+        return false;
+    int debugId = contextDebugId(m_context);
 
-    v8::Handle<v8::Value> windowContextData = m_context->GetData();
-    if (windowContextData->IsObject()) {
-        v8::Handle<v8::String> propertyName = v8::String::New(kContextDebugDataValue);
-        contextData->Set(propertyName, v8::Object::Cast(*windowContextData)->Get(propertyName));
-    }
-    contextData->Set(v8::String::New(kContextDebugDataType), v8::String::New("injected"));
-    targetContext->SetData(contextData);
+    char buffer[32];
+    if (debugId == -1)
+        snprintf(buffer, sizeof(buffer), "injected");
+    else
+        snprintf(buffer, sizeof(buffer), "injected,%d", debugId);
+    targetContext->SetData(v8::String::New(buffer));
+
+    return true;
 }
 
 v8::Local<v8::Value> V8Proxy::evaluate(const ScriptSourceCode& source, Node* node)
@@ -880,14 +889,20 @@ bool V8Proxy::canAccessPrivate(DOMWindow* targetWindow)
 
     String message;
 
-    DOMWindow* originWindow = retrieveWindow(currentContext());
-    if (originWindow == targetWindow)
+    v8::Local<v8::Context> activeContext = v8::Context::GetCalling();
+    if (activeContext.IsEmpty()) {
+        // There is a single activation record on the stack, so that must
+        // be the activeContext.
+        activeContext = v8::Context::GetCurrent();
+    }
+    DOMWindow* activeWindow = retrieveWindow(activeContext);
+    if (activeWindow == targetWindow)
         return true;
 
-    if (!originWindow)
+    if (!activeWindow)
         return false;
 
-    const SecurityOrigin* activeSecurityOrigin = originWindow->securityOrigin();
+    const SecurityOrigin* activeSecurityOrigin = activeWindow->securityOrigin();
     const SecurityOrigin* targetSecurityOrigin = targetWindow->securityOrigin();
 
     // We have seen crashes were the security origin of the target has not been
@@ -900,7 +915,7 @@ bool V8Proxy::canAccessPrivate(DOMWindow* targetWindow)
 
     // Allow access to a "about:blank" page if the dynamic context is a
     // detached context of the same frame as the blank page.
-    if (targetSecurityOrigin->isEmpty() && originWindow->frame() == targetWindow->frame())
+    if (targetSecurityOrigin->isEmpty() && activeWindow->frame() == targetWindow->frame())
         return true;
 
     return false;
@@ -1106,7 +1121,10 @@ void V8Proxy::initContextIfNeeded()
     setSecurityToken();
 
     m_frame->loader()->client()->didCreateScriptContextForFrame();
-    m_frame->loader()->dispatchWindowObjectAvailable();
+
+    // FIXME: This is wrong. We should actually do this for the proper world once
+    // we do isolated worlds the WebCore way.
+    m_frame->loader()->dispatchDidClearWindowObjectInWorld(0);
 }
 
 void V8Proxy::setDOMException(int exceptionCode)
@@ -1189,8 +1207,13 @@ v8::Local<v8::Context> V8Proxy::context()
             return v8::Local<v8::Context>();
         return v8::Local<v8::Context>::New(context->get());
     }
+    return mainWorldContext();
+}
+
+v8::Local<v8::Context> V8Proxy::mainWorldContext()
+{
     initContextIfNeeded();
-    return v8::Local<v8::Context>::New(m_context);;
+    return v8::Local<v8::Context>::New(m_context);
 }
 
 v8::Local<v8::Context> V8Proxy::mainWorldContext(Frame* frame)
@@ -1199,8 +1222,7 @@ v8::Local<v8::Context> V8Proxy::mainWorldContext(Frame* frame)
     if (!proxy)
         return v8::Local<v8::Context>();
 
-    proxy->initContextIfNeeded();
-    return v8::Local<v8::Context>::New(proxy->m_context);
+    return proxy->mainWorldContext();
 }
 
 v8::Local<v8::Context> V8Proxy::currentContext()
@@ -1346,20 +1368,24 @@ bool V8Proxy::setContextDebugId(int debugId)
         return false;
 
     v8::Context::Scope contextScope(m_context);
-    v8::Handle<v8::Object> contextData = v8::Object::New();
-    contextData->Set(v8::String::New(kContextDebugDataType), v8::String::New("page"));
-    contextData->Set(v8::String::New(kContextDebugDataValue), v8::Integer::New(debugId));
-    m_context->SetData(contextData);
+
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "page,%d", debugId);
+    m_context->SetData(v8::String::New(buffer));
+
     return true;
 }
 
 int V8Proxy::contextDebugId(v8::Handle<v8::Context> context)
 {
     v8::HandleScope scope;
-    if (!context->GetData()->IsObject())
+    if (!context->GetData()->IsString())
         return -1;
-    v8::Handle<v8::Value> data = context->GetData()->ToObject()->Get( v8::String::New(kContextDebugDataValue));
-    return data->IsInt32() ? data->Int32Value() : -1;
+    v8::String::AsciiValue ascii(context->GetData());
+    char* comma = strnstr(*ascii, ",", ascii.length());
+    if (!comma)
+        return -1;
+    return atoi(comma + 1);
 }
 
 v8::Handle<v8::Value> V8Proxy::getHiddenObjectPrototype(v8::Handle<v8::Context> context)
@@ -1382,11 +1408,11 @@ void V8Proxy::installHiddenObjectPrototype(v8::Handle<v8::Context> context)
     context->Global()->SetHiddenValue(hiddenObjectPrototypeString, objectPrototype);
 }
 
-v8::Local<v8::Context> toV8Context(ScriptExecutionContext* context)
+v8::Local<v8::Context> toV8Context(ScriptExecutionContext* context, const WorldContextHandle& worldContext)
 {
     if (context->isDocument()) {
         if (V8Proxy* proxy = V8Proxy::retrieve(context))
-            return proxy->context();
+            return worldContext.adjustedContext(proxy);
     } else if (context->isWorkerContext()) {
         if (WorkerContextExecutionProxy* proxy = static_cast<WorkerContext*>(context)->script()->proxy())
             return proxy->context();

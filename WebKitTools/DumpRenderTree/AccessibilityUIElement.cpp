@@ -170,6 +170,24 @@ static JSValueRef disclosedRowAtIndexCallback(JSContextRef context, JSObjectRef 
     return AccessibilityUIElement::makeJSAccessibilityUIElement(context, toAXElement(thisObject)->disclosedRowAtIndex(indexNumber));
 }
 
+static JSValueRef ariaOwnsElementAtIndexCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    int indexNumber = 0;
+    if (argumentCount == 1)
+        indexNumber = JSValueToNumber(context, arguments[0], exception);
+    
+    return AccessibilityUIElement::makeJSAccessibilityUIElement(context, toAXElement(thisObject)->ariaOwnsElementAtIndex(indexNumber));
+}
+
+static JSValueRef ariaFlowToElementAtIndexCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    int indexNumber = 0;
+    if (argumentCount == 1)
+        indexNumber = JSValueToNumber(context, arguments[0], exception);
+    
+    return AccessibilityUIElement::makeJSAccessibilityUIElement(context, toAXElement(thisObject)->ariaFlowToElementAtIndex(indexNumber));
+}
+
 static JSValueRef selectedRowAtIndexCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     int indexNumber = 0;
@@ -202,9 +220,20 @@ static JSValueRef elementAtPointCallback(JSContextRef context, JSObjectRef funct
     return AccessibilityUIElement::makeJSAccessibilityUIElement(context, toAXElement(thisObject)->elementAtPoint(x, y));
 }
 
+static JSValueRef isAttributeSupportedCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    JSStringRef attribute = 0;
+    if (argumentCount == 1)
+        attribute = JSValueToStringCopy(context, arguments[0], exception);    
+    JSValueRef result = JSValueMakeBoolean(context, toAXElement(thisObject)->isAttributeSupported(attribute));
+    if (attribute)
+        JSStringRelease(attribute);
+    return result;
+}
+
 static JSValueRef isAttributeSettableCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
-    JSStringRef attribute = NULL;
+    JSStringRef attribute = 0;
     if (argumentCount == 1)
         attribute = JSValueToStringCopy(context, arguments[0], exception);    
     JSValueRef result = JSValueMakeBoolean(context, toAXElement(thisObject)->isAttributeSettable(attribute));
@@ -227,7 +256,7 @@ static JSValueRef isActionSupportedCallback(JSContextRef context, JSObjectRef fu
 
 static JSValueRef attributeValueCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
-    JSStringRef attribute = NULL;
+    JSStringRef attribute = 0;
     if (argumentCount == 1)
         attribute = JSValueToStringCopy(context, arguments[0], exception);
     JSRetainPtr<JSStringRef> attributeValue(Adopt, toAXElement(thisObject)->attributeValue(attribute));
@@ -272,28 +301,50 @@ static JSValueRef setSelectedTextRangeCallback(JSContextRef context, JSObjectRef
     }
     
     toAXElement(thisObject)->setSelectedTextRange(location, length);
-    return 0;
+    return JSValueMakeUndefined(context);
 }
 
 static JSValueRef incrementCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     toAXElement(thisObject)->increment();
-    return 0;
+    return JSValueMakeUndefined(context);
 }
 
 static JSValueRef decrementCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     toAXElement(thisObject)->decrement();
-    return 0;
+    return JSValueMakeUndefined(context);
 }
 
 static JSValueRef showMenuCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     toAXElement(thisObject)->showMenu();
-    return 0;
+    return JSValueMakeUndefined(context);
 }
 
 // Static Value Getters
+
+static JSValueRef getARIADropEffectsCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    JSRetainPtr<JSStringRef> dropEffects(Adopt, toAXElement(thisObject)->ariaDropEffects());
+    return JSValueMakeString(context, dropEffects.get());
+}
+
+static JSValueRef getARIAIsGrabbedCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->ariaIsGrabbed());
+}
+
+static JSValueRef getIsValidCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    AccessibilityUIElement* uiElement = toAXElement(thisObject);
+    if (!uiElement->platformUIElement())
+        return JSValueMakeBoolean(context, false);
+    
+    // There might be other platform logic that one could check here...
+    
+    return JSValueMakeBoolean(context, true);
+}
 
 static JSValueRef getRoleCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
 {
@@ -305,6 +356,12 @@ static JSValueRef getSubroleCallback(JSContextRef context, JSObjectRef thisObjec
 {
     JSRetainPtr<JSStringRef> role(Adopt, toAXElement(thisObject)->subrole());
     return JSValueMakeString(context, role.get());
+}
+
+static JSValueRef getRoleDescriptionCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    JSRetainPtr<JSStringRef> roleDesc(Adopt, toAXElement(thisObject)->roleDescription());
+    return JSValueMakeString(context, roleDesc.get());
 }
 
 static JSValueRef getTitleCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
@@ -329,6 +386,12 @@ static JSValueRef getLanguageCallback(JSContextRef context, JSObjectRef thisObje
 {
     JSRetainPtr<JSStringRef> language(Adopt, toAXElement(thisObject)->language());
     return JSValueMakeString(context, language.get());
+}
+
+static JSValueRef getOrientationCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+{
+    JSRetainPtr<JSStringRef> orientation(Adopt, toAXElement(thisObject)->orientation());
+    return JSValueMakeString(context, orientation.get());
 }
 
 static JSValueRef getChildrenCountCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
@@ -461,6 +524,7 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "accessibilityValue", getAccessibilityValueCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "role", getRoleCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "subrole", getSubroleCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "roleDescription", getRoleDescriptionCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "title", getTitleCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "description", getDescriptionCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "language", getLanguageCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -485,6 +549,10 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "hierarchicalLevel", hierarchicalLevelCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "documentEncoding", getDocumentEncodingCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "documentURI", getDocumentURICallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isValid", getIsValidCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "orientation", getOrientationCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "ariaIsGrabbed", getARIAIsGrabbedCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "ariaDropEffects", getARIADropEffectsCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { 0, 0, 0, 0 }
     };
 
@@ -512,6 +580,7 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "titleUIElement", titleUIElementCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setSelectedTextRange", setSelectedTextRangeCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "attributeValue", attributeValueCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isAttributeSupported", isAttributeSupportedCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isAttributeSettable", isAttributeSettableCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isActionSupported", isActionSupportedCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "parentElement", parentElementCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -520,6 +589,8 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "decrement", decrementCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "showMenu", showMenuCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "disclosedRowAtIndex", disclosedRowAtIndexCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "ariaOwnsElementAtIndex", ariaOwnsElementAtIndexCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "ariaFlowToElementAtIndex", ariaFlowToElementAtIndexCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "selectedRowAtIndex", selectedRowAtIndexCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isEqual", isEqualCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { 0, 0, 0 }

@@ -135,18 +135,20 @@ public:
 
     // Zoom ----------------------------------------------------------------
 
-    // Change the text zoom level.  It will make the zoom level 20% larger
-    // or smaller.  If textOnly is set, the text size will be changed.
-    // When unset, the entire page's zoom factor will be changed.
+    // Returns the current zoom level.  0 is "original size", and each increment
+    // above or below represents zooming 20% larger or smaller to limits of 300%
+    // and 50% of original size, respectively.
+    virtual int zoomLevel() = 0;
+
+    // Changes the zoom level to the specified level, clamping at the limits
+    // noted above, and returns the current zoom level after applying the
+    // change.
     //
-    // You can only have either text zoom or full page zoom at one time.
-    // Changing the mode will change things in weird ways.  Generally the
-    // app should only support text zoom or full page zoom, and not both.
-    //
-    // zoomDefault will reset both full page and text zoom.
-    virtual void zoomIn(bool textOnly) = 0;
-    virtual void zoomOut(bool textOnly) = 0;
-    virtual void zoomDefault() = 0;
+    // If |textOnly| is set, only the text will be zoomed; otherwise the entire
+    // page will be zoomed. You can only have either text zoom or full page zoom
+    // at one time.  Changing the mode while the page is zoomed will have odd
+    // effects.
+    virtual int setZoomLevel(bool textOnly, int zoomLevel) = 0;
 
 
     // Media ---------------------------------------------------------------
@@ -191,6 +193,13 @@ public:
     virtual bool setDropEffect(bool accept) = 0;
 
 
+    // Support for resource loading initiated by plugins -------------------
+
+    // Returns next unused request identifier which is unique within the
+    // parent Page.
+    virtual unsigned long createUniqueIdentifierForRequest() = 0;
+
+
     // Developer tools -----------------------------------------------------
 
     // Inspect a particular point in the WebView.  (x = -1 || y = -1) is a
@@ -226,6 +235,11 @@ public:
     virtual void hideAutofillPopup() = 0;
 
 
+    // Context menu --------------------------------------------------------
+
+    virtual void performCustomContextMenuAction(unsigned action) = 0;
+
+
     // Visited link state --------------------------------------------------
 
     // Tells all WebView instances to update the visited link state for the
@@ -236,6 +250,11 @@ public:
     // their links.
     WEBKIT_API static void resetVisitedLinkState();
 
+
+    // Scrollbar colors ----------------------------------------------------
+    virtual void setScrollbarColors(unsigned inactiveColor,
+                                    unsigned activeColor,
+                                    unsigned trackColor) = 0;
 
 protected:
     ~WebView() {}

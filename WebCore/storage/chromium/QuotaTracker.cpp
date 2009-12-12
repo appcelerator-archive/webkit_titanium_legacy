@@ -56,7 +56,7 @@ void QuotaTracker::getDatabaseSizeAndSpaceAvailableToOrigin(
     *spaceAvailable = m_spaceAvailableToOrigins.get(originIdentifier);
 }
 
-void QuotaTracker::updateDatabaseSizeAndOriginSpace(
+void QuotaTracker::updateDatabaseSizeAndSpaceAvailableToOrigin(
     const String& originIdentifier, const String& databaseName,
     unsigned long long databaseSize, unsigned long long spaceAvailable)
 {

@@ -31,29 +31,18 @@
 #ifndef WebPopupMenuInfo_h
 #define WebPopupMenuInfo_h
 
-#include "WebCommon.h"
-#include "WebRect.h"
-#include "WebString.h"
+#include "WebMenuItemInfo.h"
 #include "WebVector.h"
 
 namespace WebKit {
 
 // Describes the contents of a popup menu.
 struct WebPopupMenuInfo {
-    struct Item {
-        enum Type {
-            Option,
-            Group,
-            Separator,
-        };
-        WebString label;
-        Type type;
-        bool enabled;
-    };
-
+    // FIXME: migrate clients to WebMenuItemInfo and remove this temporary Item typedef.
+    typedef WebMenuItemInfo Item;
     int itemHeight;
     int selectedIndex;
-    WebVector<Item> items;
+    WebVector<WebMenuItemInfo> items;
 };
 
 } // namespace WebKit

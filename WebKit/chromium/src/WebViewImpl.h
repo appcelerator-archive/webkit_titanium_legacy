@@ -116,9 +116,8 @@ public:
     virtual void setFocusedFrame(WebFrame* frame);
     virtual void setInitialFocus(bool reverse);
     virtual void clearFocusedNode();
-    virtual void zoomIn(bool textOnly);
-    virtual void zoomOut(bool textOnly);
-    virtual void zoomDefault();
+    virtual int zoomLevel();
+    virtual int setZoomLevel(bool textOnly, int zoomLevel);
     virtual void performMediaPlayerAction(
         const WebMediaPlayerAction& action,
         const WebPoint& location);
@@ -143,6 +142,7 @@ public:
         const WebPoint& screenPoint);
     virtual int dragIdentity();
     virtual bool setDropEffect(bool accept);
+    virtual unsigned long createUniqueIdentifierForRequest();
     virtual void inspectElementAt(const WebPoint& point);
     virtual WebString inspectorSettings() const;
     virtual void setInspectorSettings(const WebString& settings);
@@ -154,6 +154,10 @@ public:
         const WebVector<WebString>& suggestions,
         int defaultSuggestionIndex);
     virtual void hideAutofillPopup();
+    virtual void setScrollbarColors(unsigned inactiveColor,
+                                    unsigned activeColor,
+                                    unsigned trackColor);
+    virtual void performCustomContextMenuAction(unsigned action);
 
     // WebViewImpl
 
@@ -336,8 +340,8 @@ private:
     // dragged by the time a drag is initiated.
     WebPoint m_lastMouseDownPoint;
 
-    // Keeps track of the current text zoom level.  0 means no zoom, positive
-    // values mean larger text, negative numbers mean smaller.
+    // Keeps track of the current zoom level.  0 means no zoom, positive numbers
+    // mean zoom in, negative numbers mean zoom out.
     int m_zoomLevel;
 
     bool m_contextMenuAllowed;

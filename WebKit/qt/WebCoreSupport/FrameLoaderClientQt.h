@@ -103,6 +103,9 @@ namespace WebCore {
         virtual void dispatchDidCancelClientRedirect();
         virtual void dispatchWillPerformClientRedirect(const KURL&, double interval, double fireDate);
         virtual void dispatchDidChangeLocationWithinPage();
+        virtual void dispatchDidPushStateWithinPage();
+        virtual void dispatchDidReplaceStateWithinPage();
+        virtual void dispatchDidPopStateWithinPage();
         virtual void dispatchWillClose();
         virtual void dispatchDidReceiveIcon();
         virtual void dispatchDidStartProvisionalLoad();
@@ -148,7 +151,9 @@ namespace WebCore {
         virtual void updateGlobalHistory();
         virtual void updateGlobalHistoryRedirectLinks();
         virtual bool shouldGoToHistoryItem(HistoryItem*) const;
-
+        virtual void dispatchDidAddBackForwardItem(HistoryItem*) const;
+        virtual void dispatchDidRemoveBackForwardItem(HistoryItem*) const;
+        virtual void dispatchDidChangeBackForwardIndex() const;
         virtual void didDisplayInsecureContent();
         virtual void didRunInsecureContent(SecurityOrigin*);
 
@@ -197,7 +202,7 @@ namespace WebCore {
         virtual ObjectContentType objectContentType(const KURL& url, const String& mimeType);
         virtual String overrideMediaType() const;
 
-        virtual void windowObjectCleared();
+        virtual void dispatchDidClearWindowObjectInWorld(DOMWrapperWorld*);
         virtual void documentElementAvailable();
         virtual void didPerformFirstNavigation() const;
 

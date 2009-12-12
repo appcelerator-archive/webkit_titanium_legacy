@@ -141,6 +141,8 @@ public:
     virtual AccessibilityObject* correspondingControlForLabelElement() const;
     virtual AccessibilityObject* correspondingLabelForControlElement() const;
 
+    virtual void ariaOwnsElements(AccessibilityChildrenVector&) const;
+    virtual bool supportsARIAOwns() const;
     virtual AccessibilityRole ariaRoleAttribute() const;
     virtual bool isPresentationalChildOfAriaRole() const;
     virtual bool ariaRoleHasPresentationalChildren() const;
@@ -199,6 +201,7 @@ public:
     virtual void setSelected(bool);
     virtual void setSelectedRows(AccessibilityChildrenVector&);
     virtual void changeValueByPercent(float percentChange);
+    virtual AccessibilityOrientation orientation() const;
     virtual void increment();
     virtual void decrement();
     
@@ -217,6 +220,14 @@ public:
     virtual VisiblePositionRange visiblePositionRangeForLine(unsigned) const;
     virtual IntRect boundsForVisiblePositionRange(const VisiblePositionRange&) const;
     virtual void setSelectedVisiblePositionRange(const VisiblePositionRange&) const;
+    virtual bool supportsARIAFlowTo() const;
+    virtual void ariaFlowToElements(AccessibilityChildrenVector&) const;
+
+    virtual bool supportsARIADropping();
+    virtual bool supportsARIADragging();
+    virtual bool isARIAGrabbed();
+    virtual void setARIAGrabbed(bool);
+    virtual void determineARIADropEffects(Vector<String>&);
     
     virtual VisiblePosition visiblePositionForPoint(const IntPoint&) const;
     virtual VisiblePosition visiblePositionForIndex(unsigned indexValue, bool lastIndexOK) const;    
@@ -252,6 +263,8 @@ private:
     void ariaListboxSelectedChildren(AccessibilityChildrenVector&);
     void ariaListboxVisibleChildren(AccessibilityChildrenVector&);
     bool ariaIsHidden() const;
+    bool isDescendantOfBarrenParent() const;
+    bool hasTextAlternative() const;
     String positionalDescriptionForMSAA() const;
 
     Element* menuElementForMenuButton() const;

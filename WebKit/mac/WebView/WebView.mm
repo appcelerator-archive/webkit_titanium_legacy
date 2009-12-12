@@ -321,10 +321,6 @@ macro(yankAndSelect) \
 #define AppleKeyboardUIMode CFSTR("AppleKeyboardUIMode")
 #define UniversalAccessDomain CFSTR("com.apple.universalaccess")
 
-#if USE(ACCELERATED_COMPOSITING)
-#define UsingAcceleratedCompositingProperty @"_isUsingAcceleratedCompositing"
-#endif            
-
 static BOOL s_didSetCacheModel;
 static WebCacheModel s_cacheModel = WebCacheModelDocumentViewer;
 
@@ -399,6 +395,8 @@ NSString *_WebMainFrameIconKey =        @"mainFrameIcon";
 NSString *_WebMainFrameTitleKey =       @"mainFrameTitle";
 NSString *_WebMainFrameURLKey =         @"mainFrameURL";
 NSString *_WebMainFrameDocumentKey =    @"mainFrameDocument";
+
+NSString *_WebViewDidStartAcceleratedCompositingNotification = @"_WebViewDidStartAcceleratedCompositing";
 
 @interface WebProgressItem : NSObject
 {
@@ -822,17 +820,20 @@ static bool runningTigerMail()
     return uniqueExtensions;
 }
 
-+ (BOOL)_viewClass:(Class *)vClass andRepresentationClass:(Class *)rClass forMIMEType:(NSString *)MIMEType
++ (BOOL)_viewClass:(Class *)vClass andRepresentationClass:(Class *)rClass forMIMEType:(NSString *)MIMEType allowingPlugins:(BOOL)allowPlugins
 {
     MIMEType = [MIMEType lowercaseString];
     Class viewClass = [[WebFrameView _viewTypesAllowImageTypeOmission:YES] _webkit_objectForMIMEType:MIMEType];
     Class repClass = [[WebDataSource _repTypesAllowImageTypeOmission:YES] _webkit_objectForMIMEType:MIMEType];
-    
+
     if (!viewClass || !repClass || [[WebPDFView supportedMIMETypes] containsObject:MIMEType]) {
         // Our optimization to avoid loading the plug-in DB and image types for the HTML case failed.
-        // Load the plug-in DB allowing plug-ins to install types.
-        [WebPluginDatabase sharedDatabase];
-            
+
+        if (allowPlugins) {
+            // Load the plug-in DB allowing plug-ins to install types.
+            [WebPluginDatabase sharedDatabase];
+        }
+
         // Load the image types and get the view class and rep class. This should be the fullest picture of all handled types.
         viewClass = [[WebFrameView _viewTypesAllowImageTypeOmission:NO] _webkit_objectForMIMEType:MIMEType];
         repClass = [[WebDataSource _repTypesAllowImageTypeOmission:NO] _webkit_objectForMIMEType:MIMEType];
@@ -857,7 +858,7 @@ static bool runningTigerMail()
 
 - (BOOL)_viewClass:(Class *)vClass andRepresentationClass:(Class *)rClass forMIMEType:(NSString *)MIMEType
 {
-    if ([[self class] _viewClass:vClass andRepresentationClass:rClass forMIMEType:MIMEType])
+    if ([[self class] _viewClass:vClass andRepresentationClass:rClass forMIMEType:MIMEType allowingPlugins:[[[self _webView] preferences] arePlugInsEnabled]])
         return YES;
 
     if (_private->pluginDatabase) {
@@ -1303,6 +1304,8 @@ static bool fastDocumentTeardownEnabled()
     settings->setXSSAuditorEnabled([preferences isXSSAuditorEnabled]);
     settings->setEnforceCSSMIMETypeInStrictMode(!WKAppVersionCheckLessThan(@"com.apple.iWeb", -1, 2.1));
     settings->setAcceleratedCompositingEnabled([preferences acceleratedCompositingEnabled]);
+    settings->setShowDebugBorders([preferences showDebugBorders]);
+    settings->setShowRepaintCounter([preferences showRepaintCounter]);
     settings->setPluginAllowedRunTime([preferences pluginAllowedRunTime]);
     settings->setWebGLEnabled([preferences webGLEnabled]);
 }
@@ -1348,7 +1351,11 @@ static inline IMP getMethod(id o, SEL s)
 
     cache->didCancelClientRedirectForFrameFunc = getMethod(delegate, @selector(webView:didCancelClientRedirectForFrame:));
     cache->didChangeLocationWithinPageForFrameFunc = getMethod(delegate, @selector(webView:didChangeLocationWithinPageForFrame:));
+    cache->didPushStateWithinPageForFrameFunc = getMethod(delegate, @selector(webView:didPushStateWithinPageForFrame:));
+    cache->didReplaceStateWithinPageForFrameFunc = getMethod(delegate, @selector(webView:didReplaceStateWithinPageForFrame:));
+    cache->didPopStateWithinPageForFrameFunc = getMethod(delegate, @selector(webView:didPopStateWithinPageForFrame:));
     cache->didClearWindowObjectForFrameFunc = getMethod(delegate, @selector(webView:didClearWindowObject:forFrame:));
+    cache->didClearWindowObjectForFrameInScriptWorldFunc = getMethod(delegate, @selector(webView:didClearWindowObjectForFrame:inScriptWorld:));
     cache->didClearInspectorWindowObjectForFrameFunc = getMethod(delegate, @selector(webView:didClearInspectorWindowObject:forFrame:));
     cache->didCommitLoadForFrameFunc = getMethod(delegate, @selector(webView:didCommitLoadForFrame:));
     cache->didFailLoadWithErrorForFrameFunc = getMethod(delegate, @selector(webView:didFailLoadWithError:forFrame:));
@@ -1544,9 +1551,6 @@ static inline IMP getMethod(id o, SEL s)
     if (!manualNotifyKeys)
         manualNotifyKeys = [[NSSet alloc] initWithObjects:_WebMainFrameURLKey, _WebIsLoadingKey, _WebEstimatedProgressKey,
             _WebCanGoBackKey, _WebCanGoForwardKey, _WebMainFrameTitleKey, _WebMainFrameIconKey, _WebMainFrameDocumentKey,
-#if USE(ACCELERATED_COMPOSITING)
-            UsingAcceleratedCompositingProperty, // used by DRT
-#endif            
             nil];
     if ([manualNotifyKeys containsObject:key])
         return NO;
@@ -2091,10 +2095,35 @@ static inline IMP getMethod(id o, SEL s)
     return handCursor().impl();
 }
 
+- (BOOL)_postsAcceleratedCompositingNotifications
+{
+#if USE(ACCELERATED_COMPOSITING)
+    return _private->postsAcceleratedCompositingNotifications;
+#else
+    return NO;
+#endif
+
+}
+- (void)_setPostsAcceleratedCompositingNotifications:(BOOL)flag
+{
+#if USE(ACCELERATED_COMPOSITING)
+    _private->postsAcceleratedCompositingNotifications = flag;
+#endif
+}
+
 - (BOOL)_isUsingAcceleratedCompositing
 {
 #if USE(ACCELERATED_COMPOSITING)
-    return _private->acceleratedFramesCount > 0;
+    Frame* coreFrame = [self _mainCoreFrame];
+    if (_private->usesDocumentViews) {
+        for (Frame* frame = coreFrame; frame; frame = frame->tree()->traverseNext(coreFrame)) {
+            NSView *documentView = [[kit(frame) frameView] documentView];
+            if ([documentView isKindOfClass:[WebHTMLView class]] && [(WebHTMLView *)documentView _isUsingAcceleratedCompositing])
+                return YES;
+        }
+    }
+
+    return NO;
 #else
     return NO;
 #endif
@@ -2376,13 +2405,26 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
     PageGroup::closeLocalStorage();
 }
 
++ (BOOL)_canShowMIMEType:(NSString *)MIMEType allowingPlugins:(BOOL)allowPlugins
+{
+    return [self _viewClass:nil andRepresentationClass:nil forMIMEType:MIMEType allowingPlugins:allowPlugins];
+}
+
 + (BOOL)canShowMIMEType:(NSString *)MIMEType
 {
-    return [self _viewClass:nil andRepresentationClass:nil forMIMEType:MIMEType];
+    return [self _canShowMIMEType:MIMEType allowingPlugins:YES];
+}
+
+- (BOOL)_canShowMIMEType:(NSString *)MIMEType
+{
+    return [[self class] _canShowMIMEType:MIMEType allowingPlugins:[[[self _webView] preferences] arePlugInsEnabled]];
 }
 
 - (WebBasePluginPackage *)_pluginForMIMEType:(NSString *)MIMEType
 {
+    if (![_private->preferences arePlugInsEnabled])
+        return nil;
+
     WebBasePluginPackage *pluginPackage = [[WebPluginDatabase sharedDatabase] pluginForMIMEType:MIMEType];
     if (pluginPackage)
         return pluginPackage;
@@ -2395,6 +2437,9 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
 
 - (WebBasePluginPackage *)_pluginForExtension:(NSString *)extension
 {
+    if (![_private->preferences arePlugInsEnabled])
+        return nil;
+
     WebBasePluginPackage *pluginPackage = [[WebPluginDatabase sharedDatabase] pluginForExtension:extension];
     if (pluginPackage)
         return pluginPackage;
@@ -2426,6 +2471,9 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
 
 - (BOOL)_isMIMETypeRegisteredAsPlugin:(NSString *)MIMEType
 {
+    if (![_private->preferences arePlugInsEnabled])
+        return NO;
+
     if ([[WebPluginDatabase sharedDatabase] isMIMETypeRegistered:MIMEType])
         return YES;
         
@@ -3194,7 +3242,14 @@ static bool needsWebViewInitThreadWorkaround()
 // Get the appropriate user-agent string for a particular URL.
 - (NSString *)userAgentForURL:(NSURL *)url
 {
-    return [self _userAgentForURL:KURL([url absoluteURL])];
+    if (_private->useSiteSpecificSpoofing) {
+        // No current site-specific spoofs.
+    }
+
+    if (_private->userAgent.isNull())
+        _private->userAgent = [[self class] _standardUserAgentWithApplicationName:_private->applicationNameForUserAgent];
+
+    return _private->userAgent;
 }
 
 - (void)setHostWindow:(NSWindow *)hostWindow
@@ -4011,7 +4066,7 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSValue jsValu
     if (jsValue.isBoolean())
         return [NSAppleEventDescriptor descriptorWithBoolean:jsValue.getBoolean()];
     if (jsValue.isString())
-        return [NSAppleEventDescriptor descriptorWithString:String(jsValue.getString())];
+        return [NSAppleEventDescriptor descriptorWithString:String(jsValue.getString(exec))];
     if (jsValue.isNumber()) {
         double value = jsValue.uncheckedGetNumber();
         int intValue = value;
@@ -5296,19 +5351,6 @@ static WebFrameView *containingFrameView(NSView *view)
 }
 #endif // ENABLE(ICONDATABASE)
 
-// Get the appropriate user-agent string for a particular URL.
-- (WebCore::String)_userAgentForURL:(const WebCore::KURL&)url
-{
-    if (_private->useSiteSpecificSpoofing) {
-        // No current site-specific spoofs.
-    }
-
-    if (_private->userAgent.isNull())
-        _private->userAgent = [[self class] _standardUserAgentWithApplicationName:_private->applicationNameForUserAgent];
-
-    return _private->userAgent;
-}
-
 - (void)_addObject:(id)object forIdentifier:(unsigned long)identifier
 {
     ASSERT(!_private->identifierMap.contains(identifier));
@@ -5417,28 +5459,6 @@ static WebFrameView *containingFrameView(NSView *view)
 - (void)_setNeedsOneShotDrawingSynchronization:(BOOL)needsSynchronization
 {
     _private->needsOneShotDrawingSynchronization = needsSynchronization;
-}
-
-- (void)_startedAcceleratedCompositingForFrame:(WebFrame*)webFrame
-{
-    BOOL entering = _private->acceleratedFramesCount == 0;
-    if (entering)
-        [self willChangeValueForKey:UsingAcceleratedCompositingProperty];
-    ++_private->acceleratedFramesCount;
-    if (entering)
-        [self didChangeValueForKey:UsingAcceleratedCompositingProperty];
-}
-
-- (void)_stoppedAcceleratedCompositingForFrame:(WebFrame*)webFrame
-{
-    BOOL leaving = _private->acceleratedFramesCount == 1;
-    ASSERT(_private->acceleratedFramesCount > 0);
-    
-    if (leaving)
-        [self willChangeValueForKey:UsingAcceleratedCompositingProperty];
-    --_private->acceleratedFramesCount;
-    if (leaving)
-        [self didChangeValueForKey:UsingAcceleratedCompositingProperty];
 }
 
 - (BOOL)_syncCompositingChanges
