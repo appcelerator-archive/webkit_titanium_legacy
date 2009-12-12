@@ -865,6 +865,7 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         curl_easy_setopt(d->m_handle, CURLOPT_HTTPHEADER, headers);
         d->m_customHeaders = headers;
     }
+
     // curl CURLOPT_USERPWD expects username:password
     if (d->m_user.length() || d->m_pass.length()) {
         String userpass = d->m_user + ":" + d->m_pass;
@@ -876,6 +877,30 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         curl_easy_setopt(d->m_handle, CURLOPT_PROXY, m_proxy.utf8().data());
         curl_easy_setopt(d->m_handle, CURLOPT_PROXYTYPE, m_proxyType);
     }
+
+    String proxy(TitaniumProtocols::ProxyForURL(url));
+    if (proxy.length() <= 0)
+        return;
+    if (proxy.startsWith("direct"))
+        return;
+
+    if (proxy.startsWith("socks"))
+        curl_easy_setopt(d->m_handle, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4);
+
+    proxy = proxy.stripWhiteSpace();
+    int schemeEnd = proxy.find("://");
+    if (schemeEnd != -1)
+        proxy = proxy.substring(schemeEnd + 3);
+
+    int credentialsEnd = proxy.find('@');
+    if (credentialsEnd != -1 && credentialsEnd > 0 && proxy.length() > 1)
+    {
+        String usernamePassword = proxy.substring(0, credentialsEnd);
+        proxy = proxy.substring(credentialsEnd + 1);
+        curl_easy_setopt(d->m_handle, CURLOPT_PROXYUSERPWD, usernamePassword.utf8().data());
+    }
+
+    curl_easy_setopt(d->m_handle, CURLOPT_PROXY, proxy.utf8().data());
 }
 
 void ResourceHandleManager::cancel(ResourceHandle* job)
