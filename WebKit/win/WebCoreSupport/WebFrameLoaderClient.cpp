@@ -306,6 +306,47 @@ void WebFrameLoaderClient::dispatchDidChangeLocationWithinPage()
         frameLoadDelegate->didChangeLocationWithinPageForFrame(webView, m_webFrame);
 }
 
+void WebFrameLoaderClient::dispatchDidPushStateWithinPage()
+{
+    WebView* webView = m_webFrame->webView();
+    COMPtr<IWebFrameLoadDelegatePrivate> frameLoadDelegatePriv;
+    if (FAILED(webView->frameLoadDelegatePrivate(&frameLoadDelegatePriv)) || !frameLoadDelegatePriv)
+        return;
+
+    COMPtr<IWebFrameLoadDelegatePrivate2> frameLoadDelegatePriv2(Query, frameLoadDelegatePriv);
+    if (!frameLoadDelegatePriv2)
+        return;
+
+    frameLoadDelegatePriv2->didPushStateWithinPageForFrame(webView, m_webFrame);
+}
+
+void WebFrameLoaderClient::dispatchDidReplaceStateWithinPage()
+{
+    WebView* webView = m_webFrame->webView();
+    COMPtr<IWebFrameLoadDelegatePrivate> frameLoadDelegatePriv;
+    if (FAILED(webView->frameLoadDelegatePrivate(&frameLoadDelegatePriv)) || !frameLoadDelegatePriv)
+        return;
+
+    COMPtr<IWebFrameLoadDelegatePrivate2> frameLoadDelegatePriv2(Query, frameLoadDelegatePriv);
+    if (!frameLoadDelegatePriv2)
+        return;
+
+    frameLoadDelegatePriv2->didReplaceStateWithinPageForFrame(webView, m_webFrame);
+}
+
+void WebFrameLoaderClient::dispatchDidPopStateWithinPage()
+{
+    WebView* webView = m_webFrame->webView();
+    COMPtr<IWebFrameLoadDelegatePrivate> frameLoadDelegatePriv;
+    if (FAILED(webView->frameLoadDelegatePrivate(&frameLoadDelegatePriv)) || !frameLoadDelegatePriv)
+        return;
+
+    COMPtr<IWebFrameLoadDelegatePrivate2> frameLoadDelegatePriv2(Query, frameLoadDelegatePriv);
+    if (!frameLoadDelegatePriv2)
+        return;
+
+    frameLoadDelegatePriv2->didPopStateWithinPageForFrame(webView, m_webFrame);
+}
 void WebFrameLoaderClient::dispatchWillClose()
 {
     WebView* webView = m_webFrame->webView();
@@ -500,14 +541,11 @@ void WebFrameLoaderClient::updateGlobalHistory()
     webView->historyDelegate(&historyDelegate);
 
     if (historyDelegate) {
-        BString url(loader->urlForHistory());
-        BString title(loader->title());
-        BString redirectSource(loader->clientRedirectSourceForHistory());
         COMPtr<IWebURLResponse> urlResponse(AdoptCOM, WebURLResponse::createInstance(loader->response()));
         COMPtr<IWebURLRequest> urlRequest(AdoptCOM, WebMutableURLRequest::createInstance(loader->originalRequestCopy()));
         
         COMPtr<IWebNavigationData> navigationData(AdoptCOM, WebNavigationData::createInstance(
-            url, title, urlRequest.get(), urlResponse.get(), loader->substituteData().isValid(), redirectSource));
+            loader->urlForHistory(), loader->title(), urlRequest.get(), urlResponse.get(), loader->substituteData().isValid(), loader->clientRedirectSourceForHistory()));
 
         historyDelegate->didNavigateWithNavigationData(webView, navigationData.get(), m_webFrame);
         return;
@@ -565,6 +603,18 @@ void WebFrameLoaderClient::updateGlobalHistoryRedirectLinks()
 bool WebFrameLoaderClient::shouldGoToHistoryItem(HistoryItem*) const
 {
     return true;
+}
+
+void WebFrameLoaderClient::dispatchDidAddBackForwardItem(HistoryItem*) const
+{
+}
+
+void WebFrameLoaderClient::dispatchDidRemoveBackForwardItem(HistoryItem*) const
+{
+}
+
+void WebFrameLoaderClient::dispatchDidChangeBackForwardIndex() const
+{
 }
 
 void WebFrameLoaderClient::didDisplayInsecureContent()

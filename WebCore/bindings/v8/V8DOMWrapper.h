@@ -109,7 +109,12 @@ namespace WebCore {
 #endif
 
         // Sets contents of a DOM wrapper.
-        static void setDOMWrapper(v8::Handle<v8::Object>, int type, void* ptr);
+        static void setDOMWrapper(v8::Handle<v8::Object> object, int type, void* cptr)
+        {
+            ASSERT(object->InternalFieldCount() >= 2);
+            object->SetPointerInInternalField(V8Custom::kDOMWrapperObjectIndex, cptr);
+            object->SetInternalField(V8Custom::kDOMWrapperTypeIndex, v8::Integer::New(type));
+        }
 
         static v8::Handle<v8::Object> lookupDOMWrapper(V8ClassIndex::V8WrapperType type, v8::Handle<v8::Object> object)
         {
@@ -287,6 +292,7 @@ namespace WebCore {
         // Returns the JS wrapper of a window object, initializes the environment
         // of the window frame if needed.
         static v8::Handle<v8::Value> convertWindowToV8Object(DOMWindow*);
+        static v8::Handle<v8::Value> convertNamedNodeMapToV8Object(NamedNodeMap*);
 
 #if ENABLE(SVG)
         static v8::Handle<v8::Value> convertSVGElementInstanceToV8Object(SVGElementInstance*);

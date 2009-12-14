@@ -161,6 +161,11 @@ JSStringRef AccessibilityUIElement::subrole()
     return 0;
 }
 
+JSStringRef AccessibilityUIElement::roleDescription()
+{
+    return 0;
+}
+
 JSStringRef AccessibilityUIElement::title()
 {
     const gchar* name = atk_object_get_name(ATK_OBJECT(m_element));
@@ -239,6 +244,10 @@ double AccessibilityUIElement::clickPointY()
     return 0.f;
 }
 
+JSStringRef AccessibilityUIElement::orientation() const
+{
+    return 0;
+}
 
 double AccessibilityUIElement::intValue()
 {
@@ -332,6 +341,16 @@ int AccessibilityUIElement::hierarchicalLevel() const
 {
     // FIXME: implement
     return 0;
+}
+
+bool AccessibilityUIElement::ariaIsGrabbed() const
+{
+    return false;
+}
+ 
+JSStringRef AccessibilityUIElement::ariaDropEffects() const
+{   
+    return 0; 
 }
 
 bool AccessibilityUIElement::isExpanded() const
@@ -441,6 +460,11 @@ bool AccessibilityUIElement::isAttributeSettable(JSStringRef attribute)
     return false;
 }
 
+bool AccessibilityUIElement::isAttributeSupported(JSStringRef attribute)
+{
+    return false;
+}
+
 void AccessibilityUIElement::increment()
 {
     // FIXME: implement
@@ -457,6 +481,16 @@ void AccessibilityUIElement::showMenu()
 }
 
 AccessibilityUIElement AccessibilityUIElement::disclosedRowAtIndex(unsigned index)
+{
+    return 0;
+}
+
+AccessibilityUIElement AccessibilityUIElement::ariaOwnsElementAtIndex(unsigned index)
+{
+    return 0;
+}
+
+AccessibilityUIElement AccessibilityUIElement::ariaFlowToElementAtIndex(unsigned index)
 {
     return 0;
 }

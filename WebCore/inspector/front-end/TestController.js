@@ -43,7 +43,7 @@ WebInspector.TestController.prototype = {
     notifyDone: function(result)
     {
         var message = typeof result === "undefined" ? "\"<undefined>\"" : JSON.stringify(result);
-        InspectorController.didEvaluateForTestInFrontend(this._callId, message);
+        InspectorBackend.didEvaluateForTestInFrontend(this._callId, message);
     },
 
     runAfterPendingDispatches: function(callback)

@@ -176,6 +176,11 @@ JSStringRef AccessibilityUIElement::subrole()
     return 0;
 }
 
+JSStringRef AccessibilityUIElement::roleDescription()
+{
+    return 0;
+}
+
 JSStringRef AccessibilityUIElement::title()
 {
     BSTR titleBSTR;
@@ -262,9 +267,24 @@ int AccessibilityUIElement::hierarchicalLevel() const
     return 0;
 }
 
+bool AccessibilityUIElement::ariaIsGrabbed() const
+{
+    return false;
+}
+ 
+JSStringRef AccessibilityUIElement::ariaDropEffects() const
+{
+    return 0;
+}
+
 bool AccessibilityUIElement::isExpanded() const
 {
     return false;
+}
+
+JSStringRef AccessibilityUIElement::orientation() const
+{
+    return 0;
 }
 
 double AccessibilityUIElement::intValue()
@@ -393,6 +413,11 @@ bool AccessibilityUIElement::isAttributeSettable(JSStringRef attribute)
     return false;
 }
 
+bool AccessibilityUIElement::isAttributeSupported(JSStringRef attribute)
+{
+    return false;
+}
+
 void AccessibilityUIElement::increment()
 {
 }
@@ -406,6 +431,16 @@ void AccessibilityUIElement::showMenu()
 }
 
 AccessibilityUIElement AccessibilityUIElement::disclosedRowAtIndex(unsigned index)
+{
+    return 0;
+}
+
+AccessibilityUIElement AccessibilityUIElement::ariaOwnsElementAtIndex(unsigned index)
+{
+    return 0;
+}
+
+AccessibilityUIElement AccessibilityUIElement::ariaFlowToElementAtIndex(unsigned index)
 {
     return 0;
 }

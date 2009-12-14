@@ -412,6 +412,13 @@ int WebFrameImpl::contentsPreferredWidth() const
     return 0;
 }
 
+int WebFrameImpl::documentElementScrollHeight() const
+{
+    if (m_frame->document() && m_frame->document()->documentElement())
+        return m_frame->document()->documentElement()->scrollHeight();
+    return 0;
+}
+
 bool WebFrameImpl::hasVisibleContent() const
 {
     return frame()->view()->visibleWidth() > 0 && frame()->view()->visibleHeight() > 0;
@@ -736,8 +743,20 @@ void WebFrameImpl::loadData(const WebData& data,
     SubstituteData substData(data, mimeType, textEncoding, unreachableURL);
     ASSERT(substData.isValid());
 
+    // If we are loading substitute data to replace an existing load, then
+    // inherit all of the properties of that original request.  This way,
+    // reload will re-attempt the original request.  It is essential that
+    // we only do this when there is an unreachableURL since a non-empty
+    // unreachableURL informs FrameLoader::reload to load unreachableURL
+    // instead of the currently loaded URL.
+    ResourceRequest request;
+    if (replace && !unreachableURL.isEmpty())
+        request = m_frame->loader()->originalRequest();
+    request.setURL(baseURL);
+
     stopLoading();  // Make sure existing activity stops.
-    m_frame->loader()->load(ResourceRequest(baseURL), substData, false);
+
+    m_frame->loader()->load(request, substData, false);
     if (replace) {
         // Do this to force WebKit to treat the load as replacing the currently
         // loaded page.
@@ -1443,12 +1462,12 @@ int WebFrameImpl::m_liveObjectCount = 0;
 
 PassRefPtr<WebFrameImpl> WebFrameImpl::create(WebFrameClient* client)
 {
-    return adoptRef(new WebFrameImpl(ClientHandle::create(client)));
+    return adoptRef(new WebFrameImpl(client));
 }
 
-WebFrameImpl::WebFrameImpl(PassRefPtr<ClientHandle> clientHandle)
+WebFrameImpl::WebFrameImpl(WebFrameClient* client)
     : m_frameLoaderClient(this)
-    , m_clientHandle(clientHandle)
+    , m_client(client)
     , m_activeMatchFrame(0)
     , m_activeMatchIndex(-1)
     , m_locatingActiveRect(false)
@@ -1489,7 +1508,7 @@ void WebFrameImpl::initializeAsMainFrame(WebViewImpl* webViewImpl)
 PassRefPtr<Frame> WebFrameImpl::createChildFrame(
     const FrameLoadRequest& request, HTMLFrameOwnerElement* ownerElement)
 {
-    RefPtr<WebFrameImpl> webframe(adoptRef(new WebFrameImpl(m_clientHandle)));
+    RefPtr<WebFrameImpl> webframe(adoptRef(new WebFrameImpl(m_client)));
 
     // Add an extra ref on behalf of the Frame/FrameLoader, which references the
     // WebFrame via the FrameLoaderClient interface. See the comment at the top
@@ -1650,19 +1669,28 @@ void WebFrameImpl::setFindEndstateFocusAndSelection()
         if (node && node != frame()->document()) {
             // Found a focusable parent node. Set focus to it.
             frame()->document()->setFocusedNode(node);
-        } else {
-            // Iterate over all the nodes in the range until we find a focusable node.
-            // This, for example, sets focus to the first link if you search for
-            // text and text that is within one or more links.
-            node = m_activeMatch->firstNode();
-            while (node && node != m_activeMatch->pastLastNode()) {
-                if (node->isFocusable()) {
-                    frame()->document()->setFocusedNode(node);
-                    break;
-                }
-                node = node->traverseNextNode();
-            }
+            return;
         }
+
+        // Iterate over all the nodes in the range until we find a focusable node.
+        // This, for example, sets focus to the first link if you search for
+        // text and text that is within one or more links.
+        node = m_activeMatch->firstNode();
+        while (node && node != m_activeMatch->pastLastNode()) {
+            if (node->isFocusable()) {
+                frame()->document()->setFocusedNode(node);
+                return;
+            }
+            node = node->traverseNextNode();
+        }
+
+        // No node related to the active match was focusable, so set the
+        // active match as the selection (so that when you end the Find session,
+        // you'll have the last thing you found highlighted) and make sure that
+        // we have nothing focused (otherwise you might have text selected but
+        // a link focused, which is weird).
+        frame()->selection()->setSelection(m_activeMatch.get());
+        frame()->document()->setFocusedNode(0);
     }
 }
 

@@ -468,7 +468,7 @@ sub GenerateNormalAttrGetter
     my $attrType = GetTypeFromSignature($attribute->signature);
     my $attrIsPodType = IsPodType($attrType);
 
-    my $nativeType = GetNativeTypeFromSignature($attribute->signature, 0);
+    my $nativeType = GetNativeTypeFromSignature($attribute->signature, -1);
     my $isPodType = IsPodType($implClassName);
     my $skipContext = 0;
 
@@ -564,7 +564,12 @@ END
     }
 
     my $getterFunc = $codeGenerator->WK_lcfirst($attrName);
-    $getterFunc .= "Animated" if $codeGenerator->IsSVGAnimatedType($attribute->signature->type);
+
+    if ($codeGenerator->IsSVGAnimatedType($attribute->signature->type)) {
+        # Some SVGFE*Element.idl use 'operator' as attribute name; rewrite as '_operator' to avoid clashes with C/C++
+        $getterFunc = "_" . $getterFunc if ($attrName =~ /operator/);
+        $getterFunc .= "Animated";
+    }
 
     my $returnType = GetTypeFromSignature($attribute->signature);
 
@@ -642,12 +647,12 @@ END
     }
 
     if (IsSVGTypeNeedingContextParameter($attrType) && !$skipContext) {
-        my $resultObject = $result;
         if ($attrIsPodType) {
-            $resultObject = "wrapper";
+            push(@implContentDecls, GenerateSVGContextAssignment($implClassName, "wrapper.get()", "    "));
+        } else {
+            push(@implContentDecls, GenerateSVGContextRetrieval($implClassName, "    "));
+            $result = "V8Proxy::withSVGContext($result, context)";
         }
-        $resultObject = "WTF::getPtr(" . $resultObject . ")";
-        push(@implContentDecls, GenerateSVGContextAssignment($implClassName, $resultObject, "    "));
     }
 
     if ($attrIsPodType) {
@@ -947,7 +952,7 @@ END
             push(@implContentDecls, "    bool ${parameterName}Ok;\n");
         }
 
-        push(@implContentDecls, "    " . GetNativeTypeFromSignature($parameter, 1) . " $parameterName = ");
+        push(@implContentDecls, "    " . GetNativeTypeFromSignature($parameter, $paramIndex) . " $parameterName = ");
         push(@implContentDecls, JSValueToNative($parameter, "args[$paramIndex]",
            BasicTypeCanFailConversion($parameter) ?  "${parameterName}Ok" : undef) . ";\n");
 
@@ -1718,19 +1723,14 @@ sub GetTypeFromSignature
 {
     my $signature = shift;
 
-    my $type = $codeGenerator->StripModule($signature->type);
-    if (($type eq "DOMString") && ($signature->extendedAttributes->{"HintAtomic"} || $signature->extendedAttributes->{"Reflect"})) {
-        $type = "AtomicString";
-    }
-
-    return $type;
+    return $codeGenerator->StripModule($signature->type);
 }
 
 
 sub GetNativeTypeFromSignature
 {
     my $signature = shift;
-    my $isParameter = shift;
+    my $parameterIndex = shift;
 
     my $type = GetTypeFromSignature($signature);
 
@@ -1739,32 +1739,28 @@ sub GetNativeTypeFromSignature
         return "int";
     }
 
-    return GetNativeType($type, $isParameter);
+    $type = GetNativeType($type, $parameterIndex >= 0 ? 1 : 0);
+    
+    if ($parameterIndex >= 0 && $type eq "V8Parameter") {
+        my $mode = "";
+        if ($signature->extendedAttributes->{"ConvertUndefinedOrNullToNullString"}) {
+            $mode = "WithUndefinedOrNullCheck";
+        } elsif ($signature->extendedAttributes->{"ConvertNullToNullString"}) {
+            $mode = "WithNullCheck";
+        }
+        $type .= "<$mode>";
+    }
+    
+    return $type;
 }
 
 sub IsRefPtrType
 {
     my $type = shift;
     return 1 if $type eq "Attr";
-    return 1 if $type eq "WebGLActiveInfo";
-    return 1 if $type eq "WebGLArray";
-    return 1 if $type eq "WebGLArrayBuffer";
     return 1 if $type eq "CanvasBooleanArray";
-    return 1 if $type eq "WebGLByteArray";
-    return 1 if $type eq "WebGLBuffer";
-    return 1 if $type eq "WebGLFloatArray";
-    return 1 if $type eq "WebGLFramebuffer";
     return 1 if $type eq "CanvasGradient";
-    return 1 if $type eq "WebGLIntArray";
     return 1 if $type eq "CanvasObject";
-    return 1 if $type eq "WebGLProgram";
-    return 1 if $type eq "WebGLRenderbuffer";
-    return 1 if $type eq "WebGLShader";
-    return 1 if $type eq "WebGLShortArray";
-    return 1 if $type eq "WebGLTexture";
-    return 1 if $type eq "WebGLUnsignedByteArray";
-    return 1 if $type eq "WebGLUnsignedIntArray";
-    return 1 if $type eq "WebGLUnsignedShortArray";
     return 1 if $type eq "ClientRect";
     return 1 if $type eq "ClientRectList";
     return 1 if $type eq "CDATASection";
@@ -1812,6 +1808,23 @@ sub IsRefPtrType
     return 1 if $type eq "TextMetrics";
     return 1 if $type eq "TimeRanges";
     return 1 if $type eq "TreeWalker";
+    return 1 if $type eq "WebGLActiveInfo";
+    return 1 if $type eq "WebGLArray";
+    return 1 if $type eq "WebGLArrayBuffer";
+    return 1 if $type eq "WebGLByteArray";
+    return 1 if $type eq "WebGLBuffer";
+    return 1 if $type eq "WebGLFloatArray";
+    return 1 if $type eq "WebGLFramebuffer";
+    return 1 if $type eq "WebGLIntArray";
+    return 1 if $type eq "WebGLProgram";
+    return 1 if $type eq "WebGLRenderbuffer";
+    return 1 if $type eq "WebGLShader";
+    return 1 if $type eq "WebGLShortArray";
+    return 1 if $type eq "WebGLTexture";
+    return 1 if $type eq "WebGLUniformLocation";
+    return 1 if $type eq "WebGLUnsignedByteArray";
+    return 1 if $type eq "WebGLUnsignedIntArray";
+    return 1 if $type eq "WebGLUnsignedShortArray";
     return 1 if $type eq "WebKitCSSMatrix";
     return 1 if $type eq "WebKitPoint";
     return 1 if $type eq "XPathExpression";
@@ -1857,10 +1870,11 @@ sub GetNativeType
     my $type = shift;
     my $isParameter = shift;
 
-    if ($type eq "float" or $type eq "AtomicString" or $type eq "double") {
+    if ($type eq "float" or $type eq "double") {
         return $type;
     }
 
+    return "V8Parameter" if ($type eq "DOMString" or $type eq "DOMUserData") and $isParameter;
     return "int" if $type eq "int";
     return "int" if $type eq "short" or $type eq "unsigned short";
     return "unsigned" if $type eq "unsigned long";
@@ -1896,7 +1910,6 @@ sub GetNativeType
 
 
 my %typeCanFailConversion = (
-    "AtomicString" => 0,
     "Attr" => 1,
     "WebGLArray" => 0,
     "WebGLBuffer" => 0,
@@ -1911,6 +1924,7 @@ my %typeCanFailConversion = (
     "WebGLShader" => 0,
     "WebGLShortArray" => 0,
     "WebGLTexture" => 0,
+    "WebGLUniformLocation" => 0,
     "CompareHow" => 0,
     "DataGridColumn" => 0,
     "DOMString" => 0,
@@ -2011,21 +2025,8 @@ sub JSValueToNative
     return "static_cast<Range::CompareHow>($value->Int32Value())" if $type eq "CompareHow";
     return "static_cast<SVGPaint::SVGPaintType>($value->ToInt32()->Int32Value())" if $type eq "SVGPaintType";
 
-    if ($type eq "AtomicString") {
-        return "toAtomicWebCoreStringWithNullCheck($value)" if $signature->extendedAttributes->{"ConvertNullToNullString"};
-        return "v8ValueToAtomicWebCoreString($value)";
-    }
-
-    if ($type eq "DOMUserData") {
-        return "toWebCoreString(args, $1)" if $value =~ /args\[(\d+)]/;
-        return "toWebCoreString($value)";
-    }
-    if ($type eq "DOMString") {
-        return "toWebCoreStringWithNullCheck($value)" if $signature->extendedAttributes->{"ConvertNullToNullString"};
-        return "toWebCoreStringWithNullOrUndefinedCheck($value)" if $signature->extendedAttributes->{"ConvertUndefinedOrNullToNullString"};
-        
-        return "toWebCoreString(args, $1)" if $value =~ /args\[(\d+)]/;
-        return "toWebCoreString($value)";
+    if ($type eq "DOMString" or $type eq "DOMUserData") {
+        return $value;
     }
 
     if ($type eq "SerializedScriptValue") {
@@ -2149,7 +2150,6 @@ sub RequiresCustomSignature
 
 my %non_wrapper_types = (
     'float' => 1,
-    'AtomicString' => 1,
     'double' => 1,
     'short' => 1,
     'unsigned short' => 1,

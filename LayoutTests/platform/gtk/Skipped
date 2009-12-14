@@ -44,14 +44,19 @@
 # Tests in accessibility/ directory
 # An implementation of accessibilityController is required.
 #   Tests failing
+accessibility/aria-checkbox-text.html
 accessibility/aria-combobox.html
 accessibility/aria-disabled.html
 accessibility/aria-hidden.html
 accessibility/aria-label.html
+accessibility/aria-labelledby-overrides-label.html
 accessibility/aria-labelledby-stay-within.html
 accessibility/aria-link-supports-press.html
 accessibility/aria-readonly.html
+accessibility/aria-scrollbar-role.html
 accessibility/aria-tab-roles.html
+accessibility/aria-text-role.html
+accessibility/aria-used-on-image-maps.html
 accessibility/button-press-action.html
 accessibility/canvas.html
 accessibility/editable-webarea-context-menu-point.html
@@ -1192,6 +1197,7 @@ editing/selection/selection-background.html
 editing/selection/table-caret-1.html
 editing/selection/table-caret-2.html
 editing/selection/table-caret-3.html
+editing/selection/transformed-selection-rects.html
 editing/selection/triple-click-in-pre.html
 editing/selection/unrendered-001.html
 editing/selection/unrendered-002.html
@@ -1277,14 +1283,16 @@ fast/dom/cssTarget-crash.html
 fast/dom/frame-loading-via-document-write.html
 fast/dom/Geolocation/callback-exception.html
 fast/dom/Geolocation/error.html
-fast/dom/Geolocation/permission-denied.html
+fast/dom/Geolocation/permission-denied-already-clear-watch.html
 fast/dom/Geolocation/permission-denied-already-error.html
 fast/dom/Geolocation/permission-denied-already-success.html
 fast/dom/Geolocation/permission-denied-stops-watches.html
+fast/dom/Geolocation/permission-denied.html
 fast/dom/Geolocation/position-string.html
 fast/dom/Geolocation/reentrant-error.html
 fast/dom/Geolocation/reentrant-success.html
 fast/dom/Geolocation/success.html
+fast/dom/Geolocation/timeout-clear-watch.html
 fast/dom/Geolocation/timeout-zero.html
 fast/dom/Geolocation/timeout.html
 fast/dom/Geolocation/watch.html
@@ -1454,6 +1462,8 @@ editing/pasteboard/crash-accessing-clipboardData-types.html
 http/tests/security/cookies/xmlhttprequest.html
 http/tests/xmlhttprequest/broken-xml-encoding.html
 http/tests/xmlhttprequest/web-apps/010.html
+svg/css/composite-shadow-example.html
+svg/css/composite-shadow-with-opacity.html
 svg/custom/getPresentationAttribute-modify.svg
 
 # Possible bug in eventSender.zoomPageOut() ? https://bugs.webkit.org/show_bug.cgi?id=30575
@@ -1465,6 +1475,7 @@ fast/events/drag-and-drop-dataTransfer-types-nocrash.html
 fast/events/drag-and-drop-fire-drag-dragover.html
 fast/events/drag-and-drop.html
 fast/events/drag-parent-node.html
+fast/dom/Window/window-postmessage-clone.html
 http/tests/misc/bubble-drag-events.html
 
 fast/xmlhttprequest/null-document-xmlhttprequest-open.html
@@ -1986,6 +1997,8 @@ fast/css/begin-end-contain-selector-empty-value.html
 fast/css/border-height.html
 fast/css/border-radius-outline-offset.html
 fast/css/clip-zooming.html
+fast/css/color-correction-on-background-image.html
+fast/css/color-correction-untagged-images.html
 fast/css/color-quirk.html
 fast/css/color-strict.html
 fast/css/content-dynamic.html
@@ -2106,6 +2119,10 @@ fast/css/namespaces/004.xml
 fast/css/namespaces/005.xml
 fast/css/namespaces/006.xml
 fast/css/namespaces/007.xml
+fast/css/namespaces/namespaces-comments.xml
+fast/css/namespaces/namespaces-empty.xml
+fast/css/namespaces/namespaces-escapes.xml
+fast/css/namespaces/namespaces-invalid-at.xml
 fast/css/variables/block-cycle-test.html
 fast/css/variables/colors-test.html
 fast/css/variables/declaration-block-test.html
@@ -2538,8 +2555,8 @@ fast/innerHTML/001.html
 fast/innerHTML/002.html
 fast/innerHTML/003.html
 fast/innerHTML/006.html
-fast/inspector/matchedrules.html
-fast/inspector/style.html
+fast/inspector-support/matchedrules.html
+fast/inspector-support/style.html
 fast/invalid/001.html
 fast/invalid/002.html
 fast/invalid/003.html
@@ -2771,6 +2788,10 @@ fast/reflections/transparent-reflected-sublayers.html
 fast/repaint/4774354.html
 fast/repaint/4776765.html
 fast/repaint/backgroundSizeRepaint.html
+fast/repaint/block-selection-gap-in-composited-layer.html
+fast/repaint/block-selection-gap-in-table-cell.html
+fast/repaint/block-selection-gap-stale-cache-2.html
+fast/repaint/block-selection-gap-stale-cache.html
 fast/repaint/body-background-image.html
 fast/repaint/border-fit-lines.html
 fast/repaint/border-radius-repaint.html
@@ -3610,6 +3631,8 @@ media/video-volume-slider.html
 # Tests requiring fullscreen <video> support
 media/media-fullscreen-inline.html
 media/media-fullscreen-not-in-document.html
+# Requires media engine closed caption support
+media/media-captions.html
 
 # Tests in plugins/ directory
 #   These tests require ObjC plugin, do not bother trying to get them to work
@@ -3619,6 +3642,8 @@ plugins/jsobjc-simple.html
 plugins/root-object-premature-delete-crash.html
 plugins/throw-on-dealloc.html
 plugins/undefined-property-crash.html
+#   These test require Qt Widgets
+plugins/qt-qwidget-plugin.html
 #   Tests failing
 plugins/embed-attributes-setting.html
 plugins/get-url-with-blank-target.html
@@ -3636,6 +3661,7 @@ plugins/netscape-dom-access.html
 # Tests in printing/ directory
 #   Tests generating new results
 printing/media-queries-print.html
+printing/compositing-layer-printing.html
 
 # Tests in scrollbars/ directory
 #   Tests generating new results
@@ -4121,6 +4147,7 @@ svg/custom/mask-changes.svg
 svg/custom/mask-child-changes.svg
 svg/custom/mask-excessive-malloc.svg
 svg/custom/mask-inside-defs.svg
+svg/custom/mask-with-all-units.svg
 svg/custom/missing-xlink.svg
 svg/custom/non-circular-marker-reference.svg
 svg/custom/non-opaque-filters.svg
@@ -4245,6 +4272,9 @@ svg/custom/visibility-override.svg
 svg/custom/width-full-percentage.svg
 svg/custom/xhtml-no-svg-renderer.xhtml
 svg/custom/xml-stylesheet.svg
+svg/filters/big-sized-filter-2.svg
+svg/filters/big-sized-filter.svg
+svg/filters/filterRes.svg
 svg/filters/subRegion-one-effect.svg
 svg/filters/subRegion-two-effects.svg
 svg/hixie/cascade/001-broken.xml
@@ -5457,6 +5487,7 @@ transitions/transition-end-event-rendering.html
 
 # See Bug #27905 - http://bugs.webkit.org/show_bug.cgi?id=27905
 # Missing resource load callback ability in DRT
+http/tests/cache/subresource-failover-to-network.html
 http/tests/loading/redirect-methods.html
 http/tests/misc/favicon-loads-with-images-disabled.html
 
@@ -5508,6 +5539,7 @@ editing/selection/move-left-right.html
 # Missing DRT ability to override 'standard' preferences.
 fast/dom/Window/timer-resume-on-navigation-back.html
 fast/harness/use-page-cache.html
+fast/loader/input-element-page-cache-crash.html
 loader/go-back-to-different-window-size.html
 
 # https://bugs.webkit.org/show_bug.cgi?id=30583
@@ -5573,6 +5605,7 @@ fast/loader/opaque-base-url.html
 fast/forms/input-maxlength-ime-completed.html
 fast/forms/input-maxlength-ime-preedit.html
 fast/text/international/thai-cursor-position.html
+fast/events/ime-composition-events-001.html
 
 # No User Scripts
 userscripts
@@ -5639,6 +5672,7 @@ fast/multicol/single-line.html
 accessibility/aria-controls-with-tabs.html
 accessibility/aria-list-and-listitem.html
 accessibility/aria-presentational-role.html
+fast/overflow/line-clamp.html
 fast/overflow/scrollbar-restored.html
 fast/css/color-correction-on-box-shadow.html
 fast/css/color-correction-on-text-shadow.html
@@ -5646,7 +5680,6 @@ fast/css/color-correction-on-text-shadow.html
 # Tests that seem to need a rebaseline
 fast/block/positioning/relative-positioned-inline-container.html
 fast/repaint/inline-relative-positioned.html
-inspector/timeline-paint.html
 
 # Test crashing on release bot
 # See https://bugs.webkit.org/show_bug.cgi?id=31433
@@ -5665,5 +5698,33 @@ fast/events/tab-focus-hidden.html
 
 # Tests failing once in a while
 fast/events/overflow-events.html
-media/progress-event-total.html
 http/tests/xmlhttprequest/interactive-state.html
+
+# New test infrastructure required
+# See https://bugs.webkit.org/show_bug.cgi?id=31508
+http/tests/security/isolatedWorld/didClearWindowObject.html
+
+# Need to add functionality to DumpRenderTree to handle error pages
+fast/history/back-forward-reset-after-error-handling.html
+
+# Tests requiring 3D_RENDERING and ACCELERATED_COMPOSITING support
+transforms/3d
+compositing
+
+# Missing textInputController.selectedRange()
+editing/selection/mixed-editability-10.html
+editing/selection/5825350-1.html
+editing/selection/5825350-2.html
+
+# Need proper frame loader callbacks reporting
+# See https://bugs.webkit.org/show_bug.cgi?id=32170
+fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll.html
+fast/loader/stateobjects/document-destroyed-navigate-back.html
+http/tests/loading/state-object-security-exception.html
+
+# Fails because of new behaviour enforced by libsoup
+# See: https://bugzilla.gnome.org/show_bug.cgi?id=603825
+fast/cookies/local-file-can-set-cookies.html
+
+# This test requires touch support
+fast/events/basic-touch-events.html

@@ -262,7 +262,10 @@ const KURL& blankURL();
 
 bool protocolIs(const String& url, const char* protocol);
 bool protocolIsJavaScript(const String& url);
-bool protocolIsValid(const String& protocol);
+bool isValidProtocol(const String& protocol);
+
+bool isDefaultPortForProtocol(unsigned short port, const String& protocol);
+bool portAllowed(const KURL&); // Blacklist ports that should never be used for Web resources.
 
 String mimeTypeFromDataURL(const String& url);
 

@@ -121,6 +121,7 @@ namespace JSC {
             MUL = 0x00000090,
             MULL = 0x00c00090,
             FADDD = 0x0e300b00,
+            FDIVD = 0x0e800b00,
             FSUBD = 0x0e300b40,
             FMULD = 0x0e200b00,
             FCMPD = 0x0eb40b40,
@@ -400,6 +401,11 @@ namespace JSC {
             emitInst(static_cast<ARMWord>(cc) | FADDD, dd, dn, dm);
         }
 
+        void fdivd_r(int dd, int dn, int dm, Condition cc = AL)
+        {
+            emitInst(static_cast<ARMWord>(cc) | FDIVD, dd, dn, dm);
+        }
+
         void fsubd_r(int dd, int dn, int dm, Condition cc = AL)
         {
             emitInst(static_cast<ARMWord>(cc) | FSUBD, dd, dn, dm);
@@ -504,9 +510,9 @@ namespace JSC {
             emitInst(static_cast<ARMWord>(cc) | FMSR, rn, dd, 0);
         }
 
-        void fmrs_r(int dd, int rn, Condition cc = AL)
+        void fmrs_r(int rd, int dn, Condition cc = AL)
         {
-            emitInst(static_cast<ARMWord>(cc) | FMRS, rn, dd, 0);
+            emitInst(static_cast<ARMWord>(cc) | FMRS, rd, dn, 0);
         }
 
         void fsitod_r(int dd, int dm, Condition cc = AL)

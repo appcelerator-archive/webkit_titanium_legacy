@@ -67,7 +67,6 @@ namespace WebCore {
     class EventListener;
     class Frame;
     class FrameView;
-    class HitTestRequest;
     class HTMLCanvasElement;
     class HTMLCollection;
     class HTMLAllCollection;
@@ -77,6 +76,8 @@ namespace WebCore {
     class HTMLHeadElement;
     class HTMLInputElement;
     class HTMLMapElement;
+    class HistoryItem;
+    class HitTestRequest;
     class InspectorTimelineAgent;
     class IntPoint;
     class DOMWrapperWorld;
@@ -93,6 +94,7 @@ namespace WebCore {
     class RenderView;
     class ScriptElementData;
     class SecurityOrigin;
+    class SerializedScriptValue;
     class SegmentedString;
     class Settings;
     class StyleSheet;
@@ -250,6 +252,11 @@ public:
     DEFINE_ATTRIBUTE_EVENT_LISTENER(reset);
     DEFINE_ATTRIBUTE_EVENT_LISTENER(search);
     DEFINE_ATTRIBUTE_EVENT_LISTENER(selectstart);
+#if ENABLE(TOUCH_EVENTS)
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchstart);
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchmove);
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchend);
+#endif
 
     DocumentType* doctype() const { return m_docType.get(); }
 
@@ -451,12 +458,12 @@ public:
     void updateLayout();
     void updateLayoutIgnorePendingStylesheets();
     static void updateStyleForAllDocuments(); // FIXME: Try to reduce the # of calls to this function.
-    DocLoader* docLoader() { return m_docLoader; }
+    DocLoader* docLoader() { return m_docLoader.get(); }
 
     virtual void attach();
     virtual void detach();
 
-    RenderArena* renderArena() { return m_renderArena; }
+    RenderArena* renderArena() { return m_renderArena.get(); }
 
     RenderView* renderView() const;
 
@@ -504,7 +511,7 @@ public:
     CSSStyleSheet* mappedElementSheet();
     
     virtual Tokenizer* createTokenizer();
-    Tokenizer* tokenizer() { return m_tokenizer; }
+    Tokenizer* tokenizer() { return m_tokenizer.get(); }
     
     bool printing() const { return m_printing; }
     void setPrinting(bool p) { m_printing = p; }
@@ -618,7 +625,8 @@ public:
         ANIMATIONSTART_LISTENER              = 0x200,
         ANIMATIONITERATION_LISTENER          = 0x400,
         TRANSITIONEND_LISTENER               = 0x800,
-        BEFORELOAD_LISTENER                  = 0x1000
+        BEFORELOAD_LISTENER                  = 0x1000,
+        TOUCH_LISTENER                       = 0x2000
     };
 
     bool hasListenerType(ListenerType listenerType) const { return (m_listenerTypes & listenerType); }
@@ -675,8 +683,8 @@ public:
     void setTitle(const String&, Element* titleElement = 0);
     void removeTitle(Element* titleElement);
 
-    String cookie() const;
-    void setCookie(const String&);
+    String cookie(ExceptionCode&) const;
+    void setCookie(const String&, ExceptionCode&);
 
     String referrer() const;
 
@@ -730,7 +738,7 @@ public:
     void removeMarkers(DocumentMarker::MarkerType = DocumentMarker::AllMarkers);
     void removeMarkers(Node*);
     void repaintMarkers(DocumentMarker::MarkerType = DocumentMarker::AllMarkers);
-    void setRenderedRectForMarker(Node*, DocumentMarker, const IntRect&);
+    void setRenderedRectForMarker(Node*, const DocumentMarker&, const IntRect&);
     void invalidateRenderedRectsForMarkersInRect(const IntRect&);
     void shiftMarkers(Node*, unsigned startOffset, int delta, DocumentMarker::MarkerType = DocumentMarker::AllMarkers);
     void setMarkersActive(Range*, bool);
@@ -764,7 +772,7 @@ public:
 
 #if ENABLE(XBL)
     // XBL methods
-    XBLBindingManager* bindingManager() const { return m_bindingManager; }
+    XBLBindingManager* bindingManager() const { return m_bindingManager.get(); }
 #endif
 
     void incDOMTreeVersion() { ++m_domtree_version; }
@@ -887,6 +895,13 @@ public:
     //       that already contains content.
     void setSecurityOrigin(SecurityOrigin*);
 
+    void updateURLForPushOrReplaceState(const KURL&);
+    void statePopped(SerializedScriptValue*);
+    void registerHistoryItem(HistoryItem* item);
+    void unregisterHistoryItem(HistoryItem* item);
+
+    void updateSandboxFlags(); // Set sandbox flags as determined by the frame.
+
     bool processingLoadEvent() const { return m_processingLoadEvent; }
 
 #if ENABLE(DATABASE)
@@ -951,8 +966,8 @@ private:
     bool m_didCalculateStyleSelector;
 
     Frame* m_frame;
-    DocLoader* m_docLoader;
-    Tokenizer* m_tokenizer;
+    OwnPtr<DocLoader> m_docLoader;
+    OwnPtr<Tokenizer> m_tokenizer;
     bool m_wellFormed;
 
     // Document URLs.
@@ -1051,8 +1066,8 @@ private:
     String m_title;
     bool m_titleSetExplicitly;
     RefPtr<Element> m_titleElement;
-    
-    RenderArena* m_renderArena;
+
+    OwnPtr<RenderArena> m_renderArena;
 
     typedef std::pair<Vector<DocumentMarker>, Vector<IntRect> > MarkerMapVectorPair;
     typedef HashMap<RefPtr<Node>, MarkerMapVectorPair*> MarkerMap;
@@ -1065,6 +1080,8 @@ private:
     Element* m_cssTarget;
     
     bool m_processingLoadEvent;
+    RefPtr<SerializedScriptValue> m_pendingStateObject;
+    HashSet<RefPtr<HistoryItem> > m_associatedHistoryItems;
     double m_startTime;
     bool m_overMinimumLayoutThreshold;
 
@@ -1077,7 +1094,7 @@ private:
 #endif
 
 #if ENABLE(XBL)
-    XBLBindingManager* m_bindingManager; // The access point through which documents and elements communicate with XBL.
+    OwnPtr<XBLBindingManager> m_bindingManager; // The access point through which documents and elements communicate with XBL.
 #endif
     
     typedef HashMap<AtomicStringImpl*, HTMLMapElement*> ImageMapsByName;

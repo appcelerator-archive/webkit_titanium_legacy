@@ -67,6 +67,8 @@ WebInspector.WatchExpressionsSidebarPane.prototype.__proto__ = WebInspector.Side
 
 WebInspector.WatchExpressionsSection = function()
 {
+    this._watchObjectGroupId = "watch-group";
+
     WebInspector.ObjectPropertiesSection.call(this);
 
     this.watchExpressions = this.loadSavedExpressions();
@@ -75,8 +77,6 @@ WebInspector.WatchExpressionsSection = function()
     this.editable = true;
     this.expanded = true;
     this.propertiesElement.addStyleClass("watch-expressions");
-
-    this._watchObjectGroupId = "watch-group";
 }
 
 WebInspector.WatchExpressionsSection.NewWatchExpression = "\xA0";
@@ -127,7 +127,7 @@ WebInspector.WatchExpressionsSection.prototype = {
             }
         }
 
-        InspectorController.releaseWrapperObjectGroup(this._watchObjectGroupId)
+        InspectorBackend.releaseWrapperObjectGroup(this._watchObjectGroupId)
         var properties = [];
 
         // Count the properties, so we known when to call this.updateProperties()
@@ -183,7 +183,7 @@ WebInspector.WatchExpressionsSection.prototype = {
 
     loadSavedExpressions: function()
     {
-        var json = InspectorController.setting("watchExpressions");
+        var json = InspectorFrontendHost.setting("watchExpressions");
         if (!json)
             return [];
 
@@ -204,7 +204,7 @@ WebInspector.WatchExpressionsSection.prototype = {
                 toSave.push(this.watchExpressions[i]);
 
         var json = JSON.stringify({expressions: toSave});
-        InspectorController.setSetting("watchExpressions", json);
+        InspectorFrontendHost.setSetting("watchExpressions", json);
 
         return toSave.length;
     }

@@ -142,7 +142,7 @@ WebInspector.DataGrid.prototype = {
         if (this._editing || this._editingNode)
             return;
 
-        this._startEditing(event);
+        this._startEditing(event.target);
     },
 
     _startEditingColumnOfDataGridNode: function(node, column)
@@ -156,13 +156,13 @@ WebInspector.DataGrid.prototype = {
         window.getSelection().setBaseAndExtent(element, 0, element, 1);
     },
 
-    _startEditing: function(event)
+    _startEditing: function(target)
     {
-        var element = event.target.enclosingNodeOrSelfWithNodeName("td");
+        var element = target.enclosingNodeOrSelfWithNodeName("td");
         if (!element)
             return;
 
-        this._editingNode = this.dataGridNodeFromEvent(event);
+        this._editingNode = this.dataGridNodeFromNode(target);
         if (!this._editingNode) {
             if (!this.creationNode)
                 return;
@@ -385,6 +385,7 @@ WebInspector.DataGrid.prototype = {
         delete child._depth;
         delete child._revealed;
         delete child._attached;
+        child._shouldRefreshChildren = true;
 
         var current = child.children[0];
         while (current) {
@@ -392,6 +393,7 @@ WebInspector.DataGrid.prototype = {
             delete current._depth;
             delete current._revealed;
             delete current._attached;
+            current._shouldRefreshChildren = true;
             current = current.traverseNextNode(false, child, true);
         }
 
@@ -520,6 +522,13 @@ WebInspector.DataGrid.prototype = {
                 handled = true;
                 this._deleteCallback(this.selectedNode);
             }
+        } else if (isEnterKey(event)) {
+            if (this._editCallback) {
+                handled = true;
+                // The first child of the selected element is the <td class="0-column">,
+                // and that's what we want to edit.
+                this._startEditing(this.selectedNode._element.children[0]);
+            }
         }
 
         if (nextSelectedNode) {
@@ -550,9 +559,9 @@ WebInspector.DataGrid.prototype = {
         // This is the root, do nothing.
     },
 
-    dataGridNodeFromEvent: function(event)
+    dataGridNodeFromNode: function(target)
     {
-        var rowElement = event.target.enclosingNodeOrSelfWithNodeName("tr");
+        var rowElement = target.enclosingNodeOrSelfWithNodeName("tr");
         return rowElement._dataGridNode;
     },
 
@@ -597,7 +606,7 @@ WebInspector.DataGrid.prototype = {
 
     _mouseDownInDataTable: function(event)
     {
-        var gridNode = this.dataGridNodeFromEvent(event);
+        var gridNode = this.dataGridNodeFromNode(event.target);
         if (!gridNode || !gridNode.selectable)
             return;
 
@@ -615,7 +624,7 @@ WebInspector.DataGrid.prototype = {
 
     _clickInDataTable: function(event)
     {
-        var gridNode = this.dataGridNodeFromEvent(event);
+        var gridNode = this.dataGridNodeFromNode(event.target);
         if (!gridNode || !gridNode.hasChildren)
             return;
 
@@ -1143,6 +1152,30 @@ WebInspector.DataGridNode.prototype = {
 
         for (var i = 0; i < this.children.length; ++i)
             this.children[i]._detach();
+    },
+
+    savePosition: function()
+    {
+        if (this._savedPosition)
+            return;
+
+        if (!this.parent)
+            throw("savePosition: Node must have a parent.");
+        this._savedPosition = {
+            parent: this.parent,
+            index: this.parent.children.indexOf(this)
+        };
+    },
+
+    restorePosition: function()
+    {
+        if (!this._savedPosition)
+            return;
+
+        if (this.parent !== this._savedPosition.parent)
+            this._savedPosition.parent.insertChild(this, this._savedPosition.index);
+
+        delete this._savedPosition;
     }
 }
 

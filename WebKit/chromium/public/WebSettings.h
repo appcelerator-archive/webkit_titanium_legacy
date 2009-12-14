@@ -61,6 +61,7 @@ public:
     virtual void setPluginsEnabled(bool) = 0;
     virtual void setDOMPasteAllowed(bool) = 0;
     virtual void setDeveloperExtrasEnabled(bool) = 0;
+    virtual void setNeedsSiteSpecificQuirks(bool) = 0;
     virtual void setShrinksStandaloneImagesToFit(bool) = 0;
     virtual void setUsesEncodingDetector(bool) = 0;
     virtual void setTextAreasAreResizable(bool) = 0;
@@ -79,6 +80,7 @@ public:
     virtual void setTextDirectionSubmenuInclusionBehaviorNeverIncluded() = 0;
     virtual void setOfflineWebApplicationCacheEnabled(bool) = 0;
     virtual void setExperimentalWebGLEnabled(bool) = 0;
+    virtual void setGeolocationEnabled(bool) = 0;
 
 protected:
     ~WebSettings() { }

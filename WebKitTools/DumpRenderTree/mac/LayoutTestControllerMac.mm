@@ -301,6 +301,11 @@ void LayoutTestController::setXSSAuditorEnabled(bool enabled)
     [[[mainFrame webView] preferences] setXSSAuditorEnabled:enabled];
 }
 
+void LayoutTestController::setAllowUniversalAccessFromFileURLs(bool enabled)
+{
+    [[[mainFrame webView] preferences] setAllowUniversalAccessFromFileURLs:enabled];
+}
+
 void LayoutTestController::setPopupBlockingEnabled(bool popupBlockingEnabled)
 {
     [[[mainFrame webView] preferences] setJavaScriptCanOpenWindowsAutomatically:!popupBlockingEnabled];
@@ -309,6 +314,11 @@ void LayoutTestController::setPopupBlockingEnabled(bool popupBlockingEnabled)
 void LayoutTestController::setTabKeyCyclesThroughElements(bool cycles)
 {
     [[mainFrame webView] setTabKeyCyclesThroughElements:cycles];
+}
+
+void LayoutTestController::setTimelineProfilingEnabled(bool enabled)
+{
+    [[[mainFrame webView] inspector] setTimelineProfilingEnabled:enabled];
 }
 
 void LayoutTestController::setUseDashboardCompatibilityMode(bool flag)
@@ -476,6 +486,16 @@ bool LayoutTestController::pauseTransitionAtTimeOnElementWithId(JSStringRef prop
     return [mainFrame _pauseTransitionOfProperty:nameNS onNode:[[mainFrame DOMDocument] getElementById:idNS] atTime:time];
 }
 
+bool LayoutTestController::sampleSVGAnimationForElementAtTime(JSStringRef animationId, double time, JSStringRef elementId)
+{
+    RetainPtr<CFStringRef> animationIDCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, animationId));
+    NSString *animationIDNS = (NSString *)animationIDCF.get();
+    RetainPtr<CFStringRef> elementIDCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, elementId));
+    NSString *elementIDNS = (NSString *)elementIDCF.get();
+
+    return [mainFrame _pauseSVGAnimation:elementIDNS onSMILNode:[[mainFrame DOMDocument] getElementById:animationIDNS] atTime:time];
+}
+
 unsigned LayoutTestController::numberOfActiveAnimations() const
 {
     return [mainFrame _numberOfActiveAnimations];
@@ -532,6 +552,24 @@ void LayoutTestController::evaluateInWebInspector(long callId, JSStringRef scrip
     [[[mainFrame webView] inspector] evaluateInFrontend:nil callId:callId script:scriptNS];
 }
 
+typedef HashMap<unsigned, RetainPtr<WebScriptWorld> > WorldMap;
+static WorldMap& worldMap()
+{
+    static WorldMap& map = *new WorldMap;
+    return map;
+}
+
+unsigned worldIDForWorld(WebScriptWorld *world)
+{
+    WorldMap::const_iterator end = worldMap().end();
+    for (WorldMap::const_iterator it = worldMap().begin(); it != end; ++it) {
+        if (it->second == world)
+            return it->first;
+    }
+
+    return 0;
+}
+
 void LayoutTestController::evaluateScriptInIsolatedWorld(unsigned worldID, JSObjectRef globalObject, JSStringRef script)
 {
     RetainPtr<CFStringRef> scriptCF(AdoptCF, JSStringCopyCFString(kCFAllocatorDefault, script));
@@ -543,9 +581,7 @@ void LayoutTestController::evaluateScriptInIsolatedWorld(unsigned worldID, JSObj
     if (!worldID)
         world = [WebScriptWorld world];
     else {
-        typedef HashMap<unsigned, RetainPtr<WebScriptWorld> > WorldMap;
-        static WorldMap& worldMap = *new WorldMap;
-        RetainPtr<WebScriptWorld>& worldSlot = worldMap.add(worldID, 0).first->second;
+        RetainPtr<WebScriptWorld>& worldSlot = worldMap().add(worldID, 0).first->second;
         if (!worldSlot)
             worldSlot.adoptNS([[WebScriptWorld alloc] init]);
         world = worldSlot.get();

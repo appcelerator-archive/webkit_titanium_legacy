@@ -328,18 +328,6 @@ GraphicsLayer::CompositingCoordinatesOrientation GraphicsLayer::compositingCoord
     return CompositingCoordinatesBottomUp;
 }
 
-bool GraphicsLayer::showDebugBorders()
-{
-    static bool showDebugBorders = [[NSUserDefaults standardUserDefaults] boolForKey:@"WebCoreLayerBorders"];
-    return showDebugBorders;
-}
-
-bool GraphicsLayer::showRepaintCounter()
-{
-    static bool showRepaintCounter = [[NSUserDefaults standardUserDefaults] boolForKey:@"WebCoreLayerRepaintCounter"];
-    return showRepaintCounter;
-}
-
 static NSDictionary* nullActionsDictionary()
 {
     NSNull* nullValue = [NSNull null];
@@ -365,13 +353,13 @@ PassOwnPtr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerClient* client)
 }
 
 GraphicsLayerCA::GraphicsLayerCA(GraphicsLayerClient* client)
-: GraphicsLayer(client)
-, m_contentsLayerPurpose(NoContentsLayer)
-, m_contentsLayerHasBackgroundColor(false)
-, m_uncommittedChanges(NoChange)
+    : GraphicsLayer(client)
+    , m_contentsLayerPurpose(NoContentsLayer)
+    , m_contentsLayerHasBackgroundColor(false)
+    , m_uncommittedChanges(NoChange)
 #if ENABLE(3D_CANVAS)
-, m_platformGraphicsContext3D(NullPlatformGraphicsContext3D)
-, m_platformTexture(NullPlatform3DObject)
+    , m_platformGraphicsContext3D(NullPlatformGraphicsContext3D)
+    , m_platformTexture(NullPlatform3DObject)
 #endif
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS
@@ -420,6 +408,15 @@ void GraphicsLayerCA::setName(const String& name)
 NativeLayer GraphicsLayerCA::nativeLayer() const
 {
     return m_layer.get();
+}
+
+bool GraphicsLayerCA::setChildren(const Vector<GraphicsLayer*>& children)
+{
+    bool childrenChanged = GraphicsLayer::setChildren(children);
+    if (childrenChanged)
+        noteLayerPropertyChanged(ChildrenChanged);
+    
+    return childrenChanged;
 }
 
 void GraphicsLayerCA::addChild(GraphicsLayer* childLayer)

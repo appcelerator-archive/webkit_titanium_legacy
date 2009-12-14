@@ -59,6 +59,7 @@ namespace WebCore {
     class String;
     class V8EventListener;
     class V8IsolatedWorld;
+    class WorldContextHandle;
 
     // FIXME: use standard logging facilities in WebCore.
     void logInfo(Frame*, const String& message, const String& url);
@@ -177,6 +178,33 @@ namespace WebCore {
 #if ENABLE(SVG)
         static void setSVGContext(void*, SVGElement*);
         static SVGElement* svgContext(void*);
+
+        // These helper functions are required in case we are given a PassRefPtr
+        // to a (possibly) newly created object and must prevent its reference
+        // count from dropping to zero as would happen in code like
+        //
+        //   V8Proxy::setSVGContext(imp->getNewlyCreatedObject().get(), context);
+        //   foo(imp->getNewlyCreatedObject().get());
+        //
+        // In the above two lines each time getNewlyCreatedObject() is called it
+        // creates a new object because we don't ref() it. (So our attemts to
+        // associate a context with it fail.) Such code should be rewritten to
+        //
+        //   foo(V8Proxy::withSVGContext(imp->getNewlyCreatedObject(), context).get());
+        //
+        // where PassRefPtr::~PassRefPtr() is invoked only after foo() is
+        // called.
+        template <typename T>
+        static PassRefPtr<T> withSVGContext(PassRefPtr<T> object, SVGElement* context)
+        {
+            setSVGContext(object.get(), context);
+            return object;
+        }
+        static void* withSVGContext(void* object, SVGElement* context)
+        {
+            setSVGContext(object, context);
+            return object;
+        }
 #endif
 
         void setEventHandlerLineNumber(int lineNumber) { m_handlerLineNumber = lineNumber; }
@@ -312,6 +340,7 @@ namespace WebCore {
         static bool sourceName(String& result);
 
         v8::Local<v8::Context> context();
+        v8::Local<v8::Context> mainWorldContext();
 
         bool setContextDebugId(int id);
         static int contextDebugId(v8::Handle<v8::Context>);
@@ -338,9 +367,6 @@ namespace WebCore {
         void updateDocumentWrapper(v8::Handle<v8::Value> wrapper);
 
     private:
-        static const char* kContextDebugDataType;
-        static const char* kContextDebugDataValue;
-
         void setSecurityToken();
         void clearDocumentWrapper();
 
@@ -360,7 +386,8 @@ namespace WebCore {
 
         void resetIsolatedWorlds();
 
-        void setInjectedScriptContextDebugId(v8::Handle<v8::Context> targetContext);
+        // Returns false when we're out of memory in V8.
+        bool setInjectedScriptContextDebugId(v8::Handle<v8::Context> targetContext);
 
         static bool canAccessPrivate(DOMWindow*);
 
@@ -453,7 +480,7 @@ namespace WebCore {
     }
 
 
-    v8::Local<v8::Context> toV8Context(ScriptExecutionContext*);
+    v8::Local<v8::Context> toV8Context(ScriptExecutionContext*, const WorldContextHandle& worldContext);
 
     // Used by an interceptor callback that it hasn't found anything to
     // intercept.

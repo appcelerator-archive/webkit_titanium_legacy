@@ -31,7 +31,6 @@
 #include "config.h"
 #include "V8DOMWrapper.h"
 
-#include "WebGLArray.h"
 #include "CSSMutableStyleDeclaration.h"
 #include "ChromiumBridge.h"
 #include "DOMObjectsInclude.h"
@@ -51,6 +50,8 @@
 #include "V8Index.h"
 #include "V8IsolatedWorld.h"
 #include "V8Proxy.h"
+#include "WebGLArray.h"
+#include "WebGLUniformLocation.h"
 #include "WorkerContextExecutionProxy.h"
 
 #include <algorithm>
@@ -275,7 +276,7 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         // setter. Therefore, the interceptor has to be on the object
         // itself and not on the prototype object.
         descriptor->InstanceTemplate()->SetNamedPropertyHandler( USE_NAMED_PROPERTY_GETTER(CSSStyleDeclaration), USE_NAMED_PROPERTY_SETTER(CSSStyleDeclaration));
-        setCollectionStringOrNullIndexedGetter<CSSStyleDeclaration>(descriptor);
+        setCollectionStringIndexedGetter<CSSStyleDeclaration>(descriptor);
         break;
     case V8ClassIndex::CSSRULELIST:
         setCollectionIndexedGetter<CSSRuleList, CSSRule>(descriptor,  V8ClassIndex::CSSRULE);
@@ -284,7 +285,7 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         setCollectionIndexedGetter<CSSValueList, CSSValue>(descriptor, V8ClassIndex::CSSVALUE);
         break;
     case V8ClassIndex::CSSVARIABLESDECLARATION:
-        setCollectionStringOrNullIndexedGetter<CSSVariablesDeclaration>(descriptor);
+        setCollectionStringIndexedGetter<CSSVariablesDeclaration>(descriptor);
         break;
     case V8ClassIndex::WEBKITCSSTRANSFORMVALUE:
         setCollectionIndexedGetter<WebKitCSSTransformValue, CSSValue>(descriptor, V8ClassIndex::CSSVALUE);
@@ -366,10 +367,15 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
     case V8ClassIndex::MIMETYPEARRAY:
         setCollectionIndexedAndNamedGetters<MimeTypeArray, MimeType>(descriptor, V8ClassIndex::MIMETYPE);
         break;
-    case V8ClassIndex::NAMEDNODEMAP:
-        descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(NamedNodeMap));
-        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(NamedNodeMap), 0, 0, 0, collectionIndexedPropertyEnumerator<NamedNodeMap>, v8::Integer::New(V8ClassIndex::NODE));
+    case V8ClassIndex::NAMEDNODEMAP: {
+        // We add an extra internal field to hold a reference to the owner node.
+        v8::Local<v8::ObjectTemplate> instanceTemplate = descriptor->InstanceTemplate();
+        ASSERT(instanceTemplate->InternalFieldCount() == V8Custom::kDefaultWrapperInternalFieldCount);
+        instanceTemplate->SetInternalFieldCount(V8Custom::kNamedNodeMapInternalFieldCount);
+        instanceTemplate->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(NamedNodeMap));
+        instanceTemplate->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(NamedNodeMap), 0, 0, 0, collectionIndexedPropertyEnumerator<NamedNodeMap>, v8::Integer::New(V8ClassIndex::NODE));
         break;
+    }
 #if ENABLE(DOM_STORAGE)
     case V8ClassIndex::STORAGE:
         descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(Storage), USE_NAMED_PROPERTY_SETTER(Storage), 0, USE_NAMED_PROPERTY_DELETER(Storage), V8Custom::v8StorageNamedPropertyEnumerator);
@@ -698,6 +704,8 @@ v8::Handle<v8::Value> V8DOMWrapper::convertToV8Object(V8ClassIndex::V8WrapperTyp
         return convertStyleSheetToV8Object(static_cast<StyleSheet*>(impl));
     case V8ClassIndex::DOMWINDOW:
         return convertWindowToV8Object(static_cast<DOMWindow*>(impl));
+    case V8ClassIndex::NAMEDNODEMAP:
+        return convertNamedNodeMapToV8Object(static_cast<NamedNodeMap*>(impl));
 #if ENABLE(SVG)
         SVG_NONNODE_TYPES(MAKE_CASE)
         if (type == V8ClassIndex::SVGELEMENTINSTANCE)
@@ -720,6 +728,27 @@ v8::Handle<v8::Value> V8DOMWrapper::convertToV8Object(V8ClassIndex::V8WrapperTyp
     // Non DOM node
     v8::Persistent<v8::Object> result = isActiveDomObject ? getActiveDOMObjectMap().get(impl) : getDOMObjectMap().get(impl);
     if (result.IsEmpty()) {
+#if ENABLE(3D_CANVAS)
+        if (type == V8ClassIndex::WEBGLARRAY && impl) {
+            // Determine which subclass we are wrapping.
+            WebGLArray* array = reinterpret_cast<WebGLArray*>(impl);
+            if (array->isByteArray())
+                type = V8ClassIndex::WEBGLBYTEARRAY;
+            else if (array->isFloatArray())
+                type = V8ClassIndex::WEBGLFLOATARRAY;
+            else if (array->isIntArray())
+                type = V8ClassIndex::WEBGLINTARRAY;
+            else if (array->isShortArray())
+                type = V8ClassIndex::WEBGLSHORTARRAY;
+            else if (array->isUnsignedByteArray())
+                type = V8ClassIndex::WEBGLUNSIGNEDBYTEARRAY;
+            else if (array->isUnsignedIntArray())
+                type = V8ClassIndex::WEBGLUNSIGNEDINTARRAY;
+            else if (array->isUnsignedShortArray())
+                type = V8ClassIndex::WEBGLUNSIGNEDSHORTARRAY;
+        }
+#endif
+
         v8::Local<v8::Object> v8Object = instantiateV8Object(type, type, impl);
         if (!v8Object.IsEmpty()) {
             // Go through big switch statement, it has some duplications
@@ -897,13 +926,6 @@ v8::Local<v8::Object> V8DOMWrapper::instantiateV8Object(V8Proxy* proxy, V8ClassI
         setDOMWrapper(instance, V8ClassIndex::ToInt(cptrType), impl);
     }
     return instance;
-}
-
-void V8DOMWrapper::setDOMWrapper(v8::Handle<v8::Object> object, int type, void* cptr)
-{
-    ASSERT(object->InternalFieldCount() >= 2);
-    object->SetPointerInInternalField(V8Custom::kDOMWrapperObjectIndex, cptr);
-    object->SetInternalField(V8Custom::kDOMWrapperTypeIndex, v8::Integer::New(type));
 }
 
 #ifndef NDEBUG
@@ -1084,7 +1106,7 @@ V8ClassIndex::V8WrapperType V8DOMWrapper::htmlElementType(HTMLElement* element)
 #define FOR_EACH_ANIMATION_TAG(macro)
 #endif
 
-#if ENABLE(SVG_FILTERS)
+#if ENABLE(SVG) && ENABLE(FILTERS)
 #define FOR_EACH_FILTERS_TAG(macro) \
     macro(feBlend, FEBLEND) \
     macro(feColorMatrix, FECOLORMATRIX) \
@@ -1224,6 +1246,8 @@ v8::Handle<v8::Value> V8DOMWrapper::convertEventToV8Object(Event* event)
         else if (event->isSVGZoomEvent())
             type = V8ClassIndex::SVGZOOMEVENT;
 #endif
+        else if (event->isCompositionEvent())
+            type = V8ClassIndex::COMPOSITIONEVENT;
         else
             type = V8ClassIndex::UIEVENT;
     } else if (event->isMutationEvent())
@@ -1493,10 +1517,12 @@ PassRefPtr<EventListener> V8DOMWrapper::getEventListener(Node* node, v8::Local<v
     return (lookup == ListenerFindOnly) ? V8EventListenerList::findWrapper(value, isAttribute) : V8EventListenerList::findOrCreateWrapper<V8EventListener>(value, isAttribute);
 }
 
+#if ENABLE(SVG)
 PassRefPtr<EventListener> V8DOMWrapper::getEventListener(SVGElementInstance* element, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup)
 {
     return getEventListener(element->correspondingElement(), value, isAttribute, lookup);
 }
+#endif
 
 PassRefPtr<EventListener> V8DOMWrapper::getEventListener(AbstractWorker* worker, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup)
 {
@@ -1716,6 +1742,32 @@ v8::Handle<v8::Value> V8DOMWrapper::convertWindowToV8Object(DOMWindow* window)
     v8::Handle<v8::Object> global = context->Global();
     ASSERT(!global.IsEmpty());
     return global;
+}
+
+v8::Handle<v8::Value> V8DOMWrapper::convertNamedNodeMapToV8Object(NamedNodeMap* map)
+{
+    if (!map)
+        return v8::Null();
+
+    v8::Handle<v8::Object> wrapper = getDOMObjectMap().get(map);
+    if (!wrapper.IsEmpty())
+        return wrapper;
+
+    v8::Handle<v8::Object> result = instantiateV8Object(V8ClassIndex::NAMEDNODEMAP, V8ClassIndex::NAMEDNODEMAP, map);
+    if (result.IsEmpty())
+        return result;
+
+    // Only update the DOM object map if the result is non-empty.
+    map->ref();
+    setJSWrapperForDOMObject(map, v8::Persistent<v8::Object>::New(result));
+
+    // Add a hidden reference from named node map to its owner node.
+    if (Element* element = map->element()) {
+        v8::Handle<v8::Object> owner = v8::Handle<v8::Object>::Cast(convertNodeToV8Object(element));
+        result->SetInternalField(V8Custom::kNamedNodeMapOwnerNodeIndex, owner);
+    }
+
+    return result;
 }
 
 }  // namespace WebCore

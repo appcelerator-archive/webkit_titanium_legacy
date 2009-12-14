@@ -34,6 +34,8 @@
 #include <WebCore/IntRect.h>
 #include <WebCore/Timer.h>
 #include <WebCore/WindowMessageListener.h>
+#include <WebCore/WKCACFLayer.h>
+#include <WebCore/WKCACFLayerRenderer.h>
 #include <wtf/HashSet.h>
 #include <wtf/OwnPtr.h>
 
@@ -99,7 +101,8 @@ public:
     virtual HRESULT STDMETHODCALLTYPE initWithFrame( 
         /* [in] */ RECT frame,
         /* [in] */ BSTR frameName,
-        /* [in] */ BSTR groupName);
+        /* [in] */ BSTR groupName,
+        /* [in] */ OLE_HANDLE hWnd);
     
     virtual HRESULT STDMETHODCALLTYPE setUIDelegate( 
         /* [in] */ IWebUIDelegate *d);
@@ -565,6 +568,12 @@ public:
     virtual HRESULT STDMETHODCALLTYPE stopSpeaking( 
         /* [in] */ IUnknown *sender);
 
+    virtual HRESULT STDMETHODCALLTYPE forwardingWindowProc(
+        /* [in] */ OLE_HANDLE hWnd,
+        /* [in] */ UINT message,
+        /* [in] */ WPARAM wParam,
+        /* [in] */ LPARAM lParam);
+
     // IWebNotificationObserver
 
     virtual HRESULT STDMETHODCALLTYPE onNotify( 
@@ -790,6 +799,7 @@ public:
     bool keyUp(WPARAM, LPARAM, bool systemKeyDown = false);
     bool keyPress(WPARAM, LPARAM, bool systemKeyDown = false);
     void paint(HDC, LPARAM);
+    void transparentPaint(HDC);
     void paintIntoWindow(HDC bitmapDC, HDC windowDC, const WebCore::IntRect& dirtyRect);
     bool ensureBackingStore();
     void addToDirtyRegion(const WebCore::IntRect&);
@@ -861,6 +871,11 @@ public:
 
     void downloadURL(const WebCore::KURL&);
 
+#if USE(ACCELERATED_COMPOSITING)
+    void setRootLayerNeedsDisplay() { if (m_layerRenderer) m_layerRenderer->setNeedsDisplay(); }
+    void setRootChildLayer(WebCore::PlatformLayer* layer);
+#endif
+
 private:
     void setZoomMultiplier(float multiplier, bool isTextOnly);
     float zoomMultiplier(bool isTextOnly);
@@ -885,6 +900,9 @@ private:
     DWORD m_lastDropEffect;
 
 protected:
+    static bool registerWebViewWindowClass();
+    static LRESULT CALLBACK WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
     HIMC getIMMContext();
     void releaseIMMContext(HIMC);
     static bool allowSiteSpecificHacks() { return s_allowSiteSpecificHacks; } 
@@ -971,6 +989,17 @@ protected:
     long m_lastPanY;
     long m_xOverpan;
     long m_yOverpan;
+
+#if USE(ACCELERATED_COMPOSITING)
+    bool isAcceleratedCompositing() const { return m_isAcceleratedCompositing; }
+    void setAcceleratedCompositing(bool);
+    void updateRootLayerContents();
+    void resizeLayerRenderer() { m_layerRenderer->resize(); }
+    void layerRendererBecameVisible() { m_layerRenderer->createRenderer(); }
+
+    OwnPtr<WebCore::WKCACFLayerRenderer> m_layerRenderer;
+    bool m_isAcceleratedCompositing;
+#endif
 };
 
 #endif

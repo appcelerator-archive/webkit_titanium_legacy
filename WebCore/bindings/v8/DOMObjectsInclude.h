@@ -31,6 +31,7 @@
 #ifndef DOMObjectsInclude_h
 #define DOMObjectsInclude_h
 
+#include "Attr.h"
 #include "BarInfo.h"
 #include "BeforeLoadEvent.h"
 #include "WebGLActiveInfo.h"
@@ -61,6 +62,7 @@
 #include "ClientRect.h"
 #include "ClientRectList.h"
 #include "Clipboard.h"
+#include "CompositionEvent.h"
 #include "Console.h"
 #include "Counter.h"
 #include "CSSCharsetRule.h"
@@ -184,6 +186,12 @@
 #include "StorageEvent.h"
 #endif // DOM_STORAGE
 
+// GEOLOCATION
+#include "Coordinates.h"
+#include "Geolocation.h"
+#include "Geoposition.h"
+#include "PositionError.h"
+
 #if ENABLE(SVG)
 #include "SVGAngle.h"
 #include "SVGAnimatedPoints.h"
@@ -256,7 +264,9 @@
 #endif // XSLT
 
 #if ENABLE(INSPECTOR)
+#include "InjectedScriptHost.h"
 #include "InspectorBackend.h"
+#include "InspectorFrontendHost.h"
 #endif // INSPECTOR
 
 namespace WebCore {

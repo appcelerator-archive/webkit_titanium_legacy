@@ -65,6 +65,9 @@ public:
     virtual void dispatchDidCancelClientRedirect();
     virtual void dispatchWillPerformClientRedirect(const WebCore::KURL&, double interval, double fireDate);
     virtual void dispatchDidChangeLocationWithinPage();
+    virtual void dispatchDidPushStateWithinPage();
+    virtual void dispatchDidReplaceStateWithinPage();
+    virtual void dispatchDidPopStateWithinPage();
     virtual void dispatchWillClose();
     virtual void dispatchDidReceiveIcon();
     virtual void dispatchDidStartProvisionalLoad();
@@ -91,6 +94,9 @@ public:
     virtual void updateGlobalHistory();
     virtual void updateGlobalHistoryRedirectLinks();
     virtual bool shouldGoToHistoryItem(WebCore::HistoryItem*) const;
+    virtual void dispatchDidAddBackForwardItem(WebCore::HistoryItem*) const;
+    virtual void dispatchDidRemoveBackForwardItem(WebCore::HistoryItem*) const;
+    virtual void dispatchDidChangeBackForwardIndex() const;
 
     virtual void didDisplayInsecureContent();
     virtual void didRunInsecureContent(WebCore::SecurityOrigin*);

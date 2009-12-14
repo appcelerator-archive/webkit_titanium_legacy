@@ -179,6 +179,7 @@ WebInspector.DOMNode.prototype = {
         this.lastChild = this.children[this._childNodeCount - 1];
         for (var i = 0; i < this._childNodeCount; ++i) {
             var child = this.children[i];
+            child.index = i;
             child.nextSibling = i + 1 < this._childNodeCount ? this.children[i + 1] : null;
             child.prevSibling = i - 1 >= 0 ? this.children[i - 1] : null;
             child.parentNode = this;
@@ -327,25 +328,25 @@ WebInspector.DOMAgent.prototype = {
             callback(parent.children);
         }
         var callId = WebInspector.Callback.wrap(mycallback);
-        InspectorController.getChildNodes(callId, parent.id);
+        InspectorBackend.getChildNodes(callId, parent.id);
     },
 
     setAttributeAsync: function(node, name, value, callback)
     {
         var mycallback = this._didApplyDomChange.bind(this, node, callback);
-        InspectorController.setAttribute(WebInspector.Callback.wrap(mycallback), node.id, name, value);
+        InspectorBackend.setAttribute(WebInspector.Callback.wrap(mycallback), node.id, name, value);
     },
 
     removeAttributeAsync: function(node, name, callback)
     {
         var mycallback = this._didApplyDomChange.bind(this, node, callback);
-        InspectorController.removeAttribute(WebInspector.Callback.wrap(mycallback), node.id, name);
+        InspectorBackend.removeAttribute(WebInspector.Callback.wrap(mycallback), node.id, name);
     },
 
     setTextNodeValueAsync: function(node, text, callback)
     {
         var mycallback = this._didApplyDomChange.bind(this, node, callback);
-        InspectorController.setTextNodeValue(WebInspector.Callback.wrap(mycallback), node.id, text);
+        InspectorBackend.setTextNodeValue(WebInspector.Callback.wrap(mycallback), node.id, text);
     },
 
     _didApplyDomChange: function(node, callback, success)
@@ -373,13 +374,13 @@ WebInspector.DOMAgent.prototype = {
     _setDocument: function(payload)
     {
         this._idToDOMNode = {};
-        if (payload) {
+        if (payload && "id" in payload) {
             this.document = new WebInspector.DOMDocument(this, this._window, payload);
             this._idToDOMNode[payload.id] = this.document;
             this._bindNodes(this.document.children);
         } else
             this.document = null;
-        WebInspector.panels.elements.reset();
+        WebInspector.panels.elements.setDocument(this.document);
     },
 
     _setDetachedRoot: function(payload)
@@ -438,7 +439,7 @@ WebInspector.DOMAgent.prototype = {
 
 WebInspector.Cookies = {}
 
-WebInspector.Cookies.getCookiesAsync = function(callback, cookieDomain)
+WebInspector.Cookies.getCookiesAsync = function(callback)
 {
     function mycallback(cookies, cookiesString) {
         if (cookiesString)
@@ -447,7 +448,7 @@ WebInspector.Cookies.getCookiesAsync = function(callback, cookieDomain)
             callback(cookies, true);
     }
     var callId = WebInspector.Callback.wrap(mycallback);
-    InspectorController.getCookies(callId, cookieDomain);
+    InspectorBackend.getCookies(callId);
 }
 
 WebInspector.Cookies.buildCookiesFromString = function(rawCookieString)
@@ -469,6 +470,28 @@ WebInspector.Cookies.buildCookiesFromString = function(rawCookieString)
     return cookies;
 }
 
+WebInspector.Cookies.cookieMatchesResourceURL = function(cookie, resourceURL)
+{
+    var match = resourceURL.match(WebInspector.URLRegExp);
+    if (!match)
+        return false;
+    // See WebInspector.URLRegExp for definitions of the group index constants.
+    if (!this.cookieDomainMatchesResourceDomain(cookie.domain, match[2]))
+        return false;
+    var resourcePort = match[3] ? match[3] : undefined;
+    var resourcePath = match[4] ? match[4] : '/';
+    return (resourcePath.indexOf(cookie.path) === 0
+        && (!cookie.port || resourcePort == cookie.port)
+        && (!cookie.secure || match[1].toLowerCase() === 'https'));
+}
+
+WebInspector.Cookies.cookieDomainMatchesResourceDomain = function(cookieDomain, resourceDomain)
+{
+    if (cookieDomain.charAt(0) !== '.')
+        return resourceDomain === cookieDomain;
+    return !!resourceDomain.match(new RegExp("^([^\\.]+\\.)?" + cookieDomain.substring(1).escapeForRegExp() + "$"), "i");
+}
+
 WebInspector.EventListeners = {}
 
 WebInspector.EventListeners.getEventListenersForNodeAsync = function(node, callback)
@@ -477,7 +500,7 @@ WebInspector.EventListeners.getEventListenersForNodeAsync = function(node, callb
         return;
 
     var callId = WebInspector.Callback.wrap(callback);
-    InspectorController.getEventListenersForNode(callId, node.id);
+    InspectorBackend.getEventListenersForNode(callId, node.id);
 }
 
 WebInspector.CSSStyleDeclaration = function(payload)

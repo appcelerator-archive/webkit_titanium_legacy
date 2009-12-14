@@ -47,13 +47,14 @@
 #include "npruntime_priv.h"
 #include "NPV8Object.h"
 #include "ScriptSourceCode.h"
+#include "ScriptState.h"
 #include "Settings.h"
-#include "Widget.h"
-#include "XSSAuditor.h"
-
 #include "V8Binding.h"
 #include "V8NPObject.h"
 #include "V8Proxy.h"
+#include "Widget.h"
+#include "XSSAuditor.h"
+#include <wtf/StdLibExtras.h>
 
 namespace WebCore {
 
@@ -293,7 +294,7 @@ bool ScriptController::haveInterpreter() const
 bool ScriptController::isEnabled() const
 {
     Settings* settings = m_proxy->frame()->settings();
-    return m_proxy->frame()->loader()->client()->allowJavaScript(settings && settings->isJavaScriptEnabled());
+    return m_proxy->frame()->loader()->client()->allowJavaScript(settings && settings->isJavaScriptEnabled() && !m_frame->loader()->isSandboxed(SandboxScripts));
 }
 
 PassScriptInstance ScriptController::createScriptInstanceForWidget(Widget* widget)
@@ -347,6 +348,18 @@ void ScriptController::cleanupScriptObjectsForPlugin(Widget* nativeHandle)
     _NPN_UnregisterObject(it->second);
     _NPN_ReleaseObject(it->second);
     m_pluginObjects.remove(it);
+}
+
+void ScriptController::getAllWorlds(Vector<DOMWrapperWorld*>& worlds)
+{
+    worlds.append(mainThreadNormalWorld());
+}
+
+ScriptState* ScriptController::mainWorldScriptState()
+{
+    if (!m_mainWorldScriptState)
+        m_mainWorldScriptState.set(new ScriptState(m_frame, V8Proxy::mainWorldContext(m_frame)));
+    return m_mainWorldScriptState.get();
 }
 
 static NPObject* createNoScriptObject()
@@ -425,12 +438,6 @@ void ScriptController::attachDebugger(void*)
 void ScriptController::updateDocument()
 {
     m_proxy->updateDocument();
-}
-
-// FIXME: Stub method so we compile.  Currently called from FrameLoader.cpp.
-DOMWrapperWorld* mainThreadNormalWorld()
-{
-    return 0;
 }
 
 } // namespace WebCore

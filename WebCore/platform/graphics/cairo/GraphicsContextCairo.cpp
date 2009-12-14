@@ -76,48 +76,31 @@ static inline void setColor(cairo_t* cr, const Color& col)
 static inline void setPlatformFill(GraphicsContext* context, cairo_t* cr, GraphicsContextPrivate* gcp)
 {
     cairo_save(cr);
-    switch (gcp->state.fillType) {
-    case SolidColorType: {
-        Color fillColor = colorWithOverrideAlpha(context->fillColor().rgb(), context->fillColor().alpha() / 255.f * gcp->state.globalAlpha);
-        setColor(cr, fillColor);
-        cairo_fill_preserve(cr);
-        break;
-    }
-    case PatternType: {
+    if (gcp->state.fillPattern) {
         TransformationMatrix affine;
         cairo_set_source(cr, gcp->state.fillPattern->createPlatformPattern(affine));
-        cairo_clip_preserve(cr);
-        cairo_paint_with_alpha(cr, gcp->state.globalAlpha);
-        break;
-    }
-    case GradientType:
+    } else if (gcp->state.fillGradient)
         cairo_set_source(cr, gcp->state.fillGradient->platformGradient());
-        cairo_clip_preserve(cr);
-        cairo_paint_with_alpha(cr, gcp->state.globalAlpha);
-        break;
-    }
+    else
+        setColor(cr, context->fillColor());
+    cairo_clip_preserve(cr);
+    cairo_paint_with_alpha(cr, gcp->state.globalAlpha);
     cairo_restore(cr);
 }
 
 static inline void setPlatformStroke(GraphicsContext* context, cairo_t* cr, GraphicsContextPrivate* gcp)
 {
     cairo_save(cr);
-    switch (gcp->state.strokeType) {
-    case SolidColorType: {
-        Color strokeColor = colorWithOverrideAlpha(context->strokeColor().rgb(), context->strokeColor().alpha() / 255.f * gcp->state.globalAlpha);
-        setColor(cr, strokeColor);
-        break;
-    }
-    case PatternType: {
+    if (gcp->state.strokePattern) {
         TransformationMatrix affine;
         cairo_set_source(cr, gcp->state.strokePattern->createPlatformPattern(affine));
-        break;
-    }
-    case GradientType:
+    } else if (gcp->state.strokeGradient)
         cairo_set_source(cr, gcp->state.strokeGradient->platformGradient());
-        break;
+    else  {
+        Color strokeColor = colorWithOverrideAlpha(context->strokeColor().rgb(), context->strokeColor().alpha() / 255.f * gcp->state.globalAlpha);
+        setColor(cr, strokeColor);
     }
-    if (gcp->state.globalAlpha < 1.0f && gcp->state.strokeType != SolidColorType) {
+    if (gcp->state.globalAlpha < 1.0f && (gcp->state.strokePattern || gcp->state.strokeGradient)) {
         cairo_push_group(cr);
         cairo_paint_with_alpha(cr, gcp->state.globalAlpha);
         cairo_pop_group_to_source(cr);
@@ -138,9 +121,13 @@ static inline void fillRectSourceOver(cairo_t* cr, const FloatRect& rect, const 
 static inline void copyContextProperties(cairo_t* srcCr, cairo_t* dstCr)
 {
     cairo_set_antialias(dstCr, cairo_get_antialias(srcCr));
-    double dashes, offset;
-    cairo_get_dash(srcCr, &dashes, &offset);
-    cairo_set_dash(dstCr, &dashes, cairo_get_dash_count(srcCr), offset);
+
+    size_t dashCount = cairo_get_dash_count(srcCr);
+    Vector<double> dashes(dashCount);
+
+    double offset;
+    cairo_get_dash(srcCr, dashes.data(), &offset);
+    cairo_set_dash(dstCr, dashes.data(), dashCount, offset);
     cairo_set_line_cap(dstCr, cairo_get_line_cap(srcCr));
     cairo_set_line_join(dstCr, cairo_get_line_join(srcCr));
     cairo_set_line_width(dstCr, cairo_get_line_width(srcCr));
@@ -172,22 +159,25 @@ static inline void drawPathShadow(GraphicsContext* context, GraphicsContextPriva
     if (!context->getShadow(shadowSize, shadowBlur, shadowColor))
         return;
     
-    //calculate filter values
+    // Calculate filter values to create appropriate shadow.
     cairo_t* cr = context->platformContext();
     cairo_path_t* path = cairo_copy_path(cr);
     double x0, x1, y0, y1;
-    cairo_stroke_extents(cr, &x0, &y0, &x1, &y1);
+    if (strokeShadow)
+        cairo_stroke_extents(cr, &x0, &y0, &x1, &y1);
+    else
+        cairo_fill_extents(cr, &x0, &y0, &x1, &y1);
     FloatRect rect(x0, y0, x1 - x0, y1 - y0);
 
     IntSize shadowBufferSize;
     FloatRect shadowRect;
-    float kernelSize (0.0);
+    float kernelSize = 0;
     GraphicsContext::calculateShadowBufferDimensions(shadowBufferSize, shadowRect, kernelSize, rect, shadowSize, shadowBlur);
 
-    // create suitably-sized ImageBuffer to hold the shadow
+    // Create suitably-sized ImageBuffer to hold the shadow.
     OwnPtr<ImageBuffer> shadowBuffer = ImageBuffer::create(shadowBufferSize);
 
-    //draw shadow into a new ImageBuffer
+    // Draw shadow into a new ImageBuffer.
     cairo_t* shadowContext = shadowBuffer->context()->platformContext();
     copyContextProperties(cr, shadowContext);
     cairo_translate(shadowContext, -rect.x() + kernelSize, -rect.y() + kernelSize);
@@ -558,11 +548,36 @@ void GraphicsContext::fillRect(const FloatRect& rect)
     fillPath();
 }
 
+static void drawBorderlessRectShadow(GraphicsContext* context, const FloatRect& rect, const Color& rectColor)
+{
+#if ENABLE(FILTERS)
+    IntSize shadowSize;
+    int shadowBlur;
+    Color shadowColor;
+
+    if (!context->getShadow(shadowSize, shadowBlur, shadowColor))
+        return;
+
+    IntSize shadowBufferSize;
+    FloatRect shadowRect;
+    float kernelSize = 0;
+    GraphicsContext::calculateShadowBufferDimensions(shadowBufferSize, shadowRect, kernelSize, rect, shadowSize, shadowBlur);
+
+    // Draw shadow into a new ImageBuffer
+    OwnPtr<ImageBuffer> shadowBuffer = ImageBuffer::create(shadowBufferSize);
+    GraphicsContext* shadowContext = shadowBuffer->context();
+    shadowContext->fillRect(FloatRect(FloatPoint(kernelSize, kernelSize), rect.size()), rectColor, DeviceColorSpace);
+
+    context->createPlatformShadow(shadowBuffer.release(), shadowColor, shadowRect, kernelSize);
+#endif
+}
+
 void GraphicsContext::fillRect(const FloatRect& rect, const Color& color, ColorSpace colorSpace)
 {
     if (paintingDisabled())
         return;
 
+    drawBorderlessRectShadow(this, rect, color);
     if (color.alpha())
         fillRectSourceOver(m_data->cr, rect, color);
 }
@@ -845,10 +860,10 @@ void GraphicsContext::createPlatformShadow(PassOwnPtr<ImageBuffer> buffer, const
     RefPtr<Filter> filter = ImageBufferFilter::create();
     filter->setSourceImage(buffer.release());
     RefPtr<FilterEffect> source = SourceGraphic::create();
-    source->setSubRegion(FloatRect(FloatPoint(), shadowRect.size()));
+    source->setScaledSubRegion(FloatRect(FloatPoint(), shadowRect.size()));
     source->setIsAlphaImage(true);
     RefPtr<FilterEffect> blur = FEGaussianBlur::create(source.get(), kernelSize, kernelSize);
-    blur->setSubRegion(FloatRect(FloatPoint(), shadowRect.size()));
+    blur->setScaledSubRegion(FloatRect(FloatPoint(), shadowRect.size()));
     blur->apply(filter.get());
 
     // Mask the filter with the shadow color and draw it to the context.
@@ -1106,7 +1121,7 @@ void GraphicsContext::clipOut(const IntRect& r)
     cairo_t* cr = m_data->cr;
     double x1, y1, x2, y2;
     cairo_clip_extents(cr, &x1, &y1, &x2, &y2);
-    cairo_rectangle(cr, x1, x2, x2 - x1, y2 - y1);
+    cairo_rectangle(cr, x1, y1, x2 - x1, y2 - y1);
     cairo_rectangle(cr, r.x(), r.y(), r.width(), r.height());
     cairo_fill_rule_t savedFillRule = cairo_get_fill_rule(cr);
     cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
@@ -1134,6 +1149,7 @@ void GraphicsContext::fillRoundedRect(const IntRect& r, const IntSize& topLeft, 
     beginPath();
     addPath(Path::createRoundedRectangle(r, topLeft, topRight, bottomLeft, bottomRight));
     setColor(cr, color);
+    drawPathShadow(this, m_common, true, false);
     cairo_fill(cr);
     cairo_restore(cr);
 }

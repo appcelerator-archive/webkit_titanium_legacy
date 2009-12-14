@@ -594,7 +594,9 @@
     if ([ariaType isEqualToString:@"ARIAUserInterfaceTooltip"])
         return UI_STRING("tooltip", "An ARIA accessibility group that acts as a tooltip.");    
     if ([ariaType isEqualToString:@"ARIATabPanel"])
-        return UI_STRING("tab panel", "An ARIA accessibility group that contenst the content of a tab.");
+        return UI_STRING("tab panel", "An ARIA accessibility group that contains the content of a tab.");
+    if ([ariaType isEqualToString:@"ARIADocumentMath"])
+        return UI_STRING("math", "An ARIA accessibility group that contains mathematical symbols.");
     return nil;
 }
 
@@ -692,6 +694,11 @@
         return UI_STRING("fast forward", "accessibility role description for fast forward button");
     if ([name isEqualToString:@"SeekBackButton"])
         return UI_STRING("fast reverse", "accessibility role description for fast reverse button");
+    if ([name isEqualToString:@"ShowClosedCaptionsButton"])
+        return UI_STRING("show closed captions", "accessibility role description for show closed captions button");
+    if ([name isEqualToString:@"HideClosedCaptionsButton"])
+        return UI_STRING("hide closed captions", "accessibility role description for hide closed captions button");
+
     ASSERT_NOT_REACHED();
     return @"";
 }
@@ -731,6 +738,10 @@
         return UI_STRING("seek quickly forward", "accessibility help text for fast forward button");
     if ([name isEqualToString:@"FullscreenButton"])
         return UI_STRING("Play movie in fullscreen mode", "accessibility help text for enter fullscreen button");
+    if ([name isEqualToString:@"ShowClosedCaptionsButton"])
+        return UI_STRING("start displaying closed captions", "accessibility help text for show closed captions button");
+    if ([name isEqualToString:@"HideClosedCaptionsButton"])
+        return UI_STRING("stop displaying closed captions", "accessibility help text for hide closed captions button");
     ASSERT_NOT_REACHED();
     return @"";
 }
@@ -754,6 +765,41 @@
         return [NSString stringWithFormat:UI_STRING("%1$d minutes %2$d seconds", "accessibility help text for media controller time value >= 60 seconds"), minutes, seconds];
 
     return [NSString stringWithFormat:UI_STRING("%1$d seconds", "accessibility help text for media controller time value < 60 seconds"), seconds];
+}
+
+- (NSString *)validationMessageValueMissingText
+{
+    return UI_STRING("value missing", "Validation message for required form control elements that have no value");
+}
+
+- (NSString *)validationMessageTypeMismatchText
+{
+    return UI_STRING("type mismatch", "Validation message for input form controls with a value not matching type");
+}
+
+- (NSString *)validationMessagePatternMismatchText
+{
+    return UI_STRING("pattern mismatch", "Validation message for input form controls requiring a constrained value according to pattern");
+}
+
+- (NSString *)validationMessageTooLongText
+{
+    return UI_STRING("too long", "Validation message for form control elements with a value longer than maximum allowed length");
+}
+
+- (NSString *)validationMessageRangeUnderflowText
+{
+    return UI_STRING("range underflow", "Validation message for input form controls with value lower than allowed minimum");
+}
+
+- (NSString *)validationMessageRangeOverflowText
+{
+    return UI_STRING("range overflow", "Validation message for input form controls with value higher than allowed maximum");
+}
+
+- (NSString *)validationMessageStepMismatchText
+{
+    return UI_STRING("step mismatch", "Validation message for input form controls with value not respecting the step attribute");
 }
 
 @end

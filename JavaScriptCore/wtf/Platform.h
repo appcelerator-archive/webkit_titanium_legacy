@@ -132,7 +132,8 @@
    || defined(__unix__)    \
    || defined(_AIX)        \
    || defined(__HAIKU__)   \
-   || defined(__QNXNTO__)
+   || defined(__QNXNTO__)  \
+   || defined(ANDROID)
 #define WTF_PLATFORM_UNIX 1
 #endif
 
@@ -140,19 +141,15 @@
 
 /* PLATFORM(CHROMIUM) */
 /* PLATFORM(QT) */
+/* PLATFORM(WX) */
 /* PLATFORM(GTK) */
+/* PLATFORM(HAIKU) */
 /* PLATFORM(MAC) */
 /* PLATFORM(WIN) */
 #if defined(BUILDING_CHROMIUM__)
 #define WTF_PLATFORM_CHROMIUM 1
 #elif defined(BUILDING_QT__)
 #define WTF_PLATFORM_QT 1
-
-/* PLATFORM(KDE) */
-#if defined(BUILDING_KDE__)
-#define WTF_PLATFORM_KDE 1
-#endif
-
 #elif defined(BUILDING_WX__)
 #define WTF_PLATFORM_WX 1
 #elif defined(BUILDING_GTK__)
@@ -182,6 +179,11 @@
 #define WTF_PLATFORM_IPHONE 0
 #endif
 
+/* PLATFORM(ANDROID) */
+#if defined(ANDROID)
+#define WTF_PLATFORM_ANDROID 1
+#endif
+
 /* Graphics engines */
 
 /* PLATFORM(CG) and PLATFORM(CI) */
@@ -205,7 +207,7 @@
 
 /* Makes PLATFORM(WIN) default to PLATFORM(CAIRO) */
 /* FIXME: This should be changed from a blacklist to a whitelist */
-#if !PLATFORM(MAC) && !PLATFORM(QT) && !PLATFORM(WX) && !PLATFORM(CHROMIUM) && !PLATFORM(WINCE) && !PLATFORM(HAIKU)
+#if !PLATFORM(MAC) && !PLATFORM(QT) && !PLATFORM(WX) && !PLATFORM(CHROMIUM) && !PLATFORM(WINCE) && !PLATFORM(HAIKU) && !PLATFORM(ANDROID)
 #define WTF_PLATFORM_CAIRO 1
 #endif
 
@@ -221,6 +223,16 @@
    || defined(__PPC)
 #define WTF_PLATFORM_PPC 1
 #define WTF_PLATFORM_BIG_ENDIAN 1
+#endif
+
+/* PLATFORM(SPARC32) */
+#if defined(__sparc) && !defined(__arch64__) || defined(__sparcv8)
+#define WTF_PLATFORM_SPARC32 1
+#define WTF_PLATFORM_BIG_ENDIAN 1
+#endif
+
+#if PLATFORM(SPARC32) || PLATFORM(SPARC64)
+#define WTF_PLATFORM_SPARC
 #endif
 
 /* PLATFORM(PPC64) */
@@ -242,7 +254,8 @@
 
 #elif !defined(__ARM_EABI__) \
    && !defined(__EABI__) \
-   && !defined(__VFP_FP__)
+   && !defined(__VFP_FP__) \
+   && !defined(ANDROID)
 #define WTF_PLATFORM_MIDDLE_ENDIAN 1
 
 #endif
@@ -352,6 +365,16 @@
 #define WTF_PLATFORM_X86_64 1
 #endif
 
+/* PLATFORM(IA64) */
+#if defined(__ia64__)
+#define WTF_PLATFORM_IA64 1
+#endif
+
+/* PLATFORM(ALPHA) */
+#if defined(__alpha__)
+#define WTF_PLATFORM_ALPHA 1
+#endif
+
 /* PLATFORM(SH4) */
 #if defined(__SH4__)
 #define WTF_PLATFORM_SH4 1
@@ -375,6 +398,8 @@
 #   if Q_BYTE_ORDER == Q_BIG_EDIAN
 #       define WTF_PLATFORM_BIG_ENDIAN 1
 #   endif
+
+#   include <ce_time.h>
 #endif
 
 /* Compiler */
@@ -421,7 +446,7 @@
 #define WTF_COMPILER_WINSCW 1
 #endif
 
-#if (PLATFORM(IPHONE) || PLATFORM(MAC) || PLATFORM(WIN)) && !defined(ENABLE_JSC_MULTIPLE_THREADS)
+#if (PLATFORM(IPHONE) || PLATFORM(MAC) || PLATFORM(WIN) || (PLATFORM(QT) && PLATFORM(DARWIN))) && !defined(ENABLE_JSC_MULTIPLE_THREADS)
 #define ENABLE_JSC_MULTIPLE_THREADS 1
 #endif
 
@@ -457,8 +482,7 @@
 
 #endif  /* PLATFORM(WINCE) && !PLATFORM(QT) */
 
-/* for Unicode, KDE uses Qt */
-#if PLATFORM(KDE) || PLATFORM(QT)
+#if PLATFORM(QT)
 #define WTF_USE_QT4_UNICODE 1
 #elif PLATFORM(WINCE)
 #define WTF_USE_WINCE_UNICODE 1
@@ -512,12 +536,27 @@
 #define HAVE_PTHREAD_RWLOCK 1
 #endif
 
+#if PLATFORM(ANDROID)
+#define WTF_USE_PTHREADS 1
+#define WTF_PLATFORM_SGL 1
+#define USE_SYSTEM_MALLOC 1
+#define ENABLE_MAC_JAVA_BRIDGE 1
+#define LOG_DISABLED 1
+// Prevents Webkit from drawing the caret in textfields and textareas
+// This prevents unnecessary invals.
+#define ENABLE_TEXT_CARET 1
+#define ENABLE_JAVASCRIPT_DEBUGGER 0
+#endif
+
 #if PLATFORM(WIN)
 #define WTF_USE_WININET 1
 #endif
 
 #if PLATFORM(WX)
 #define ENABLE_ASSEMBLER 1
+#if PLATFORM(DARWIN)
+#define WTF_PLATFORM_CF 1
+#endif
 #endif
 
 #if PLATFORM(GTK)
@@ -547,7 +586,8 @@
 #endif
 
 #if !PLATFORM(WIN_OS) && !PLATFORM(SOLARIS) && !PLATFORM(QNX) \
-    && !PLATFORM(SYMBIAN) && !PLATFORM(HAIKU) && !COMPILER(RVCT)
+    && !PLATFORM(SYMBIAN) && !PLATFORM(HAIKU) && !COMPILER(RVCT) \
+    && !PLATFORM(ANDROID)
 #define HAVE_TM_GMTOFF 1
 #define HAVE_TM_ZONE 1
 #define HAVE_TIMEGM 1
@@ -577,7 +617,6 @@
 
 #elif PLATFORM(WIN_OS)
 
-#define HAVE_FLOAT_H 1
 #if PLATFORM(WINCE)
 #define HAVE_ERRNO_H 0
 #else
@@ -601,6 +640,16 @@
 #elif PLATFORM(QNX)
 
 #define HAVE_ERRNO_H 1
+#define HAVE_MMAP 1
+#define HAVE_SBRK 1
+#define HAVE_STRINGS_H 1
+#define HAVE_SYS_PARAM_H 1
+#define HAVE_SYS_TIME_H 1
+
+#elif PLATFORM(ANDROID)
+
+#define HAVE_ERRNO_H 1
+#define HAVE_LANGINFO_H 0
 #define HAVE_MMAP 1
 #define HAVE_SBRK 1
 #define HAVE_STRINGS_H 1
@@ -712,7 +761,7 @@
 #endif
 
 #if !defined(WTF_USE_JSVALUE64) && !defined(WTF_USE_JSVALUE32) && !defined(WTF_USE_JSVALUE32_64)
-#if PLATFORM(X86_64) && (PLATFORM(DARWIN) || PLATFORM(LINUX) || PLATFORM(WIN_OS))
+#if (PLATFORM(X86_64) && (PLATFORM(UNIX) || PLATFORM(WIN_OS))) || PLATFORM(IA64) || PLATFORM(ALPHA)
 #define WTF_USE_JSVALUE64 1
 #elif PLATFORM(ARM) || PLATFORM(PPC64)
 #define WTF_USE_JSVALUE32 1
@@ -746,7 +795,12 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #endif
 
 #if PLATFORM(QT)
-#if PLATFORM(X86) && PLATFORM(WIN_OS) && COMPILER(MINGW) && GCC_VERSION >= 40100
+#if PLATFORM(X86_64) && PLATFORM(DARWIN)
+    #define ENABLE_JIT 1
+#elif PLATFORM(X86) && PLATFORM(DARWIN)
+    #define ENABLE_JIT 1
+    #define WTF_USE_JIT_STUB_ARGUMENT_VA_LIST 1
+#elif PLATFORM(X86) && PLATFORM(WIN_OS) && COMPILER(MINGW) && GCC_VERSION >= 40100
     #define ENABLE_JIT 1
     #define WTF_USE_JIT_STUB_ARGUMENT_VA_LIST 1
 #elif PLATFORM(X86) && PLATFORM(WIN_OS) && COMPILER(MSVC)
@@ -861,6 +915,10 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #define WTF_USE_ACCELERATED_COMPOSITING 1
 #endif
 
+#if PLATFORM(WIN)
+#define WTF_USE_ACCELERATED_COMPOSITING 0
+#endif
+
 #if COMPILER(GCC)
 #define WARN_UNUSED_RETURN __attribute__ ((warn_unused_result))
 #else
@@ -873,5 +931,7 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 
 /* Set up a define for a common error that is intended to cause a build error -- thus the space after Error. */
 #define WTF_PLATFORM_CFNETWORK Error USE_macro_should_be_used_with_CFNETWORK
+
+#define ENABLE_JSC_ZOMBIES 0
 
 #endif /* WTF_Platform_h */

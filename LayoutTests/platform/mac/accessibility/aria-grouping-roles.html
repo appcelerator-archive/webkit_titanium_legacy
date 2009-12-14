@@ -24,6 +24,7 @@ var successfullyParsed = false;
 <div role="search">search role</div>
 <div role="status">status role</div>
 <div role="tooltip">tooltip role</div>
+<div role="math">math role</div>
 <div role="definition">definition role</div>
 
 <p id="description"></p>
@@ -42,17 +43,12 @@ var successfullyParsed = false;
           var subroles = new Array("AXLandmarkApplication","AXDocumentArticle","AXLandmarkBanner","AXLandmarkComplementary",
                           "AXLandmarkContentInfo", "AXDocument", "AXApplicationLog", "AXLandmarkMain", "AXApplicationMarquee",
                           "AXDocumentNote", "AXLandmarkNavigation", "AXDocumentRegion", "AXLandmarkSearch", "AXApplicationStatus", 
-                          "AXUserInterfaceTooltip");
+                          "AXUserInterfaceTooltip", "AXDocumentMath", "AXDefinition");
 
           for (var k = 0; k < subroles.length; k++) {
               shouldBe("obj.childAtIndex(k).role", "'AXRole: AXGroup'");
               shouldBe("obj.childAtIndex(k).subrole", '"AXSubrole: ' + subroles[k] + '"');
           }
-
-          // Definition role is a plain AXGroup with a AXDescription
-          shouldBe("obj.childAtIndex(k).role", "'AXRole: AXGroup'");
-          shouldBe("obj.childAtIndex(k).description", "'AXDescription: definition'");
-
     }
 
     successfullyParsed = true;

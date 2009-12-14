@@ -120,7 +120,7 @@ Page* WebInspectorClient::createPage()
 
     RECT rect;
     GetClientRect(m_hwnd, &rect);
-    if (FAILED(m_webView->initWithFrame(rect, 0, 0)))
+    if (FAILED(m_webView->initWithFrame(rect, 0, 0, 0)))
         return 0;
 
     COMPtr<WebInspectorDelegate> delegate(AdoptCOM, WebInspectorDelegate::createInstance());
@@ -253,7 +253,7 @@ void WebInspectorClient::attachWindow()
     if (m_attached)
         return;
 
-    m_inspectedWebView->page()->inspectorController()->setSetting(inspectorStartsAttachedName, InspectorController::Setting(true));
+    m_inspectedWebView->page()->inspectorController()->setSetting(inspectorStartsAttachedName, "true");
 
     closeWindowWithoutNotifications();
     showWindowWithoutNotifications();
@@ -264,7 +264,7 @@ void WebInspectorClient::detachWindow()
     if (!m_attached)
         return;
 
-    m_inspectedWebView->page()->inspectorController()->setSetting(inspectorStartsAttachedName, InspectorController::Setting(false));
+    m_inspectedWebView->page()->inspectorController()->setSetting(inspectorStartsAttachedName, "false");
 
     closeWindowWithoutNotifications();
     showWindowWithoutNotifications();
@@ -370,8 +370,8 @@ void WebInspectorClient::showWindowWithoutNotifications()
     ASSERT(m_inspectedWebViewHwnd);
 
     // If no preference is set - default to an attached window. This is important for inspector LayoutTests.
-    InspectorController::Setting shouldAttach = m_inspectedWebView->page()->inspectorController()->setting(inspectorStartsAttachedName);
-    m_shouldAttachWhenShown = shouldAttach.type() == InspectorController::Setting::BooleanType ? shouldAttach.booleanValue() : true;
+    String shouldAttach = m_inspectedWebView->page()->inspectorController()->setting(inspectorStartsAttachedName);
+    m_shouldAttachWhenShown = shouldAttach != "false";
 
     if (!m_shouldAttachWhenShown) {
         // Put the Inspector's WebView inside our window and show it.

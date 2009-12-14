@@ -21,8 +21,6 @@
 #include "config.h"
 #include "QNetworkReplyHandler.h"
 
-#if QT_VERSION >= 0x040400
-
 #include "HTTPParsers.h"
 #include "MIMETypeRegistry.h"
 #include "ResourceHandle.h"
@@ -309,9 +307,15 @@ void QNetworkReplyHandler::sendResponseIfNeeded()
         response.setHTTPStatusText(m_reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toByteArray().constData());
 
         // Add remaining headers.
+#if QT_VERSION >= QT_VERSION_CHECK(4, 7, 0)
+        foreach (const QNetworkReply::RawHeaderPair& pair, m_reply->rawHeaderPairs()) {
+            response.setHTTPHeaderField(QString::fromAscii(pair.first), QString::fromAscii(pair.second));
+        }
+#else
         foreach (const QByteArray& headerName, m_reply->rawHeaderList()) {
             response.setHTTPHeaderField(QString::fromAscii(headerName), QString::fromAscii(m_reply->rawHeader(headerName)));
         }
+#endif
     }
 
     QUrl redirection = m_reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
@@ -324,6 +328,10 @@ void QNetworkReplyHandler::sendResponseIfNeeded()
             m_method = QNetworkAccessManager::GetOperation;
             newRequest.setHTTPMethod("GET");
         }
+
+        // Should not set Referer after a redirect from a secure resource to non-secure one.
+        if (!newRequest.url().protocolIs("https") && protocolIs(newRequest.httpReferrer(), "https"))
+            newRequest.clearHTTPReferrer();
 
         client->willSendRequest(m_resourceHandle, newRequest, response);
         m_redirected = true;
@@ -466,5 +474,3 @@ void QNetworkReplyHandler::sendQueuedItems()
 }
 
 #include "moc_QNetworkReplyHandler.cpp"
-
-#endif

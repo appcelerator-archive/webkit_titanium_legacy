@@ -31,6 +31,7 @@
 .objc_class_name_WebScriptElement
 .objc_class_name_WebScriptWorld
 .objc_class_name_WebSecurityOrigin
+.objc_class_name_WebSerializedJSValue
 .objc_class_name_WebStringTruncator
 .objc_class_name_WebTextIterator
 .objc_class_name_WebURLsWithTitles
@@ -119,3 +120,4 @@ _WebViewDidEndEditingNotification
 _WebViewProgressEstimateChangedNotification
 _WebViewProgressFinishedNotification
 _WebViewProgressStartedNotification
+__WebViewDidStartAcceleratedCompositingNotification

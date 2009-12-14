@@ -36,11 +36,11 @@
 
 namespace WebCore {
 
-static void defaultNotifyHistoryItemChanged()
+static void defaultNotifyHistoryItemChanged(HistoryItem*)
 {
 }
 
-void (*notifyHistoryItemChanged)() = defaultNotifyHistoryItemChanged;
+void (*notifyHistoryItemChanged)(HistoryItem*) = defaultNotifyHistoryItemChanged;
 
 HistoryItem::HistoryItem()
     : m_lastVisitedTime(0)
@@ -48,6 +48,7 @@ HistoryItem::HistoryItem()
     , m_lastVisitWasFailure(false)
     , m_isTargetItem(false)
     , m_visitCount(0)
+    , m_document(0)
 {
 }
 
@@ -60,6 +61,7 @@ HistoryItem::HistoryItem(const String& urlString, const String& title, double ti
     , m_lastVisitWasFailure(false)
     , m_isTargetItem(false)
     , m_visitCount(0)
+    , m_document(0)
 {    
     iconDatabase()->retainIconForPageURL(m_urlString);
 }
@@ -74,6 +76,7 @@ HistoryItem::HistoryItem(const String& urlString, const String& title, const Str
     , m_lastVisitWasFailure(false)
     , m_isTargetItem(false)
     , m_visitCount(0)
+    , m_document(0)
 {
     iconDatabase()->retainIconForPageURL(m_urlString);
 }
@@ -89,6 +92,7 @@ HistoryItem::HistoryItem(const KURL& url, const String& target, const String& pa
     , m_lastVisitWasFailure(false)
     , m_isTargetItem(false)
     , m_visitCount(0)
+    , m_document(0)
 {    
     iconDatabase()->retainIconForPageURL(m_urlString);
 }
@@ -96,7 +100,12 @@ HistoryItem::HistoryItem(const KURL& url, const String& target, const String& pa
 HistoryItem::~HistoryItem()
 {
     ASSERT(!m_cachedPage);
+    ASSERT(!m_document);
     iconDatabase()->releaseIconForPageURL(m_urlString);
+#if PLATFORM(ANDROID)
+    if (m_bridge)
+        m_bridge->detachHistoryItem();
+#endif
 }
 
 inline HistoryItem::HistoryItem(const HistoryItem& item)
@@ -116,10 +125,9 @@ inline HistoryItem::HistoryItem(const HistoryItem& item)
     , m_visitCount(item.m_visitCount)
     , m_dailyVisitCounts(item.m_dailyVisitCounts)
     , m_weeklyVisitCounts(item.m_weeklyVisitCounts)
+    , m_document(0)
     , m_formContentType(item.m_formContentType)
 {
-    ASSERT(!item.m_cachedPage);
-
     if (item.m_formData)
         m_formData = item.m_formData->copy();
         
@@ -198,7 +206,7 @@ const String& HistoryItem::parent() const
 void HistoryItem::setAlternateTitle(const String& alternateTitle)
 {
     m_displayTitle = alternateTitle;
-    notifyHistoryItemChanged();
+    notifyHistoryItemChanged(this);
 }
 
 void HistoryItem::setURLString(const String& urlString)
@@ -209,7 +217,7 @@ void HistoryItem::setURLString(const String& urlString)
         iconDatabase()->retainIconForPageURL(m_urlString);
     }
     
-    notifyHistoryItemChanged();
+    notifyHistoryItemChanged(this);
 }
 
 void HistoryItem::setURL(const KURL& url)
@@ -222,25 +230,25 @@ void HistoryItem::setURL(const KURL& url)
 void HistoryItem::setOriginalURLString(const String& urlString)
 {
     m_originalURLString = urlString;
-    notifyHistoryItemChanged();
+    notifyHistoryItemChanged(this);
 }
 
 void HistoryItem::setReferrer(const String& referrer)
 {
     m_referrer = referrer;
-    notifyHistoryItemChanged();
+    notifyHistoryItemChanged(this);
 }
 
 void HistoryItem::setTitle(const String& title)
 {
     m_title = title;
-    notifyHistoryItemChanged();
+    notifyHistoryItemChanged(this);
 }
 
 void HistoryItem::setTarget(const String& target)
 {
     m_target = target;
-    notifyHistoryItemChanged();
+    notifyHistoryItemChanged(this);
 }
 
 void HistoryItem::setParent(const String& parent)
@@ -356,6 +364,9 @@ void HistoryItem::clearScrollPoint()
 void HistoryItem::setDocumentState(const Vector<String>& state)
 {
     m_documentState = state;
+#if PLATFORM(ANDROID)
+    notifyHistoryItemChanged(this);
+#endif
 }
 
 const Vector<String>& HistoryItem::documentState() const
@@ -366,6 +377,9 @@ const Vector<String>& HistoryItem::documentState() const
 void HistoryItem::clearDocumentState()
 {
     m_documentState.clear();
+#if PLATFORM(ANDROID)
+    notifyHistoryItemChanged(this);
+#endif
 }
 
 bool HistoryItem::isTargetItem() const
@@ -376,12 +390,44 @@ bool HistoryItem::isTargetItem() const
 void HistoryItem::setIsTargetItem(bool flag)
 {
     m_isTargetItem = flag;
+#if PLATFORM(ANDROID)
+    notifyHistoryItemChanged(this);
+#endif
+}
+
+void HistoryItem::setStateObject(PassRefPtr<SerializedScriptValue> object)
+{
+    ASSERT(m_document);
+    m_stateObject = object;
+}
+
+void HistoryItem::setDocument(Document* document)
+{
+    if (m_document == document)
+        return;
+    
+    if (m_document)
+        m_document->unregisterHistoryItem(this);
+    if (document)
+        document->registerHistoryItem(this);
+        
+    m_document = document;
+}
+
+void HistoryItem::documentDetached(Document* document)
+{
+    ASSERT_UNUSED(document, m_document == document);
+    m_document = 0;
+    m_stateObject = 0;
 }
 
 void HistoryItem::addChildItem(PassRefPtr<HistoryItem> child)
 {
     ASSERT(!childItemWithTarget(child->target()));
     m_children.append(child);
+#if PLATFORM(ANDROID)
+    notifyHistoryItemChanged(this);
+#endif
 }
 
 void HistoryItem::setChildItem(PassRefPtr<HistoryItem> child)
@@ -460,6 +506,9 @@ void HistoryItem::setFormInfoFromRequest(const ResourceRequest& request)
         m_formData = 0;
         m_formContentType = String();
     }
+#if PLATFORM(ANDROID)
+    notifyHistoryItemChanged(this);
+#endif
 }
 
 void HistoryItem::setFormData(PassRefPtr<FormData> formData)

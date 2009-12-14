@@ -34,26 +34,38 @@
     ],
     'variables': {
         'conditions': [
-            # Location of the chromium src directory.
+            # Location of the chromium src directory and target type is different
+            # if webkit is built inside chromium or as standalone project.
             ['inside_chromium_build==0', {
                 # Webkit is being built outside of the full chromium project.
                 # e.g. via build-webkit --chromium
                 'chromium_src_dir': '.',
+                # FIXME: To enable shared_library in linux all code (including
+                # dependencies) must be complied with -fPIC flag. That is
+                # pending on changes in gyp.
+                'webkit_target_type': 'shared_library',
             },{
                 # WebKit is checked out in src/chromium/third_party/WebKit
                 'chromium_src_dir': '../../../..',
+                'webkit_target_type': 'static_library',
             }],
             # We can't turn on warnings on Windows and Linux until we upstream the
             # WebKit API.
             ['OS=="mac"', {
                 'chromium_code': 1,
             }],
+            # FIXME: To enable shared_library in linux all code (including
+            # dependencies) must be complied with -fPIC flag. That is
+            # pending on changes in gyp.
+            ['OS=="linux" or OS=="freebsd"', {
+              'webkit_target_type': 'static_library',
+            }],
         ],
     },
     'targets': [
         {
             'target_name': 'webkit',
-            'type': '<(library)',
+            'type': '<(webkit_target_type)',
             'msvs_guid': '5ECEC9E5-8F23-47B6-93E0-C3B328B3BE65',
             'dependencies': [
                 '../../WebCore/WebCore.gyp/WebCore.gyp:webcore',
@@ -99,6 +111,7 @@
                 'public/WebDevToolsAgentClient.h',
                 'public/WebDevToolsFrontend.h',
                 'public/WebDevToolsFrontendClient.h',
+                'public/WebDevToolsMessageData.h',
                 'public/WebDragData.h',
                 'public/WebEditingAction.h',
                 'public/WebElement.h',
@@ -119,6 +132,7 @@
                 'public/WebMediaPlayer.h',
                 'public/WebMediaPlayerAction.h',
                 'public/WebMediaPlayerClient.h',
+                'public/WebMenuItemInfo.h',
                 'public/WebMessagePortChannel.h',
                 'public/WebMessagePortChannelClient.h',
                 'public/WebMimeRegistry.h',
@@ -138,6 +152,7 @@
                 'public/WebPopupMenuInfo.h',
                 'public/WebRange.h',
                 'public/WebRect.h',
+                'public/WebRegularExpression.h',
                 'public/WebRuntimeFeatures.h',
                 'public/WebScreenInfo.h',
                 'public/WebScriptController.h',
@@ -157,6 +172,7 @@
                 'public/WebStorageNamespace.h',
                 'public/WebString.h',
                 'public/WebTextAffinity.h',
+                'public/WebTextCaseSensitivity.h',
                 'public/WebTextDirection.h',
                 'public/WebURL.h',
                 'public/WebURLError.h',
@@ -188,6 +204,7 @@
                 'src/ChromiumThreading.cpp',
                 'src/ContextMenuClientImpl.cpp',
                 'src/ContextMenuClientImpl.h',
+                'src/DatabaseObserver.cpp',
                 'src/DOMUtilitiesPrivate.cpp',
                 'src/DOMUtilitiesPrivate.h',
                 'src/DragClientImpl.cpp',
@@ -269,6 +286,7 @@
                 'src/WebPopupMenuImpl.cpp',
                 'src/WebPopupMenuImpl.h',
                 'src/WebRange.cpp',
+                'src/WebRegularExpression.cpp',
                 'src/WebRuntimeFeatures.cpp',
                 'src/WebScriptController.cpp',
                 'src/WebSearchableFormData.cpp',

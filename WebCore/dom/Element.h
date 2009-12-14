@@ -88,6 +88,11 @@ public:
     DEFINE_ATTRIBUTE_EVENT_LISTENER(reset);
     DEFINE_ATTRIBUTE_EVENT_LISTENER(search);
     DEFINE_ATTRIBUTE_EVENT_LISTENER(selectstart);
+#if ENABLE(TOUCH_EVENTS)
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchstart);
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchmove);
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchend);
+#endif
 
     const AtomicString& getIDAttribute() const;
     bool hasAttribute(const QualifiedName&) const;
@@ -167,6 +172,9 @@ public:
     // convenience methods which ignore exceptions
     void setAttribute(const QualifiedName&, const AtomicString& value);
     void setBooleanAttribute(const QualifiedName& name, bool);
+    // Please don't use setCStringAttribute in performance-sensitive code;
+    // use a static AtomicString value instead to avoid the conversion overhead.
+    void setCStringAttribute(const QualifiedName&, const char* cStringValue);
 
     virtual NamedNodeMap* attributes() const;
     NamedNodeMap* attributes(bool readonly) const;

@@ -263,7 +263,7 @@ void DOMWindow::dispatchAllPendingUnloadEvents()
         if (!set.contains(window))
             continue;
 
-        window->dispatchEvent(PageTransitionEvent::create(EventNames().pagehideEvent, false), window->document());
+        window->dispatchEvent(PageTransitionEvent::create(eventNames().pagehideEvent, false), window->document());
         window->dispatchEvent(Event::create(eventNames().unloadEvent, false, false), window->document());
     }
 
@@ -460,6 +460,8 @@ void DOMWindow::clear()
 #endif
 
 #if ENABLE(NOTIFICATIONS)
+    if (m_notifications)
+        m_notifications->disconnectFrame();
     m_notifications = 0;
 #endif
 }
@@ -569,6 +571,9 @@ Storage* DOMWindow::sessionStorage() const
     Document* document = this->document();
     if (!document)
         return 0;
+    
+    if (!document->securityOrigin()->canAccessStorage())
+        return 0;
 
     Page* page = document->page();
     if (!page)
@@ -590,6 +595,9 @@ Storage* DOMWindow::localStorage() const
     
     Document* document = this->document();
     if (!document)
+        return 0;
+    
+    if (!document->securityOrigin()->canAccessStorage())
         return 0;
         
     Page* page = document->page();
@@ -1107,13 +1115,15 @@ PassRefPtr<Database> DOMWindow::openDatabase(const String& name, const String& v
     if (!m_frame)
         return 0;
 
-    Document* doc = m_frame->document();
+    Document* document = m_frame->document();
+    if (!document->securityOrigin()->canAccessDatabase())
+        return 0;
 
     Settings* settings = m_frame->settings();
     if (!settings || !settings->databasesEnabled())
         return 0;
 
-    return Database::openDatabase(doc, name, version, displayName, estimatedSize, ec);
+    return Database::openDatabase(document, name, version, displayName, estimatedSize, ec);
 }
 #endif
 
@@ -1299,12 +1309,14 @@ void DOMWindow::dispatchLoadEvent()
 #endif
 }
 
+#if ENABLE(INSPECTOR)
 InspectorTimelineAgent* DOMWindow::inspectorTimelineAgent() 
 {
     if (frame() && frame()->page())
         return frame()->page()->inspectorTimelineAgent();
     return 0;
 }
+#endif
 
 bool DOMWindow::dispatchEvent(PassRefPtr<Event> prpEvent, PassRefPtr<EventTarget> prpTarget)
 {

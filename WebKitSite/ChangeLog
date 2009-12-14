@@ -1,3 +1,129 @@
+2009-12-09  Marwan Al Jubeh  <marwan.aljubeh@gmail.com>
+
+        Reviewed by Adam Roben.
+
+        Fixes: https://bugs.webkit.org/show_bug.cgi?id=31228
+        Set the WebKitOutputDir, WebKitLibrariesDir and Cygwin environment variables automatically
+        in Windows as part of running update_webkit.
+
+        * building/build.html:
+         - removed the reference to forgetting to set environment variables as a common source of errors
+           on Windows. This is because this patch would make it unnecessary for the user to set these
+           variables manually.
+
+2009-12-09  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Darin Adler.
+
+        Added the "using std::foo" rule to the coding style guidelines.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32301
+        
+        Added to the coding style guidelines the "using std::foo" rule
+        checked by the check-webkit-style script.  Also clarified the
+        "using" statement guidelines that apply to implementation files.
+
+        * coding/coding-style.html:
+
+2009-12-05  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Darin Adler.
+
+        Refactored web site documentation so that advice to add
+        WebKitTools/Scripts to your shell path does not appear 
+        on multiple pages.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32112
+        
+        * building/build.html:
+        * building/checkout.html:
+        * building/run.html:
+        * coding/coding-style.html:
+        * coding/contributing.html:
+        * coding/scripts.html: Added.
+        * quality/testing.html:
+
+2009-12-04  Marc-Antoine Ruel  <maruel@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Add reference to the GTK and QT build wiki pages
+
+        https://bugs.webkit.org/show_bug.cgi?id=32088
+
+        * building/tools.html:
+        * css/main.css:
+
+2009-12-01  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Darin Adler.
+
+        Added clarifications to the web site regarding coding style and
+        code cleanup--
+
+        https://bugs.webkit.org/show_bug.cgi?id=31618
+
+        Changes include the following:
+
+        - Expanded the style guidelines regarding "using" statements.
+        - Made the style guidelines page validate as HTML.
+        - Added that legacy WebKit components should not be cleaned up.
+        - Added that it is more acceptable to update style when already
+          touching code.
+
+        * coding/coding-style.html:
+        * coding/contributing.html:
+        * projects/cleanup/index.html:
+
+2009-11-18  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by David Levin.
+
+        Make 80 patches a formal requirement for reviewership
+        https://bugs.webkit.org/show_bug.cgi?id=31313
+        Per discussion on the webkit-reviewers list:
+        http://lists.webkit.org/mailman/private.cgi/webkit-reviewers/2009-November/000795.html
+
+        * coding/commit-review-policy.html:
+
+2009-11-18  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31610
+
+        Adds property "min-width" to #title so that the width of the title
+        element on each page is at least 790px. In particular, this makes
+        the page <http://webkit.org/security/security-group-members.html>
+        consistent, in appearance, to the rest of the site.
+
+        * css/main.css:
+
+2009-11-16  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Anders Carlsson.
+
+        Update Security Group Members list.
+
+        * security/security-group-members.html:
+
+2009-11-16  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Adele Peterson.
+
+        Update Security Group Members list.
+
+        * security/security-group-members.html:
+
+2009-11-13  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Darin Adler.
+
+        Added to the WebKit Coding Style Guidelines not to use 
+        "using namespace" statements in header files.
+
+        * coding/coding-style.html:
+
 2009-11-10  Oliver Hunt  <oliver@apple.com>
 
         Reviewed by Maciej Stachowiak.

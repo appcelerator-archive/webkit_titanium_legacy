@@ -39,7 +39,9 @@ extern void qt_dump_resource_load_callbacks(bool b);
 extern void qt_drt_setJavaScriptProfilingEnabled(QWebFrame*, bool enabled);
 extern bool qt_drt_pauseAnimation(QWebFrame*, const QString& name, double time, const QString& elementId);
 extern bool qt_drt_pauseTransitionOfProperty(QWebFrame*, const QString& name, double time, const QString& elementId);
+extern bool qt_drt_pauseSVGAnimation(QWebFrame*, const QString& animationId, double time, const QString& elementId);
 extern int qt_drt_numberOfActiveAnimations(QWebFrame*);
+
 extern void qt_drt_whiteListAccessFromOrigin(const QString& sourceOrigin, const QString& destinationProtocol, const QString& destinationHost, bool allowDestinationSubdomains);
 extern QString qt_drt_counterValueForElementById(QWebFrame* qFrame, const QString& id);
 
@@ -64,6 +66,7 @@ void LayoutTestController::reset()
     m_timeoutTimer.stop();
     m_topLoadingFrame = 0;
     m_waitForPolicy = false;
+    m_handleErrorPages = false;
     qt_dump_editing_callbacks(false);
     qt_dump_resource_load_callbacks(false);
 }
@@ -82,7 +85,7 @@ void LayoutTestController::processWork()
 // Called on loadFinished on mainFrame.
 void LayoutTestController::maybeDump(bool success)
 {
-    Q_ASSERT(sender() == m_topLoadingFrame);
+    Q_ASSERT(sender() == m_topLoadingFrame->page());
 
     // as the function is called on loadFinished, the test might
     // already have dumped and thus no longer be active, thus
@@ -108,7 +111,7 @@ void LayoutTestController::waitUntilDone()
 {
     //qDebug() << ">>>>waitForDone";
     m_waitForDone = true;
-    m_timeoutTimer.start(11000, this);
+    m_timeoutTimer.start(15000, this);
 }
 
 QString LayoutTestController::counterValueForElementById(const QString& id)
@@ -124,10 +127,14 @@ void LayoutTestController::keepWebHistory()
 void LayoutTestController::notifyDone()
 {
     qDebug() << ">>>>notifyDone";
+
     if (!m_timeoutTimer.isActive())
         return;
+
     m_timeoutTimer.stop();
     emit done();
+
+    // FIXME: investigate why always resetting these result in timeouts
     m_isLoading = false;
     m_waitForDone = false;
     m_waitForPolicy = false;
@@ -208,7 +215,9 @@ void LayoutTestController::provisionalLoad()
 void LayoutTestController::timerEvent(QTimerEvent *ev)
 {
     if (ev->timerId() == m_timeoutTimer.timerId()) {
-        //qDebug() << ">>>>>>>>>>>>> timeout";
+        const char* message = "FAIL: Timed out waiting for notifyDone to be called\n";
+        fprintf(stderr, "%s", message);
+        fprintf(stdout, "%s", message);
         notifyDone();
     } else
         QObject::timerEvent(ev);
@@ -226,6 +235,22 @@ QString LayoutTestController::decodeHostName(const QString& host)
     QString decoded = QUrl::fromAce(host.toLatin1() + QByteArray(".no"));
     decoded.truncate(decoded.length() - 3);
     return decoded;
+}
+
+void LayoutTestController::showWebInspector()
+{
+    m_drt->webPage()->settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
+    m_drt->webPage()->webInspector()->show();
+}
+
+void LayoutTestController::hideWebInspector()
+{
+    m_drt->webPage()->webInspector()->hide();
+}
+
+void LayoutTestController::setAllowUniversalAccessFromFileURLs(bool enabled)
+{
+    m_drt->webPage()->settings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, enabled);
 }
 
 void LayoutTestController::setJavaScriptProfilingEnabled(bool enable)
@@ -271,6 +296,15 @@ bool LayoutTestController::pauseTransitionAtTimeOnElementWithId(const QString& p
     QWebFrame* frame = m_drt->webPage()->mainFrame();
     Q_ASSERT(frame);
     return qt_drt_pauseTransitionOfProperty(frame, propertyName, time, elementId);
+}
+
+bool LayoutTestController::sampleSVGAnimationForElementAtTime(const QString& animationId,
+                                                              double time,
+                                                              const QString& elementId)
+{
+    QWebFrame* frame = m_drt->webPage()->mainFrame();
+    Q_ASSERT(frame);
+    return qt_drt_pauseSVGAnimation(frame, animationId, time, elementId);
 }
 
 unsigned LayoutTestController::numberOfActiveAnimations() const

@@ -1,7 +1,7 @@
 description("Tests calling WebGL APIs with objects from other contexts");
 
-var contextA = create3DContext();
-var contextB = create3DContext();
+var contextA = create3DDebugContext();
+var contextB = create3DDebugContext();
 var programA = loadStandardProgram(contextA);
 var programB = loadStandardProgram(contextB);
 var shaderA = loadStandardVertexShader(contextA);
@@ -31,17 +31,12 @@ shouldThrow("contextA.bindRenderbuffer(contextA.RENDERBUFFER, renderBufferB)");
 shouldThrow("contextA.bindTexture(contextA.TEXTURE_2D, textureB)");
 shouldThrow("contextA.framebufferRenderbuffer(contextA.FRAMEBUFFER, contextA.DEPTH_ATTACHMENT, contextA.RENDERBUFFER, renderBufferB)");
 shouldThrow("contextA.framebufferTexture2D(contextA.FRAMEBUFFER, contextA.COLOR_ATTACHMENT0, contextA.TEXTURE_2D, textureB, 0)");
-shouldThrow("contextA.getProgrami(programB, 0)");
-shouldThrow("contextA.getProgramiv(programB, 0)");
+shouldThrow("contextA.getProgramParameter(programB, 0)");
 shouldThrow("contextA.getProgramInfoLog(programB, 0)");
-shouldThrow("contextA.getShaderi(shaderB, 0)");
-shouldThrow("contextA.getShaderiv(shaderB, 0)");
+shouldThrow("contextA.getShaderParameter(shaderB, 0)");
 shouldThrow("contextA.getShaderInfoLog(shaderB, 0)");
 shouldThrow("contextA.getShaderSource(shaderB)");
-shouldThrow("contextA.getUniformf(programB, locationA)");
-shouldThrow("contextA.getUniformfv(programB, locationA)");
-shouldThrow("contextA.getUniformi(programB, locationA)");
-shouldThrow("contextA.getUniformiv(programB, locationA)");
+shouldThrow("contextA.getUniform(programB, locationA)");
 shouldThrow("contextA.getUniformLocation(programB, 'u_modelViewProjMatrix')");
 
 successfullyParsed = true;

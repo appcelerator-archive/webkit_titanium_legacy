@@ -47,6 +47,7 @@ namespace WebCore {
     class AuthenticationChallenge;
     class CachedFrame;
     class Color;
+    class DOMWrapperWorld;
     class DocumentLoader;
     class Element;
     class FormState;
@@ -116,6 +117,9 @@ namespace WebCore {
         virtual void dispatchDidCancelClientRedirect() = 0;
         virtual void dispatchWillPerformClientRedirect(const KURL&, double interval, double fireDate) = 0;
         virtual void dispatchDidChangeLocationWithinPage() = 0;
+        virtual void dispatchDidPushStateWithinPage() = 0;
+        virtual void dispatchDidReplaceStateWithinPage() = 0;
+        virtual void dispatchDidPopStateWithinPage() = 0;
         virtual void dispatchWillClose() = 0;
         virtual void dispatchDidReceiveIcon() = 0;
         virtual void dispatchDidStartProvisionalLoad() = 0;
@@ -165,6 +169,9 @@ namespace WebCore {
         virtual void updateGlobalHistoryRedirectLinks() = 0;
 
         virtual bool shouldGoToHistoryItem(HistoryItem*) const = 0;
+        virtual void dispatchDidAddBackForwardItem(HistoryItem*) const = 0;
+        virtual void dispatchDidRemoveBackForwardItem(HistoryItem*) const = 0;
+        virtual void dispatchDidChangeBackForwardIndex() const = 0;
 
         // This frame has displayed inactive content (such as an image) from an
         // insecure source.  Inactive content cannot spread to other frames.
@@ -222,7 +229,7 @@ namespace WebCore {
         virtual ObjectContentType objectContentType(const KURL& url, const String& mimeType) = 0;
         virtual String overrideMediaType() const = 0;
 
-        virtual void windowObjectCleared() = 0;
+        virtual void dispatchDidClearWindowObjectInWorld(DOMWrapperWorld*) = 0;
         virtual void documentElementAvailable() = 0;
         virtual void didPerformFirstNavigation() const = 0; // "Navigation" here means a transition from one page to another that ends up in the back/forward list.
 

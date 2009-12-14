@@ -39,6 +39,7 @@
 #include "RenderFileUploadControl.h"
 #include "RenderInline.h"
 #include "RenderListMarker.h"
+#include "RenderPart.h"
 #include "RenderTableCell.h"
 #include "RenderView.h"
 #include "RenderWidget.h"
@@ -54,6 +55,10 @@
 #include "RenderSVGRoot.h"
 #include "RenderSVGText.h"
 #include "SVGRenderTreeAsText.h"
+#endif
+
+#if PLATFORM(QT)
+#include <QWidget>
 #endif
 
 namespace WebCore {
@@ -340,6 +345,24 @@ static TextStream &operator<<(TextStream& ts, const RenderObject& o)
         }
     }
 
+#if PLATFORM(QT)
+    // Print attributes of embedded QWidgets. E.g. when the WebCore::Widget
+    // is invisible the QWidget should be invisible too.
+    if (o.isRenderPart()) {
+        const RenderPart* part = toRenderPart(const_cast<RenderObject*>(&o));
+        if (part->widget() && part->widget()->platformWidget()) {
+            QWidget* wid = part->widget()->platformWidget();
+
+            ts << " [QT: ";
+            ts << "geometry: {" << wid->geometry() << "} ";
+            ts << "isHidden: " << wid->isHidden() << " ";
+            ts << "isSelfVisible: " << part->widget()->isSelfVisible() << " ";
+            ts << "isParentVisible: " << part->widget()->isParentVisible() << " ";
+            ts << "mask: {" << wid->mask().boundingRect() << "} ] ";
+        }
+    }
+#endif
+
     return ts;
 }
 
@@ -541,6 +564,8 @@ static void writeSelection(TextStream& ts, const RenderObject* o)
 
 String externalRepresentation(Frame* frame)
 {
+    frame->document()->updateLayout();
+
     RenderObject* o = frame->contentRenderer();
     if (!o)
         return String();
@@ -549,8 +574,6 @@ String externalRepresentation(Frame* frame)
 #if ENABLE(SVG)
     writeRenderResources(ts, o->document());
 #endif
-    if (o->view()->frameView())
-        o->view()->frameView()->layout();
     if (o->hasLayer()) {
         RenderLayer* l = toRenderBox(o)->layer();
         writeLayers(ts, l, l, IntRect(l->x(), l->y(), l->width(), l->height()));

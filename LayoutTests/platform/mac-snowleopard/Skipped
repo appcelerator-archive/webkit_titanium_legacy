@@ -5,6 +5,10 @@ plugins/netscape-throw-exception.html
 plugins/netscape-destroy-plugin-script-objects.html
 plugins/open-and-close-window-with-plugin.html
 
+# These tests fail on the SnowLeopard bot from time to time (https://bugs.webkit.org/show_bug.cgi?id=32229)
+plugins/document-open.html
+plugins/mouse-events.html
+
 # This needs a newer version of Safari.
 plugins/private-browsing-mode.html
 
@@ -49,3 +53,19 @@ svg/css/glyph-orientation-rounding-test.xhtml
 # thrown
 plugins/netscape-invoke-failure.html
 
+# This test requires ogg codecs
+media/media-can-play-ogg.html
+
+# Media tests that keep failing on SnowLeopard for a while
+# https://bugs.webkit.org/show_bug.cgi?id=32270
+http/tests/media/video-play-stall-seek.html
+http/tests/media/video-play-stall.html
+http/tests/media/video-seekable-stall.html
+media/media-fullscreen-not-in-document.html
+media/unsupported-rtsp.html
+media/video-no-audio.html
+media/video-size-intrinsic-scale.html
+
+# Single tests that keeps failing on the SnowLeopard bot
+# https://bugs.webkit.org/show_bug.cgi?id=32271
+fast/forms/slider-delete-while-dragging-thumb.html

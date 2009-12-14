@@ -11,9 +11,40 @@ function getShaderSource(file) {
 function create3DContext() {
     var canvas = document.createElement("canvas");
     try {
-        return canvas.getContext("webkit-3d");
+        return canvas.getContext("experimental-webgl");
     } catch(e) {}
     return canvas.getContext("moz-webgl");
+}
+
+function createGLErrorWrapper(context, fname) {
+    return function() {
+        var rv = context[fname].apply(context, arguments);
+        var err = context.getError();
+        if (err != 0)
+            throw "GL error " + err + " in " + fname;
+        return rv;
+    };
+}
+
+function create3DDebugContext() {
+    var context = create3DContext();
+    // Thanks to Ilmari Heikkinen for the idea on how to implement this so elegantly.
+    var wrap = {};
+    for (var i in context) {
+        try {
+            if (typeof context[i] == 'function') {
+                wrap[i] = createGLErrorWrapper(context, i);
+            } else {
+                wrap[i] = context[i];
+            }
+        } catch (e) {
+            // console.log("create3DDebugContext: Error accessing " + i);
+        }
+    }
+    wrap.getError = function() {
+        return context.getError();
+    };
+    return wrap;
 }
 
 function loadStandardProgram(context) {
@@ -24,16 +55,32 @@ function loadStandardProgram(context) {
     return program;
 }
 
+function loadProgram(context, vertexShaderPath, fragmentShaderPath) {
+    var program = context.createProgram();
+    context.attachShader(program, loadVertexShader(context, vertexShaderPath));
+    context.attachShader(program, loadFragmentShader(context, fragmentShaderPath));
+    context.linkProgram(program);
+    return program;
+}
+
 function loadStandardVertexShader(context) {
+    return loadVertexShader(context, "resources/vertexShader.vert");
+}
+
+function loadVertexShader(context, path) {
     var vertexShader = context.createShader(context.VERTEX_SHADER);
-    context.shaderSource(vertexShader, getShaderSource("resources/vertexShader.vert"));
+    context.shaderSource(vertexShader, getShaderSource(path));
     context.compileShader(vertexShader);
     return vertexShader;
 }
 
 function loadStandardFragmentShader(context) {
+    return loadFragmentShader(context, "resources/fragmentShader.frag");
+}
+
+function loadFragmentShader(context, path) {
     var fragmentShader = context.createShader(context.FRAGMENT_SHADER);
-    context.shaderSource(fragmentShader, getShaderSource("resources/fragmentShader.frag"));
+    context.shaderSource(fragmentShader, getShaderSource(path));
     context.compileShader(fragmentShader);
     return fragmentShader;
 }

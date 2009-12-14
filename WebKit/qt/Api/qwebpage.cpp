@@ -102,12 +102,8 @@
 #include <QStyle>
 #include <QSysInfo>
 #include <QTextCharFormat>
-#if QT_VERSION >= 0x040400
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
-#else
-#include "qwebnetworkinterface.h"
-#endif
 #if defined(Q_WS_X11)
 #include <QX11Info>
 #endif
@@ -388,11 +384,7 @@ QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
     undoStack = 0;
 #endif
     mainFrame = 0;
-#if QT_VERSION < 0x040400
-    networkInterface = 0;
-#else
     networkManager = 0;
-#endif
     pluginFactory = 0;
     insideOpenCall = false;
     forwardUnsupportedContent = false;
@@ -421,15 +413,6 @@ QWebPagePrivate::~QWebPagePrivate()
     delete page;
 }
 
-#if QT_VERSION < 0x040400
-bool QWebPagePrivate::acceptNavigationRequest(QWebFrame *frame, const QWebNetworkRequest &request, QWebPage::NavigationType type)
-{
-    if (insideOpenCall
-        && frame == mainFrame)
-        return true;
-    return q->acceptNavigationRequest(frame, request, type);
-}
-#else
 bool QWebPagePrivate::acceptNavigationRequest(QWebFrame *frame, const QNetworkRequest &request, QWebPage::NavigationType type)
 {
     if (insideOpenCall
@@ -437,7 +420,6 @@ bool QWebPagePrivate::acceptNavigationRequest(QWebFrame *frame, const QNetworkRe
         return true;
     return q->acceptNavigationRequest(frame, request, type);
 }
-#endif
 
 void QWebPagePrivate::createMainFrame()
 {
@@ -864,7 +846,12 @@ void QWebPagePrivate::mouseReleaseEvent(QGraphicsSceneMouseEvent* ev)
 void QWebPagePrivate::handleSoftwareInputPanel(Qt::MouseButton button)
 {
 #if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    Frame* frame = page->focusController()->focusedFrame();
+    if (!frame)
+        return;
+
     if (client && client->inputMethodEnabled()
+        && frame->document()->focusedNode()
         && button == Qt::LeftButton && qApp->autoSipEnabled()) {
         QStyle::RequestSoftwareInputPanel behavior = QStyle::RequestSoftwareInputPanel(
             client->ownerWidget()->style()->styleHint(QStyle::SH_RequestSoftwareInputPanel));
@@ -1703,8 +1690,14 @@ QWebPage::~QWebPage()
     FrameLoader *loader = d->mainFrame->d->frame->loader();
     if (loader)
         loader->detachFromParent();
-    if (d->inspector)
-        d->inspector->setPage(0);
+    if (d->inspector) {
+        // Since we have to delete an internal inspector,
+        // call setInspector(0) directly to prevent potential crashes
+        if (d->inspectorIsInternalOnly)
+            d->setInspector(0);
+        else
+            d->inspector->setPage(0);
+    }
     delete d;
 }
 
@@ -2122,11 +2115,7 @@ void QWebPage::setPreferredContentsSize(const QSize &size) const
 
     \sa createWindow()
 */
-#if QT_VERSION >= 0x040400
 bool QWebPage::acceptNavigationRequest(QWebFrame *frame, const QNetworkRequest &request, QWebPage::NavigationType type)
-#else
-bool QWebPage::acceptNavigationRequest(QWebFrame *frame, const QWebNetworkRequest &request, QWebPage::NavigationType type)
-#endif
 {
     Q_UNUSED(frame)
     if (type == NavigationTypeLinkClicked) {
@@ -2214,27 +2203,19 @@ QAction *QWebPage::action(WebAction action) const
 
         case Back:
             text = contextMenuItemTagGoBack();
-#if QT_VERSION >= 0x040400
             icon = style->standardIcon(QStyle::SP_ArrowBack);
-#endif
             break;
         case Forward:
             text = contextMenuItemTagGoForward();
-#if QT_VERSION >= 0x040400
             icon = style->standardIcon(QStyle::SP_ArrowForward);
-#endif
             break;
         case Stop:
             text = contextMenuItemTagStop();
-#if QT_VERSION >= 0x040400
             icon = style->standardIcon(QStyle::SP_BrowserStop);
-#endif
             break;
         case Reload:
             text = contextMenuItemTagReload();
-#if QT_VERSION >= 0x040400
             icon = style->standardIcon(QStyle::SP_BrowserReload);
-#endif
             break;
 
         case Cut:
@@ -2964,35 +2945,6 @@ QString QWebPage::chooseFile(QWebFrame *parentFrame, const QString& suggestedFil
 #endif
 }
 
-#if QT_VERSION < 0x040400 && !defined qdoc
-
-void QWebPage::setNetworkInterface(QWebNetworkInterface *interface)
-{
-    d->networkInterface = interface;
-}
-
-QWebNetworkInterface *QWebPage::networkInterface() const
-{
-    if (d->networkInterface)
-        return d->networkInterface;
-    else
-        return QWebNetworkInterface::defaultInterface();
-}
-
-#ifndef QT_NO_NETWORKPROXY
-void QWebPage::setNetworkProxy(const QNetworkProxy& proxy)
-{
-    d->networkProxy = proxy;
-}
-
-QNetworkProxy QWebPage::networkProxy() const
-{
-    return d->networkProxy;
-}
-#endif
-
-#else
-
 /*!
     Sets the QNetworkAccessManager \a manager responsible for serving network requests for this
     QWebPage.
@@ -3025,8 +2977,6 @@ QNetworkAccessManager *QWebPage::networkAccessManager() const
     }
     return d->networkManager;
 }
-
-#endif
 
 /*!
     Sets the QWebPluginFactory \a factory responsible for creating plugins embedded into this
@@ -3075,7 +3025,7 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
     Q_UNUSED(url)
     QString ua = QLatin1String("Mozilla/5.0 ("
 
-    // Plastform
+    // Platform
 #ifdef Q_WS_MAC
     "Macintosh"
 #elif defined Q_WS_QWS
@@ -3084,19 +3034,22 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
     "Windows"
 #elif defined Q_WS_X11
     "X11"
+#elif defined Q_OS_SYMBIAN
+    "SymbianOS"
 #else
     "Unknown"
 #endif
-    "; "
+    // Placeholder for Platform Version
+    "%1; "
 
     // Placeholder for security strength (N or U)
-    "%1; "
+    "%2; "
 
     // Subplatform"
 #ifdef Q_OS_AIX
     "AIX"
 #elif defined Q_OS_WIN32
-    "%2"
+    "%3"
 #elif defined Q_OS_DARWIN
 #ifdef __i386__ || __x86_64__
     "Intel Mac OS X"
@@ -3148,6 +3101,8 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
     "Sun Solaris"
 #elif defined Q_OS_ULTRIX
     "DEC Ultrix"
+#elif defined Q_WS_S60
+    "Series60"
 #elif defined Q_OS_UNIX
     "UNIX BSD/SYSV system"
 #elif defined Q_OS_UNIXWARE
@@ -3155,7 +3110,28 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
 #else
     "Unknown"
 #endif
-    "; ");
+    // Placeholder for SubPlatform Version
+    "%4; ");
+
+    // Platform Version
+    QString osVer;
+#ifdef Q_OS_SYMBIAN
+    QSysInfo::SymbianVersion symbianVersion = QSysInfo::symbianVersion();
+    switch (symbianVersion) {
+    case QSysInfo::SV_9_2:
+        osVer = "/9.2";
+        break;
+    case QSysInfo::SV_9_3:
+        osVer = "/9.3";
+        break;
+    case QSysInfo::SV_9_4:
+        osVer = "/9.4";
+        break;
+    default: 
+        osVer = "Unknown";
+    }
+#endif
+    ua = ua.arg(osVer);
 
     QChar securityStrength(QLatin1Char('N'));
 #if !defined(QT_NO_OPENSSL)
@@ -3219,6 +3195,26 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
     ua = QString(ua).arg(ver);
 #endif
 
+    // SubPlatform Version
+    QString subPlatformVer;
+#ifdef Q_OS_SYMBIAN
+    QSysInfo::S60Version s60Version = QSysInfo::s60Version();
+    switch (s60Version) {
+    case QSysInfo::SV_S60_3_1:
+        subPlatformVer = "/3.1";
+        break;
+    case QSysInfo::SV_S60_3_2:
+        subPlatformVer = "/3.2";
+        break;
+    case QSysInfo::SV_S60_5_0:
+        subPlatformVer = "/5.0";
+        break;
+    default: 
+        subPlatformVer = " Unknown";
+    }
+#endif
+    ua = ua.arg(subPlatformVer);
+
     // Language
     QLocale locale;
     if (view())
@@ -3236,11 +3232,9 @@ QString QWebPage::userAgentForUrl(const QUrl& url) const
     QString appName = QCoreApplication::applicationName();
     if (!appName.isEmpty()) {
         ua.append(appName);
-#if QT_VERSION >= 0x040400
         QString appVer = QCoreApplication::applicationVersion();
         if (!appVer.isEmpty())
             ua.append(QLatin1Char('/') + appVer);
-#endif
     } else {
         // Qt version
         ua.append(QLatin1String("Qt/"));

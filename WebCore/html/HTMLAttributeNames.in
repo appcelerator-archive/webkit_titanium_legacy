@@ -17,13 +17,18 @@ aria-checked
 aria-controls
 aria-describedby
 aria-disabled
+aria-dropeffect
 aria-expanded
+aria-flowto
+aria-grabbed
 aria-hidden
 aria-label
 aria-labeledby
 aria-labelledby
 aria-level
 aria-multiselectable
+aria-orientation
+aria-owns
 aria-pressed
 aria-readonly
 aria-required
@@ -178,6 +183,7 @@ onpaste
 onpause
 onplay
 onplaying
+onpopstate
 onprogress
 onratechange
 onreset
@@ -193,6 +199,9 @@ onstorage
 onsuspend
 onsubmit
 ontimeupdate
+ontouchstart
+ontouchmove
+ontouchend
 onunload
 onvolumechange
 onwaiting
@@ -220,6 +229,7 @@ role
 rows
 rowspan
 rules
+sandbox
 scheme
 scope
 scrollamount
@@ -235,6 +245,7 @@ spellcheck
 src
 standby
 start
+step
 style
 summary
 tabindex

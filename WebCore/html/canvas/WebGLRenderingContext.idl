@@ -460,7 +460,7 @@ module html {
 
         long sizeInBytes(in unsigned long type) raises(DOMException);
 
-        void         activeTexture(in unsigned long texture);
+        void         activeTexture(in unsigned long texture) raises(DOMException);
         void         attachShader(in WebGLProgram program, in WebGLShader shader) raises(DOMException);
         void         bindAttribLocation(in WebGLProgram program, in unsigned long index, in DOMString name) raises(DOMException);
         void         bindBuffer(in unsigned long target, in WebGLBuffer buffer) raises(DOMException);
@@ -472,13 +472,14 @@ module html {
         void         blendEquationSeparate(in unsigned long modeRGB, in unsigned long modeAlpha);
         void         blendFunc(in unsigned long sfactor, in unsigned long dfactor);
         void         blendFuncSeparate(in unsigned long srcRGB, in unsigned long dstRGB, in unsigned long srcAlpha, in unsigned long dstAlpha);
+
         // Supported forms:
         //   void bufferData (in GLenum target, in GLsizei size, in GLenum usage);
         //   void bufferData (in GLenum target, in WebGLArray data, in GLenum usage);
-        [Custom] void bufferData();
+        [Custom] void bufferData() raises(DOMException);
         // Supported forms:
         //   void bufferSubData (in GLenum target, in GLsizeiptr offset, in WebGLArray data);
-        [Custom] void bufferSubData();
+        [Custom] void bufferSubData() raises(DOMException);
 
         unsigned long checkFramebufferStatus(in unsigned long target);
         void         clear(in unsigned long mask);
@@ -498,7 +499,7 @@ module html {
         WebGLFramebuffer createFramebuffer();
         WebGLProgram createProgram();
         WebGLRenderbuffer createRenderbuffer();
-        WebGLShader createShader(in unsigned long type);
+        WebGLShader createShader(in unsigned long type) raises(DOMException);
         WebGLTexture createTexture();
 
         void         cullFace(in unsigned long mode);
@@ -516,12 +517,12 @@ module html {
         void         depthRange(in double zNear, in double zFar);
         void         detachShader(in WebGLProgram program, in WebGLShader shader) raises(DOMException);
         void         disable(in unsigned long cap);
-        void         disableVertexAttribArray(in unsigned long index);
-        void         drawArrays(in unsigned long mode, in long first, in unsigned long count);
-        void         drawElements (in unsigned long mode, in long count, in unsigned long type, in unsigned long offset);
+        void         disableVertexAttribArray(in unsigned long index) raises(DOMException);
+        void         drawArrays(in unsigned long mode, in long first, in unsigned long count) raises(DOMException);
+        void         drawElements (in unsigned long mode, in long count, in unsigned long type, in unsigned long offset) raises(DOMException);
 
         void         enable(in unsigned long cap);
-        void         enableVertexAttribArray(in unsigned long index);
+        void         enableVertexAttribArray(in unsigned long index) raises(DOMException);
         void         finish();
         void         flush();
         void         framebufferRenderbuffer(in unsigned long target, in unsigned long attachment, in unsigned long renderbuffertarget, in WebGLRenderbuffer renderbuffer) raises(DOMException);
@@ -529,7 +530,6 @@ module html {
         void         frontFace(in unsigned long mode);
         void         generateMipmap(in unsigned long target);
         
-        // FIXME: these need to be added per the WebGL spec
         WebGLActiveInfo getActiveAttrib(in WebGLProgram program, in unsigned long index)
             raises (DOMException);
         WebGLActiveInfo getActiveUniform(in WebGLProgram program, in unsigned long index)
@@ -539,26 +539,22 @@ module html {
 
         int          getAttribLocation(in WebGLProgram program, in DOMString name);
 
-        boolean getBoolean(in unsigned long pname);
-        WebGLUnsignedByteArray getBooleanv(in unsigned long pname);
-        long getBufferParameteri(in unsigned long target, in unsigned long pname);
-        WebGLIntArray getBufferParameteriv(in unsigned long target, in unsigned long pname);
+        // any getBufferParameter(in unsigned long target, in unsigned long pname) raises(DOMException);
+        [Custom] void getBufferParameter();
 
         unsigned long getError();
 
-        float getFloat(in unsigned long pname);
-        WebGLFloatArray getFloatv(in unsigned long pname);
-        long getFramebufferAttachmentParameteri(in unsigned long target, in unsigned long attachment, in unsigned long pname);
-        WebGLIntArray getFramebufferAttachmentParameteriv(in unsigned long target, in unsigned long attachment, in unsigned long pname);
-        long getInteger(in unsigned long pname);
-        WebGLIntArray getIntegerv(in unsigned long pname);
-        long getProgrami(in WebGLProgram program, in unsigned long pname) raises(DOMException);
-        WebGLIntArray getProgramiv(in WebGLProgram program, in unsigned long pname) raises(DOMException);
+        // any getFramebufferAttachmentParameter(in unsigned long target, in unsigned long attachment, in unsigned long pname) raises(DOMException);
+        [Custom] void getFramebufferAttachmentParameter();
+        // any getParameter(in unsigned long pname) raises(DOMException);
+        [Custom] void getParameter();
+        // any getProgramParameter(in WebGLProgram program, in unsigned long pname) raises(DOMException);
+        [Custom] void getProgramParameter();
         DOMString getProgramInfoLog(in WebGLProgram program) raises(DOMException);
-        long getRenderbufferParameteri(in unsigned long target, in unsigned long pname);
-        WebGLIntArray getRenderbufferParameteriv(in unsigned long target, in unsigned long pname);
-        long getShaderi(in WebGLShader shader, in unsigned long pname) raises(DOMException);
-        WebGLIntArray getShaderiv(in WebGLShader shader, in unsigned long pname) raises(DOMException);
+        // any getRenderbufferParameter(in unsigned long target, in unsigned long pname) raises(DOMException);
+        [Custom] void getRenderbufferParameter();
+        // any getShaderParameter(in WebGLShader shader, in unsigned long pname) raises(DOMException);
+        [Custom] void getShaderParameter() raises(DOMException);
 
         DOMString    getShaderInfoLog(in WebGLShader shader) raises(DOMException);
 
@@ -568,22 +564,16 @@ module html {
         DOMString    getShaderSource(in WebGLShader shader) raises(DOMException);
         DOMString    getString(in unsigned long name);
 
-        float getTexParameterf(in unsigned long target, in unsigned long pname);
-        WebGLFloatArray getTexParameterfv(in unsigned long target, in unsigned long pname);
-        long getTexParameteri(in unsigned long target, in unsigned long pname);
-        WebGLIntArray getTexParameteriv(in unsigned long target, in unsigned long pname);
+        // any getTexParameter(in unsigned long target, in unsigned long pname) raises(DOMException);
+        [Custom] void getTexParameter();
 
-        float getUniformf(in WebGLProgram program, in long location) raises(DOMException);
-        WebGLFloatArray getUniformfv(in WebGLProgram program, in long location) raises(DOMException);
-        long getUniformi(in WebGLProgram program, in long location) raises(DOMException);
-        WebGLIntArray getUniformiv(in WebGLProgram program, in long location) raises(DOMException);
-        
-        long getUniformLocation(in WebGLProgram program, in DOMString name) raises(DOMException);
+        // any getUniform(in WebGLProgram program, in WebGLUniformLocation location) raises(DOMException);
+        [Custom] void getUniform();
 
-        float getVertexAttribf(in unsigned long index, in unsigned long pname);
-        WebGLFloatArray getVertexAttribfv(in unsigned long index, in unsigned long pname);
-        long getVertexAttribi(in unsigned long index, in unsigned long pname);
-        WebGLIntArray getVertexAttribiv(in unsigned long index, in unsigned long pname);
+        WebGLUniformLocation getUniformLocation(in WebGLProgram program, in DOMString name) raises(DOMException);
+
+        // any getVertexAttrib(in unsigned long index, in unsigned long pname) raises(DOMException);
+        [Custom] void getVertexAttrib();
 
         long getVertexAttribOffset(in unsigned long index, in unsigned long pname);
 
@@ -648,29 +638,29 @@ module html {
         //                      [Optional] GLboolean flipY, [Optional] in premultiplyAlpha);
         [Custom] void texSubImage2D();
 
-        void uniform1f(in long location, in float x);
-        [Custom] void uniform1fv(in long location, in WebGLFloatArray v);
-        void uniform1i(in long location, in long x);
-        [Custom] void uniform1iv(in long location, in WebGLIntArray v);
-        void uniform2f(in long location, in float x, in float y);
-        [Custom] void uniform2fv(in long location, in WebGLFloatArray v);
-        void uniform2i(in long location, in long x, in long y);
-        [Custom] void uniform2iv(in long location, in WebGLIntArray v);
-        void uniform3f(in long location, in float x, in float y, in float z);
-        [Custom] void uniform3fv(in long location, in WebGLFloatArray v);
-        void uniform3i(in long location, in long x, in long y, in long z);
-        [Custom] void uniform3iv(in long location, in WebGLIntArray v);
-        void uniform4f(in long location, in float x, in float y, in float z, in float w);
-        [Custom] void uniform4fv(in long location, in WebGLFloatArray v);
-        void uniform4i(in long location, in long x, in long y, in long z, in long w);
-        [Custom] void uniform4iv(in long location, in WebGLIntArray v);
+        void uniform1f(in WebGLUniformLocation location, in float x) raises(DOMException);
+        [Custom] void uniform1fv(in WebGLUniformLocation location, in WebGLFloatArray v) raises(DOMException);
+        void uniform1i(in WebGLUniformLocation location, in long x) raises(DOMException);
+        [Custom] void uniform1iv(in WebGLUniformLocation location, in WebGLIntArray v) raises(DOMException);
+        void uniform2f(in WebGLUniformLocation location, in float x, in float y) raises(DOMException);
+        [Custom] void uniform2fv(in WebGLUniformLocation location, in WebGLFloatArray v) raises(DOMException);
+        void uniform2i(in WebGLUniformLocation location, in long x, in long y) raises(DOMException);
+        [Custom] void uniform2iv(in WebGLUniformLocation location, in WebGLIntArray v) raises(DOMException);
+        void uniform3f(in WebGLUniformLocation location, in float x, in float y, in float z) raises(DOMException);
+        [Custom] void uniform3fv(in WebGLUniformLocation location, in WebGLFloatArray v) raises(DOMException);
+        void uniform3i(in WebGLUniformLocation location, in long x, in long y, in long z) raises(DOMException);
+        [Custom] void uniform3iv(in WebGLUniformLocation location, in WebGLIntArray v) raises(DOMException);
+        void uniform4f(in WebGLUniformLocation location, in float x, in float y, in float z, in float w) raises(DOMException);
+        [Custom] void uniform4fv(in WebGLUniformLocation location, in WebGLFloatArray v) raises(DOMException);
+        void uniform4i(in WebGLUniformLocation location, in long x, in long y, in long z, in long w) raises(DOMException);
+        [Custom] void uniform4iv(in WebGLUniformLocation location, in WebGLIntArray v) raises(DOMException);
 
-        [Custom] void uniformMatrix2fv(in long location, in boolean transpose, in WebGLFloatArray array);
-        [Custom] void uniformMatrix3fv(in long location, in boolean transpose, in WebGLFloatArray array);
-        [Custom] void uniformMatrix4fv(in long location, in boolean transpose, in WebGLFloatArray array);
+        [Custom] void uniformMatrix2fv(in WebGLUniformLocation location, in boolean transpose, in WebGLFloatArray array) raises(DOMException);
+        [Custom] void uniformMatrix3fv(in WebGLUniformLocation location, in boolean transpose, in WebGLFloatArray array) raises(DOMException);
+        [Custom] void uniformMatrix4fv(in WebGLUniformLocation location, in boolean transpose, in WebGLFloatArray array) raises(DOMException);
 
-        void         useProgram(in WebGLProgram program);
-        void         validateProgram(in WebGLProgram program);
+        void         useProgram(in WebGLProgram program) raises(DOMException);
+        void         validateProgram(in WebGLProgram program) raises(DOMException);
 
         void         vertexAttrib1f(in unsigned long indx, in float x);
         [Custom] void         vertexAttrib1fv(in unsigned long indx, in WebGLFloatArray values);
@@ -681,7 +671,7 @@ module html {
         void         vertexAttrib4f(in unsigned long indx, in float x, in float y, in float z, in float w);
         [Custom] void         vertexAttrib4fv(in unsigned long indx, in WebGLFloatArray values);
         void         vertexAttribPointer(in unsigned long indx, in long size, in unsigned long type, in boolean normalized, 
-                                         in long stride, in unsigned long offset);
+                                         in long stride, in unsigned long offset) raises(DOMException);
 
         void         viewport(in long x, in long y, in unsigned long width, in unsigned long height);
     };

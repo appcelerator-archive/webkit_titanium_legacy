@@ -166,6 +166,7 @@ enum AccessibilityRole {
     TabPanelRole,
     TreeRole,
     TreeItemRole,
+    DirectoryRole,
     
     // ARIA Grouping roles
     LandmarkApplicationRole,
@@ -186,6 +187,7 @@ enum AccessibilityRole {
     
     DocumentRole,
     DocumentArticleRole,
+    DocumentMathRole,
     DocumentNoteRole,
     DocumentRegionRole,
     
@@ -283,6 +285,8 @@ public:
     bool isComboBox() const { return roleValue() == ComboBoxRole; }
     bool isTree() const { return roleValue() == TreeRole; }
     bool isTreeItem() const { return roleValue() == TreeItemRole; }
+    bool isScrollbar() const { return roleValue() == ScrollBarRole; }
+    bool isButton() const { return roleValue() == ButtonRole; }
     
     virtual bool isChecked() const { return false; }
     virtual bool isEnabled() const { return false; }
@@ -324,6 +328,17 @@ public:
     virtual int layoutCount() const { return 0; }
     static bool isARIAControl(AccessibilityRole);
     static bool isARIAInput(AccessibilityRole);
+    virtual bool supportsARIAOwns() const { return false; }
+    virtual void ariaOwnsElements(AccessibilityChildrenVector&) const { }
+    virtual bool supportsARIAFlowTo() const { return false; }
+    virtual void ariaFlowToElements(AccessibilityChildrenVector&) const { }
+    
+    // ARIA drag and drop
+    virtual bool supportsARIADropping() { return false; }
+    virtual bool supportsARIADragging() { return false; }
+    virtual bool isARIAGrabbed() { return false; }
+    virtual void setARIAGrabbed(bool) { }
+    virtual void determineARIADropEffects(Vector<String>&) { }
     
     virtual AccessibilityObject* doAccessibilityHitTest(const IntPoint&) const { return 0; }
     virtual AccessibilityObject* focusedUIElement() const { return 0; }
@@ -416,6 +431,8 @@ public:
     virtual AccessibilityObject* activeDescendant() const { return 0; }    
     virtual void handleActiveDescendantChanged() { }
 
+    static AccessibilityRole ariaRoleToWebCoreRole(const String&);
+    
     virtual VisiblePositionRange visiblePositionRange() const { return VisiblePositionRange(); }
     virtual VisiblePositionRange visiblePositionRangeForLine(unsigned) const { return VisiblePositionRange(); }
     

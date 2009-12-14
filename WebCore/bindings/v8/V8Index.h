@@ -197,7 +197,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #define SVG_ANIMATION_ELEMENT_TYPES(V)
 #endif
 
-#if ENABLE(SVG_FILTERS)
+#if ENABLE(SVG) && ENABLE(FILTERS)
 #define SVG_FILTERS_ELEMENT_TYPES(V)                                    \
     V(SVGCOMPONENTTRANSFERFUNCTIONELEMENT, SVGComponentTransferFunctionElement)\
     V(SVGFEBLENDELEMENT, SVGFEBlendElement)                             \
@@ -216,6 +216,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(SVGFEIMAGEELEMENT, SVGFEImageElement)                             \
     V(SVGFEMERGEELEMENT, SVGFEMergeElement)                             \
     V(SVGFEMERGENODEELEMENT, SVGFEMergeNodeElement)                     \
+    V(SVGFEMORPHOLOGYELEMENT, SVGFEMorphologyElement)                   \
     V(SVGFEOFFSETELEMENT, SVGFEOffsetElement)                           \
     V(SVGFEPOINTLIGHTELEMENT, SVGFEPointLightElement)                   \
     V(SVGFESPECULARLIGHTINGELEMENT, SVGFESpecularLightingElement)       \
@@ -332,6 +333,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(CLIENTRECTLIST, ClientRectList)                                   \
     V(CLIPBOARD, Clipboard)                                             \
     V(CONSOLE, Console)                                                 \
+    V(COMPOSITIONEVENT, CompositionEvent)                               \
     V(COUNTER, Counter)                                                 \
     V(CSSCHARSETRULE, CSSCharsetRule)                                   \
     V(CSSFONTFACERULE, CSSFontFaceRule)                                 \
@@ -459,6 +461,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(WEBGLSHADER, WebGLShader)                                         \
     V(WEBGLSHORTARRAY, WebGLShortArray)                                 \
     V(WEBGLTEXTURE, WebGLTexture)                                       \
+    V(WEBGLUNIFORMLOCATION, WebGLUniformLocation)                       \
     V(WEBGLUNSIGNEDBYTEARRAY, WebGLUnsignedByteArray)                   \
     V(WEBGLUNSIGNEDINTARRAY, WebGLUnsignedIntArray)                     \
     V(WEBGLUNSIGNEDSHORTARRAY, WebGLUnsignedShortArray)
@@ -486,10 +489,18 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 #if ENABLE(INSPECTOR)
 #define DOM_OBJECT_INSPECTOR_TYPES(V)                                   \
-    V(INSPECTORBACKEND, InspectorBackend)
+    V(INSPECTORBACKEND, InspectorBackend)                               \
+    V(INSPECTORFRONTENDHOST, InspectorFrontendHost)                     \
+    V(INJECTEDSCRIPTHOST, InjectedScriptHost)
 #else
 #define DOM_OBJECT_INSPECTOR_TYPES(V)
 #endif
+
+#define DOM_OBJECT_GEOLOCATION_TYPES(V)                                 \
+    V(COORDINATES, Coordinates)                                         \
+    V(GEOLOCATION, Geolocation)                                         \
+    V(GEOPOSITION, Geoposition)                                         \
+    V(POSITIONERROR, PositionError)
 
 #define DOM_OBJECT_TYPES(V)                                             \
     DOM_OBJECT_TYPES_1(V)                                               \
@@ -500,7 +511,8 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     DOM_OBJECT_3D_CANVAS_TYPES(V)                                       \
     DOM_OBJECT_XPATH_TYPES(V)                                           \
     DOM_OBJECT_XSLT_TYPES(V)                                            \
-    DOM_OBJECT_INSPECTOR_TYPES(V)
+    DOM_OBJECT_INSPECTOR_TYPES(V)                                       \
+    DOM_OBJECT_GEOLOCATION_TYPES(V)
 
 #if ENABLE(SVG)
 // SVG_OBJECT_TYPES are svg non-node, non-pod types.

@@ -151,6 +151,10 @@ String WebCore::localizedMediaControlElementString(const String& name)
         return String(LPCTSTR_UI_STRING("fast forward", "accessibility role description for fast forward button"));
     if (name == "SeekBackButton")
         return String(LPCTSTR_UI_STRING("fast reverse", "accessibility role description for fast reverse button"));
+    if (name == "ShowClosedCaptionsButton")
+        return String(LPCTSTR_UI_STRING("show closed captions", "accessibility role description for show closed captions button"));
+    if (name == "HideClosedCaptionsButton")
+        return String(LPCTSTR_UI_STRING("hide closed captions", "accessibility role description for hide closed captions button"));
 
     ASSERT_NOT_REACHED();
     return String();
@@ -190,6 +194,10 @@ String WebCore::localizedMediaControlElementHelpText(const String& name)
         return String(LPCTSTR_UI_STRING("seek quickly forward", "accessibility help text for fast forward button"));
     if (name == "FullscreenButton")
         return String(LPCTSTR_UI_STRING("Play movie in fullscreen mode", "accessibility help text for enter fullscreen button"));
+    if (name == "ShowClosedCaptionsButton")
+        return String(LPCTSTR_UI_STRING("start displaying closed captions", "accessibility help text for show closed captions button"));
+    if (name == "HideClosedCaptionsButton")
+        return String(LPCTSTR_UI_STRING("stop displaying closed captions", "accessibility help text for hide closed captions button"));
 
     ASSERT_NOT_REACHED();
     return String();
@@ -231,3 +239,10 @@ String WebCore::localizedMediaTimeDescription(float time)
 
 #endif  // ENABLE(VIDEO)
 
+String WebCore::validationMessageValueMissingText() { return String(LPCTSTR_UI_STRING("value missing", "Validation message for required form control elements that have no value")); }
+String WebCore::validationMessageTypeMismatchText() { return String(LPCTSTR_UI_STRING("type mismatch", "Validation message for input form controls with a value not matching type")); }
+String WebCore::validationMessagePatternMismatchText() { return String(LPCTSTR_UI_STRING("pattern mismatch", "Validation message for input form controls requiring a constrained value according to pattern")); }
+String WebCore::validationMessageTooLongText() { return String(LPCTSTR_UI_STRING("too long", "Validation message for form control elements with a value longer than maximum allowed length")); }
+String WebCore::validationMessageRangeUnderflowText() { return String(LPCTSTR_UI_STRING("range underflow", "Validation message for input form controls with value lower than allowed minimum")); }
+String WebCore::validationMessageRangeOverflowText() { return String(LPCTSTR_UI_STRING("range overflow", "Validation message for input form controls with value higher than allowed maximum")); }
+String WebCore::validationMessageStepMismatchText() { return String(LPCTSTR_UI_STRING("step mismatch", "Validation message for input form controls with value not respecting the step attribute")); }

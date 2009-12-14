@@ -219,12 +219,12 @@ void QWebView::setPage(QWebPage* page)
         d->page->setPalette(palette());
         // #### connect signals
         QWebFrame *mainFrame = d->page->mainFrame();
-        connect(mainFrame, SIGNAL(titleChanged(const QString&)),
-                this, SIGNAL(titleChanged(const QString&)));
+        connect(mainFrame, SIGNAL(titleChanged(QString)),
+                this, SIGNAL(titleChanged(QString)));
         connect(mainFrame, SIGNAL(iconChanged()),
                 this, SIGNAL(iconChanged()));
-        connect(mainFrame, SIGNAL(urlChanged(const QUrl &)),
-                this, SIGNAL(urlChanged(const QUrl &)));
+        connect(mainFrame, SIGNAL(urlChanged(QUrl)),
+                this, SIGNAL(urlChanged(QUrl)));
 
         connect(d->page, SIGNAL(loadStarted()),
                 this, SIGNAL(loadStarted()));
@@ -232,10 +232,10 @@ void QWebView::setPage(QWebPage* page)
                 this, SIGNAL(loadProgress(int)));
         connect(d->page, SIGNAL(loadFinished(bool)),
                 this, SIGNAL(loadFinished(bool)));
-        connect(d->page, SIGNAL(statusBarMessage(const QString &)),
-                this, SIGNAL(statusBarMessage(const QString &)));
-        connect(d->page, SIGNAL(linkClicked(const QUrl &)),
-                this, SIGNAL(linkClicked(const QUrl &)));
+        connect(d->page, SIGNAL(statusBarMessage(QString)),
+                this, SIGNAL(statusBarMessage(QString)));
+        connect(d->page, SIGNAL(linkClicked(QUrl)),
+                this, SIGNAL(linkClicked(QUrl)));
 
         connect(d->page, SIGNAL(microFocusChanged()),
                 this, SLOT(updateMicroFocus()));
@@ -270,19 +270,11 @@ void QWebView::load(const QUrl &url)
     \sa url(), urlChanged()
 */
 
-#if QT_VERSION < 0x040400 && !defined(qdoc)
-void QWebView::load(const QWebNetworkRequest &request)
-#else
 void QWebView::load(const QNetworkRequest &request,
                     QNetworkAccessManager::Operation operation,
                     const QByteArray &body)
-#endif
 {
-    page()->mainFrame()->load(request
-#if QT_VERSION >= 0x040400
-                              , operation, body
-#endif
-                             );
+    page()->mainFrame()->load(request, operation, body);
 }
 
 /*!
@@ -636,7 +628,6 @@ bool QWebView::event(QEvent *e)
         if (e->type() == QEvent::ShortcutOverride) {
             d->page->event(e);
 #ifndef QT_NO_CURSOR
-#if QT_VERSION >= 0x040400
         } else if (e->type() == QEvent::CursorChange) {
             // An unsetCursor will set the cursor to Qt::ArrowCursor.
             // Thus this cursor change might be a QWidget::unsetCursor()
@@ -648,7 +639,6 @@ bool QWebView::event(QEvent *e)
             // FIXME: Add a QEvent::CursorUnset or similar to Qt.
             if (cursor().shape() == Qt::ArrowCursor)
                 d->page->d->client->resetCursor();
-#endif
 #endif
         } else if (e->type() == QEvent::Leave)
             d->page->event(e);

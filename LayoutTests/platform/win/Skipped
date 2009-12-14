@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2007, 2008 Apple Inc. All rights reserved.
+# Copyright (C) 2007, 2008, 2009 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -189,6 +189,7 @@ fast/forms/get-file-upload.html
 fast/forms/input-file-re-render.html
 http/tests/security/clipboard/clipboard-file-access.html
 fast/events/drag-file-crash.html
+fast/dom/Window/window-postmessage-clone.html
 
 # Need to add functionality to DumpRenderTree to test IDN <rdar://problem/5301954>
 fast/encoding/idn-security.html
@@ -354,12 +355,14 @@ http/tests/xmlhttprequest/access-control-basic-non-simple-allow-async.html
 http/tests/xmlhttprequest/access-control-basic-non-simple-allow.html
 
 # Accessibility tests without results or with Mac-specific results.
+accessibility/aria-checkbox-text.html
 accessibility/aria-combobox.html
 accessibility/aria-controls-with-tabs.html
 accessibility/aria-describedby-on-input.html
 accessibility/aria-disabled.html
 accessibility/aria-hidden.html
 accessibility/aria-label.html
+accessibility/aria-labelledby-overrides-label.html
 accessibility/aria-labelledby-on-input.html
 accessibility/aria-labelledby-stay-within.html
 accessibility/aria-link-supports-press.html
@@ -367,8 +370,11 @@ accessibility/aria-list-and-listitem.html
 accessibility/aria-presentational-role.html
 accessibility/aria-readonly.html
 accessibility/aria-roles.html
+accessibility/aria-scrollbar-role.html
 accessibility/aria-tables.html
 accessibility/aria-tab-roles.html
+accessibility/aria-text-role.html
+accessibility/aria-used-on-image-maps.html
 accessibility/button-press-action.html
 accessibility/canvas.html
 accessibility/document-attributes.html
@@ -634,11 +640,6 @@ media/video-source-error.html
 # <http://webkit.org/b/28467>
 http/tests/loading/preload-img-test.html
 
-# No TextInputController
-fast/forms/input-maxlength-ime-completed.html
-fast/forms/input-maxlength-ime-preedit.html
-fast/text/international/thai-cursor-position.html
-
 # Failing media tests on windows <http://webkit.org/b/29047>
 media/audio-delete-while-step-button-clicked.html
 media/video-controls-transformed.html
@@ -665,9 +666,6 @@ http/tests/xmlhttprequest/xmlhttprequest-missing-file-exception.html
 # This port doesn't support detecting slow unload handlers.
 fast/dom/Window/slow_unload_handler.html
 
-# <https://bugs.webkit.org/show_bug.cgi?id=29966>
-fast/inline/relative-positioned-overflow.html
-
 # <https://bugs.webkit.org/show_bug.cgi?id=30348>
 plugins/private-browsing-mode.html
 
@@ -690,6 +688,39 @@ fast/dom/HTMLObjectElement/children-changed.html
 # Need rebaseline: https://bugs.webkit.org/show_bug.cgi?id=26830
 fast/multicol/single-line.html
 
-# inspector/timeline-paint passes by itself, but fails when run with other Inspector tests.
-# http://webkit.org/b/31402.
-inspector/timeline-paint.html
+# Need to add functionality to DumpRenderTree to handle error pages
+fast/history/back-forward-reset-after-error-handling.html
+
+# Tests requiring 3D_RENDERING and ACCELERATED_COMPOSITING support
+transforms/3d
+compositing
+
+# validationMessage: https://bugs.webkit.org/show_bug.cgi?id=27959
+fast/forms/validationMessage.html
+
+# Need to implement this in plugins code in WebKit
+plugins/reloadplugins-and-pages.html
+plugins/reloadplugins-no-pages.html
+
+# These tests require Qt Widgets
+plugins/qt-qwidget-plugin.html
+
+# Some versions of CFNetwork override CGI scripts' Content-Type headers <rdar://problem/7434354>
+http/tests/globalhistory/history-delegate-basic-refresh-redirect.html
+http/tests/loading/redirect-with-no-location-crash.html
+http/tests/misc/text-refresh.html
+http/tests/navigation/back-to-slow-frame.html
+http/tests/navigation/multiple-back-forward-entries.html
+http/tests/navigation/reload-subframe-frame.html
+http/tests/navigation/reload-subframe-iframe.html
+http/tests/plugins/post-url-file.html
+inspector/timeline-network-resource.html
+
+# This test requires ogg codecs
+media/media-can-play-ogg.html
+
+# This test requires new pywebsocket
+websocket/tests/sub-protocol-with-space.html
+
+# This test requires touch support
+fast/events/basic-touch-events.html

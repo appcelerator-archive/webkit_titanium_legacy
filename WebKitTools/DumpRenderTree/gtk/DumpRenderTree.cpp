@@ -114,6 +114,11 @@ static bool shouldLogFrameLoadDelegates(const char* pathOrURL)
     return strstr(pathOrURL, "loading/");
 }
 
+static bool shouldOpenWebInspector(const char* pathOrURL)
+{
+    return strstr(pathOrURL, "inspector/");
+}
+
 void dumpFrameScrollPosition(WebKitWebFrame* frame)
 {
 
@@ -121,7 +126,7 @@ void dumpFrameScrollPosition(WebKitWebFrame* frame)
 
 void displayWebView()
 {
-
+    gtk_widget_queue_draw(GTK_WIDGET(webView));
 }
 
 static void appendString(gchar*& target, gchar* string)
@@ -400,11 +405,6 @@ void dump()
 
     // FIXME: call displayWebView here when we support --paint
 
-    puts("#EOF"); // terminate the (possibly empty) pixels block
-
-    fflush(stdout);
-    fflush(stderr);
-
     done = true;
     gtk_main_quit();
 }
@@ -426,6 +426,14 @@ static void setDefaultsToConsistentStateValuesForTesting()
     gchar* databaseDirectory = g_build_filename(g_get_user_data_dir(), "gtkwebkitdrt", "databases", NULL);
     webkit_set_web_database_directory_path(databaseDirectory);
     g_free(databaseDirectory);
+}
+
+static void sendPixelResultsEOF()
+{
+    puts("#EOF");
+
+    fflush(stdout);
+    fflush(stderr);
 }
 
 static void runTest(const string& testPathOrURL)
@@ -455,6 +463,9 @@ static void runTest(const string& testPathOrURL)
 
     if (shouldLogFrameLoadDelegates(pathOrURL.c_str()))
         gLayoutTestController->setDumpFrameLoadCallbacks(true);
+
+    if (shouldOpenWebInspector(pathOrURL.c_str()))
+        gLayoutTestController->showWebInspector();
 
     WorkQueue::shared()->clear();
     WorkQueue::shared()->setFrozen(false);
@@ -487,6 +498,9 @@ static void runTest(const string& testPathOrURL)
 
     gtk_main();
 
+    if (shouldOpenWebInspector(pathOrURL.c_str()))
+        gLayoutTestController->closeWebInspector();
+
     // Also check if we still have opened webViews and free them.
     if (gLayoutTestController->closeRemainingWindowsWhenComplete() || webViewList) {
         while (webViewList) {
@@ -502,6 +516,9 @@ static void runTest(const string& testPathOrURL)
 
     gLayoutTestController->deref();
     gLayoutTestController = 0;
+
+    // terminate the (possibly empty) pixels block after all the state reset
+    sendPixelResultsEOF();
 }
 
 void webViewLoadStarted(WebKitWebView* view, WebKitWebFrame* frame, void*)
@@ -816,6 +833,7 @@ int main(int argc, char* argv[])
     gtk_container_add(GTK_CONTAINER(container), GTK_WIDGET(webView));
     gtk_widget_realize(GTK_WIDGET(webView));
     gtk_widget_show_all(container);
+    gtk_widget_grab_focus(GTK_WIDGET(webView));
     mainFrame = webkit_web_view_get_main_frame(webView);
 
     setDefaultsToConsistentStateValuesForTesting();
