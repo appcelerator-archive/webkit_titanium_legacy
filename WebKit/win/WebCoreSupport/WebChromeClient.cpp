@@ -191,9 +191,11 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
     COMPtr<IWebMutableURLRequest> request(AdoptCOM, WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest()));
 
     COMPtr<IWebUIDelegatePrivate2> delegatePrivate(Query, delegate);
+    COMPtr<IPropertyBag> featureBag(
+         createWindowFeaturesPropertyBag(features));
     if (delegatePrivate) {
         COMPtr<IWebView> newWebView;
-        HRESULT hr = delegatePrivate->createWebViewWithRequest(m_webView, request.get(), createWindowFeaturesPropertyBag(features).get(), &newWebView);
+        HRESULT hr = delegatePrivate->createWebViewWithRequest(m_webView, request.get(), featureBag.get(), &newWebView);
 
         if (SUCCEEDED(hr) && newWebView)
             return core(newWebView.get());
@@ -209,7 +211,7 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
     if (features.dialog) {
         if (FAILED(delegate->createModalDialog(m_webView, request.get(), &newWebView)))
             return 0;
-    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request.get(), &newWebView)))
+    } else if (FAILED(delegate->createWebViewWithRequest(m_webView, request.get(), featureBag.get(), &newWebView)))
         return 0;
 
     return newWebView ? core(newWebView.get()) : 0;
