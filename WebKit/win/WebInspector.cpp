@@ -311,3 +311,14 @@ HRESULT STDMETHODCALLTYPE WebInspector::setTimelineProfilingEnabled(BOOL enabled
 
     return S_OK;
 }
+
+HRESULT STDMETHODCALLTYPE WebInspector::setInspectorURL(BSTR url)
+{
+    if (!m_webInspectorClient)
+        return S_OK;
+ 
+    String inspectorURLStr(url, SysStringLen(url));
+    m_webInspectorClient->setInspectorURL(inspectorURLStr);
+ 
+    return S_OK;
+}
