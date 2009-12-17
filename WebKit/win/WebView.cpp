@@ -2409,7 +2409,7 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
     if (SUCCEEDED(m_preferences->shouldUseHighResolutionTimers(&useHighResolutionTimer)))
         Settings::setShouldUseHighResolutionTimers(useHighResolutionTimer);
 
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this));
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), new WebInspectorClient(this), new WebPluginHalterClient(this), 0);
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -4535,6 +4535,10 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings->setPluginAllowedRunTime(runTime);
+
+#if USE(ACCELERATED_COMPOSITING)
+    settings->setAcceleratedCompositingEnabled(WKCACFLayerRenderer::acceleratedCompositingAvailable());
+#endif
 
 #if ENABLE(3D_CANVAS)
     settings->setExperimentalWebGLEnabled(true);

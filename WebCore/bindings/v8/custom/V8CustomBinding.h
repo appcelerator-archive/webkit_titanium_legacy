@@ -531,8 +531,9 @@ namespace WebCore {
         DECLARE_INDEXED_PROPERTY_GETTER(HTMLFormElement);
         DECLARE_INDEXED_PROPERTY_GETTER(HTMLOptionsCollection);
         DECLARE_INDEXED_PROPERTY_SETTER(HTMLOptionsCollection);
-        DECLARE_NAMED_PROPERTY_GETTER(HTMLSelectElementCollection);
-        DECLARE_INDEXED_PROPERTY_SETTER(HTMLSelectElementCollection);
+        DECLARE_NAMED_PROPERTY_GETTER(HTMLSelectElement);
+        DECLARE_INDEXED_PROPERTY_GETTER(HTMLSelectElement);
+        DECLARE_INDEXED_PROPERTY_SETTER(HTMLSelectElement);
         DECLARE_NAMED_PROPERTY_GETTER(HTMLAllCollection);
         DECLARE_NAMED_PROPERTY_GETTER(HTMLCollection);
 
@@ -589,12 +590,8 @@ namespace WebCore {
         DECLARE_CALLBACK(SQLTransactionExecuteSql);
         DECLARE_CALLBACK(SQLResultSetRowListItem);
 
-        DECLARE_INDEXED_PROPERTY_GETTER(ClientRectList);
-        DECLARE_INDEXED_PROPERTY_GETTER(FileList);
-
 #if ENABLE(DATAGRID)
         DECLARE_PROPERTY_ACCESSOR(HTMLDataGridElementDataSource);
-        DECLARE_INDEXED_PROPERTY_GETTER(DataGridColumnList);
         DECLARE_NAMED_PROPERTY_GETTER(DataGridColumnList);
 #endif
 

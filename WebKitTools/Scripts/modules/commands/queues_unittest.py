@@ -39,28 +39,23 @@ class TestQueue(AbstractQueue):
 
 
 class AbstractQueueTest(CommandsTest):
-    def _assert_output(self, function, args, expected_stdout="", expected_stderr=""):
-        capture = OutputCapture()
-        capture.capture_output()
-        function(*args)
-        (stdout_string, stderr_string) = capture.restore_output()
-        self.assertEqual(stdout_string, expected_stdout)
-        self.assertEqual(stderr_string, expected_stderr)
-
     def _assert_log_progress_output(self, patch_ids, progress_output):
-        self._assert_output(TestQueue().log_progress, [patch_ids], expected_stderr=progress_output)
+        OutputCapture().assert_outputs(self, TestQueue().log_progress, [patch_ids], expected_stderr=progress_output)
 
     def test_log_progress(self):
         self._assert_log_progress_output([1,2,3], "3 patches in test-queue [1, 2, 3]\n")
         self._assert_log_progress_output(["1","2","3"], "3 patches in test-queue [1, 2, 3]\n")
         self._assert_log_progress_output([1], "1 patch in test-queue [1]\n")
 
-    def _assert_run_bugzilla_tool_output(self, run_args, tool_output):
+    def _assert_run_bugzilla_tool(self, run_args):
         queue = TestQueue()
-        queue.bind_to_tool(MockBugzillaTool())
-        # MockBugzillaTool.path() is "echo"
-        self._assert_output(queue.run_bugzilla_tool, [run_args], expected_stdout=tool_output)
+        tool = MockBugzillaTool()
+        queue.bind_to_tool(tool)
+
+        queue.run_bugzilla_tool(run_args)
+        expected_run_args = ["echo", "--status-host=example.com"] + map(str, run_args)
+        tool.executive.run_and_throw_if_fail.assert_called_with(expected_run_args)
 
     def test_run_bugzilla_tool(self):
-        self._assert_run_bugzilla_tool_output([1], "")
-        self._assert_run_bugzilla_tool_output(["one", 2], "")
+        self._assert_run_bugzilla_tool([1])
+        self._assert_run_bugzilla_tool(["one", 2])

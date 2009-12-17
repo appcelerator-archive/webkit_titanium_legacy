@@ -66,7 +66,7 @@ class MockBugzilla(Mock):
     def fetch_reviewed_patches_from_bug(self, bug_id):
         if bug_id == 42:
             return [self.patch1, self.patch2]
-        return None
+        return []
 
     def fetch_attachments_from_bug(self, bug_id):
         if bug_id == 42:
@@ -133,10 +133,18 @@ class MockSCM(Mock):
             return "Patch2"
         raise Exception("Bogus commit_id in commit_message_for_local_commit.")
 
+    def diff_for_revision(self, revision):
+        return "DiffForRevision%s\nhttp://bugs.webkit.org/show_bug.cgi?id=12345" % revision
+
     def modified_changelogs(self):
         # Ideally we'd return something more interesting here.
         # The problem is that LandDiff will try to actually read the path from disk!
         return []
+
+
+class MockStatusBot(object):
+    def __init__(self):
+        self.statusbot_host = "example.com"
 
 
 class MockBugzillaTool():
@@ -145,6 +153,7 @@ class MockBugzillaTool():
         self.buildbot = MockBuildBot()
         self.executive = Mock()
         self._scm = MockSCM()
+        self.status_bot = MockStatusBot()
 
     def scm(self):
         return self._scm

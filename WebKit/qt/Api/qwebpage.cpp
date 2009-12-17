@@ -108,6 +108,11 @@
 #include <QX11Info>
 #endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+#include <QTouchEvent>
+#include "PlatformTouchEvent.h"
+#endif
+
 using namespace WebCore;
 
 void QWEBKIT_EXPORT qt_drt_overwritePluginDirectories()
@@ -376,7 +381,7 @@ QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
     contextMenuClient = new ContextMenuClientQt();
     editorClient = new EditorClientQt(q);
     page = new Page(chromeClient, contextMenuClient, editorClient,
-                    new DragClientQt(q), new InspectorClientQt(q), 0);
+                    new DragClientQt(q), new InspectorClientQt(q), 0, 0);
 
     settings = new QWebSettings(page->settings());
 
@@ -1334,6 +1339,18 @@ bool QWebPagePrivate::handleScrolling(QKeyEvent *ev, Frame *frame)
     return frame->eventHandler()->scrollRecursively(direction, granularity);
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+void QWebPagePrivate::touchEvent(QTouchEvent* event)
+{
+    WebCore::Frame* frame = QWebFramePrivate::core(mainFrame);
+    if (!frame->view())
+        return;
+
+    bool accepted = frame->eventHandler()->handleTouchEvent(PlatformTouchEvent(event));
+    event->setAccepted(accepted);
+}
+#endif
+
 /*!
   This method is used by the input method to query a set of properties of the page
   to be able to support complex input method operations as support for surrounding
@@ -1837,7 +1854,8 @@ bool QWebPage::javaScriptConfirm(QWebFrame *frame, const QString& msg)
     The program may provide an optional message, \a msg, as well as a default value for the input in \a defaultValue.
 
     If the prompt was cancelled by the user the implementation should return false; otherwise the
-    result should be written to \a result and true should be returned.
+    result should be written to \a result and true should be returned. If the prompt was not cancelled by the
+    user, the implementation should return true and the result string must not be null.
 
     The default implementation uses QInputDialog::getText.
 */
@@ -2548,6 +2566,13 @@ bool QWebPage::event(QEvent *ev)
     case QEvent::Leave:
         d->leaveEvent(ev);
         break;
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+        d->touchEvent(static_cast<QTouchEvent*>(ev));
+        break;
+#endif
     default:
         return QObject::event(ev);
     }

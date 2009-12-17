@@ -65,7 +65,7 @@ namespace WebCore {
         V8ClassIndex::V8WrapperType wrapperType = V8DOMWrapper::domWrapperType(object);
         ASSERT(wrapperType != V8ClassIndex::NODE);
         Collection* collection = V8DOMWrapper::convertToNativeObject<Collection>(wrapperType, object);
-        String propertyName = toWebCoreString(name);
+        AtomicString propertyName = toAtomicWebCoreStringWithNullCheck(name);
         return getV8Object<ItemType>(collection->namedItem(propertyName), implementationType);
     }
 
@@ -120,16 +120,6 @@ namespace WebCore {
     template<class Collection, class ItemType> static v8::Handle<v8::Value> collectionIndexedPropertyGetter(uint32_t index, const v8::AccessorInfo& info)
     {
         return getIndexedPropertyOfCollection<Collection, ItemType>(index, info.Holder(), info.Data());
-    }
-
-    // A template of index interceptor of HTMLSelectElement and HTMLFormElement.
-    template<class Collection> static v8::Handle<v8::Value> nodeCollectionIndexedPropertyGetter(uint32_t index, const v8::AccessorInfo& info)
-    {
-        ASSERT(V8DOMWrapper::maybeDOMWrapper(info.Holder()));
-        ASSERT(V8DOMWrapper::domWrapperType(info.Holder()) == V8ClassIndex::NODE);
-        Collection* collection = V8DOMWrapper::convertDOMWrapperToNode<Collection>(info.Holder());
-        void* implementation = collection->item(index);
-        return getV8Object(implementation, info.Data());
     }
 
     // Get an array containing the names of indexed properties of HTMLSelectElement and HTMLFormElement.
@@ -202,17 +192,6 @@ namespace WebCore {
     {
         desc->InstanceTemplate()->SetNamedPropertyHandler(collectionNamedPropertyGetter<Collection, ItemType>, 0, 0, 0, 0, v8::Integer::New(V8ClassIndex::ToInt(type)));
     }
-
-
-    // Add named and indexed getters to the function template for a collection.
-    template<class Collection, class ItemType> static void setCollectionIndexedAndNamedGetters(v8::Handle<v8::FunctionTemplate> desc, V8ClassIndex::V8WrapperType type)
-    {
-        // If we interceptor before object, accessing 'length' can trigger a webkit assertion error (see fast/dom/HTMLDocument/document-special-properties.html).
-        desc->InstanceTemplate()->SetNamedPropertyHandler(collectionNamedPropertyGetter<Collection, ItemType>, 0, 0, 0, 0, v8::Integer::New(V8ClassIndex::ToInt(type)));
-        desc->InstanceTemplate()->SetIndexedPropertyHandler(collectionIndexedPropertyGetter<Collection, ItemType>, 0, 0, 0, collectionIndexedPropertyEnumerator<Collection>,
-                                                            v8::Integer::New(V8ClassIndex::ToInt(type)));
-    }
-
 
     // Add indexed getter returning a string or null to a function template for a collection.
     template<class Collection> static void setCollectionStringOrNullIndexedGetter(v8::Handle<v8::FunctionTemplate> desc)

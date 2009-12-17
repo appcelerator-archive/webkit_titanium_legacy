@@ -30,16 +30,15 @@
 
 #include "GraphicsLayer.h"
 #include "StringHash.h"
+#include "WebLayer.h"
 #include <wtf/HashSet.h>
 #include <wtf/RetainPtr.h>
 
 @class CABasicAnimation;
 @class CAKeyframeAnimation;
-@class CALayer;
 @class CAMediaTimingFunction;
 @class CAPropertyAnimation;
 @class WebAnimationDelegate;
-@class WebLayer;
 
 namespace WebCore {
 
@@ -98,10 +97,10 @@ public:
     virtual void suspendAnimations(double time);
     virtual void resumeAnimations();
 
-    virtual bool addAnimation(const KeyframeValueList&, const IntSize& boxSize, const Animation*, const String& keyframesName, double beginTime);
+    virtual bool addAnimation(const KeyframeValueList&, const IntSize& boxSize, const Animation*, const String& keyframesName, double timeOffset);
     virtual void removeAnimationsForProperty(AnimatedPropertyID);
     virtual void removeAnimationsForKeyframes(const String& keyframesName);
-    virtual void pauseAnimation(const String& keyframesName);
+    virtual void pauseAnimation(const String& keyframesName, double timeOffset);
     
     virtual void setContentsToImage(Image*);
     virtual void setContentsToVideo(PlatformLayer*);
@@ -127,13 +126,13 @@ protected:
 private:
     void updateOpacityOnLayer();
 
-    WebLayer* primaryLayer() const { return m_transformLayer.get() ? m_transformLayer.get() : m_layer.get(); }
-    WebLayer* hostLayerForSublayers() const;
-    WebLayer* layerForSuperlayer() const;
+    CALayer* primaryLayer() const { return m_structuralLayer.get() ? m_structuralLayer.get() : m_layer.get(); }
+    CALayer* hostLayerForSublayers() const;
+    CALayer* layerForSuperlayer() const;
     CALayer* animatedLayer(AnimatedPropertyID property) const;
 
-    bool createAnimationFromKeyframes(const KeyframeValueList&, const Animation*, const String& keyframesName, double beginTime);
-    bool createTransformAnimationsFromKeyframes(const KeyframeValueList&, const Animation*, const String& keyframesName, double beginTime, const IntSize& boxSize);
+    bool createAnimationFromKeyframes(const KeyframeValueList&, const Animation*, const String& keyframesName, double timeOffset);
+    bool createTransformAnimationsFromKeyframes(const KeyframeValueList&, const Animation*, const String& keyframesName, double timeOffset, const IntSize& boxSize);
 
     // Return autoreleased animation (use RetainPtr?)
     CABasicAnimation* createBasicAnimation(const Animation*, AnimatedPropertyID, bool additive);
@@ -163,6 +162,7 @@ private:
     CALayer* contentsLayer() const { return m_contentsLayer.get(); }
     
     // All these "update" methods will be called inside a BEGIN_BLOCK_OBJC_EXCEPTIONS/END_BLOCK_OBJC_EXCEPTIONS block.
+    void updateLayerNames();
     void updateSublayerList();
     void updateLayerPosition();
     void updateLayerSize();
@@ -172,7 +172,7 @@ private:
     void updateMasksToBounds();
     void updateContentsOpaque();
     void updateBackfaceVisibility();
-    void updateLayerPreserves3D();
+    void updateStructuralLayer();
     void updateLayerDrawsContent();
     void updateLayerBackgroundColor();
 
@@ -186,10 +186,18 @@ private:
     void updateMaskLayer();
 
     void updateLayerAnimations();
+    
+    enum StructuralLayerPurpose {
+        NoStructuralLayer = 0,
+        StructuralLayerForPreserves3D,
+        StructuralLayerForReplicaFlattening
+    };
+    void ensureStructuralLayer(StructuralLayerPurpose);
+    StructuralLayerPurpose structuralLayerPurpose() const;
 
-    void setAnimationOnLayer(CAPropertyAnimation*, AnimatedPropertyID, int index, double beginTime);
+    void setAnimationOnLayer(CAPropertyAnimation*, AnimatedPropertyID, int index, double timeOffset);
     bool removeAnimationFromLayer(AnimatedPropertyID, int index);
-    void pauseAnimationOnLayer(AnimatedPropertyID, int index);
+    void pauseAnimationOnLayer(AnimatedPropertyID, int index, double timeOffset);
 
     enum LayerChange {
         NoChange = 0,
@@ -223,10 +231,10 @@ private:
 
     void repaintLayerDirtyRects();
 
-    RetainPtr<WebLayer> m_layer;
-    RetainPtr<WebLayer> m_transformLayer;
-    RetainPtr<CALayer> m_contentsLayer;
-    
+    RetainPtr<WebLayer> m_layer;            // The main layer
+    RetainPtr<CALayer> m_structuralLayer;   // A layer used for structual reasons, like preserves-3d or replica-flattening. Is the parent of m_layer.
+    RetainPtr<CALayer> m_contentsLayer;     // A layer used for inner content, like image and video
+
     enum ContentsLayerPurpose {
         NoContentsLayer = 0,
         ContentsLayerForImage,
@@ -244,19 +252,19 @@ private:
     RetainPtr<CGImageRef> m_pendingContentsImage;
     
     struct LayerAnimation {
-        LayerAnimation(CAPropertyAnimation* caAnim, const String& keyframesName, AnimatedPropertyID property, int index, double beginTime)
+        LayerAnimation(CAPropertyAnimation* caAnim, const String& keyframesName, AnimatedPropertyID property, int index, double timeOffset)
         : m_animation(caAnim)
         , m_keyframesName(keyframesName)
         , m_property(property)
         , m_index(index)
-        , m_beginTime(beginTime)
+        , m_timeOffset(timeOffset)
         { }
 
         RetainPtr<CAPropertyAnimation*> m_animation;
         String m_keyframesName;
         AnimatedPropertyID m_property;
         int m_index;
-        double m_beginTime;
+        double m_timeOffset;
     };
     
     Vector<LayerAnimation> m_uncomittedAnimations;
@@ -267,8 +275,16 @@ private:
 
     HashSet<AnimatedProperty> m_transitionPropertiesToRemove;
     
-    enum { Remove, Pause };
-    typedef int AnimationProcessingAction;
+    enum Action { Remove, Pause };
+    struct AnimationProcessingAction {
+        AnimationProcessingAction(Action action = Remove, double timeOffset = 0)
+            : action(action)
+            , timeOffset(timeOffset)
+        {
+        }
+        Action action;
+        double timeOffset;      // only used for pause
+    };
     typedef HashMap<String, AnimationProcessingAction> AnimationsToProcessMap;
     AnimationsToProcessMap m_keyframeAnimationsToProcess;
 

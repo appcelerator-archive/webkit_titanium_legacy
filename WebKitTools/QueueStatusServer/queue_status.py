@@ -51,17 +51,29 @@ class QueueStatus(db.Model):
     results_file = db.BlobProperty()
 
 
-class MainPage(webapp.RequestHandler):
-    def get(self):
-        statuses_query = QueueStatus.all().filter('queue_name =', 'commit-queue').order('-date')
+class RecentStatus(webapp.RequestHandler):
+    def _title_case(self, string):
+        words = string.split(" ")
+        words = map(lambda word: word.capitalize(), words)
+        return " ".join(words)
+
+    def _pretty_queue_name(self, queue_name):
+        return self._title_case(queue_name.replace("-", " "))
+
+    # We could change "/" to just redirect to /queue-status/commit-queue in the future
+    # at which point we would not need a default value for queue_name here.
+    def get(self, queue_name="commit-queue"):
+        statuses_query = QueueStatus.all().filter("queue_name =", queue_name).order("-date")
         statuses = statuses_query.fetch(6)
         if not statuses:
             return self.response.out.write("No status to report.")
         template_values = {
-            'last_status' : statuses[0],
-            'recent_statuses' : statuses[1:],
+            "last_status" : statuses[0],
+            "recent_statuses" : statuses[1:],
+            "pretty_queue_name" : self._pretty_queue_name(queue_name),
+            "show_commit_queue_footer" : queue_name == "commit-queue"
         }
-        self.response.out.write(template.render('index.html', template_values))
+        self.response.out.write(template.render("index.html", template_values))
 
 
 class PatchStatus(webapp.RequestHandler):
@@ -145,9 +157,9 @@ class UpdateStatus(webapp.RequestHandler):
         queue_status.active_patch_id = self._int_from_request('patch_id')
         queue_status.message = self.request.get('status')
         results_file = self.request.get("results_file")
-        queue_status.results_file = db.Blob(results_file)
+        queue_status.results_file = db.Blob(str(results_file))
         queue_status.put()
-        self.redirect('/')
+        self.response.out.write(queue_status.key().id())
 
 
 class ShowResults(webapp.RequestHandler):
@@ -156,12 +168,13 @@ class ShowResults(webapp.RequestHandler):
         if not status:
             self.error(404)
             return
-        self.response.headers["Content-Type"] = "text/plain"
+        self.response.headers["Content-Type"] = "text/plain; charset=utf-8"
         self.response.out.write(status.results_file)
 
 
 routes = [
-    ('/', MainPage),
+    ('/', RecentStatus),
+    ('/queue-status/(.*)', RecentStatus),
     ('/update-status', UpdateStatus),
     (r'/patch-status/(.*)/(.*)', PatchStatus),
     (r'/status-bubble/(.*)', StatusBubble),

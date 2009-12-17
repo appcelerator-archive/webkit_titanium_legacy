@@ -43,10 +43,12 @@ webcore_cppflags += \
 	-I$(srcdir)/WebCore/platform/image-decoders/xbm \
 	-I$(srcdir)/WebCore/platform/mock \
 	-I$(srcdir)/WebCore/platform/network \
+	-I$(srcdir)/WebCore/platform/sql \
 	-I$(srcdir)/WebCore/platform/text \
 	-I$(srcdir)/WebCore/plugins \
 	-I$(srcdir)/WebCore/rendering \
 	-I$(srcdir)/WebCore/rendering/style \
+	-I$(srcdir)/WebCore/storage \
 	-I$(srcdir)/WebCore/workers \
 	-I$(srcdir)/WebCore/xml \
 	-I$(top_builddir)/WebCore/bindings/js \
@@ -434,7 +436,6 @@ webcore_sources += \
 	WebCore/bindings/js/JSPluginElementFunctions.cpp \
 	WebCore/bindings/js/JSPluginElementFunctions.h \
 	WebCore/bindings/js/JSPopStateEventCustom.cpp \
-	WebCore/bindings/js/JSPopStateEventCustom.h \
 	WebCore/bindings/js/JSQuarantinedObjectWrapper.cpp \
 	WebCore/bindings/js/JSQuarantinedObjectWrapper.h \
 	WebCore/bindings/js/JSStorageCustom.h \
@@ -1318,7 +1319,7 @@ webcore_sources += \
 	WebCore/page/ContextMenuClient.h \
 	WebCore/page/ContextMenuController.cpp \
 	WebCore/page/ContextMenuController.h \
-	WebCore/page/ContextMenuSelectionHandler.h \
+	WebCore/page/ContextMenuProvider.h \
 	WebCore/page/Coordinates.h \
 	WebCore/page/DOMSelection.cpp \
 	WebCore/page/DOMSelection.h \
@@ -1347,6 +1348,11 @@ webcore_sources += \
 	WebCore/page/FrameView.h \
 	WebCore/page/Geolocation.cpp \
 	WebCore/page/Geolocation.h \
+	WebCore/page/GeolocationController.cpp \
+	WebCore/page/GeolocationController.h \
+	WebCore/page/GeolocationControllerClient.h \
+	WebCore/page/GeolocationError.h \
+	WebCore/page/GeolocationPosition.h \
 	WebCore/page/Geoposition.h \
 	WebCore/page/HaltablePlugin.h \
 	WebCore/page/History.cpp \
@@ -2182,9 +2188,7 @@ IDL_BINDINGS += \
 	WebCore/storage/SQLTransaction.idl
 
 webcore_cppflags += \
-	-DENABLE_DATABASE=1 \
-	-I$(top_srcdir)/WebCore/platform/sql \
-	-I$(top_srcdir)/WebCore/storage
+	-DENABLE_DATABASE=1
 
 webcore_sources += \
 	WebCore/bindings/js/JSCustomSQLStatementCallback.cpp \
@@ -2286,8 +2290,7 @@ IDL_BINDINGS += \
 	WebCore/storage/StorageEvent.idl
 
 webcore_cppflags += \
-	-DENABLE_DOM_STORAGE=1 \
-	-I$(top_srcdir)/WebCore/storage
+	-DENABLE_DOM_STORAGE=1
 
 webcore_sources += \
 	WebCore/bindings/js/JSStorageCustom.cpp \

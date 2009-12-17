@@ -1,3 +1,98 @@
+2009-12-16  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of text nodes is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=32631
+        <rdar://problem/7369084>
+
+        Reviewed by Alice Liu.
+
+        * AccessibleBase.cpp:
+        (MSAARole):
+        If the role is WebCore::EditableTextRole, return ROLE_SYSTEM_TEXT.
+        (AccessibleBase::role):
+        Call roleValueForMSAA().
+
+2009-12-14  Brent Fulgham  <bfulgham@webkit.org>
+
+        Reviewed by Adam Roben.
+
+        Provide working printing support for WinCairo port.
+
+        * WebFrame.cpp:
+        (WebFrame::spoolPage): Conditionalize initialization of
+          PlatformGraphicsContext handling for CG vs. Cairo.
+        (scaleFactor): Add helper function.
+        (hdcFromContext): Add helper function.
+        (WebFrame::drawHeader): Correct Cairo variation.
+        (WebFrame::drawFooter): Correct Cairo variation.
+        (WebFrame::spoolPages): Correct Cairo variation.
+
+2009-12-13  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for https://bugs.webkit.org/show_bug.cgi?id=32499
+        Add client based Geolocation provider
+
+        Add first cut of a client based Geolocation provider. This is guarded by
+        ENABLE(CLIENT_BASED_GEOLOCATION) and is off by default for now. This adds a
+        GeolocationControllerClient interface that no-one currently implements,
+        but will in a subsequent patch.
+
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2009-12-14  Adam Roben  <aroben@apple.com>
+
+        Change IWebFramePrivate's vtable to be compatible with Safari 4.0.4
+
+        Reviewed by Steve Falkenburg.
+
+        Fixes <http://webkit.org/b/32433> REGRESSION (r51567): Right click on
+        a link element crashes WebKit nightly
+
+        * Interfaces/IWebFramePrivate.idl: Moved pauseSVGAnimation to the end
+        of the interface so the vtable that Safari 4.0.4 sees is unchanged.
+
+2009-12-14  Adam Roben  <aroben@apple.com>
+
+        Build fix
+
+        * WebKit.vcproj/WebKit.vcproj: Added $(DXSDK_DIR)\Lib\x86 to the
+        libpath for all non-Cairo configurations (it was missing from most of
+        them).
+
+2009-12-11  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Jon Honeycutt.
+
+        Added icons for full-screen video on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=31318
+
+        * WebKit.vcproj/WebKit.rc:
+        * WebKit.vcproj/WebKit.vcproj:
+        * WebKit.vcproj/fsVideoAudioVolumeHigh.png: Added.
+        * WebKit.vcproj/fsVideoAudioVolumeLow.png: Added.
+        * WebKit.vcproj/fsVideoExitFullscreen.png: Added.
+        * WebKit.vcproj/fsVideoPause.png: Added.
+        * WebKit.vcproj/fsVideoPlay.png: Added.
+        * WebKit.vcproj/resource.h:
+
+2009-12-11  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Delay load DLLs for accelerated compositing
+        https://bugs.webkit.org/show_bug.cgi?id=31856
+        
+        If the DLLs (d3d9 and QuartzCore). are not present it
+        turns off accelerated compositing and avoids calling 
+        any of the functions in the DLLs.
+
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
 2009-12-10  Jon Honeycutt  <jhoneycutt@apple.com>
 
         Pass more information about a plug-in to the PluginHalterDelegate

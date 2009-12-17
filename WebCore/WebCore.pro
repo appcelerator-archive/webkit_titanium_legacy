@@ -1169,6 +1169,7 @@ SOURCES += \
     page/FrameTree.cpp \
     page/FrameView.cpp \
     page/Geolocation.cpp \
+    page/GeolocationController.cpp \
     page/History.cpp \
     page/Location.cpp \
     page/MouseEventWithHitTestResults.cpp \
@@ -1852,7 +1853,7 @@ HEADERS += \
     page/Chrome.h \
     page/Console.h \
     page/ContextMenuController.h \
-    page/ContextMenuSelectionHandler.h \
+    page/ContextMenuProvider.h \
     page/Coordinates.h \
     page/DOMSelection.h \
     page/DOMTimer.h \
@@ -1965,7 +1966,8 @@ HEADERS += \
     platform/PlatformTouchPoint.h \
     platform/qt/ClipboardQt.h \
     platform/qt/QWebPageClient.h \
-    platform/qt/QWebPopup.h \
+    platform/qt/QtAbstractWebPopup.h \
+    platform/qt/QtFallbackWebPopup.h \
     platform/qt/RenderThemeQt.h \
     platform/qt/ScrollbarThemeQt.h \
     platform/Scrollbar.h \
@@ -2424,7 +2426,8 @@ SOURCES += \
     platform/qt/PlatformTouchEventQt.cpp \
     platform/qt/PlatformTouchPointQt.cpp \
     platform/qt/PopupMenuQt.cpp \
-    platform/qt/QWebPopup.cpp \
+    platform/qt/QtAbstractWebPopup.cpp \
+    platform/qt/QtFallbackWebPopup.cpp \
     platform/qt/RenderThemeQt.cpp \
     platform/qt/ScrollbarQt.cpp \
     platform/qt/ScrollbarThemeQt.cpp \

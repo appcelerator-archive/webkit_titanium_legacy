@@ -27,6 +27,18 @@ media/media-fullscreen-not-in-document.html
 
 # Tests of accessibility functionality not supported on Leopard
 accessibility/aria-list-and-listitem.html
+platform/mac/accessibility/aria-treegrid.html
 
 # This test requires ogg codecs
 media/media-can-play-ogg.html
+
+# This test relies on a JS object getting GC'd, which seems to be less reliable on Leopard.
+fast/workers/dedicated-worker-lifecycle.html
+
+# Disable media tests that depend on controller size/position until
+# <rdar://problem/6502936> Update run-webkit-tests to deal with new media controller look
+# has been fixed
+media/audio-delete-while-slider-thumb-clicked.html
+media/audio-delete-while-step-button-clicked.html
+media/video-controls-visible-audio-only.html
+media/video-controls-zoomed.html

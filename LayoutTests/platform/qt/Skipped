@@ -130,6 +130,7 @@ animations/transform-origin-vs-functions.html
 animations/change-one-anim.html
 fast/frames/sandboxed-iframe-plugins.html
 fast/frames/sandboxed-iframe-scripting.html
+fast/frames/sandboxed-iframe-storage.html
 http/tests/cookies/simple-cookies-max-age.html
 http/tests/xmlhttprequest/workers/close.html
 http/tests/xmlhttprequest/workers/shared-worker-close.html
@@ -233,6 +234,9 @@ inspector/elements-panel-selection-on-refresh.html
 inspector/settings-set-get.html
 inspector/timeline-event-dispatch.html
 inspector/timeline-network-resource.html
+
+# Missing layoutTestController.setSmartInsertDeleteEnabled()
+editing/selection/doubleclick-beside-cr-span.html
 # ============================================================================= #
 
 # ------- missing eventSender.beginDragWithFiles
@@ -258,6 +262,8 @@ fast/events/drag-parent-node.html
 fast/events/drag-and-drop.html
 fast/events/drag-and-drop-dataTransfer-types-nocrash.html
 fast/events/drag-and-drop-fire-drag-dragover.html
+# caused by: http://trac.webkit.org/changeset/52192
+http/tests/misc/drag-over-iframe-invalid-source-crash.html
 
 # ------- broken backgroundOf(el)
 fast/forms/input-live-pseudo-selectors.html
@@ -4858,12 +4864,8 @@ fast/forms/option-mouseevents.html
 fast/forms/search-abs-pos-cancel-button.html
 fast/forms/slider-transformed.html
 fast/forms/slider-zoomed.html
-fast/forms/submit-to-url-fragment.html
 fast/forms/text-control-intrinsic-widths.html
-fast/forms/textarea-hard-linewrap-empty.html
-fast/forms/textarea-linewrap-dynamic.html
 fast/forms/textarea-metrics.html
-fast/forms/textarea-setvalue-submit.html
 fast/history/back-forward-is-asynchronous.html
 fast/history/window-open.html
 fast/loader/cancel-load-during-port-block-timer.html
@@ -4985,7 +4987,6 @@ http/tests/security/cross-frame-access-put.html
 http/tests/security/cross-origin-xsl-BLOCKED.html
 http/tests/security/dataTransfer-set-data-file-url.html
 http/tests/security/drag-over-remote-content-iframe.html
-http/tests/security/escape-form-data-field-names.html
 http/tests/security/host-compare-case-insensitive.html
 http/tests/security/window-properties-clear-domain.html
 http/tests/security/window-properties-clear-port.html
@@ -5177,3 +5178,19 @@ svg/custom/radial-gradient-with-outstanding-focalPoint.svg
 # CONSOLE MESSAGE: line 28: ReferenceError: Trying to access object from destroyed plug-in.
 # This test introduced in r51877
 fast/loader/input-element-page-cache-crash.html
+
+# Missing forward entries when dumping back/forward list.
+# https://bugs.webkit.org/show_bug.cgi?id=32470
+http/tests/navigation/dynamic-iframe-dynamic-form-back-entry.html
+http/tests/navigation/parsed-iframe-dynamic-form-back-entry.html
+
+# This test actually fails in manual testing.
+# It only passed automatic testing due to a bug in Qt's DRT, filed
+# under https://bugs.webkit.org/show_bug.cgi?id=32437.
+# The bug with this test is tracked under https://bugs.webkit.org/show_bug.cgi?id=32521
+http/tests/xmlhttprequest/access-control-basic-denied-preflight-cache.html
+
+# Bug 32519 -  mouseEvent fires mutiple times in 
+#              LayoutTests/svg/custom/use-instanceRoot-as-event-target.xhtml
+# https://bugs.webkit.org/show_bug.cgi?id=32519
+svg/custom/use-instanceRoot-as-event-target.xhtml

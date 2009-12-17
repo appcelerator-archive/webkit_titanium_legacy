@@ -507,15 +507,15 @@ Document::~Document()
         m_styleSheets->documentDestroyed();
 }
 
+#if USE(JSC)
 Document::JSWrapperCache* Document::createWrapperCache(DOMWrapperWorld* world)
 {
     JSWrapperCache* wrapperCache = new JSWrapperCache();
     m_wrapperCacheMap.set(world, wrapperCache);
-#if USE(JSC)
     world->rememberDocument(this);
-#endif
     return wrapperCache;
 }
+#endif
 
 void Document::resetLinkColor()
 {
@@ -1724,7 +1724,8 @@ void Document::implicitClose()
     if (f)
         f->animation()->resumeAnimations(this);
 
-    ImageLoader::dispatchPendingEvents();
+    ImageLoader::dispatchPendingBeforeLoadEvents();
+    ImageLoader::dispatchPendingLoadEvents();
     dispatchWindowLoadEvent();
     dispatchWindowEvent(PageTransitionEvent::create(eventNames().pageshowEvent, false), this);
     if (m_pendingStateObject)

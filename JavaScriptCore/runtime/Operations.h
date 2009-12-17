@@ -37,6 +37,11 @@ namespace JSC {
 
     ALWAYS_INLINE JSValue jsString(ExecState* exec, JSString* s1, JSString* s2)
     {
+        if (!s1->length())
+            return s2;
+        if (!s2->length())
+            return s1;
+
         unsigned ropeLength = s1->ropeLength() + s2->ropeLength();
         JSGlobalData* globalData = &exec->globalData();
 
@@ -49,6 +54,42 @@ namespace JSC {
             return throwOutOfMemoryError(exec);
         rope->append(index, s1);
         rope->append(index, s2);
+        ASSERT(index == ropeLength);
+        return new (globalData) JSString(globalData, rope.release());
+    }
+
+    ALWAYS_INLINE JSValue jsString(ExecState* exec, const UString& u1, JSString* s2)
+    {
+        unsigned ropeLength = 1 + s2->ropeLength();
+        JSGlobalData* globalData = &exec->globalData();
+
+        if (ropeLength <= JSString::s_maxInternalRopeLength)
+            return new (globalData) JSString(globalData, ropeLength, u1, s2);
+
+        unsigned index = 0;
+        RefPtr<JSString::Rope> rope = JSString::Rope::createOrNull(ropeLength);
+        if (UNLIKELY(!rope))
+            return throwOutOfMemoryError(exec);
+        rope->append(index, u1);
+        rope->append(index, s2);
+        ASSERT(index == ropeLength);
+        return new (globalData) JSString(globalData, rope.release());
+    }
+
+    ALWAYS_INLINE JSValue jsString(ExecState* exec, JSString* s1, const UString& u2)
+    {
+        unsigned ropeLength = s1->ropeLength() + 1;
+        JSGlobalData* globalData = &exec->globalData();
+
+        if (ropeLength <= JSString::s_maxInternalRopeLength)
+            return new (globalData) JSString(globalData, ropeLength, s1, u2);
+
+        unsigned index = 0;
+        RefPtr<JSString::Rope> rope = JSString::Rope::createOrNull(ropeLength);
+        if (UNLIKELY(!rope))
+            return throwOutOfMemoryError(exec);
+        rope->append(index, s1);
+        rope->append(index, u2);
         ASSERT(index == ropeLength);
         return new (globalData) JSString(globalData, rope.release());
     }
@@ -84,6 +125,43 @@ namespace JSC {
         }
 
         ASSERT(index == ropeLength);
+        return new (globalData) JSString(globalData, rope.release());
+    }
+
+    ALWAYS_INLINE JSValue jsString(ExecState* exec, JSValue thisValue, const ArgList& args)
+    {
+        unsigned ropeLength = 0;
+        if (LIKELY(thisValue.isString()))
+            ropeLength += asString(thisValue)->ropeLength();
+        else
+            ++ropeLength;
+        for (unsigned i = 0; i < args.size(); ++i) {
+            JSValue v = args.at(i);
+            if (LIKELY(v.isString()))
+                ropeLength += asString(v)->ropeLength();
+            else
+                ++ropeLength;
+        }
+
+        RefPtr<JSString::Rope> rope = JSString::Rope::createOrNull(ropeLength);
+        if (UNLIKELY(!rope))
+            return throwOutOfMemoryError(exec);
+
+        unsigned index = 0;
+        if (LIKELY(thisValue.isString()))
+            rope->append(index, asString(thisValue));
+        else
+            rope->append(index, thisValue.toString(exec));
+        for (unsigned i = 0; i < args.size(); ++i) {
+            JSValue v = args.at(i);
+            if (LIKELY(v.isString()))
+                rope->append(index, asString(v));
+            else
+                rope->append(index, v.toString(exec));
+        }
+        ASSERT(index == ropeLength);
+
+        JSGlobalData* globalData = &exec->globalData();
         return new (globalData) JSString(globalData, rope.release());
     }
 
@@ -247,30 +325,14 @@ namespace JSC {
 
     ALWAYS_INLINE JSValue jsAdd(CallFrame* callFrame, JSValue v1, JSValue v2)
     {
-        double left;
-        double right = 0.0;
-
-        bool rightIsNumber = v2.getNumber(right);
-        if (rightIsNumber && v1.getNumber(left))
+        double left = 0.0, right;
+        if (v1.getNumber(left) && v2.getNumber(right))
             return jsNumber(callFrame, left + right);
         
-        bool leftIsString = v1.isString();
-        if (leftIsString && v2.isString()) {
-            if (!asString(v1)->length())
-                return asString(v2);
-            if (!asString(v2)->length())
-                return asString(v1);
-            return jsString(callFrame, asString(v1), asString(v2));
-        }
-
-        if (rightIsNumber & leftIsString) {
-            RefPtr<UString::Rep> value = v2.isInt32() ?
-                concatenate(asString(v1)->value(callFrame).rep(), v2.asInt32()) :
-                concatenate(asString(v1)->value(callFrame).rep(), right);
-
-            if (!value)
-                return throwOutOfMemoryError(callFrame);
-            return jsString(callFrame, value.release());
+        if (v1.isString()) {
+            return v2.isString()
+                ? jsString(callFrame, asString(v1), asString(v2))
+                : jsString(callFrame, asString(v1), v2.toPrimitiveString(callFrame));
         }
 
         // All other cases are pretty uncommon

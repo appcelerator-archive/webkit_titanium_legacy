@@ -45,7 +45,8 @@ WebInspector.ConsoleView = function(drawer)
     this.messagesElement.addEventListener("click", this._messagesClicked.bind(this), true);
 
     this.promptElement = document.getElementById("console-prompt");
-    this.promptElement.handleKeyEvent = this._promptKeyDown.bind(this);
+    this.promptElement.className = "source-code";
+    this.promptElement.addEventListener("keydown", this._promptKeyDown.bind(this), true);
     this.prompt = new WebInspector.TextPrompt(this.promptElement, this.completions.bind(this), ExpressionStopCharacters + ".");
 
     this.topGroup = new WebInspector.ConsoleGroup(null, 0);
@@ -91,14 +92,20 @@ WebInspector.ConsoleView = function(drawer)
     this._shortcuts = {};
 
     var shortcut;
-    var handler = this.clearMessages.bind(this, true);
+    var clearConsoleHandler = this.clearMessages.bind(this, true);
 
     shortcut = WebInspector.KeyboardShortcut.makeKey("k", WebInspector.KeyboardShortcut.Modifiers.Meta);
-    this._shortcuts[shortcut] = handler;
+    this._shortcuts[shortcut] = clearConsoleHandler;
     this._shortcuts[shortcut].isMacOnly = true;
     shortcut = WebInspector.KeyboardShortcut.makeKey("l", WebInspector.KeyboardShortcut.Modifiers.Ctrl);
-    this._shortcuts[shortcut] = handler;
+    this._shortcuts[shortcut] = clearConsoleHandler;
 
+    // Since the Context Menu for the Console View will always be the same, we can create it in
+    // the constructor.
+    this._contextMenu = new WebInspector.ContextMenu();
+    this._contextMenu.appendItem(WebInspector.UIString("Clear Console"), clearConsoleHandler);
+    this.messagesElement.addEventListener("contextmenu", this._handleContextMenuEvent.bind(this), true);
+    
     this._customFormatters = {
         "object": this._formatobject,
         "array":  this._formatarray,
@@ -370,6 +377,17 @@ WebInspector.ConsoleView.prototype = {
     {
         this.clearMessages(true);
     },
+    
+    _handleContextMenuEvent: function(event)
+    {
+        if (!window.getSelection().isCollapsed) {
+            // If there is a selection, we want to show our normal context menu
+            // (with Copy, etc.), and not Clear Console.
+            return;
+        }
+
+        this._contextMenu.show(event);
+    },
 
     _messagesSelectStart: function(event)
     {
@@ -407,13 +425,6 @@ WebInspector.ConsoleView.prototype = {
             return;
         }
 
-        if (isFnKey(event)) {
-            if (WebInspector.currentPanel && WebInspector.currentPanel.handleKeyEvent) {
-                WebInspector.currentPanel.handleKeyEvent(event);
-                return;
-            }
-        }
-
         var shortcut = WebInspector.KeyboardShortcut.makeKeyFromEvent(event);
         var handler = this._shortcuts[shortcut];
         if (handler) {
@@ -423,8 +434,6 @@ WebInspector.ConsoleView.prototype = {
                 return;
             }
         }
-
-        this.prompt.handleKeyEvent(event);
     },
 
     evalInInspectedWindow: function(expression, objectGroup, callback)
@@ -491,7 +500,7 @@ WebInspector.ConsoleView.prototype = {
         }
 
         var span = document.createElement("span");
-        span.addStyleClass("console-formatted-" + type);
+        span.className = "console-formatted-" + type + " source-code";
         formatter.call(this, output, span);
         return span;
     },
@@ -579,7 +588,7 @@ WebInspector.ConsoleMessage.prototype = {
         switch (this.type) {
             case WebInspector.ConsoleMessage.MessageType.Trace:
                 var span = document.createElement("span");
-                span.addStyleClass("console-formatted-trace");
+                span.className = "console-formatted-trace source-code";
                 var stack = Array.prototype.slice.call(args);
                 var funcNames = stack.map(function(f) {
                     return f || WebInspector.UIString("(anonymous function)");
@@ -757,7 +766,7 @@ WebInspector.ConsoleMessage.prototype = {
         }
 
         var messageTextElement = document.createElement("span");
-        messageTextElement.className = "console-message-text";
+        messageTextElement.className = "console-message-text source-code";
         if (this.type === WebInspector.ConsoleMessage.MessageType.Assert)
             messageTextElement.appendChild(document.createTextNode(WebInspector.UIString("Assertion failed: ")));
         messageTextElement.appendChild(this.formattedMessage);
@@ -904,7 +913,7 @@ WebInspector.ConsoleCommand.prototype = {
         element.className = "console-user-command";
 
         var commandTextElement = document.createElement("span");
-        commandTextElement.className = "console-message-text";
+        commandTextElement.className = "console-message-text source-code";
         commandTextElement.textContent = this.command;
         element.appendChild(commandTextElement);
 

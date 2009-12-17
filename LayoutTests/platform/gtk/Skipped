@@ -1603,6 +1603,7 @@ fast/block/float/float-avoidance.html
 fast/block/float/float-in-float-hit-testing.html
 fast/block/float/float-in-float-painting.html
 fast/block/float/float-on-zero-height-line.html
+fast/block/float/in-margin.html
 fast/block/float/independent-align-positioning.html
 fast/block/float/intruding-painted-twice.html
 fast/block/float/marquee-shrink-to-avoid-floats.html
@@ -3695,7 +3696,6 @@ svg/custom/svg-disallowed-in-dashboard-object.html
 svg/custom/svg-fonts-in-text-controls.html
 svg/custom/use-elementInstance-event-target.svg
 svg/custom/use-elementInstance-methods.svg
-svg/custom/use-instanceRoot-as-event-target.xhtml
 svg/custom/use-instanceRoot-event-listeners.xhtml
 svg/custom/use-setAttribute-crash.svg
 #   Tests generating new results
@@ -5455,6 +5455,7 @@ svg/filters/feMerge.svg
 svg/filters/feMerge-wrong-input.svg
 svg/filters/feOffset.svg
 svg/filters/feTile.svg
+svg/filters/filter-source-position.svg
 svg/filters/sourceAlpha.svg
 svg/filters/subRegion-in-userSpace.svg
 
@@ -5503,6 +5504,7 @@ http/tests/security/isolatedWorld/click-event.html
 http/tests/security/isolatedWorld/document-open.html
 http/tests/security/isolatedWorld/document-properties.html
 http/tests/security/isolatedWorld/document-prototype.html
+http/tests/security/isolatedWorld/events.html
 http/tests/security/isolatedWorld/global-variables.html
 http/tests/security/isolatedWorld/image-properties.html
 http/tests/security/isolatedWorld/image-prototype.html
@@ -5537,6 +5539,7 @@ editing/selection/find-in-text-control.html
 editing/selection/move-left-right.html
 
 # Missing DRT ability to override 'standard' preferences.
+editing/selection/doubleclick-beside-cr-span.html
 fast/dom/Window/timer-resume-on-navigation-back.html
 fast/harness/use-page-cache.html
 fast/loader/input-element-page-cache-crash.html
@@ -5685,9 +5688,6 @@ fast/repaint/inline-relative-positioned.html
 # See https://bugs.webkit.org/show_bug.cgi?id=31433
 plugins/document-open.html
 
-# See https://bugs.webkit.org/show_bug.cgi?id=31434
-media/video-played-collapse.html
-
 # See https://bugs.webkit.org/show_bug.cgi?id=31435
 fast/forms/input-radio-checked-tab.html
 fast/forms/tabs-with-modifiers.html
@@ -5721,6 +5721,7 @@ editing/selection/5825350-2.html
 fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll.html
 fast/loader/stateobjects/document-destroyed-navigate-back.html
 http/tests/loading/state-object-security-exception.html
+http/tests/security/mixedContent/empty-url-plugin-in-frame.html
 
 # Fails because of new behaviour enforced by libsoup
 # See: https://bugzilla.gnome.org/show_bug.cgi?id=603825
@@ -5728,3 +5729,16 @@ fast/cookies/local-file-can-set-cookies.html
 
 # This test requires touch support
 fast/events/basic-touch-events.html
+
+# Javascript execution/mainloop problem
+# See https://bugs.webkit.org/show_bug.cgi?id=32441
+fast/parser/xhtml-close-while-parsing.xhtml
+
+# Bug 32519 -  mouseEvent fires mutiple times in
+#              LayoutTests/svg/custom/use-instanceRoot-as-event-target.xhtml
+# https://bugs.webkit.org/show_bug.cgi?id=32519
+svg/custom/use-instanceRoot-as-event-target.xhtml
+
+# https://bugs.webkit.org/show_bug.cgi?id=32604
+# Fails on the release bot because of, apparently, rouding errors
+svg/custom/path-getTotalLength.svg

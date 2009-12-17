@@ -1,3 +1,116 @@
+2009-12-16  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Unreviewed, build fix.
+
+        [Chromium] Add EditableTextRole to catch up with
+        http://trac.webkit.org/changeset/52233
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::): Added WebAccessibilityRoleEditableText
+        * src/AssertMatchingEnums.cpp: Added matching compile assert.
+
+2009-12-15  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Darin Fisher.
+
+        Don't allow default framebuffer to be mutated
+        https://bugs.webkit.org/show_bug.cgi?id=32391
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::reshape):
+        (WebCore::GraphicsContext3DInternal::beginPaint):
+        (WebCore::GraphicsContext3DInternal::bindFramebuffer):
+        (WebCore::GraphicsContext3D::bindFramebuffer):
+
+2009-12-15  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Unreviewed, build fix.
+
+        [Chromium] Add TreeGridRole to catch up with
+        http://trac.webkit.org/changeset/52159.
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::): Added WebAccessibilityRoleTreeGrid.
+        * src/AssertMatchingEnums.cpp: Added matching compile assert.
+
+2009-12-15  Jian Li  <jianli@chromium.org>
+
+        Reviewed by Dmitry Titov.
+
+        Bug 31090 - [Chromium] Add DownloadURL format to Chromium clipboard.
+        https://bugs.webkit.org/show_bug.cgi?id=31090
+
+        The proposal to whatwg can be found here:
+        http://lists.whatwg.org/htdig.cgi/whatwg-whatwg.org/2009-August/022118.html
+
+        * public/WebDragData.h:
+        * src/WebDragData.cpp:
+        (WebKit::WebDragData::downloadURL):
+        (WebKit::WebDragData::setDownloadURL):
+
+2009-12-14  Evan Stade  <estade@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32347
+        Chromium: Context menu launched by menu key has funky behavior
+
+        Make the context menu's position depend on the selection only when an
+        editable field has focus. Also, don't send multiple context menu events
+        for a single keypress.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::keyEvent):
+        (WebKit::WebViewImpl::sendContextMenuEvent):
+
+2009-12-13  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for https://bugs.webkit.org/show_bug.cgi?id=32499
+        Add client based Geolocation provider
+
+        Add first cut of a client based Geolocation provider. This is guarded by
+        ENABLE(CLIENT_BASED_GEOLOCATION) and is off by default for now. This adds a
+        GeolocationControllerClient interface that no-one currently implements,
+        but will in a subsequent patch.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::WebViewImpl):
+
+2009-12-13  Charles Reis  <creis@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Refactor some security code out of V8 bindings
+        https://bugs.webkit.org/show_bug.cgi?id=32326
+
+        * src/WebBindings.cpp:
+        (WebKit::getDragDataImpl):
+
+2009-12-11  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Expose shouldHideReferrer() in WebSecurityPolicy.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32398
+
+        * public/WebSecurityPolicy.h: Add shouldHideReferrer().
+        * src/WebSecurityPolicy.cpp:
+        (WebKit:: WebSecurityPolicy::shouldHideReferrer): Added.
+
+2009-12-11  Avi Drissman  <avi@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Tickmarks in the scrollbar are not cleared for non-main frames
+        https://bugs.webkit.org/show_bug.cgi?id=32385
+
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrameImpl::stopFinding):
+
 2009-12-11  Yury Semikhatsky  <yurys@chromium.org>
 
         Reviewed by Pavel Feldman.

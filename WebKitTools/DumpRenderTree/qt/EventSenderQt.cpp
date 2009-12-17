@@ -67,8 +67,10 @@ void EventSender::mouseDown(int button)
         break;
     }
 
+    m_mouseButtons |= mouseButton;
+
 //     qDebug() << "EventSender::mouseDown" << frame;
-    QMouseEvent event(QEvent::MouseButtonPress, m_mousePos, mouseButton, mouseButton, Qt::NoModifier);
+    QMouseEvent event(QEvent::MouseButtonPress, m_mousePos, m_mousePos, mouseButton, m_mouseButtons, Qt::NoModifier);
     QApplication::sendEvent(m_page, &event);
 }
 
@@ -94,8 +96,10 @@ void EventSender::mouseUp(int button)
         break;
     }
 
+    m_mouseButtons &= ~mouseButton;
+
 //     qDebug() << "EventSender::mouseUp" << frame;
-    QMouseEvent event(QEvent::MouseButtonRelease, m_mousePos, mouseButton, mouseButton, Qt::NoModifier);
+    QMouseEvent event(QEvent::MouseButtonRelease, m_mousePos, m_mousePos, mouseButton, m_mouseButtons, Qt::NoModifier);
     QApplication::sendEvent(m_page, &event);
 }
 
@@ -103,7 +107,7 @@ void EventSender::mouseMoveTo(int x, int y)
 {
 //     qDebug() << "EventSender::mouseMoveTo" << x << y;
     m_mousePos = QPoint(x, y);
-    QMouseEvent event(QEvent::MouseMove, m_mousePos, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QMouseEvent event(QEvent::MouseMove, m_mousePos, m_mousePos, Qt::NoButton, m_mouseButtons, Qt::NoModifier);
     QApplication::sendEvent(m_page, &event);
 }
 
@@ -251,60 +255,94 @@ void EventSender::scheduleAsynchronousClick()
     QApplication::postEvent(m_page, event2);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
-
 void EventSender::addTouchPoint(int x, int y)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     int id = m_touchPoints.count();
     QTouchEvent::TouchPoint point(id);
     m_touchPoints.append(point);
     updateTouchPoint(id, x, y);
     m_touchPoints[id].setState(Qt::TouchPointPressed);
+#endif
 }
 
 void EventSender::updateTouchPoint(int index, int x, int y)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     if (index < 0 || index >= m_touchPoints.count())
         return;
 
     QTouchEvent::TouchPoint &p = m_touchPoints[index];
     p.setPos(QPointF(x, y));
     p.setState(Qt::TouchPointMoved);
+#endif
+}
+
+void EventSender::setTouchModifier(const QString &modifier, bool enable)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    Qt::KeyboardModifier mod = Qt::NoModifier;
+    if (!modifier.compare(QLatin1String("shift"), Qt::CaseInsensitive))
+        mod = Qt::ShiftModifier;
+    else if (!modifier.compare(QLatin1String("alt"), Qt::CaseInsensitive))
+        mod = Qt::AltModifier;
+    else if (!modifier.compare(QLatin1String("meta"), Qt::CaseInsensitive))
+        mod = Qt::MetaModifier;
+    else if (!modifier.compare(QLatin1String("ctrl"), Qt::CaseInsensitive))
+        mod = Qt::ControlModifier;
+
+    if (enable)
+        m_touchModifiers |= mod;
+    else
+        m_touchModifiers &= ~mod;
+#endif
 }
 
 void EventSender::touchStart()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     sendTouchEvent(QEvent::TouchBegin);
+#endif
 }
 
 void EventSender::touchMove()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     sendTouchEvent(QEvent::TouchUpdate);
+#endif
 }
 
 void EventSender::touchEnd()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     for (int i = 0; i < m_touchPoints.count(); ++i)
         m_touchPoints[i].setState(Qt::TouchPointReleased);
     sendTouchEvent(QEvent::TouchEnd);
+#endif
 }
 
 void EventSender::clearTouchPoints()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     m_touchPoints.clear();
+    m_touchModifiers = Qt::KeyboardModifiers();
+#endif
 }
 
 void EventSender::releaseTouchPoint(int index)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     if (index < 0 || index >= m_touchPoints.count())
         return;
 
     m_touchPoints[index].setState(Qt::TouchPointReleased);
+#endif
 }
 
 void EventSender::sendTouchEvent(QEvent::Type type)
 {
-    QTouchEvent event(type);
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
+    QTouchEvent event(type, QTouchEvent::TouchScreen, m_touchModifiers);
     event.setTouchPoints(m_touchPoints);
     QApplication::sendEvent(m_page, &event);
     QList<QTouchEvent::TouchPoint>::Iterator it = m_touchPoints.begin();
@@ -316,9 +354,8 @@ void EventSender::sendTouchEvent(QEvent::Type type)
             ++it;
         }
     }
-}
-
 #endif
+}
 
 QWebFrame* EventSender::frameUnderMouse() const
 {

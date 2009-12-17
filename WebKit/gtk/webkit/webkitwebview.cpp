@@ -227,8 +227,28 @@ static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webVie
     if (!handledEvent)
         return FALSE;
 
+    // If coreMenu is NULL, this means WebCore decided to not create
+    // the default context menu; this may still mean that the frame
+    // wants to consume the event - this happens when the page is
+    // handling the right-click for reasons other than a context menu,
+    // so we give it to it.
     ContextMenu* coreMenu = page->contextMenuController()->contextMenu();
-    if (!coreMenu)
+    if (!coreMenu) {
+        Frame* frame = core(webView)->mainFrame();
+        if (frame->view() && frame->eventHandler()->handleMousePressEvent(PlatformMouseEvent(event)))
+            return TRUE;
+
+        return FALSE;
+    }
+
+    // If we reach here, it's because WebCore is going to show the
+    // default context menu. We check our setting to figure out
+    // whether we want it or not.
+    WebKitWebSettings* settings = webkit_web_view_get_settings(webView);
+    gboolean enableDefaultContextMenu;
+    g_object_get(settings, "enable-default-context-menu", &enableDefaultContextMenu, NULL);
+
+    if (!enableDefaultContextMenu)
         return FALSE;
 
     GtkMenu* menu = GTK_MENU(coreMenu->platformDescription());
@@ -1633,6 +1653,8 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
      * @frame: the frame going to do the load
      *
      * When a #WebKitWebFrame begins to load this signal is emitted.
+     *
+     * Deprecated: Use the "load-status" property instead.
      */
     webkit_web_view_signals[LOAD_STARTED] = g_signal_new("load-started",
             G_TYPE_FROM_CLASS(webViewClass),
@@ -1650,6 +1672,8 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
      * @frame: the main frame that received the first data
      *
      * When a #WebKitWebFrame loaded the first data this signal is emitted.
+     *
+     * Deprecated: Use the "load-status" property instead.
      */
     webkit_web_view_signals[LOAD_COMMITTED] = g_signal_new("load-committed",
             G_TYPE_FROM_CLASS(webViewClass),
@@ -1666,6 +1690,8 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
      * WebKitWebView::load-progress-changed:
      * @web_view: the #WebKitWebView
      * @progress: the global progress
+     *
+     * Deprecated: Use the "progress" property instead.
      */
     webkit_web_view_signals[LOAD_PROGRESS_CHANGED] = g_signal_new("load-progress-changed",
             G_TYPE_FROM_CLASS(webViewClass),
@@ -1702,6 +1728,13 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
             G_TYPE_STRING,
             G_TYPE_POINTER);
 
+    /**
+     * WebKitWebView::load-finished:
+     * @web_view: the #WebKitWebView
+     * @frame: the #WebKitWebFrame
+     *
+     * Deprecated: Use the "load-status" property instead.
+     */
     webkit_web_view_signals[LOAD_FINISHED] = g_signal_new("load-finished",
             G_TYPE_FROM_CLASS(webViewClass),
             (GSignalFlags)G_SIGNAL_RUN_LAST,
@@ -2448,6 +2481,8 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
     *
     * Determines the current status of the load.
     *
+    * Connect to "notify::load-status" to monitor loading.
+    *
     * Since: 1.1.7
     */
     g_object_class_install_property(objectClass, PROP_LOAD_STATUS,
@@ -2668,7 +2703,7 @@ static void webkit_web_view_init(WebKitWebView* webView)
     priv->imContext = gtk_im_multicontext_new();
 
     WebKit::InspectorClient* inspectorClient = new WebKit::InspectorClient(webView);
-    priv->corePage = new Page(new WebKit::ChromeClient(webView), new WebKit::ContextMenuClient(webView), new WebKit::EditorClient(webView), new WebKit::DragClient(webView), inspectorClient, 0);
+    priv->corePage = new Page(new WebKit::ChromeClient(webView), new WebKit::ContextMenuClient(webView), new WebKit::EditorClient(webView), new WebKit::DragClient(webView), inspectorClient, 0, 0);
 
     // We also add a simple wrapper class to provide the public
     // interface for the Web Inspector.

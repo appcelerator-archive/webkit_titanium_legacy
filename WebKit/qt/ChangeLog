@@ -1,3 +1,156 @@
+2009-12-17  Kim Grönholm  <kim.gronholm@nomovok.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Add support for mocking touch events with QtLauncher
+        https://bugs.webkit.org/show_bug.cgi?id=32434
+
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow):
+        (MainWindow::sendTouchEvent):
+        (MainWindow::eventFilter):
+        (MainWindow::setTouchMocking):
+        (MainWindow::setupUI):
+
+2009-12-14  Holger Hans Peter Freyther  <zecke@selfish.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Fix JavaScript prompt behavior for empty/null strings.
+        https://bugs.webkit.org/show_bug.cgi?id=30914
+
+        The patch is based on the work done by Gupta Manish.
+
+        In the default implementation of the JavaScript prompt
+        we are using a QInputDialog to get the text and this has
+        one quirk with regard to not entering any text.
+
+        In other WebKit ports and in Firefox an empty string is
+        returned but in the Qt case it is a null string.
+
+        Change the API documentation in QWebPage to mention we want to
+        have a non null string but do the fixup in the ChromeClientQt
+        to support existing code.
+
+        * Api/qwebpage.cpp:
+        (QWebPage::javaScriptPrompt): Change API documentation
+        * WebCoreSupport/ChromeClientQt.cpp:
+        (WebCore::ChromeClientQt::runJavaScriptPrompt): Fixup null QString
+
+2009-11-24  Holger Hans Peter Freyther  <zecke@selfish.org>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Do not disable the inspector on show and hide
+        https://bugs.webkit.org/show_bug.cgi?id=31851
+
+        On Qt/X11 with some window managers the window will be
+        hidden when switching windows. In this case all the results
+        are gone when coming back to the window.
+
+        Attempt to use the CloseEvent to figure out if the window
+        was closed and withdrawn as this is more friendly to the
+        user of the inspector client.
+
+        * Api/qwebinspector.cpp:
+        (QWebInspector::hideEvent):
+        (QWebInspector::closeEvent):
+        * Api/qwebinspector.h:
+
+2009-12-14  Benjamin Poulain  <benjamin.poulain@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Improve the autotests of QtWebkit
+        https://bugs.webkit.org/show_bug.cgi?id=32216
+
+        Refactor tst_qwebelement to remove the qWait()
+
+        * tests/qwebelement/tst_qwebelement.cpp:
+        (tst_QWebElement::style):
+
+2009-12-14  Andreas Kling  <andreas.kling@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Fix the QWebPage inputMethods() autotest after r51758
+        to compare the Qt::ImFont property's family against an explicitly
+        previously configured family.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32491
+
+        * tests/qwebpage/tst_qwebpage.cpp:
+        (tst_QWebPage::inputMethods):
+
+2009-12-13  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for https://bugs.webkit.org/show_bug.cgi?id=32499
+        Add client based Geolocation provider
+
+        Add first cut of a client based Geolocation provider. This is guarded by
+        ENABLE(CLIENT_BASED_GEOLOCATION) and is off by default for now. This adds a
+        GeolocationControllerClient interface that no-one currently implements,
+        but will in a subsequent patch.
+
+        * Api/qwebpage.cpp:
+        (QWebPagePrivate::QWebPagePrivate):
+
+2009-12-13  Benjamin Poulain  <benjamin.poulain@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Add a test in Qt for https://bugs.webkit.org/show_bug.cgi?id=29005
+        https://bugs.webkit.org/show_bug.cgi?id=29008
+
+        * tests/qwebframe/tst_qwebframe.cpp:
+
+2009-12-13  Simon Hausmann  <hausmann@webkit.org>
+
+        Reviewed by Holger Freyther.
+
+        [Qt] Re-enable QWebView::renderHints property for Qt for Symbian
+
+        https://bugs.webkit.org/show_bug.cgi?id=28273
+
+        The bug in Qt's moc that triggered a linking error when declaring this
+        property has been fixed and we can remove the workaround.
+
+        * Api/qwebview.h:
+
+2009-12-11  Yael Aharon  <yael.aharon@nokia.com>
+
+        Unreviewed build fix for Qt versions < 4.6.
+
+        * tests/qwebframe/tst_qwebframe.cpp:
+        * tests/qwebview/tst_qwebview.cpp:
+        (tst_QWebView::reusePage):
+
+2009-12-11  Girish Ramakrishnan  <girish@forwardbias.in>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Updated QWebElement documentation
+        
+        findAll() returns a QWebElementCollection, not QList<QWebElement>.
+
+        * docs/webkitsnippets/webelement/main.cpp:
+        (findAll):
+
+2009-12-11  Simon Hausmann  <hausmann@webkit.org>, Kim Grönholm  <kim.gronholm@nomovok.com>
+
+        Reviewed by Antti Koivisto.
+
+        Forward Qt touch events to the event handler as platform touch events.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32114
+
+        * Api/qwebpage.cpp:
+        (QWebPagePrivate::touchEvent):
+        (QWebPage::event):
+        * Api/qwebpage_p.h:
+
 2009-12-07  Benjamin Poulain  <benjamin.poulain@nokia.com>
 
         Reviewed by Kenneth Rohde Christiansen.

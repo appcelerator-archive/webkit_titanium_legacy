@@ -401,7 +401,7 @@ END
     HolderToNative($dataNode, $implClassName, $classIndex);
 
     push(@implContentDecls, <<END);
-    if (!V8Proxy::canAccessFrame(imp->frame(), false)) {
+    if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), false)) {
       static v8::Persistent<v8::FunctionTemplate> shared_template =
         v8::Persistent<v8::FunctionTemplate>::New($newTemplateString);
       return shared_template->GetFunction();
@@ -548,9 +548,9 @@ END
 
     # Generate security checks if necessary
     if ($attribute->signature->extendedAttributes->{"CheckNodeSecurity"}) {
-        push(@implContentDecls, "    if (!V8Proxy::checkNodeSecurity(imp->$attrName())) return v8::Handle<v8::Value>();\n\n");
+        push(@implContentDecls, "    if (!V8BindingSecurity::checkNodeSecurity(V8BindingState::Only(), imp->$attrName())) return v8::Handle<v8::Value>();\n\n");
     } elsif ($attribute->signature->extendedAttributes->{"CheckFrameSecurity"}) {
-        push(@implContentDecls, "    if (!V8Proxy::checkNodeSecurity(imp->contentDocument())) return v8::Handle<v8::Value>();\n\n");
+        push(@implContentDecls, "    if (!V8BindingSecurity::checkNodeSecurity(V8BindingState::Only(), imp->contentDocument())) return v8::Handle<v8::Value>();\n\n");
     }
 
     my $useExceptions = 1 if @{$attribute->getterExceptions} and !($isPodType);
@@ -898,7 +898,7 @@ END
        && !$function->signature->extendedAttributes->{"DoNotCheckDomainSecurity"}) {
     # We have not find real use cases yet.
     push(@implContentDecls,
-"    if (!V8Proxy::canAccessFrame(imp->frame(), true)) {\n".
+"    if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), true)) {\n".
 "      return v8::Handle<v8::Value>();\n" .
 "    }\n");
     }
@@ -930,7 +930,7 @@ END
     }
     if ($function->signature->extendedAttributes->{"SVGCheckSecurityDocument"}) {
         push(@implContentDecls,
-"    if (!V8Proxy::checkNodeSecurity(imp->getSVGDocument(ec)))\n" .
+"    if (!V8BindingSecurity::checkNodeSecurity(V8BindingState::Only(), imp->getSVGDocument(ec)))\n" .
 "      return v8::Handle<v8::Value>();\n");
     }
 
@@ -1127,6 +1127,70 @@ sub GenerateSingleBatchedAttribute
 END
 }
 
+sub GenerateImplementationIndexer
+{
+    my $dataNode = shift;
+    my $indexer = shift;
+    my $interfaceName = $dataNode->name;
+
+    if ($dataNode->extendedAttributes->{"HasIndexGetter"}) {
+        $implIncludes{"V8Collection.h"} = 1;
+        if (!$dataNode->extendedAttributes->{"HasCustomIndexGetter"}) {
+            if ($indexer->type eq "DOMString") {
+                my $conversion = $indexer->extendedAttributes->{"ConvertNullStringTo"};
+                if ($conversion && $conversion eq "Null") {
+                    push(@implContent, <<END);
+  setCollectionStringOrNullIndexedGetter<${interfaceName}>(desc);
+END
+                } else {
+                    push(@implContent, <<END);
+  setCollectionStringIndexedGetter<${interfaceName}>(desc);
+END
+                }
+            } else {
+                my $indexerType = $indexer->type;
+                my $indexerClassIndex = uc($indexerType);
+                push(@implContent, <<END);
+  setCollectionIndexedGetter<${interfaceName}, ${indexerType}>(desc, V8ClassIndex::${indexerClassIndex});
+END
+            }
+        }
+    }
+}
+
+sub GenerateImplementationNamedPropertyGetter
+{
+    my $dataNode = shift;
+    my $namedPropertyGetter = shift;
+    my $interfaceName = $dataNode->name;
+
+    my $hasGetter = $dataNode->extendedAttributes->{"HasNameGetter"} || $namedPropertyGetter;
+    if (!$hasGetter) {
+        return;
+    }
+
+    if ($namedPropertyGetter && $namedPropertyGetter->type ne "Node" && !$namedPropertyGetter->extendedAttributes->{"Custom"}) {
+        $implIncludes{"V8Collection.h"} = 1;
+        my $type = $namedPropertyGetter->type;
+        my $classIndex = uc($type);
+        push(@implContent, <<END);
+  setCollectionNamedGetter<${interfaceName}, ${type}>(desc, V8ClassIndex::${classIndex});
+END
+        return;
+    }
+
+    my $hasSetter = $dataNode->extendedAttributes->{"DelegatingPutFunction"};
+    my $hasDeleter = $dataNode->extendedAttributes->{"CustomDeleteProperty"};
+    my $hasEnumerator = $dataNode->extendedAttributes->{"CustomGetPropertyNames"};
+
+    push(@implContent, "  desc->InstanceTemplate()->SetNamedPropertyHandler(V8Custom::v8${interfaceName}NamedPropertyGetter, ");
+    push(@implContent, $hasSetter ? "V8Custom::v8${interfaceName}NamedPropertySetter, " : "0, ");
+    push(@implContent, "0 ,"); # NamedPropertyQuery -- not being used at the moment.
+    push(@implContent, $hasDeleter ? "V8Custom::v8${interfaceName}NamedPropertyDeleter, " : "0, ");
+    push(@implContent, $hasEnumerator ? "V8Custom::v8${interfaceName}NamedPropertyEnumerator" : "0");
+    push(@implContent, ");\n");
+}
+
 sub GenerateImplementation
 {
     my $object = shift;
@@ -1145,7 +1209,8 @@ sub GenerateImplementation
     push(@implFixedHeader,
          "#include \"config.h\"\n" .
          "#include \"V8Proxy.h\"\n" .
-         "#include \"V8Binding.h\"\n\n" .
+         "#include \"V8Binding.h\"\n" .
+         "#include \"V8BindingState.h\"\n\n" .
          "#undef LOG\n\n");
 
     push(@implFixedHeader, "\n#if ${conditionalString}\n\n") if $conditionalString;
@@ -1164,7 +1229,6 @@ sub GenerateImplementation
     push(@implContentDecls, "template <typename T> void V8_USE(T) { }\n\n");
 
     my $hasConstructors = 0;
-
     # Generate property accessors for attributes.
     for ($index = 0; $index < @{$dataNode->attributes}; $index++) {
         $attribute = @{$dataNode->attributes}[$index];
@@ -1215,6 +1279,8 @@ sub GenerateImplementation
         GenerateConstructorGetter($implClassName, $classIndex);
     }
 
+    my $indexer;
+    my $namedPropertyGetter;
     # Generate methods for functions.
     foreach my $function (@{$dataNode->functions}) {
         # hack for addEventListener/RemoveEventListener
@@ -1223,6 +1289,14 @@ sub GenerateImplementation
                 $implIncludes{"V8CustomBinding.h"} = 1;
         } else {
             GenerateFunctionCallback($function, $dataNode, $classIndex, $implClassName);
+        }
+
+        if ($function->signature->name eq "item") {
+            $indexer = $function->signature;
+        }
+
+        if ($function->signature->name eq "namedItem") {
+            $namedPropertyGetter = $function->signature;
         }
 
         # If the function does not need domain security check, we need to
@@ -1243,6 +1317,7 @@ sub GenerateImplementation
     my @enabledAtRuntime;
     my @normal;
     foreach my $attribute (@$attributes) {
+
         if ($interfaceName eq "DOMWindow" && $attribute->signature->extendedAttributes->{"V8DisallowShadowing"}) {
             push(@disallowsShadowing, $attribute);
         } elsif ($attribute->signature->extendedAttributes->{"EnabledAtRuntime"}) {
@@ -1407,6 +1482,9 @@ END
 END
         push(@implContent, "\n#endif // ${conditionalString}\n") if $conditionalString;
     }
+
+    GenerateImplementationIndexer($dataNode, $indexer) if $indexer;
+    GenerateImplementationNamedPropertyGetter($dataNode, $namedPropertyGetter);
 
     # Define our functions with Set() or SetAccessor()
     $total_functions = 0;

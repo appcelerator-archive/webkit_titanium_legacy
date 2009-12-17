@@ -165,8 +165,10 @@ enum AccessibilityRole {
     TabListRole,
     TabPanelRole,
     TreeRole,
+    TreeGridRole,
     TreeItemRole,
     DirectoryRole,
+    EditableTextRole,
     
     // ARIA Grouping roles
     LandmarkApplicationRole,
@@ -279,6 +281,7 @@ public:
     virtual bool isTableCell() const { return false; }
     virtual bool isFieldset() const { return false; }
     virtual bool isGroup() const { return false; }
+    virtual bool isARIATreeGridRow() const { return false; }
     bool isTabList() const { return roleValue() == TabListRole; }
     bool isTabItem() const { return roleValue() == TabRole; }
     bool isRadioGroup() const { return roleValue() == RadioGroupRole; }
@@ -487,7 +490,8 @@ public:
     virtual String stringRoleForMSAA() const { return String(); }
     virtual String nameForMSAA() const { return String(); }
     virtual String descriptionForMSAA() const { return String(); }
-    
+    virtual AccessibilityRole roleValueForMSAA() const { return m_role; }
+
     // Used by an ARIA tree to get all its rows.
     void ariaTreeRows(AccessibilityChildrenVector&);
     // Used by an ARIA tree item to get all of its direct rows that it can disclose.

@@ -690,7 +690,7 @@ body.drawer-visible #drawer {
 
 .console-group-messages .outline-disclosure, .console-group-messages .outline-disclosure ol {
     font-size: inherit;
-    line-height: 1em;
+    line-height: 12px;
 }
 
 .console-group-messages .outline-disclosure.single-node li {
@@ -792,21 +792,18 @@ body.drawer-visible #drawer {
 .resource-view-headers .outline-disclosure .header-name {
     color: rgb(33%, 33%, 33%);
     display: inline-block;
-    width: 105px;
-    text-align: right;
     margin-right: 0.5em;
     font-weight: bold;
     vertical-align: top;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: pre-wrap;
 }
 
 .resource-view-headers .outline-disclosure .header-value {
-    display: inline-block;
-    white-space: normal;
-    word-break: break-word;
-    vertical-align: top;
+    display: inline;
     margin-right: 100px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-top: 1px;
 }
 
 .resource-view-headers .outline-disclosure .raw-form-data {
@@ -879,6 +876,7 @@ body.drawer-visible #drawer {
 }
 
 .resource-status-image {
+    margin-top: -3px;
     vertical-align: middle;
 }
 
@@ -1047,8 +1045,12 @@ body.drawer-visible #drawer {
     background-color: rgb(212, 212, 212);
 }
 
-:focus .outline-disclosure li.selected .selection {
+.outline-disclosure ol:focus li.selected .selection {
     background-color: rgb(56, 121, 217);
+}
+
+.outline-disclosure {
+    font-size: 11px;
 }
 
 .outline-disclosure > ol {
@@ -1062,24 +1064,46 @@ body.drawer-visible #drawer {
 
 .outline-disclosure, .outline-disclosure ol {
     list-style-type: none;
-    font-size: 11px;
     -webkit-padding-start: 12px;
     margin: 0;
 }
 
+.source-code {
+    font-family: monospace;
+    font-size: 10px;
+    white-space: pre-wrap;
+}
+
+body.platform-mac-tiger .source-code {
+    font-family: Monaco, monospace;
+}
+
+body.platform-mac-leopard .source-code {
+    font-family: Monaco, monospace;
+}
+
+body.platform-windows .source-code {
+    font-family: Consolas, Lucida Console, monospace;
+    font-size: 12px;
+}
+
 .outline-disclosure li {
-    padding: 0 0 2px 14px;
+    padding: 0 0 0 14px;
     margin-top: 1px;
     margin-bottom: 1px;
     word-wrap: break-word;
-    text-indent: -2px
+    text-indent: -2px;
 }
 
-:focus .outline-disclosure li.selected {
+.resources .outline-disclosure li {
+    text-indent: -1px;
+}
+
+.outline-disclosure ol:focus li.selected {
     color: white;
 }
 
-:focus .outline-disclosure li.selected * {
+.outline-disclosure ol:focus li.selected * {
     color: inherit;
 }
 
@@ -1104,7 +1128,7 @@ body.drawer-visible #drawer {
     content: url(Images/treeRightTriangleBlack.png);
 }
 
-:focus .outline-disclosure li.parent.selected::before {
+.outline-disclosure ol:focus li.parent.selected::before {
     content: url(Images/treeRightTriangleWhite.png);
 }
 
@@ -1112,7 +1136,7 @@ body.drawer-visible #drawer {
     content: url(Images/treeDownTriangleBlack.png);
 }
 
-:focus .outline-disclosure li.parent.expanded.selected::before {
+.outline-disclosure ol:focus li.parent.expanded.selected::before {
     content: url(Images/treeDownTriangleWhite.png);
 }
 
@@ -2810,51 +2834,6 @@ button.enable-toggle-status-bar-item.toggled-on .glyph {
     -webkit-border-image: url(Images/timelineHollowPillYellow.png) 6 7 6 7;
 }
 
-.tip-button {
-    background-image: url(Images/tipIcon.png);
-    border: none;
-    width: 16px;
-    height: 16px;
-    float: right;
-    background-color: transparent;
-    margin-top: 1px;
-}
-
-.tip-button:active {
-    background-image: url(Images/tipIconPressed.png);
-}
-
-.tip-balloon {
-    position: absolute;
-    left: 145px;
-    top: -5px;
-    z-index: 1000;
-    border-width: 51px 15px 18px 37px;
-    -webkit-border-image: url(Images/tipBalloon.png) 51 15 18 37;
-    width: 265px;
-}
-
-.tip-balloon.bottom {
-    position: absolute;
-    left: 145px;
-    top: auto;
-    bottom: -7px;
-    z-index: 1000;
-    border-width: 18px 15px 51px 37px;
-    -webkit-border-image: url(Images/tipBalloonBottom.png) 18 15 51 37;
-}
-
-.tip-balloon-content {
-    margin-top: -40px;
-    margin-bottom: -2px;
-    margin-left: 2px;
-}
-
-.tip-balloon.bottom .tip-balloon-content {
-    margin-top: -10px;
-    margin-bottom: -35px;
-}
-
 #resource-views {
     position: absolute;
     top: 23px;
@@ -2871,7 +2850,7 @@ button.enable-toggle-status-bar-item.toggled-on .glyph {
 .sidebar-resizer-vertical {
     position: absolute;
     top: 0;
-    min-height: 100%;
+    bottom: 0;
     width: 5px;
     z-index: 500;
     cursor: col-resize;

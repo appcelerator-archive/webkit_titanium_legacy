@@ -44,34 +44,53 @@ class DownloadCommandsTest(CommandsTest):
         options.build = True
         options.test = True
         options.close_bug = True
+        options.complete_rollout = False
         return options
 
     def test_build(self):
-        self.assert_execute_outputs(Build(), [], options=self._default_options())
+        expected_stderr = "Updating working directory\nBuilding WebKit\n"
+        self.assert_execute_outputs(Build(), [], options=self._default_options(), expected_stderr=expected_stderr)
 
     def test_apply_attachment(self):
         options = self._default_options()
         options.update = True
         options.local_commit = True
-        self.assert_execute_outputs(ApplyAttachment(), [197], options=options)
+        expected_stderr = "Updating working directory\nProcessing 1 patch from 1 bug.\nProcessing patch 197 from bug 42.\n"
+        self.assert_execute_outputs(ApplyAttachment(), [197], options=options, expected_stderr=expected_stderr)
 
     def test_apply_patches(self):
         options = self._default_options()
         options.update = True
         options.local_commit = True
-        self.assert_execute_outputs(ApplyPatches(), [42], options=options)
+        expected_stderr = "Updating working directory\n2 reviewed patches found on bug 42.\nProcessing 2 patches from 1 bug.\nProcessing patch 197 from bug 42.\nProcessing patch 128 from bug 42.\n"
+        self.assert_execute_outputs(ApplyPatches(), [42], options=options, expected_stderr=expected_stderr)
 
     def test_land_diff(self):
-        self.assert_execute_outputs(LandDiff(), [42], options=self._default_options())
+        expected_stderr = "Building WebKit\nUpdating bug 42\n"
+        self.assert_execute_outputs(LandDiff(), [42], options=self._default_options(), expected_stderr=expected_stderr)
 
     def test_check_style(self):
-        self.assert_execute_outputs(CheckStyle(), [197], options=self._default_options())
+        expected_stderr = "Processing 1 patch from 1 bug.\nUpdating working directory\nProcessing patch 197 from bug 42.\nRunning check-webkit-style\n"
+        self.assert_execute_outputs(CheckStyle(), [197], options=self._default_options(), expected_stderr=expected_stderr)
 
     def test_build_attachment(self):
-        self.assert_execute_outputs(BuildAttachment(), [197], options=self._default_options())
+        expected_stderr = "Processing 1 patch from 1 bug.\nUpdating working directory\nProcessing patch 197 from bug 42.\nBuilding WebKit\n"
+        self.assert_execute_outputs(BuildAttachment(), [197], options=self._default_options(), expected_stderr=expected_stderr)
 
     def test_land_attachment(self):
-        self.assert_execute_outputs(LandAttachment(), [197], options=self._default_options())
+        expected_stderr = "Processing 1 patch from 1 bug.\nUpdating working directory\nProcessing patch 197 from bug 42.\nBuilding WebKit\n"
+        self.assert_execute_outputs(LandAttachment(), [197], options=self._default_options(), expected_stderr=expected_stderr)
 
     def test_land_patches(self):
-        self.assert_execute_outputs(LandPatches(), [42], options=self._default_options())
+        expected_stderr = "2 reviewed patches found on bug 42.\nProcessing 2 patches from 1 bug.\nUpdating working directory\nProcessing patch 197 from bug 42.\nBuilding WebKit\nUpdating working directory\nProcessing patch 128 from bug 42.\nBuilding WebKit\n"
+        self.assert_execute_outputs(LandPatches(), [42], options=self._default_options(), expected_stderr=expected_stderr)
+
+    def test_rollout(self):
+        expected_stderr = "Updating working directory\nRunning prepare-ChangeLog\n\nNOTE: Rollout support is experimental.\nPlease verify the rollout diff and use \"bugzilla-tool land-diff 12345\" to commit the rollout.\n"
+        self.assert_execute_outputs(Rollout(), [852], options=self._default_options(), expected_stderr=expected_stderr)
+
+    def test_complete_rollout(self):
+        options = self._default_options()
+        options.complete_rollout = True
+        expected_stderr = "Will re-open bug 12345 after rollout.\nUpdating working directory\nRunning prepare-ChangeLog\nBuilding WebKit\n"
+        self.assert_execute_outputs(Rollout(), [852], options=options, expected_stderr=expected_stderr)
