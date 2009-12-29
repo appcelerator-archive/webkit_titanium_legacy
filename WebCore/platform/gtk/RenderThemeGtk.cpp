@@ -25,11 +25,14 @@
 #include "RenderThemeGtk.h"
 
 #include "CString.h"
+#include "Chrome.h"
+#include "ChromeClient.h"
 #include "GOwnPtr.h"
 #include "GraphicsContext.h"
 #include "HTMLMediaElement.h"
 #include "HTMLNames.h"
 #include "NotImplemented.h"
+#include "Page.h"
 #include "RenderBox.h"
 #include "RenderObject.h"
 #include "TransformationMatrix.h"
@@ -105,20 +108,17 @@ void RenderThemeGtk::initMediaStyling(GtkStyle* style, bool force)
 }
 #endif
 
-PassRefPtr<RenderTheme> RenderThemeGtk::create()
+PassRefPtr<RenderTheme> RenderThemeGtk::create(Page* page)
 {
-    return adoptRef(new RenderThemeGtk());
+    return adoptRef(new RenderThemeGtk(page));
 }
 
 PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page* page)
 {
-    static RenderTheme* rt = RenderThemeGtk::create().releaseRef();
-    return rt;
+    return RenderThemeGtk::create(page).releaseRef();
 }
 
-static int mozGtkRefCount = 0;
-
-RenderThemeGtk::RenderThemeGtk()
+RenderThemeGtk::RenderThemeGtk(Page* page)
     : m_gtkWindow(0)
     , m_gtkContainer(0)
     , m_gtkEntry(0)
@@ -137,11 +137,13 @@ RenderThemeGtk::RenderThemeGtk()
     , m_pauseButton(0)
     , m_seekBackButton(0)
     , m_seekForwardButton(0)
+    , m_page(page)
 {
-    if (!mozGtkRefCount)
+    static bool mozillaGtkInitialized = false;
+    if (!mozillaGtkInitialized) {
         moz_gtk_init();
-
-    ++mozGtkRefCount;
+        mozillaGtkInitialized = true;
+    }
 
 #if ENABLE(VIDEO)
     initMediaStyling(gtk_rc_get_style(GTK_WIDGET(gtkContainer())), false);
@@ -150,11 +152,6 @@ RenderThemeGtk::RenderThemeGtk()
 
 RenderThemeGtk::~RenderThemeGtk()
 {
-    --mozGtkRefCount;
-
-    if (!mozGtkRefCount)
-        moz_gtk_shutdown();
-
     m_fullscreenButton.clear();
     m_muteButton.clear();
     m_unmuteButton.clear();
@@ -162,6 +159,14 @@ RenderThemeGtk::~RenderThemeGtk()
     m_pauseButton.clear();
     m_seekBackButton.clear();
     m_seekForwardButton.clear();
+}
+
+GdkDrawable* RenderThemeGtk::drawable() const
+{
+    if (!m_page)
+        return 0;
+
+    return m_page->chrome()->client()->platformPageClient()->window;
 }
 
 static bool supportsFocus(ControlPart appearance)
@@ -218,12 +223,13 @@ static GtkTextDirection gtkTextDirection(TextDirection direction)
     }
 }
 
-static void adjustMozStyle(RenderStyle* style, GtkThemeWidgetType type)
+static void adjustMozillaStyle(const RenderThemeGtk* theme, RenderStyle* style, GtkThemeWidgetType type)
 {
     gint left, top, right, bottom;
     GtkTextDirection direction = gtkTextDirection(style->direction());
     gboolean inhtml = true;
 
+    moz_gtk_use_parts_for_drawable(theme->drawable());
     if (moz_gtk_get_widget_border(type, &left, &top, &right, &bottom, direction, inhtml) != MOZ_GTK_SUCCESS)
         return;
 
@@ -237,7 +243,7 @@ static void adjustMozStyle(RenderStyle* style, GtkThemeWidgetType type)
     style->setPaddingBottom(Length(ypadding + bottom, Fixed));
 }
 
-static void setMozState(RenderTheme* theme, GtkWidgetState* state, RenderObject* o)
+static void setMozillaState(const RenderTheme* theme, GtkWidgetState* state, RenderObject* o)
 {
     state->active = theme->isPressed(o);
     state->focused = theme->isFocused(o);
@@ -249,7 +255,7 @@ static void setMozState(RenderTheme* theme, GtkWidgetState* state, RenderObject*
     state->depressed = false;
 }
 
-static bool paintMozWidget(RenderTheme* theme, GtkThemeWidgetType type, RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
+static bool paintMozillaGtkWidget(const RenderThemeGtk* theme, GtkThemeWidgetType type, RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
     // No GdkWindow to render to, so return true to fall back
     if (!i.context->gdkDrawable())
@@ -260,7 +266,7 @@ static bool paintMozWidget(RenderTheme* theme, GtkThemeWidgetType type, RenderOb
         return false;
 
     GtkWidgetState mozState;
-    setMozState(theme, &mozState, o);
+    setMozillaState(theme, &mozState, o);
 
     int flags;
 
@@ -298,6 +304,7 @@ static bool paintMozWidget(RenderTheme* theme, GtkThemeWidgetType type, RenderOb
 
     gdk_rectangle_intersect(&gdkRect, &gdkClipRect, &gdkClipRect);
 
+    moz_gtk_use_parts_for_drawable(theme->drawable());
     return moz_gtk_widget_paint(type, i.context->gdkDrawable(), &gdkRect, &gdkClipRect, &mozState, flags, direction) != MOZ_GTK_SUCCESS;
 }
 
@@ -311,7 +318,7 @@ static void setButtonPadding(RenderStyle* style)
     style->setPaddingBottom(Length(padding / 2, Fixed));
 }
 
-static void setToggleSize(RenderStyle* style, ControlPart appearance)
+static void setToggleSize(const RenderThemeGtk* theme, RenderStyle* style, ControlPart appearance)
 {
     // The width and height are both specified, so we shouldn't change them.
     if (!style->width().isIntrinsicOrAuto() && !style->height().isAuto())
@@ -320,6 +327,7 @@ static void setToggleSize(RenderStyle* style, ControlPart appearance)
     // FIXME: This is probably not correct use of indicatorSize and indicatorSpacing.
     gint indicatorSize, indicatorSpacing;
 
+    moz_gtk_use_parts_for_drawable(theme->drawable());
     switch (appearance) {
     case CheckboxPart:
         if (moz_gtk_checkbox_get_metrics(&indicatorSize, &indicatorSpacing) != MOZ_GTK_SUCCESS)
@@ -345,22 +353,22 @@ static void setToggleSize(RenderStyle* style, ControlPart appearance)
 
 void RenderThemeGtk::setCheckboxSize(RenderStyle* style) const
 {
-    setToggleSize(style, RadioPart);
+    setToggleSize(this, style, RadioPart);
 }
 
 bool RenderThemeGtk::paintCheckbox(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_CHECKBUTTON, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_CHECKBUTTON, o, i, rect);
 }
 
 void RenderThemeGtk::setRadioSize(RenderStyle* style) const
 {
-    setToggleSize(style, RadioPart);
+    setToggleSize(this, style, RadioPart);
 }
 
 bool RenderThemeGtk::paintRadio(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_RADIOBUTTON, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_RADIOBUTTON, o, i, rect);
 }
 
 void RenderThemeGtk::adjustButtonStyle(CSSStyleSelector* selector, RenderStyle* style, WebCore::Element* e) const
@@ -381,7 +389,7 @@ void RenderThemeGtk::adjustButtonStyle(CSSStyleSelector* selector, RenderStyle* 
 
 bool RenderThemeGtk::paintButton(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_BUTTON, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_BUTTON, o, i, rect);
 }
 
 void RenderThemeGtk::adjustMenuListStyle(CSSStyleSelector* selector, RenderStyle* style, WebCore::Element* e) const
@@ -390,12 +398,12 @@ void RenderThemeGtk::adjustMenuListStyle(CSSStyleSelector* selector, RenderStyle
     style->resetPadding();
     style->setHeight(Length(Auto));
     style->setWhiteSpace(PRE);
-    adjustMozStyle(style, MOZ_GTK_DROPDOWN);
+    adjustMozillaStyle(this, style, MOZ_GTK_DROPDOWN);
 }
 
 bool RenderThemeGtk::paintMenuList(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_DROPDOWN, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_DROPDOWN, o, i, rect);
 }
 
 void RenderThemeGtk::adjustTextFieldStyle(CSSStyleSelector* selector, RenderStyle* style, Element* e) const
@@ -404,12 +412,12 @@ void RenderThemeGtk::adjustTextFieldStyle(CSSStyleSelector* selector, RenderStyl
     style->resetPadding();
     style->setHeight(Length(Auto));
     style->setWhiteSpace(PRE);
-    adjustMozStyle(style, MOZ_GTK_ENTRY);
+    adjustMozillaStyle(this, style, MOZ_GTK_ENTRY);
 }
 
 bool RenderThemeGtk::paintTextField(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_ENTRY, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_ENTRY, o, i, rect);
 }
 
 bool RenderThemeGtk::paintTextArea(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r)
@@ -424,7 +432,7 @@ void RenderThemeGtk::adjustSearchFieldResultsButtonStyle(CSSStyleSelector* selec
 
 bool RenderThemeGtk::paintSearchFieldResultsButton(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_DROPDOWN_ARROW, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_DROPDOWN_ARROW, o, i, rect);
 }
 
 void RenderThemeGtk::adjustSearchFieldResultsDecorationStyle(CSSStyleSelector* selector, RenderStyle* style, Element* e) const
@@ -440,7 +448,7 @@ void RenderThemeGtk::adjustSearchFieldResultsDecorationStyle(CSSStyleSelector* s
 
 bool RenderThemeGtk::paintSearchFieldResultsDecoration(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_CHECKMENUITEM, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_CHECKMENUITEM, o, i, rect);
 }
 
 void RenderThemeGtk::adjustSearchFieldCancelButtonStyle(CSSStyleSelector* selector, RenderStyle* style, Element* e) const
@@ -456,7 +464,7 @@ void RenderThemeGtk::adjustSearchFieldCancelButtonStyle(CSSStyleSelector* select
 
 bool RenderThemeGtk::paintSearchFieldCancelButton(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& rect)
 {
-    return paintMozWidget(this, MOZ_GTK_CHECKMENUITEM, o, i, rect);
+    return paintMozillaGtkWidget(this, MOZ_GTK_CHECKMENUITEM, o, i, rect);
 }
 
 void RenderThemeGtk::adjustSearchFieldStyle(CSSStyleSelector* selector, RenderStyle* style, Element* e) const
