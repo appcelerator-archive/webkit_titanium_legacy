@@ -474,6 +474,8 @@ bool validBlockTag(const AtomicString& blockTag)
     DEFINE_STATIC_LOCAL(HashSet<AtomicString>, blockTags, ());
     if (blockTags.isEmpty()) {
         blockTags.add(addressTag.localName());
+        blockTags.add(articleTag.localName());
+        blockTags.add(asideTag.localName());
         blockTags.add(blockquoteTag.localName());
         blockTags.add(ddTag.localName());
         blockTags.add(divTag.localName());
@@ -488,6 +490,7 @@ bool validBlockTag(const AtomicString& blockTag)
         blockTags.add(navTag.localName());
         blockTags.add(pTag.localName());
         blockTags.add(preTag.localName());
+        blockTags.add(sectionTag.localName());
     }
     return blockTags.contains(blockTag);
 }

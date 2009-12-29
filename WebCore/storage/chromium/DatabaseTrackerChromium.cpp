@@ -40,6 +40,7 @@
 #include "SecurityOrigin.h"
 #include "SQLiteFileSystem.h"
 #include <wtf/HashSet.h>
+#include <wtf/MainThread.h>
 #include <wtf/StdLibExtras.h>
 
 namespace WebCore {
@@ -77,13 +78,22 @@ void DatabaseTracker::addOpenDatabase(Database* database)
     ASSERT(isMainThread());
     DatabaseObserver::databaseOpened(database);
 }
+static void removeOpenDatabaseOnMainThread(void* context)
+{
+    Database* database = static_cast<Database*>(context);
+    DatabaseTracker::tracker().removeOpenDatabase(database);
+    database->deref();
+}
 
 void DatabaseTracker::removeOpenDatabase(Database* database)
 {
-    // FIXME: once we know how to use this information, figure out
-    //        how to get this method called on the main thread
-    //ASSERT(isMainThread());
-    //DatabaseObserver::databaseClosed(database);
+    if (!isMainThread()) {
+        database->ref();
+        callOnMainThread(removeOpenDatabaseOnMainThread, database);
+        return;
+    }
+
+    DatabaseObserver::databaseClosed(database);
 }
 
 unsigned long long DatabaseTracker::getMaxSizeForDatabase(const Database* database)

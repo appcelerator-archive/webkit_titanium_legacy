@@ -82,7 +82,7 @@ bool RenderSVGContainer::selfWillPaint() const
 {
 #if ENABLE(FILTERS)
     const SVGRenderStyle* svgStyle = style()->svgStyle();
-    SVGResourceFilter* filter = getFilterById(document(), svgStyle->filter());
+    SVGResourceFilter* filter = getFilterById(document(), svgStyle->filter(), this);
     if (filter)
         return true;
 #endif
@@ -109,12 +109,16 @@ void RenderSVGContainer::paint(PaintInfo& paintInfo, int, int)
 
     SVGResourceFilter* filter = 0;
     FloatRect boundingBox = repaintRectInLocalCoordinates();
-    if (childPaintInfo.phase == PaintPhaseForeground)
-        prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter);
 
-    childPaintInfo.paintingRoot = paintingRootForChildren(childPaintInfo);
-    for (RenderObject* child = firstChild(); child; child = child->nextSibling())
-        child->paint(childPaintInfo, 0, 0);
+    bool continueRendering = true;
+    if (childPaintInfo.phase == PaintPhaseForeground)
+        continueRendering = prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter);
+
+    if (continueRendering) {
+        childPaintInfo.paintingRoot = paintingRootForChildren(childPaintInfo);
+        for (RenderObject* child = firstChild(); child; child = child->nextSibling())
+            child->paint(childPaintInfo, 0, 0);
+    }
 
     if (paintInfo.phase == PaintPhaseForeground)
         finishRenderSVGContent(this, childPaintInfo, filter, paintInfo.context);

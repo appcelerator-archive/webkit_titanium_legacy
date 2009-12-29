@@ -498,6 +498,7 @@ body.drawer-visible #drawer {
     font-family: monospace;
     padding: 2px 0;
     overflow-y: overlay;
+    word-wrap: break-word;
     -webkit-user-select: text;
     -webkit-text-size-adjust: auto;
 }
@@ -718,6 +719,18 @@ body.drawer-visible #drawer {
 
 .console-formatted-object .properties, .console-formatted-node .properties {
     padding-left: 0 !important;
+}
+
+.console-formatted-number {
+    color: rgb(28, 0, 207);
+}
+
+.console-formatted-string, .console-formatted-regexp {
+    color: rgb(196, 26, 22);
+}
+
+.console-formatted-null, .console-formatted-undefined {
+    color: rgb(128, 128, 128);
 }
 
 .error-message {
@@ -1070,16 +1083,8 @@ body.drawer-visible #drawer {
 
 .source-code {
     font-family: monospace;
-    font-size: 10px;
+    font-size: medium;
     white-space: pre-wrap;
-}
-
-body.platform-mac-tiger .source-code {
-    font-family: Monaco, monospace;
-}
-
-body.platform-mac-leopard .source-code {
-    font-family: Monaco, monospace;
 }
 
 body.platform-windows .source-code {
@@ -1496,6 +1501,11 @@ body.inactive .placard.selected {
 .editing, .editing * {
     color: black !important;
     text-decoration: none !important;
+}
+
+.elements-tree-editor {
+    -webkit-user-select: text;
+    -webkit-user-modify: read-write-plaintext-only;
 }
 
 .section .properties li.editing {

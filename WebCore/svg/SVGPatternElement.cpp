@@ -65,7 +65,7 @@ SVGPatternElement::SVGPatternElement(const QualifiedName& tagName, Document* doc
     , m_href(this, XLinkNames::hrefAttr)
     , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
     , m_viewBox(this, SVGNames::viewBoxAttr)
-    , m_preserveAspectRatio(this, SVGNames::preserveAspectRatioAttr, SVGPreserveAspectRatio::create())
+    , m_preserveAspectRatio(this, SVGNames::preserveAspectRatioAttr)
 {
 }
 
@@ -263,7 +263,7 @@ RenderObject* SVGPatternElement::createRenderer(RenderArena* arena, RenderStyle*
     return patternContainer;
 }
 
-SVGResource* SVGPatternElement::canvasResource()
+SVGResource* SVGPatternElement::canvasResource(const RenderObject*)
 {
     if (!m_resource)
         m_resource = SVGPaintServerPattern::create(this);

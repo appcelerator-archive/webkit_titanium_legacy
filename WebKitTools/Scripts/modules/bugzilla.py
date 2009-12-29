@@ -31,7 +31,6 @@
 
 import re
 import subprocess
-import urllib2
 
 from datetime import datetime # used in timestamp()
 
@@ -113,18 +112,29 @@ class Bugzilla(object):
         self._parse_attachment_flag(element, 'commit-queue', attachment, 'committer_email')
         return attachment
 
-    def fetch_attachments_from_bug(self, bug_id):
+    def _parse_bug_page(self, page):
+        soup = BeautifulSoup(page)
+        bug = {}
+        bug["id"] = int(soup.find("bug_id").string)
+        bug["title"] = unicode(soup.find("short_desc").string)
+        bug["reporter_email"] = str(soup.find("reporter").string)
+        bug["assign_to_email"] = str(soup.find("assigned_to").string)
+        bug["cc_emails"] = [str(element.string) for element in soup.findAll('cc')]
+        bug["attachments"] = [self._parse_attachment_element(element, bug["id"]) for element in soup.findAll('attachment')]
+        return bug
+
+    def fetch_bug(self, bug_id):
         bug_url = self.bug_url_for_bug_id(bug_id, xml=True)
         log("Fetching: %s" % bug_url)
+        page = self.browser.open(bug_url)
+        return self._parse_bug_page(page)
 
-        page = urllib2.urlopen(bug_url)
-        soup = BeautifulSoup(page)
-
-        attachments = []
-        for element in soup.findAll('attachment'):
-            attachment = self._parse_attachment_element(element, bug_id)
-            attachments.append(attachment)
-        return attachments
+    # This should be an attachments() method on a Bug object.
+    def fetch_attachments_from_bug(self, bug_id):
+        bug = self.fetch_bug(bug_id)
+        if not bug:
+            return None
+        return bug["attachments"]
 
     def _parse_bug_id_from_attachment_page(self, page):
         up_link = BeautifulSoup(page).find('link', rel='Up') # The "Up" relation happens to point to the bug.
@@ -136,7 +146,7 @@ class Bugzilla(object):
     def bug_id_for_attachment_id(self, attachment_id):
         attachment_url = self.attachment_url_for_id(attachment_id, 'edit')
         log("Fetching: %s" % attachment_url)
-        page = urllib2.urlopen(attachment_url)
+        page = self.browser.open(attachment_url)
         return self._parse_bug_id_from_attachment_page(page)
 
     # This should really return an Attachment object
@@ -156,29 +166,24 @@ class Bugzilla(object):
                 return attachment
         return None # This should never be hit.
 
-    def fetch_title_from_bug(self, bug_id):
-        bug_url = self.bug_url_for_bug_id(bug_id, xml=True)
-        page = urllib2.urlopen(bug_url)
-        soup = BeautifulSoup(page)
-        return soup.find('short_desc').string
-
     def fetch_patches_from_bug(self, bug_id):
-        patches = []
-        for attachment in self.fetch_attachments_from_bug(bug_id):
-            if attachment['is_patch'] and not attachment['is_obsolete']:
-                patches.append(attachment)
-        return patches
+        return [patch for patch in self.fetch_attachments_from_bug(bug_id) if patch['is_patch'] and not patch['is_obsolete']]
 
     # _view_source_link belongs in some sort of webkit_config.py module.
     def _view_source_link(self, local_path):
         return "http://trac.webkit.org/browser/trunk/%s" % local_path
 
     def _flag_permission_rejection_message(self, setter_email, flag_name):
-        committer_list = "WebKitTools/Scripts/modules/committers.py"
-        contribution_guidlines_url = "http://webkit.org/coding/contributing.html"
+        committer_list = "WebKitTools/Scripts/modules/committers.py" # This could be computed from CommitterList.__file__
+        contribution_guidlines_url = "http://webkit.org/coding/contributing.html" # Should come from some webkit_config.py
+        queue_administrator = "eseidel@chromium.org" # This could be queried from the status_bot.
+        queue_name = "commit-queue" # This could be queried from the tool.
         rejection_message = "%s does not have %s permissions according to %s." % (setter_email, flag_name, self._view_source_link(committer_list))
-        rejection_message += "\n\n- If you have %s rights please correct the error in %s by adding yourself to the file (no review needed) and then set the %s flag again." % (flag_name, committer_list, flag_name)
         rejection_message += "\n\n- If you do not have %s rights please read %s for instructions on how to use bugzilla flags." % (flag_name, contribution_guidlines_url)
+        rejection_message += "\n\n- If you have %s rights please correct the error in %s by adding yourself to the file (no review needed)." % (flag_name, committer_list)
+        rejection_message += "  Due to bug 30084 the %s will require a restart after your change." % queue_name
+        rejection_message += "  Please contact %s to request a %s restart." % (queue_administrator, queue_name)
+        rejection_message += "  After restart the %s will correctly respect your %s rights." % (queue_name, flag_name)
         return rejection_message
 
     def _validate_setter_email(self, patch, result_key, lookup_function, rejection_function, reject_invalid_patches):
@@ -211,12 +216,10 @@ class Bugzilla(object):
         self._validate_committer(patch, reject_invalid_patches=False)
 
     def fetch_unreviewed_patches_from_bug(self, bug_id):
-        unreviewed_patches = []
-        for attachment in self.fetch_attachments_from_bug(bug_id):
-            if attachment.get('review') == '?' and not attachment['is_obsolete']:
-                unreviewed_patches.append(attachment)
-        return unreviewed_patches
+        return [patch for patch in self.fetch_attachments_from_bug(bug_id) if patch.get('review') == '?' and not patch['is_obsolete']]
 
+    # FIXME: fetch_reviewed_patches_from_bug and fetch_commit_queue_patches_from_bug
+    # should share more code and use list comprehensions.
     def fetch_reviewed_patches_from_bug(self, bug_id, reject_invalid_patches=False):
         reviewed_patches = []
         for attachment in self.fetch_attachments_from_bug(bug_id):
@@ -232,16 +235,10 @@ class Bugzilla(object):
         return commit_queue_patches
 
     def _fetch_bug_ids_advanced_query(self, query):
-        page = urllib2.urlopen(query)
+        page = self.browser.open(query)
         soup = BeautifulSoup(page)
-
-        bug_ids = []
-        # Grab the cells in the first column (which happens to be the bug ids)
-        for bug_link_cell in soup('td', "first-child"): # tds with the class "first-child"
-            bug_link = bug_link_cell.find("a")
-            bug_ids.append(int(bug_link.string)) # the contents happen to be the bug id
-
-        return bug_ids
+        # The contents of the <a> inside the cells in the first column happen to be the bug id.
+        return [int(bug_link_cell.find("a").string) for bug_link_cell in soup('td', "first-child")]
 
     def _parse_attachment_ids_request_query(self, page):
         digits = re.compile("\d+")
@@ -250,7 +247,7 @@ class Bugzilla(object):
         return [int(digits.search(tag["href"]).group(0)) for tag in BeautifulSoup(page, parseOnlyThese=attachment_links)]
 
     def _fetch_attachment_ids_request_query(self, query):
-        return self._parse_attachment_ids_request_query(urllib2.urlopen(query))
+        return self._parse_attachment_ids_request_query(self.browser.open(query))
 
     def fetch_bug_ids_from_commit_queue(self):
         commit_queue_url = self.bug_server_url + "buglist.cgi?query_format=advanced&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&field0-0-0=flagtypes.name&type0-0-0=equals&value0-0-0=commit-queue%2B"
@@ -366,10 +363,10 @@ class Bugzilla(object):
             error_message = "\n" + '\n'.join(["  " + line.strip() for line in text_lines if line.strip()])
         raise BugzillaError("Bug not created: %s" % error_message)
 
-    def create_bug_with_patch(self, bug_title, bug_description, component, patch_file_object, patch_description, cc, mark_for_review=False, mark_for_commit_queue=False):
+    def create_bug(self, bug_title, bug_description, component=None, patch_file_object=None, patch_description=None, cc=None, mark_for_review=False, mark_for_commit_queue=False):
         self.authenticate()
 
-        log('Creating bug with patch description "%s"' % patch_description)
+        log('Creating bug with title "%s"' % bug_title)
         if self.dryrun:
             log(bug_description)
             return
@@ -384,11 +381,11 @@ class Bugzilla(object):
         if cc:
             self.browser['cc'] = cc
         self.browser['short_desc'] = bug_title
-        if bug_description:
-            log(bug_description)
-            self.browser['comment'] = bug_description
+        self.browser['comment'] = bug_description
 
-        self._fill_attachment_form(patch_description, patch_file_object, mark_for_review=mark_for_review, mark_for_commit_queue=mark_for_commit_queue)
+        if patch_file_object:
+            self._fill_attachment_form(patch_description, patch_file_object, mark_for_review=mark_for_review, mark_for_commit_queue=mark_for_commit_queue)
+
         response = self.browser.submit()
 
         bug_id = self._check_create_bug_response(response.read())
@@ -467,16 +464,16 @@ class Bugzilla(object):
             self.browser.set_value(comment_text, name='comment', nr=0)
         self.browser.submit()
 
-    def add_cc_to_bug(self, bug_id, email_address):
+    def add_cc_to_bug(self, bug_id, email_address_list):
         self.authenticate()
 
-        log("Adding %s to the CC list for bug %s" % (email_address, bug_id))
+        log("Adding %s to the CC list for bug %s" % (email_address_list, bug_id))
         if self.dryrun:
             return
 
         self.browser.open(self.bug_url_for_bug_id(bug_id))
         self.browser.select_form(name="changeform")
-        self.browser["newcc"] = email_address
+        self.browser["newcc"] = ", ".join(email_address_list)
         self.browser.submit()
 
     def post_comment_to_bug(self, bug_id, comment_text, cc=None):
@@ -491,7 +488,7 @@ class Bugzilla(object):
         self.browser.select_form(name="changeform")
         self.browser["comment"] = comment_text
         if cc:
-            self.browser["newcc"] = cc
+            self.browser["newcc"] = ", ".join(cc)
         self.browser.submit()
 
     def close_bug_as_fixed(self, bug_id, comment_text=None):

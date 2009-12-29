@@ -63,8 +63,12 @@ namespace WebCore {
         ScriptObject newScriptObject();
 
         void didCommitLoad();
+
+        void populateFrontendSettings(const String& settings);
+
+        void updateConsoleMessageExpiredCount(unsigned count);
         void addConsoleMessage(const ScriptObject& messageObj, const Vector<ScriptString>& frames, const Vector<ScriptValue> wrappedArguments, const String& message);
-        void updateConsoleMessageRepeatCount(const int count);
+        void updateConsoleMessageRepeatCount(unsigned count);
         void clearConsoleMessages();
 
         bool updateResource(unsigned long identifier, const ScriptObject& resourceObj);

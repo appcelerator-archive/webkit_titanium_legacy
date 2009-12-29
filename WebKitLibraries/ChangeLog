@@ -1,3 +1,35 @@
+2009-12-21  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Samuel Weinig.
+
+        Update WebKitSystemInterface.
+
+        * libWebKitSystemInterfaceLeopard.a:
+        * libWebKitSystemInterfaceSnowLeopard.a:
+        * libWebKitSystemInterfaceTiger.a:
+
+2009-12-21  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Samuel Weinig.
+
+        Update WebKitSystemInterface.
+
+        * WebKitSystemInterface.h:
+        * libWebKitSystemInterfaceLeopard.a:
+        * libWebKitSystemInterfaceSnowLeopard.a:
+        * libWebKitSystemInterfaceTiger.a:
+
+2009-12-18  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Anders Carlsson.
+
+        Update WebKitSystemInterface for <rdar://problem/7237059>.
+
+        * WebKitSystemInterface.h:
+        * libWebKitSystemInterfaceLeopard.a:
+        * libWebKitSystemInterfaceSnowLeopard.a:
+        * libWebKitSystemInterfaceTiger.a:
+
 2009-12-15  Dan Bernstein  <mitz@apple.com>
 
         Reviewed by Adam Roben.

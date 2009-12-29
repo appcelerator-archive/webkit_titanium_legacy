@@ -69,7 +69,7 @@ void SVGRenderBase::mapLocalToContainer(const RenderObject* object, RenderBoxMod
     object->parent()->mapLocalToContainer(repaintContainer, fixed, useTransforms, transformState);
 }
 
-void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject::PaintInfo& paintInfo, const FloatRect& boundingBox, SVGResourceFilter*& filter, SVGResourceFilter* rootFilter)
+bool SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject::PaintInfo& paintInfo, const FloatRect& boundingBox, SVGResourceFilter*& filter, SVGResourceFilter* rootFilter)
 {
 #if !ENABLE(FILTERS)
     UNUSED_PARAM(filter);
@@ -116,7 +116,7 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
     Document* document = object->document();
 
 #if ENABLE(FILTERS)
-    SVGResourceFilter* newFilter = getFilterById(document, filterId);
+    SVGResourceFilter* newFilter = getFilterById(document, filterId, object);
     if (newFilter == rootFilter) {
         // Catch <text filter="url(#foo)">Test<tspan filter="url(#foo)">123</tspan></text>.
         // The filter is NOT meant to be applied twice in that case!
@@ -126,16 +126,15 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
         filter = newFilter;
 #endif
 
-    SVGResourceClipper* clipper = getClipperById(document, clipperId);
-    SVGResourceMasker* masker = getMaskerById(document, maskerId);
+    SVGResourceClipper* clipper = getClipperById(document, clipperId, object);
+    SVGResourceMasker* masker = getMaskerById(document, maskerId, object);
 
-#if ENABLE(FILTERS)
-    if (filter) {
-        filter->addClient(styledElement);
-        filter->prepareFilter(paintInfo.context, object);
-    } else if (!filterId.isEmpty())
-        svgElement->document()->accessSVGExtensions()->addPendingResource(filterId, styledElement);
-#endif
+    if (masker) {
+        masker->addClient(styledElement);
+        if (!masker->applyMask(paintInfo.context, boundingBox))
+            return false;
+    } else if (!maskerId.isEmpty())
+        svgElement->document()->accessSVGExtensions()->addPendingResource(maskerId, styledElement);
 
     if (clipper) {
         clipper->addClient(styledElement);
@@ -143,11 +142,16 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
     } else if (!clipperId.isEmpty())
         svgElement->document()->accessSVGExtensions()->addPendingResource(clipperId, styledElement);
 
-    if (masker) {
-        masker->addClient(styledElement);
-        masker->applyMask(paintInfo.context, boundingBox);
-    } else if (!maskerId.isEmpty())
-        svgElement->document()->accessSVGExtensions()->addPendingResource(maskerId, styledElement);
+#if ENABLE(FILTERS)
+    if (filter) {
+        filter->addClient(styledElement);
+        if (!filter->prepareFilter(paintInfo.context, object))
+            return false;
+    } else if (!filterId.isEmpty())
+        svgElement->document()->accessSVGExtensions()->addPendingResource(filterId, styledElement);
+#endif
+
+    return true;
 }
 
 void SVGRenderBase::finishRenderSVGContent(RenderObject* object, RenderObject::PaintInfo& paintInfo, SVGResourceFilter*& filter, GraphicsContext* savedContext)
@@ -235,7 +239,7 @@ FloatRect SVGRenderBase::computeContainerBoundingBox(const RenderObject* contain
 FloatRect SVGRenderBase::filterBoundingBoxForRenderer(const RenderObject* object)
 {
 #if ENABLE(FILTERS)
-    SVGResourceFilter* filter = getFilterById(object->document(), object->style()->svgStyle()->filter());
+    SVGResourceFilter* filter = getFilterById(object->document(), object->style()->svgStyle()->filter(), object);
     if (filter)
         return filter->filterBoundingBox();
 #else

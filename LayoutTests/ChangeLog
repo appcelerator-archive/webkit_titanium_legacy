@@ -1,3 +1,1285 @@
+2009-12-29  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Implement HTML5 <aside> element.
+        https://bugs.webkit.org/show_bug.cgi?id=32943
+
+        The new test file tests:
+        - <p> closing,
+        - Residual style, and
+        - FormatBlock.
+
+        * fast/html/aside-element-expected.txt: Added.
+        * fast/html/aside-element.html: Added.
+        * fast/html/script-tests/aside-element.js: Added.
+
+2009-12-29  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        [GTK] Failing media/video-seek-past-end-playing.html
+        https://bugs.webkit.org/show_bug.cgi?id=33015
+
+        Skip test that fails on and off locally, but always on the release
+        bot, until we figure out what is wrong.
+
+        * platform/gtk/Skipped:
+
+2009-12-29  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        [GTK] Fails fast/dom/prototype-inheritance-2.html after r52559
+        https://bugs.webkit.org/show_bug.cgi?id=33014
+
+        Skipping test that is failing after r52559 until we figure out why
+        the constructors are not showing up for us.
+
+        * platform/gtk/Skipped:
+
+2009-12-29  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] DRT: Frame loader callbacks differ from the Mac port
+        https://bugs.webkit.org/show_bug.cgi?id=32989
+
+        Remove messages from the callbacks that should not dump them to match
+        the expected results for the http/loading tests.
+
+        Unskip some http/loading tests which succeed now.
+
+        * platform/qt/Skipped:
+
+2009-12-29  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] fix fast/dom/Window/window-onFocus.html
+        
+        Add support for layouttestcontroller.windowIsKey to Qt DRT and fix issue where
+        window.onblur was getting dispatched twice from QtWebKit.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32990
+
+        * platform/qt/Skipped:
+
+2009-12-28  Charles Wei  <charles.wei@torchmobile.com.cn>
+
+        Reviewed by Maciej Stachowiak.
+
+        Add test cases for <noscript> with both Javascript enabled and disabled
+        https://bugs.webkit.org/show_bug.cgi?id=32706
+
+
+        * fast/parser/noscript-with-javascript-disabled-expected.txt: Added.
+        * fast/parser/noscript-with-javascript-disabled.html: Added.
+        * fast/parser/noscript-with-javascript-enabled-expected.txt: Added.
+        * fast/parser/noscript-with-javascript-enabled.html: Added.
+
+2009-12-28  Kinuko Yasuda  <kinuko@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Added a layout-test that tests if numeric pad arrow key
+        events are correctly reported with keyLocation as
+        DOM_KEY_LOCATION_NUMPAD.  Currently this test only passes on Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=28247
+
+        * fast/events/keydown-numpad-keys-expected.txt: Added.
+        * fast/events/keydown-numpad-keys.html: Added.
+        * fast/events/script-tests/keydown-numpad-keys.js: Added.
+        (recordKeyEvent):
+        (testKeyEventWithLocation):
+
+        * platform/gtk/Skipped: fast/events/keydown-numpad-keys.html added.
+        * platform/qt/Skipped: fast/events/keydown-numpad-keys.html added.
+        * platform/win/Skipped: fast/events/keydown-numpad-keys.html added.
+
+2009-12-28  Mike Moretti  <webkit9@mordent.com>
+
+        Reviewed by Darin Adler.
+
+        Fix bug 28245 - problem with inserting a span into a long text block causing a crash because of a null string
+
+        * fast/dom/insert-span-into-long-text-bug-28245-expected.txt: Added.
+        * fast/dom/insert-span-into-long-text-bug-28245.html: Added.
+
+2009-12-28  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Skip test that is failing since it was checked in, and some tests
+        that need results.
+
+        * platform/gtk/Skipped:
+
+2009-12-28  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Implement HTML5 <article> element.
+        https://bugs.webkit.org/show_bug.cgi?id=32942
+
+        The new test file tests:
+        - <p> closing,
+        - Residual style, and
+        - FormatBlock.
+
+        * fast/html/article-element-expected.txt: Added.
+        * fast/html/article-element.html: Added.
+        * fast/html/script-tests/article-element.js: Added.
+
+2009-12-27  Maciej Stachowiak  <mjs@apple.com>
+
+        Rubber stamped by Adam Barth.
+
+        Put media/audio-delete-while-step-button-clicked.html back in the mac skipped list because
+        I think it's making other media tests fail sporadically.
+
+        * platform/mac-tiger/Skipped:
+        * platform/mac/Skipped:
+
+2009-12-27  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] Support upload progress events in XMLHttpRequest
+        https://bugs.webkit.org/show_bug.cgi?id=32969
+
+        Make QNetworkReplyHandler report the upload progress to the client.
+
+        Already covered by tests:
+        http/tests/xmlhttprequest/upload-onload-event.html
+        http/tests/xmlhttprequest/upload-onloadstart-event.html
+        http/tests/xmlhttprequest/upload-progress-events.html
+        http/tests/xmlhttprequest/upload-onprogress-event.html
+
+        which have been unskipped.
+
+        * platform/qt/Skipped:
+
+2009-12-27  Maciej Stachowiak  <mjs@apple.com>
+
+        Rubber stamped by Adam Barth.
+
+        Add media/audio-delete-while-step-button-clicked.html back to the Tiger skipped list.
+
+        * platform/mac-tiger/Skipped:
+
+2009-12-27  Maciej Stachowiak  <mjs@apple.com>
+
+        Rubber stamped by Adam Barth.
+
+        Removed some tests from the skipped list that are not failing on my system.
+
+        * platform/mac-snowleopard/Skipped:
+        * platform/mac/Skipped:
+        * platform/mac/fast/forms/menulist-style-color-expected.checksum: Added.
+        * platform/mac/fast/forms/menulist-style-color-expected.png: Added.
+        * platform/mac/fast/forms/menulist-style-color-expected.txt: Added.
+        * platform/mac/plugins/qt-qwidget-plugin-expected.checksum: Added.
+        * platform/mac/plugins/qt-qwidget-plugin-expected.png: Added.
+        * platform/mac/plugins/qt-qwidget-plugin-expected.txt: Added.
+
+2009-12-27  Maciej Stachowiak  <mjs@apple.com>
+
+        Rubber stamped by Cameron Zwarich.
+
+        Skip fast/images/size-failure.html on SnowLeopard because it
+        tickles a CG bug that makes it time out.
+
+        * platform/mac-snowleopard/Skipped:
+
+2009-12-27  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        fast/forms/basic-selects.html is failing on SnowLeopard
+        https://bugs.webkit.org/show_bug.cgi?id=32960
+
+        The recently added fast/forms/basic-selects.html is failing on SnowLeopard; the
+        result checked in is only valid for Leopard and earlier, because SnowLeopard
+        slightly changed the disabled text color.
+        
+        Move the pre-SL result to platform/mac-leopard and generate new
+        SnowLeopard results in platform/mac.
+        
+        * platform/mac-leopard/fast/forms/basic-selects-expected.checksum: Copied from platform/mac/fast/forms/basic-selects-expected.checksum.
+        * platform/mac-leopard/fast/forms/basic-selects-expected.png: Copied from platform/mac/fast/forms/basic-selects-expected.png.
+        * platform/mac-leopard/fast/forms/basic-selects-expected.txt: Copied from platform/mac/fast/forms/basic-selects-expected.txt.
+        * platform/mac/fast/forms/basic-selects-expected.checksum:
+        * platform/mac/fast/forms/basic-selects-expected.png:
+        * platform/mac/fast/forms/basic-selects-expected.txt:
+
+2009-12-27  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        SVG: Stop rendering of objects with empty mask and filter content
+        https://bugs.webkit.org/show_bug.cgi?id=32968
+
+        Check if the content is not drawn, if the mask clips the complete
+        content away.
+        mask-excessive-malloc needed an update. This patch stops rendering
+        if there is no content in mask. But it's intention is to test
+        big masking images.
+
+        * platform/mac/svg/custom/empty-mask-expected.checksum: Added.
+        * platform/mac/svg/custom/empty-mask-expected.png: Added.
+        * platform/mac/svg/custom/empty-mask-expected.txt: Added.
+        * platform/mac/svg/custom/mask-excessive-malloc-expected.checksum:
+        * platform/mac/svg/custom/mask-excessive-malloc-expected.png:
+        * platform/mac/svg/custom/mask-excessive-malloc-expected.txt:
+        * svg/custom/empty-mask.svg: Added.
+        * svg/custom/mask-excessive-malloc.svg:
+
+2009-12-27  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        SVG Mask result wrong, if two different objects call the same mask id
+        https://bugs.webkit.org/show_bug.cgi?id=32787
+
+        Two rects with different sizes and positions call the same mask id. Both
+        rects should be masked to two circles, dependent on the properties of the
+        rects.
+
+        * platform/mac/svg/custom/mask-on-multiple-objects-expected.checksum: Added.
+        * platform/mac/svg/custom/mask-on-multiple-objects-expected.png: Added.
+        * platform/mac/svg/custom/mask-on-multiple-objects-expected.txt: Added.
+        * svg/custom/mask-on-multiple-objects.svg: Added.
+
+2009-12-27  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Simon Hausmann.
+
+        [Qt] DRT sideeffect (authentication)
+        https://bugs.webkit.org/show_bug.cgi?id=32961
+
+        * platform/qt/Skipped: http/tests/xmlhttprequest/failed-auth.html added temorarily (until fix).
+
+2009-12-27  Robert Hogan  <robert@roberthogan.net>
+
+        Rubber-stamped by Simon Hausmann.
+
+        Remove successful tests from qt skipped list
+
+        https://bugs.webkit.org/show_bug.cgi?id=32948
+
+        * platform/qt/Skipped:
+
+2009-12-27  Robert Hogan  <robert@roberthogan.net>
+
+        Rubber-stamped by Simon Hausmann.
+
+        Remove duplicate entries from Qt skipped list
+
+        https://bugs.webkit.org/show_bug.cgi?id=32947
+
+        * platform/qt/Skipped:
+
+2009-12-26  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        <rdar://problem/7483622> REGRESSION (r47255): Extra Large Amount of Empty Space
+        https://bugs.webkit.org/show_bug.cgi?id=32690
+
+        * fast/block/float/clear-to-fit-expected.checksum: Added.
+        * fast/block/float/clear-to-fit-expected.png: Added.
+        * fast/block/float/clear-to-fit-expected.txt: Added.
+        * fast/block/float/clear-to-fit.html: Added.
+
+2009-12-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Simon Hausmann.
+
+        [Qt] Skipping some flakey tests.
+        https://bugs.webkit.org/show_bug.cgi?id=32946
+
+        * platform/qt/Skipped:
+         - http/tests/cookies/simple-cookies-expired.html added.
+         - storage/database-lock-after-reload.html added.
+         - storage/empty-statement.html added.
+         - storage/execute-sql-args.html added.
+         - storage/hash-change-with-xhr.html added.
+
+2009-12-25  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Implement HTML5 section element.
+        https://bugs.webkit.org/show_bug.cgi?id=32936
+
+        The new test file tests:
+        - <p> closing,
+        - Residual style, and
+        - FormatBlock.
+
+        * fast/html/script-tests/TEMPLATE.html: Added.
+        * fast/html/script-tests/section-element.js: Added.
+        * fast/html/section-element-expected.txt: Added.
+        * fast/html/section-element.html: Added.
+
+2009-12-25  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Simon Hausmann.
+
+        [Qt] svg/custom/global-constructors.html skipped 
+        temporarily (until fix) because of missing variables.
+        Platform dependent expected files updated after r52559.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32941
+
+        * platform/qt/Skipped: svg/custom/global-constructors.html added until fix.
+        * platform/qt/fast/dom/Window/window-properties-expected.txt: updated.
+        * platform/qt/fast/dom/prototype-inheritance-expected.txt: updated.
+        * platform/qt/fast/js/global-constructors-expected.txt: updated.
+
+2009-12-25  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Dirk Schulze.
+
+        DOMWindow is missing lots of SVG* constructor objects
+        https://bugs.webkit.org/show_bug.cgi?id=20430
+
+        Update LayoutTests after exposing several new SVG* constructor objects.
+
+        * fast/dom/Window/window-properties-expected.txt:
+        * fast/dom/prototype-inheritance-2-expected.txt:
+        * fast/dom/prototype-inheritance-expected.txt:
+        * fast/js/global-constructors-expected.txt:
+        * svg/custom/global-constructors-expected.txt: Added.
+        * svg/custom/global-constructors.html: Added.
+        * svg/custom/script-tests/global-constructors.js: Added.
+        (shouldBeDefined):
+
+2009-12-25  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed trivial fix.
+
+        LayoutTests/inspector/settings-set-get.html removed 
+        by r52547, it should be removed from skiplist.
+
+        * platform/qt/Skipped: inspector/settings-set-get.html removed.
+
+2009-12-24  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Eric Seidel.
+
+        Remove LayoutTests/storage/change-version.html from Qt Skipped list
+        
+        LayoutTests/storage/change-version.html now passes.
+        Probably related to the fix in https://bugs.webkit.org/show_bug.cgi?id=32437.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32917
+
+        * platform/qt/Skipped:
+
+2009-12-24  Andras Becsi  <abecsi@inf.u-szeged.hu>
+
+        Rubber-stamped by Simon Hausmann.
+
+        [Qt] Skip failing test until a solution for layoutTestController.notifyDone() is found.
+        https://bugs.webkit.org/show_bug.cgi?id=31626
+
+        * platform/qt/Skipped: inspector/console-clear.html skipped
+
+2009-12-24  Jessie Berlin  <jberlin@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for WebKit bug 29968 - Selecting text with text-overflow ellipsis
+        should not show cut off text
+        https://bugs.webkit.org/show_bug.cgi?id=29968
+        
+        Also fixes the issue on both Mac OS X and Windows where the highlight
+        would extend only partway into the ellipsis based on the size of the
+        characters being truncated.
+        
+        Places the expected results under the mac and win platforms separately
+        because they are pixel test results and also the size of the
+        RenderBlocks are showing up as slightly different between mac and win.
+
+        * editing/selection/select-text-overflow-ellipsis.html: Added.
+        * platform/mac/editing/selection/select-text-overflow-ellipsis-expected.checksum: Added.
+        * platform/mac/editing/selection/select-text-overflow-ellipsis-expected.png: Added.
+        * platform/mac/editing/selection/select-text-overflow-ellipsis-expected.txt: Added.
+        * platform/win/editing/selection/select-text-overflow-ellipsis-expected.checksum: Added.
+        * platform/win/editing/selection/select-text-overflow-ellipsis-expected.png: Added.
+        * platform/win/editing/selection/select-text-overflow-ellipsis-expected.txt: Added.
+
+2009-12-21  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: add Settings.js class that would manage
+        frontend settings.
+
+        This change:
+        - Splits preferences and settings
+        - Pushes settings to the frontend on load
+        - Stores settings on each change
+        - Stores showInheritedStyles as setting.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32832
+
+        * inspector/settings-set-get-expected.txt: Removed.
+        * inspector/settings-set-get.html: Removed.
+
+2009-12-24  Pavel Feldman  <pfeldman@chromium.org>
+
+        Not reviewed: follow up to r52545, adding missing tests.
+
+        * inspector/console-clear-expected.txt: Added.
+        * inspector/console-clear.html: Added.
+
+2009-12-23  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: [REGRESSION] console's clear command does not work.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32897
+
+        * inspector/console-clear-expected.txt: Added.
+        * inspector/console-clear.html: Added.
+        * inspector/console-tests.js:
+        (dumpConsoleMessages.callback):
+        (dumpConsoleMessages):
+
+2009-12-23  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: Console dumps strings in escaped form.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32488
+
+        * inspector/console-format-expected.txt:
+
+2009-12-23  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32905
+        With Pinyin Simplified IM, a wrong character is deleted from google.com suggestion
+
+        * platform/mac/editing/input/selection-change-closes-typing-expected.txt: Added.
+        * platform/mac/editing/input/selection-change-closes-typing.html: Added.
+
+2009-12-23  David Levin  <levin@chromium.org>
+
+        REGRESSION (r52494): Assertion failure in Frame::caretBlinkTimerFired() (selection()->isCaret())
+        https://bugs.webkit.org/show_bug.cgi?id=32903
+
+        No review but ok'ed by Darin Adler. Rolling out r52494 due to above regression.
+
+        * fast/forms/selection-layout-reentry-strange-case-expected.txt: Removed.
+        * fast/forms/selection-layout-reentry-strange-case.html: Removed.
+        * platform/mac/accessibility/frame-with-title-expected.txt:
+
+2009-12-23  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        Reverse JS GenerateConstructor logic
+        https://bugs.webkit.org/show_bug.cgi?id=32910
+
+        HTMLOptionsCollection correctly exposes its JS constructor now, thus fixing its test in fast/dom/wrapper-classes.html
+
+        * fast/dom/wrapper-classes-expected.txt:
+
+2009-12-23  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Eric Seidel.
+
+        Added Windows specific results for a test that was committed in r52505.
+
+        * platform/win/fast/forms/basic-textareas-quirks-expected.txt: Added.
+
+2009-12-23  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        "Refused to execute a JavaScript script" error when embedding SWF with
+        a URL that is also a query parameter
+        https://bugs.webkit.org/show_bug.cgi?id=32908
+
+        Update expected results to show that we don't raise an alarm in this case.
+
+        * http/tests/security/xssAuditor/object-src-inject-expected.txt:
+
+2009-12-23  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Darin Adler.
+
+        <rdar://problem/7487164> First line of text cannot be selected
+        https://bugs.webkit.org/show_bug.cgi?id=32749
+
+        * fast/text/remove-zero-length-run-expected.txt: Added.
+        * fast/text/remove-zero-length-run.html: Added.
+
+2009-12-18  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Fix for newlines turning into missing-gyphs when using SVG fonts
+
+        https://bugs.webkit.org/show_bug.cgi?id=32710
+
+        Font::drawText() has three code paths:
+
+          - drawTextUsingSVGFont()
+          - drawSimpleText()
+          - drawComplexText()
+
+        The latter two both have logic to replace newlines and tabs, as well
+        as a few other control characters that are considered spaces, with
+        spaces, before actually drawing the text. Previously the SVG font
+        path did not have this kind of logic.
+
+        This change introduces two helper functions in Font to do this space
+        replacement, which are then used for the simple path, the SVG path,
+        and the Qt implementation of the complex path.
+
+        Test: svg/custom/svg-fonts-in-html-linebreaks.html
+
+        * svg/custom/resources/ABCFont.svg: Added. Font for test case
+        * svg/custom/svg-fonts-in-html-linebreaks-expected.txt: Added.
+        * svg/custom/svg-fonts-in-html-linebreaks.html: New test case
+
+2009-12-23  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate getter support.
+        https://bugs.webkit.org/show_bug.cgi?id=32876
+
+        Tests for the valueAsDate getter with various types.
+
+        * fast/forms/input-valueasdate-date-expected.txt: Added.
+        * fast/forms/input-valueasdate-date.html: Added.
+        * fast/forms/input-valueasdate-datetime-expected.txt: Added.
+        * fast/forms/input-valueasdate-datetime.html: Added.
+        * fast/forms/input-valueasdate-datetimelocal-expected.txt: Added.
+        * fast/forms/input-valueasdate-datetimelocal.html: Added.
+        * fast/forms/input-valueasdate-month-expected.txt: Added.
+        * fast/forms/input-valueasdate-month.html: Added.
+        * fast/forms/input-valueasdate-time-expected.txt: Added.
+        * fast/forms/input-valueasdate-time.html: Added.
+        * fast/forms/input-valueasdate-week-expected.txt: Added.
+        * fast/forms/input-valueasdate-week.html: Added.
+        * fast/forms/script-tests/input-valueasdate-date.js: Added.
+        * fast/forms/script-tests/input-valueasdate-datetime.js: Added.
+        * fast/forms/script-tests/input-valueasdate-datetimelocal.js: Added.
+        * fast/forms/script-tests/input-valueasdate-month.js: Added.
+        * fast/forms/script-tests/input-valueasdate-time.js: Added.
+        * fast/forms/script-tests/input-valueasdate-week.js: Added.
+
+2009-12-22  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Eric Seidel.
+
+        [Chromium] Garbage in transparent regions of images uploaded as textures
+        https://bugs.webkit.org/show_bug.cgi?id=32888
+
+        * fast/canvas/webgl/bug-32888-expected.txt: Added.
+        * fast/canvas/webgl/bug-32888.html: Added.
+        * fast/canvas/webgl/resources/bug-32888-texture.png: Added.
+
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Removed DataGrid from results.
+
+        * fast/dom/Window/window-properties-expected.txt: Removed DataGrid classes.
+        * fast/dom/prototype-inheritance-2-expected.txt: Ditto.
+        * fast/dom/prototype-inheritance-expected.txt: Ditto.
+        * fast/js/global-constructors-expected.txt: Ditto.
+
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Disabled DataGrid tests.
+
+        * fast/dom/HTMLDataGridElement/DataGridColumns-basic.html: Removed.
+        * fast/dom/HTMLDataGridElement/DataGridColumns-basic.html-disabled: Copied from fast/dom/HTMLDataGridElement/DataGridColumns-basic.html.
+        * fast/dom/HTMLDataGridElement/DataGridColumns-dom-attributes.html: Removed.
+        * fast/dom/HTMLDataGridElement/DataGridColumns-dom-attributes.html-disabled: Copied from fast/dom/HTMLDataGridElement/DataGridColumns-dom-attributes.html.
+        * fast/dom/HTMLDataGridElement/DataGridColumns-dom.html: Removed.
+        * fast/dom/HTMLDataGridElement/DataGridColumns-dom.html-disabled: Copied from fast/dom/HTMLDataGridElement/DataGridColumns-dom.html.
+        * fast/dom/HTMLDataGridElement/DataGridDataSource-basic.html: Removed.
+        * fast/dom/HTMLDataGridElement/DataGridDataSource-basic.html-disabled: Copied from fast/dom/HTMLDataGridElement/DataGridDataSource-basic.html.
+
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        ASSERTION FAILED: m_numNodeListCaches
+        https://bugs.webkit.org/show_bug.cgi?id=19526
+        <rdar://problem/7431572>
+
+        * fast/dom/NodeList/adoptNode-node-list-cache-expected.txt: Added.
+        * fast/dom/NodeList/adoptNode-node-list-cache.html: Added.
+        * fast/dom/NodeList/resources: Added.
+        * fast/dom/NodeList/resources/adoptNode-node-list-cache-subframe.html: Added.
+
+2009-12-22  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Upstream platform-specific variant of
+        plugins/get-url-with-blank-target.html . There is some uncertainty
+        over which behavior is correct - Chromium's and Safari/Win in this
+        test, or Safari/Mac in the generic test. See 
+        https://bugs.webkit.org/show_bug.cgi?id=32886 for the bug to converge
+        the two.
+        This patch is bug https://bugs.webkit.org/show_bug.cgi?32762 .
+
+        * platform/chromium/plugins/get-url-with-blank-target-expected.txt: Added.
+        * platform/chromium/plugins/get-url-with-blank-target.html: Added.
+
+2009-12-22  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Upstream a bunch of forms tests from chromium.org.
+        https://bugs.webkit.org/show_bug.cgi?id=32755
+
+        * fast/forms/basic-selects.html: Added.
+        * fast/forms/basic-textareas-quirks.html: Added.
+        * fast/forms/document-write-empty-expected.txt: Added.
+        * fast/forms/document-write-empty.html: Added.
+        * fast/forms/form-action-expected.txt: Added.
+        * fast/forms/form-action.html: Added.
+        * fast/forms/lazy-event-listener-scope-chain-expected.txt: Added.
+        * fast/forms/lazy-event-listener-scope-chain.html: Added.
+        * fast/forms/resources/logo.gif: Added.
+        * fast/forms/selected-index-value-expected.txt: Added.
+        * fast/forms/selected-index-value.html: Added.
+        * fast/forms/style-display-none-expected.txt: Added.
+        * fast/forms/style-display-none.html: Added.
+        * platform/mac/fast/forms/basic-selects-expected.checksum: Added.
+        * platform/mac/fast/forms/basic-selects-expected.png: Added.
+        * platform/mac/fast/forms/basic-selects-expected.txt: Added.
+        * platform/mac/fast/forms/basic-textareas-quirks-expected.checksum:
+        * platform/mac/fast/forms/basic-textareas-quirks-expected.png:
+        * platform/mac/fast/forms/basic-textareas-quirks-expected.txt:
+
+
+2009-12-22  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Fix ordering of entries in this ChangeLog file
+        https://bugs.webkit.org/show_bug.cgi?id=32883
+
+2009-12-22  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Add platform-specific chromium test.
+        https://bugs.webkit.org/show_bug.cgi?id=32741
+
+        * platform/chromium/fast/dom/interval-expected.txt: Added.
+        * platform/chromium/fast/dom/interval.html: Added.
+
+2009-12-22  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Attempting to upstream xss-inactive-closure test from the Chromium
+        test suite. https://bugs.webkit.org/show_bug.cgi?id=32691 .
+
+        * http/tests/security/listener/resources/xss-inactive-closure-child-2.html: Added.
+        * http/tests/security/listener/resources/xss-inactive-closure-child.html: Added.
+        * http/tests/security/listener/xss-inactive-closure-expected.txt: Added.
+        * http/tests/security/listener/xss-inactive-closure.html: Added.
+
+2009-12-22  Pavel Feldman  <pfeldman@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: simplify highlighter definition.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32869
+
+        * inspector/syntax-highlight-css-expected.txt:
+        * inspector/syntax-highlight-javascript-expected.txt:
+        * inspector/syntax-highlight.js:
+        (frontend_dumpSyntaxHighlight):
+
+2009-12-21  Darin Adler  <darin@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Reentrancy problem with selection in some edge cases.
+        https://bugs.webkit.org/show_bug.cgi?id=32842
+        rdar://problem/7449974
+
+        * fast/forms/selection-layout-reentry-strange-case-expected.txt: Added.
+        * fast/forms/selection-layout-reentry-strange-case.html: Added.
+
+        * platform/mac/accessibility/frame-with-title-expected.txt: Updated since
+        the number of layouts is now different.
+
+2009-12-21  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] Skip layoutTestController.notifyDone() related test until fix.
+        https://bugs.webkit.org/show_bug.cgi?id=31626
+
+        * platform/qt/Skipped: http/tests/misc/set-window-opener-to-null.html added.
+
+2009-12-22  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Upstream a bunch of forms tests from chromium.org.
+        https://bugs.webkit.org/show_bug.cgi?id=32755
+
+        * fast/forms/basic-selects.html: Added.
+        * fast/forms/basic-textareas-quirks.html: Added.
+        * fast/forms/document-write-empty-expected.txt: Added.
+        * fast/forms/document-write-empty.html: Added.
+        * fast/forms/form-action-expected.txt: Added.
+        * fast/forms/form-action.html: Added.
+        * fast/forms/lazy-event-listener-scope-chain-expected.txt: Added.
+        * fast/forms/lazy-event-listener-scope-chain.html: Added.
+        * fast/forms/resources/logo.gif: Added.
+        * fast/forms/selected-index-value-expected.txt: Added.
+        * fast/forms/selected-index-value.html: Added.
+        * fast/forms/style-display-none-expected.txt: Added.
+        * fast/forms/style-display-none.html: Added.
+        * platform/mac/fast/forms/basic-selects-expected.checksum: Added.
+        * platform/mac/fast/forms/basic-selects-expected.png: Added.
+        * platform/mac/fast/forms/basic-selects-expected.txt: Added.
+        * platform/mac/fast/forms/basic-textareas-quirks-expected.checksum:
+        * platform/mac/fast/forms/basic-textareas-quirks-expected.png:
+        * platform/mac/fast/forms/basic-textareas-quirks-expected.txt:
+
+
+2009-12-21  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Invalid url should raise SYNTAX_ERR exception.
+        https://bugs.webkit.org/show_bug.cgi?id=32700
+
+        * websocket/tests/bad-sub-protocol-expected.txt: add CONSOLE MESSAGEs
+        * websocket/tests/script-tests/url-parsing.js: add invalid url tests.
+          Also changed url from ws://127.0.0.1/ to ws://127.0.0.1:8880/websocket/tests/simple to make it sure no errors on console message for these tests by not receiving unexpected response from 127.0.0.1:80
+        * websocket/tests/url-parsing-expected.txt:
+
+2009-12-21  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Upstream a test from chromium.org.
+        https://bugs.webkit.org/show_bug.cgi?id=32761
+
+        * http/tests/misc/resources/content-iframe.html: Added.
+        * http/tests/misc/set-window-opener-to-null-expected.txt: Added.
+        * http/tests/misc/set-window-opener-to-null.html: Added.
+
+2009-12-21  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        REGRESSION(4.0.4-ToT): Indent deletes non highlighted text in gmail.
+        <rdar://problem/7489326>
+        https://bugs.webkit.org/show_bug.cgi?id=32843
+
+        The fix for 7442387 did not handle the case where the end of paragraph
+        is not a descendant of the computed outer block.
+        Updated editing/execCommand/indent-with-style2.html to cover this case too.
+
+        * editing/execCommand/indent-with-style2-expected.txt:
+        * editing/execCommand/indent-with-style2.html:
+
+2009-12-21  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Upstream a bunch of platform-specific Chromium plugin tests.
+        https://bugs.webkit.org/show_bug.cgi?id=32751
+
+        * platform/chromium/plugins/call-as-function-expected.txt: Added.
+        * platform/chromium/plugins/call-as-function.html: Added.
+        * platform/chromium/plugins/get-url-with-iframe-target-no-crash-expected.txt: Added.
+        * platform/chromium/plugins/get-url-with-iframe-target-no-crash.html: Added.
+        * platform/chromium/plugins/multiple-plugins-expected.txt: Added.
+        * platform/chromium/plugins/multiple-plugins.html: Added.
+        * platform/chromium/plugins/nested-plugin-objects-expected.txt: Added.
+        * platform/chromium/plugins/nested-plugin-objects.html: Added.
+        * platform/chromium/plugins/refcount-leaks-expected.txt: Added.
+        * platform/chromium/plugins/refcount-leaks.html: Added.
+        * platform/chromium/plugins/return-npobject-expected.txt: Added.
+        * platform/chromium/plugins/return-npobject.html: Added.
+        * platform/chromium/plugins/script-object-invoke-expected.txt: Added.
+        * platform/chromium/plugins/script-object-invoke.html: Added.
+
+2009-12-21  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Upstream a test to ensure we handle variations on "javascript:" URL
+        correctly.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32740
+
+        * fast/dom/xss-DENIED-javascript-variations-expected.txt: Added.
+        * fast/dom/xss-DENIED-javascript-variations.html: Added.
+
+2009-12-21  Nate Chapin  <japhet@chromium.org>
+
+        Unreviewed, build fix.
+
+        Cleared instead of deleted some layout test files, making them fail. Delete them for real.
+
+        * http/tests/navigation/image-load-in-beforeunload-handler-expected.txt: Removed.
+        * http/tests/navigation/image-load-in-beforeunload-handler.html: Removed.
+        * http/tests/navigation/image-load-in-unload-handler-expected.txt: Removed.
+        * http/tests/navigation/image-load-in-unload-handler.html: Removed.
+        * http/tests/navigation/resources/wait-then-notify-done.html: Removed.
+
+2009-12-21  Nate Chapin  <japhet@chromium.org>
+
+        Rubber-stamped by Darin Adler.
+
+        Revert r52446 due to crashiness.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32839
+
+        * http/tests/navigation/image-load-in-beforeunload-handler-expected.txt:
+        * http/tests/navigation/image-load-in-beforeunload-handler.html:
+        * http/tests/navigation/image-load-in-unload-handler-expected.txt:
+        * http/tests/navigation/image-load-in-unload-handler.html:
+        * http/tests/navigation/resources/wait-then-notify-done.html:
+
+2009-12-21  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Darin Adler and Nikolas Zimmermann.
+
+        Speed-up SVG Masking
+        https://bugs.webkit.org/show_bug.cgi?id=32738
+
+        Update pixel test results for two SVG masking operations. They don't fail
+        and there is no noticable difference between the old and new results. But
+        Masking uses smaller ImageBuffers now and that changed the checksum.
+
+        * platform/mac/svg/W3C-SVG-1.1/masking-intro-01-f-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/masking-intro-01-f-expected.png:
+        * platform/mac/svg/batik/masking/maskRegions-expected.checksum:
+        * platform/mac/svg/batik/masking/maskRegions-expected.png:
+
+2009-12-21  Andreas Kling  <andreas.kling@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Test that dragging an SVG as <img> doesn't crash the browser.
+        Note that this only works in debug mode as it's a failing assert.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32511
+
+        * fast/images/drag-svg-as-image.html: Added.
+        * platform/qt/Skipped: fast/images/drag-svg-as-image.html added.
+
+2009-12-21  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Tests for https://bugs.webkit.org/show_bug.cgi?id=30457.
+
+        * http/tests/navigation/image-load-in-beforeunload-handler-expected.txt: Added.
+        * http/tests/navigation/image-load-in-beforeunload-handler.html: Added.
+        * http/tests/navigation/image-load-in-unload-handler-expected.txt: Added.
+        * http/tests/navigation/image-load-in-unload-handler.html: Added.
+        * http/tests/navigation/resources/wait-then-notify-done.html: Added.
+
+2009-12-21  Philippe Normand  <pnormand@igalia.com>
+
+        Rubber-stamped by Xan Lopez.
+
+        * platform/gtk/Skipped: Unskip test fixed by patch from Bug 24001.
+
+2009-12-20  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        A test for Date binding.
+        https://bugs.webkit.org/show_bug.cgi?id=32698
+
+        * fast/forms/input-valueasdate-expected.txt: Added.
+        * fast/forms/input-valueasdate.html: Added.
+        * fast/forms/script-tests/input-valueasdate.js: Added.
+
+2009-12-20  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] Failing test platform/gtk/editing/pasteboard/middle-button-paste.html
+        https://bugs.webkit.org/show_bug.cgi?id=32788
+
+        Avoid using fixed values when moving mouse.
+
+        * platform/gtk/editing/pasteboard/middle-button-paste-expected.txt:
+        * platform/gtk/editing/pasteboard/middle-button-paste.html:
+
+2009-12-20  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * platform/gtk/editing/pasteboard/middle-button-paste-expected.txt:
+        * platform/gtk/editing/pasteboard/middle-button-paste.html:
+
+2009-12-20  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Upstreaming two plugin tests from chromium.org.
+        https://bugs.webkit.org/show_bug.cgi?id=32750
+
+        * plugins/get-file-url-expected.txt: Added.
+        * plugins/get-file-url.html: Added.
+        * plugins/get-url-with-iframe-target-expected.txt: Added.
+        * plugins/get-url-with-iframe-target.html: Added.
+        * plugins/resources/get-file-url-subframe.html: Added.
+
+2009-12-20  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Upstream a test from chromium.org that verifies that calling
+        document.clear() from an external script doesn't crash the browser.
+        https://bugs.webkit.org/show_bug.cgi?id=32743
+
+        * fast/dom/document-clear-expected.txt: Added.
+        * fast/dom/document-clear.html: Added.
+        * fast/dom/resources/document-clear.js: Added.
+
+2009-12-20  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32735
+
+        Upstream a test from chromium.org - ensure that creating a 
+        new Image is actually creating an HTML image element, regardless
+        of the doctype.
+
+        * svg/custom/new-image-is-html-element-expected.txt: Added.
+        * svg/custom/new-image-is-html-element.svg: Added.
+
+2009-12-20  Dirk Pranke  <dpranke@fila-macpro.mtv.corp.google.com>
+
+        Reviewed by Darin Adler.
+
+        upstream test from chromium.org - this tests simulating italic
+        on glyphs that don't have an italic version.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32693
+
+        * fast/text/fake-italic.html: Added.
+        * platform/mac/fast/text/fake-italic-expected.checksum: Added.
+        * platform/mac/fast/text/fake-italic-expected.png: Added.
+        * platform/mac/fast/text/fake-italic-expected.txt: Added.
+
+2009-12-19  Adam Barth  <abarth@webkit.org>
+
+        No review, rolling out r52399.
+        http://trac.webkit.org/changeset/52399
+
+        * websocket/tests/bad-sub-protocol-expected.txt:
+        * websocket/tests/script-tests/url-parsing.js:
+        * websocket/tests/url-parsing-expected.txt:
+
+2009-12-19  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Add a test for window.open and JavaScript URLs.
+
+        * http/tests/security/xss-DENIED-window-open-javascript-url-expected.txt: Added.
+        * http/tests/security/xss-DENIED-window-open-javascript-url.html: Added.
+
+2009-12-19  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Invalid url should raise SYNTAX_ERR exception.
+        https://bugs.wbekit.org/show_bug.cgi?id=32700
+
+        * websocket/tests/bad-sub-protocol-expected.txt: add CONSOLE MESSAGEs
+        * websocket/tests/script-tests/url-parsing.js: add invalid url tests.
+          Also changed url from ws://127.0.0.1/ to ws://127.0.0.1:8880/websocket/tests/simple to make it sure no errors on console message for these tests by not receiving unexpected response from 127.0.0.1:80.
+        * websocket/tests/url-parsing-expected.txt:
+
+2009-12-19  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        Add tests to check filter, mask, clip, opacity and marker ordering
+        https://bugs.webkit.org/show_bug.cgi?id=14010
+
+        Tests the right order of filter and clipper/masker aplied to a SVG
+        object.
+
+        * platform/mac/svg/filters/filter-clip-expected.checksum: Added.
+        * platform/mac/svg/filters/filter-clip-expected.png: Added.
+        * platform/mac/svg/filters/filter-clip-expected.txt: Added.
+        * svg/filters/filter-clip.svg: Added.
+
+2009-12-19  Benjamin Otte  <otte@gnome.org>
+
+        Reviewed by Gustavo Noronha.
+
+        Rebaselined test after revision 52335.
+
+        * platform/gtk/svg/css/getComputedStyle-basic-expected.txt: Added.
+
+2009-12-19  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        Tests for https://bugs.webkit.org/show_bug.cgi?id=28153
+        can't middle-button paste within a single window
+
+        * LayoutTests/platform/gtk/editing/pasteboard/middle-button-paste-expected.txt: Added
+        * LayoutTests/platform/gtk/editing/pasteboard/middle-button-paste.html: Adeed
+
+2009-12-19  MORITA Hajime  <morrita@gmail.com>
+
+        Reviewed by Darin Adler.
+
+        WebCore::Range::surroundContents NULL pointer crash.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31684
+
+        * fast/dom/Range/31684-expected.txt: Added.
+        * fast/dom/Range/31684.html: Added.
+        * fast/dom/Range/script-tests/31684.js: Added.
+
+2009-12-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Crash when accessing webkitTransition property after setting webkitTransitionProperty with invalid value.
+        https://bugs.webkit.org/show_bug.cgi?id=31559
+        
+        Test accessing shorthand property after setting an individual property to a longer or shorter list.
+
+        * fast/css/shorthand-mismatched-list-crash-expected.txt: Added.
+        * fast/css/shorthand-mismatched-list-crash.html: Added.
+
+2009-12-18  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        REGRESSION(r52233): MSAA: Accessibility role of lists is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=32736
+
+        Reviewed by Adam Roben.
+
+        * platform/win/accessibility/list-role-expected.txt: Added.
+        * platform/win/accessibility/list-role.html: Added.
+        Verify that lists return the "list" role.
+
+2009-12-17  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of list items is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=32688
+
+        Reviewed by Adam Roben.
+
+        * platform/win/accessibility/list-item-role-expected.txt: Added.
+        * platform/win/accessibility/list-item-role.html: Added.
+        Verify that the list item role is "list item".
+
+2009-12-17  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of list markers is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=32687
+
+        Reviewed by Adam Roben.
+
+        * platform/win/accessibility/list-marker-role-expected.txt: Added.
+        * platform/win/accessibility/list-marker-role.html: Added.
+        Verify that the list marker role is "text".
+
+2009-12-18  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+        
+        Fixes <http://webkit.org/b/32613>.
+        REGRESSION (r52008): Middle-clicking on a linked image starts a pan scroll,
+        but should follow the link instead.
+
+        Added tests that test pan scrolling behavior when you middle click on images with
+        links, and if you click on parts on image maps that are links, and that aren't.
+
+        * platform/win/fast/events/panScroll-image-no-scroll-expected.txt: Added.
+        * platform/win/fast/events/panScroll-image-no-scroll.html: Added.
+        * platform/win/fast/events/panScroll-imageMap-href-no-scroll-expected.txt: Added.
+        * platform/win/fast/events/panScroll-imageMap-href-no-scroll.html: Added.
+        * platform/win/fast/events/panScroll-imageMap-noHref-scroll-expected.txt: Added.
+        * platform/win/fast/events/panScroll-imageMap-noHref-scroll.html: Added.
+
+2009-12-18  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Darin Fisher.
+
+        Index validation for drawElements examines too many indices
+        https://bugs.webkit.org/show_bug.cgi?id=32692
+
+        * fast/canvas/webgl/bug-32692-expected.txt: Added.
+        * fast/canvas/webgl/bug-32692.html: Added.
+
+2009-12-18  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Xan Lopez.
+
+        Unskip test that should now pass.
+
+        * platform/gtk/Skipped:
+
+2009-12-18  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Adam Roben.
+
+        Add expected failing results for fast/dom/Element/id-in-deleteutton.html.
+        The progress of fixing the failure is being tracked by:
+        <https://bugs.webkit.org/show_bug.cgi?id=32727>.
+
+        * platform/win/fast/dom/Element: Added.
+        * platform/win/fast/dom/Element/id-in-deletebutton-expected.txt: Added.
+
+2009-12-18  Shu Chang  <Chang.Shu@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        New test cases for isId support.
+        https://bugs.webkit.org/show_bug.cgi?id=5578
+
+        * dom/xhtml/level3/core/attrisid04-expected.txt:
+        * dom/xhtml/level3/core/attrisid04.js:
+        (setUpPage):
+        * dom/xhtml/level3/core/attrisid05-expected.txt:
+        * dom/xhtml/level3/core/attrisid05.js:
+        (setUpPage):
+        * fast/dom/Element/attrisid-extra01-expected.txt: Added.
+        * fast/dom/Element/attrisid-extra01.html: Added.
+        * fast/dom/Element/id-in-applet-expected.txt: Added.
+        * fast/dom/Element/id-in-applet.html: Added.
+        * fast/dom/Element/id-in-deletebutton-expected.txt: Added.
+        * fast/dom/Element/id-in-deletebutton.html: Added.
+        * fast/dom/Element/id-in-formcollection-expected.txt: Added.
+        * fast/dom/Element/id-in-formcollection.html: Added.
+        * fast/dom/Element/id-in-frame-expected.txt: Added.
+        * fast/dom/Element/id-in-frame.html: Added.
+        * fast/dom/Element/id-in-frameset-expected.txt: Added.
+        * fast/dom/Element/id-in-frameset.html: Added.
+        * fast/dom/Element/id-in-getelement01-expected.txt: Added.
+        * fast/dom/Element/id-in-getelement01.html: Added.
+        * fast/dom/Element/id-in-insert-hr-expected.txt: Added.
+        * fast/dom/Element/id-in-insert-hr.html: Added.
+        * fast/dom/Element/id-in-map-expected.txt: Added.
+        * fast/dom/Element/id-in-map.html: Added.
+        * fast/dom/Element/id-in-param-expected.txt: Added.
+        * fast/dom/Element/id-in-param.html: Added.
+
+2009-12-18  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Darin Adler.
+
+        REGRESSION (r38898): Using the up arrow in a textarea gets "stuck"
+        at the beginning.
+        https://bugs.webkit.org/show_bug.cgi?id=31920
+
+        Added test showing the problem described in the bug.
+
+        * editing/selection/wrapped-line-caret-3.html:
+        * editing/selection/wrapped-line-caret-3-expected.txt:
+
+2009-12-17  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Upstreaming an XSS test from chromium.org.
+        https://bugs.webkit.org/show_bug.cgi?id=32685
+
+        * http/tests/security/xss-DENIED-assign-location-href-javascript-expected.txt: Added.
+        * http/tests/security/xss-DENIED-assign-location-href-javascript.html: Added.
+
+2009-12-17  Justin Schuh  <jschuh@chromium.org>
+
+        Reviewed by Dan Bernstein.
+
+        Bug 32357: SVG test case crashes WebKit (invalid font URL)
+        https://bugs.webkit.org/show_bug.cgi?id=32357
+
+        Added check for NULL return value from DocLoader::requestFont()
+
+        * svg/text/text-font-uri-invalid-expected.txt: Added.
+        * svg/text/text-font-uri-invalid.svg: Added.
+
+2009-12-17  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Dan Bernstein.
+
+        marquee with display:inline causes crash
+        https://bugs.webkit.org/show_bug.cgi?id=32374
+
+        * fast/inline/inline-marquee-crash-expected.txt: Added.
+        * fast/inline/inline-marquee-crash.html: Added.
+
+2009-12-17  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Unreviewed. Unskip websocket tests
+
+        New pywebsocket (0.4.5) landed at WebKit r52296, so
+        sub-protocol-with-space.html should pass.
+
+        * platform/mac/Skipped: delete websocket/tests/sub-protocol-with-space.html
+        * platform/win/Skipped: delete websocket/tests/sub-protocol-with-space.html
+
+2009-12-17  Pavel Feldman  <pfeldman@dhcp-172-28-174-220.spb.corp.google.com>
+
+        Reviewed by Timothy Hatcher.
+
+        Web Inspector: Incorrect Doctype.
+
+        REGRESSION(4.0.4-TOT):Web Inspector: Incorrect Doctype
+        https://bugs.webkit.org/show_bug.cgi?id=32671
+
+        * inspector/elements-panel-structure-expected.txt:
+        * inspector/elements-panel-structure.html:
+
+2009-12-17  Chris Fleizach  <cfleizach@apple.com>
+
+        Unreviewed layout test fix.
+
+        WAI-ARIA: implement treegrid
+        https://bugs.webkit.org/show_bug.cgi?id=31299
+
+        The test for this patch shouldn't be run on Tiger.
+
+        * platform/mac-tiger/Skipped:
+
+2009-12-07  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] Add controls for playing html5 video.
+        https://bugs.webkit.org/show_bug.cgi?id=26304
+
+        Unskip some of the media tests related to the controls
+        UI. Generated results for the new ones, it will likely be needed
+        again when we add new features in the controls UI.
+
+        * platform/gtk/Skipped:
+        * platform/gtk/media/controls-after-reload-expected.txt: Added.
+        * platform/gtk/media/controls-drag-timebar-expected.txt: Added.
+        * platform/gtk/media/controls-strict-expected.txt: Added.
+        * platform/gtk/media/controls-styling-expected.txt: Added.
+        * platform/gtk/media/video-controls-rendering-expected.txt: Added.
+        * platform/gtk/media/video-controls-visible-audio-only-expected.txt: Copied from LayoutTests/platform/mac/media/video-controls-visible-audio-only-expected.txt.
+
 2009-12-17  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
 
         Skipping one test that needs overriding of standard preferences,

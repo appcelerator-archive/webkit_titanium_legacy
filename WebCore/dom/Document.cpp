@@ -36,6 +36,7 @@
 #include "CSSValueKeywords.h"
 #include "CString.h"
 #include "CachedCSSStyleSheet.h"
+#include "Chrome.h"
 #include "Comment.h"
 #include "Console.h"
 #include "CookieJar.h"
@@ -856,7 +857,7 @@ Element* Document::getElementById(const AtomicString& elementId) const
         for (Node *n = traverseNextNode(); n != 0; n = n->traverseNextNode()) {
             if (n->isElementNode()) {
                 element = static_cast<Element*>(n);
-                if (element->hasID() && element->getAttribute(idAttr) == elementId) {
+                if (element->hasID() && element->getAttribute(element->idAttributeName()) == elementId) {
                     m_duplicateIds.remove(elementId.impl());
                     m_elementsById.set(elementId.impl(), element);
                     return element;

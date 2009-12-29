@@ -31,6 +31,7 @@
 #endif
 
 #import "BlockExceptions.h"
+#import "Chrome.h"
 #import "Cursor.h"
 #import "Document.h"
 #import "Font.h"
@@ -45,8 +46,6 @@
 #import "WebCoreView.h"
 #import <wtf/RetainPtr.h>
 
-#if !ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
-
 @interface NSWindow (WebWindowDetails)
 - (BOOL)_needsToResetDragMargins;
 - (void)_setNeedsToResetDragMargins:(BOOL)needs;
@@ -57,11 +56,7 @@
 - (void)webPlugInSetIsSelected:(BOOL)isSelected;
 @end
 
-#endif
-
 namespace WebCore {
-
-#if !ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
 
 class WidgetPrivate {
 public:
@@ -347,55 +342,6 @@ void Widget::retainPlatformWidget()
 {
     HardRetain(m_widget);
 }
-
-#else // ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
-
-Widget::Widget(PlatformWidget widget)
-{
-    init(widget);
-}
-
-Widget::~Widget() 
-{
-    ASSERT(!parent());
-}
-
-void Widget::show()
-{
-}
-
-void Widget::hide()
-{
-}
-
-void Widget::setCursor(const Cursor&)
-{
-    notImplemented();
-}
-
-void Widget::paint(GraphicsContext*, const IntRect&)
-{
-}
-
-void Widget::setFocus()
-{
-}
-
-void Widget::setIsSelected(bool)
-{
-}
-
-IntRect Widget::frameRect() const
-{
-    return m_frame;
-}
-
-void Widget::setFrameRect(const IntRect& rect)
-{
-    m_frame = rect;
-}
-
-#endif
 
 } // namespace WebCore
 

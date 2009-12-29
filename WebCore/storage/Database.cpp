@@ -135,6 +135,9 @@ PassRefPtr<Database> Database::openDatabase(Document* document, const String& na
        return 0;
     }
 
+    DatabaseTracker::tracker().addOpenDatabase(database.get());
+    document->addOpenDatabase(database.get());
+
     DatabaseTracker::tracker().setDatabaseDetails(document->securityOrigin(), name, displayName, estimatedSize);
 
     document->setHasOpenDatabases();
@@ -186,9 +189,6 @@ Database::Database(Document* document, const String& name, const String& expecte
     ASSERT(m_document->databaseThread());
 
     m_filename = DatabaseTracker::tracker().fullPathForDatabase(m_mainThreadSecurityOrigin.get(), m_name);
-
-    DatabaseTracker::tracker().addOpenDatabase(this);
-    m_document->addOpenDatabase(this);
 }
 
 static void derefDocument(void* document)
@@ -198,12 +198,6 @@ static void derefDocument(void* document)
 
 Database::~Database()
 {
-    if (m_document->databaseThread())
-        m_document->databaseThread()->unscheduleDatabaseTasks(this);
-
-    DatabaseTracker::tracker().removeOpenDatabase(this);
-    m_document->removeOpenDatabase(this);
-
     // Deref m_document on the main thread.
     callOnMainThread(derefDocument, m_document.release().releaseRef());
 }
@@ -333,29 +327,44 @@ void Database::markAsDeletedAndClose()
     synchronizer.waitForTaskCompletion();
 }
 
+static void documentRemoveOpenDatabase(void* context)
+{
+    ASSERT(isMainThread());
+    Database* database = static_cast<Database*>(context);
+    database->document()->removeOpenDatabase(database);
+    database->deref();
+}
+
 void Database::close()
 {
-    if (m_opened) {
-        ASSERT(m_document->databaseThread());
-        ASSERT(currentThread() == document()->databaseThread()->getThreadID());
-        m_sqliteDatabase.close();
-        m_document->databaseThread()->recordDatabaseClosed(this);
-        m_opened = false;
+    if (!m_opened)
+        return;
 
-        {
-            MutexLocker locker(guidMutex());
+    ASSERT(m_document->databaseThread());
+    ASSERT(currentThread() == document()->databaseThread()->getThreadID());
+    m_sqliteDatabase.close();
+    m_document->databaseThread()->recordDatabaseClosed(this);
+    m_opened = false;
 
-            HashSet<Database*>* hashSet = guidToDatabaseMap().get(m_guid);
-            ASSERT(hashSet);
-            ASSERT(hashSet->contains(this));
-            hashSet->remove(this);
-            if (hashSet->isEmpty()) {
-                guidToDatabaseMap().remove(m_guid);
-                delete hashSet;
-                guidToVersionMap().remove(m_guid);
-            }
+    {
+        MutexLocker locker(guidMutex());
+
+        HashSet<Database*>* hashSet = guidToDatabaseMap().get(m_guid);
+        ASSERT(hashSet);
+        ASSERT(hashSet->contains(this));
+        hashSet->remove(this);
+        if (hashSet->isEmpty()) {
+            guidToDatabaseMap().remove(m_guid);
+            delete hashSet;
+            guidToVersionMap().remove(m_guid);
         }
     }
+
+    m_document->databaseThread()->unscheduleDatabaseTasks(this);
+
+    DatabaseTracker::tracker().removeOpenDatabase(this);
+    ref();  // deref() called in documentRemoveOpenDatabase()
+    callOnMainThread(documentRemoveOpenDatabase, this);
 }
 
 void Database::stop()
@@ -451,10 +460,6 @@ bool Database::performOpenAndVerify(ExceptionCode& e)
         return false;
     }
 
-    m_opened = true;
-    if (m_document->databaseThread())
-        m_document->databaseThread()->recordDatabaseOpen(this);
-
     ASSERT(m_databaseAuthorizer);
     m_sqliteDatabase.setAuthorizer(m_databaseAuthorizer);
     m_sqliteDatabase.setBusyTimeout(maxSqliteBusyWaitTime);
@@ -513,6 +518,10 @@ bool Database::performOpenAndVerify(ExceptionCode& e)
         e = INVALID_STATE_ERR;
         return false;
     }
+
+    m_opened = true;
+    if (m_document->databaseThread())
+        m_document->databaseThread()->recordDatabaseOpen(this);
 
     return true;
 }

@@ -9,7 +9,6 @@ fast/css/getComputedStyle/computed-style.html
 fast/history/history_reload.html
 fast/html/text-field-input-types.html
 svg/batik/filters/feTile.svg
-svg/custom/getscreenctm-in-mixed-content2.xhtml
 
 # =========================================================================== #
 #       HTTP tests.                                                           #
@@ -30,20 +29,10 @@ http/tests/wml
 http/tests/uri/escaped-entity.html
 
 # Failing HTTP Loading tests
-http/tests/loading/bad-server-subframe.html
 http/tests/loading/bad-scheme-subframe.html
-http/tests/loading/basic-auth-resend-wrong-credentials.html
-http/tests/loading/basic.html
-http/tests/loading/deleted-host-in-resource-load-delegate-callback.html
-http/tests/loading/empty-subframe.html
 http/tests/loading/gmail-assert-on-load.html
-http/tests/loading/location-hash-reload-cycle.html
-http/tests/loading/onload-vs-immediate-refresh.pl
-http/tests/loading/preload-img-test.html
 http/tests/loading/redirect-methods.html
-http/tests/loading/redirect-with-no-location-crash.html
 http/tests/loading/simple-subframe.html
-http/tests/loading/slow-parsing-subframe.html
 http/tests/loading/text-content-type-with-binary-extension.html
 
 # Failing Local tests
@@ -54,17 +43,14 @@ http/tests/local/send-dragged-file.html
 http/tests/navigation/anchor-frames.html
 http/tests/navigation/anchor-subframeload.html
 http/tests/navigation/back-to-slow-frame.html
-http/tests/navigation/changing-frame-hierarchy-in-onload.html
 http/tests/navigation/error404-basic.html
 http/tests/navigation/error404-frames.html
 http/tests/navigation/error404-goback.html
 http/tests/navigation/error404-subframeload.html
-http/tests/navigation/javascriptlink-basic.html
 http/tests/navigation/javascriptlink-frames.html
 http/tests/navigation/javascriptlink-goback.html
 http/tests/navigation/javascriptlink-subframeload.html
 http/tests/navigation/lockedhistory-iframe.html
-http/tests/navigation/metaredirect-basic.html
 http/tests/navigation/metaredirect-frames.html
 http/tests/navigation/metaredirect-goback.html
 http/tests/navigation/metaredirect-subframeload.html
@@ -86,22 +72,13 @@ http/tests/navigation/redirect302-frames.html
 http/tests/navigation/redirect302-subframeload.html
 http/tests/navigation/relativeanchor-frames.html
 http/tests/navigation/reload-subframe-object.html
-http/tests/navigation/slowmetaredirect-basic.html
-http/tests/navigation/slowtimerredirect-basic.html
 http/tests/navigation/success200-frames-loadsame.html
 http/tests/navigation/success200-frames.html
 http/tests/navigation/success200-subframeload.html
 http/tests/navigation/target-frame-from-window.html
-http/tests/navigation/timerredirect-basic.html
 http/tests/navigation/timerredirect-frames.html
 http/tests/navigation/timerredirect-goback.html
 http/tests/navigation/timerredirect-subframeload.html
-
-# Failing security tests
-http/tests/security/frame-loading-via-document-write.html
-
-# Missing DRT ability return a null request for willSendRequest redirect calls
-http/tests/misc/will-send-request-returns-null-on-redirect.html
 
 # Failing test
 fast/canvas/quadraticCurveTo.xml
@@ -132,8 +109,13 @@ fast/frames/sandboxed-iframe-plugins.html
 fast/frames/sandboxed-iframe-scripting.html
 fast/frames/sandboxed-iframe-storage.html
 http/tests/cookies/simple-cookies-max-age.html
+http/tests/cookies/simple-cookies-expired.html
 http/tests/xmlhttprequest/workers/close.html
 http/tests/xmlhttprequest/workers/shared-worker-close.html
+storage/database-lock-after-reload.html
+storage/empty-statement.html
+storage/execute-sql-args.html
+storage/hash-change-with-xhr.html
 transitions/change-values-during-transition.html
 
 # ------- works on 64 bit but not on 32 bit
@@ -231,7 +213,6 @@ http/tests/security/local-user-CSS-from-remote.html
 inspector/cookie-resource-match.html
 inspector/elements-img-tooltip.html
 inspector/elements-panel-selection-on-refresh.html
-inspector/settings-set-get.html
 inspector/timeline-event-dispatch.html
 inspector/timeline-network-resource.html
 
@@ -248,6 +229,9 @@ fast/forms/get-file-upload.html
 fast/forms/input-file-re-render.html
 fast/events/drag-file-crash.html
 http/tests/security/clipboard/clipboard-file-access.html
+
+# Missing drag & drop functionality in DRT
+fast/images/drag-svg-as-image.html
 
 # ------- missing eventSender.zoomPageIn
 fast/events/clientXY-in-zoom-and-scroll.html
@@ -316,8 +300,6 @@ editing/selection/5057506.html
 editing/selection/5232159.html
 editing/selection/5333725.html
 editing/selection/anchor-focus1.html
-editing/selection/anchor-focus2.html
-editing/selection/anchor-focus3.html
 editing/selection/click-start-of-line.html
 editing/selection/contains-boundaries.html
 editing/selection/designmode-no-caret.html
@@ -330,7 +312,6 @@ editing/selection/expanding-selections.html
 editing/selection/fake-doubleclick.html
 editing/selection/fake-drag.html
 editing/selection/inline-closest-leaf-child.html
-editing/selection/last-empty-inline.html
 editing/selection/mixed-editability-1.html
 editing/selection/paragraph-granularity.html
 editing/selection/select-from-textfield-outwards.html
@@ -433,14 +414,12 @@ fast/box-sizing/percentage-height.html
 fast/css/acid2-pixel.html
 fast/css/acid2.html
 fast/css/ignore-text-zoom.html
-fast/css/ignore-text-zoom.html
 fast/dom/clientWidthAfterDocumentIsRemoved.html
 fast/dom/focus-contenteditable.html
 fast/dom/gc-10.html
 fast/dom/isindex-002.html
 fast/dom/object-embed-plugin-scripting.html
 fast/dom/replaceChild.html
-fast/dom/Window/window-onFocus.html
 fast/dynamic/layer-hit-test-crash.html
 # seems to trigger some bugs/missing features in QTextCodec
 fast/encoding/char-encoding.html
@@ -468,6 +447,7 @@ fast/events/drag-in-frames.html
 fast/events/focusingUnloadedFrame.html
 fast/events/js-keyboard-event-creation.html
 fast/events/keydown-1.html
+fast/events/keydown-numpad-keys.html
 fast/events/keypress-insert-tab.html
 fast/events/mouseout-dead-node.html
 fast/events/ondragenter.html
@@ -550,7 +530,6 @@ plugins/destroy-during-npp-new.html
 plugins/embed-attributes-setting.html
 plugins/get-url-that-the-resource-load-delegate-will-disallow.html
 plugins/get-url-with-blank-target.html
-plugins/geturl-replace-query.html
 plugins/mouse-events.html
 plugins/open-and-close-window-with-plugin.html
 
@@ -628,7 +607,6 @@ svg/W3C-SVG-1.1/coords-trans-04-t.svg
 svg/W3C-SVG-1.1/coords-trans-05-t.svg
 svg/W3C-SVG-1.1/coords-trans-06-t.svg
 svg/W3C-SVG-1.1/coords-units-01-b.svg
-svg/W3C-SVG-1.1/coords-units-01-b.svg
 svg/W3C-SVG-1.1/coords-units-02-b.svg
 svg/W3C-SVG-1.1/coords-units-03-b.svg
 svg/W3C-SVG-1.1/coords-viewattr-01-b.svg
@@ -680,8 +658,6 @@ svg/W3C-SVG-1.1/linking-uri-01-b.svg
 svg/W3C-SVG-1.1/linking-uri-02-b.svg
 svg/W3C-SVG-1.1/linking-uri-03-t.svg
 svg/W3C-SVG-1.1/masking-intro-01-f.svg
-svg/W3C-SVG-1.1/masking-intro-01-f.svg
-svg/W3C-SVG-1.1/masking-mask-01-b.svg
 svg/W3C-SVG-1.1/masking-mask-01-b.svg
 svg/W3C-SVG-1.1/masking-opacity-01-b.svg
 svg/W3C-SVG-1.1/masking-path-01-b.svg
@@ -721,10 +697,8 @@ svg/W3C-SVG-1.1/paths-data-15-t.svg
 svg/W3C-SVG-1.1/pservers-grad-01-b.svg
 svg/W3C-SVG-1.1/pservers-grad-02-b.svg
 svg/W3C-SVG-1.1/pservers-grad-03-b.svg
-svg/W3C-SVG-1.1/pservers-grad-03-b.svg
 svg/W3C-SVG-1.1/pservers-grad-04-b.svg
 svg/W3C-SVG-1.1/pservers-grad-05-b.svg
-svg/W3C-SVG-1.1/pservers-grad-06-b.svg
 svg/W3C-SVG-1.1/pservers-grad-06-b.svg
 svg/W3C-SVG-1.1/pservers-grad-07-b.svg
 svg/W3C-SVG-1.1/pservers-grad-08-b.svg
@@ -739,7 +713,6 @@ svg/W3C-SVG-1.1/pservers-grad-16-b.svg
 svg/W3C-SVG-1.1/pservers-grad-17-b.svg
 svg/W3C-SVG-1.1/pservers-grad-18-b.svg
 svg/W3C-SVG-1.1/pservers-grad-19-b.svg
-svg/W3C-SVG-1.1/pservers-pattern-01-b.svg
 svg/W3C-SVG-1.1/pservers-pattern-01-b.svg
 svg/W3C-SVG-1.1/render-elems-01-t.svg
 svg/W3C-SVG-1.1/render-elems-02-t.svg
@@ -931,12 +904,9 @@ svg/custom/mask-changes.svg
 svg/custom/mask-child-changes.svg
 svg/custom/mask-excessive-malloc.svg
 svg/custom/mask-inside-defs.svg
-svg/custom/mask-inside-defs.svg
 svg/custom/missing-xlink.svg
 svg/custom/non-circular-marker-reference.svg
 svg/custom/non-opaque-filters.svg
-svg/custom/non-opaque-filters.svg
-svg/custom/path-bad-data.svg
 svg/custom/path-bad-data.svg
 svg/custom/path-textPath-simulation.svg
 svg/custom/path-update.svg
@@ -944,8 +914,6 @@ svg/custom/path-update.svg
 svg/custom/pattern-cycle-detection.svg
 svg/custom/pattern-deep-referencing.svg
 svg/custom/pattern-in-defs.svg
-svg/custom/pattern-in-defs.svg
-svg/custom/pattern-y-offset.svg
 svg/custom/pattern-y-offset.svg
 svg/custom/percentage-rect2.svg
 svg/custom/percentage-rect.svg
@@ -1096,10 +1064,6 @@ svg/custom/image-with-prefix-in-webarchive.svg
 # ------- storage support
 # Missing LayoutTestController implementations and database related delegate callback
 storage/domstorage/localstorage/iframe-events.html
-storage/domstorage/sessionstorage/iframe-events.html
-
-# ------- layoutTestController.notifyDone() does not work correctly
-storage/change-version.html
 
 # Tests that currently fail but perhaps used to work at some point.
 fast/dom/open-and-close-by-DOM.html
@@ -1196,7 +1160,6 @@ fast/events/blur-focus-window-should-blur-focus-element.html
 fast/encoding/char-decoding.html
 fast/encoding/frame-default-enc.html
 fast/encoding/invalid-xml.html
-fast/encoding/mailto-always-utf-8.html
 fast/events/access-key-self-destruct.html
 fast/events/attempt-scroll-with-no-scrollbars.html
 fast/events/contextmenu-scrolled-page-with-frame.html
@@ -1229,13 +1192,11 @@ fast/overflow/005.html
 fast/regex/test1.html
 fast/regex/test4.html
 fast/repaint/inline-outline-repaint.html
-fast/replaced/table-percent-height.html
 fast/selectors/159.html
 fast/selectors/177a.html
 fast/text/cg-fallback-bolding.html
 fast/text/find-case-folding.html
 fast/text/large-text-composed-char.html
-fast/text/reset-drag-on-mouse-down.html
 fast/text/basic/013.html
 fast/text/basic/014.html
 fast/text/international/rtl-white-space-pre-wrap.html
@@ -2396,7 +2357,6 @@ fast/block/positioning/auto/006.html
 fast/block/positioning/auto/007.html
 fast/block/positioning/auto-height-with-top-and-bottom.html
 fast/block/positioning/child-of-absolute-with-auto-height.html
-fast/block/positioning/complex-percentage-height.html
 fast/block/positioning/fixed-positioning-scrollbar-bug.html
 fast/block/positioning/height-change.html
 fast/block/positioning/inline-block-relposition.html
@@ -2814,8 +2774,6 @@ fast/encoding/preload-encoding.html
 fast/encoding/utf-16-big-endian.html
 fast/encoding/utf-16-little-endian.html
 fast/encoding/utf-16-no-bom.xml
-fast/events/autoscroll-in-textfield.html
-fast/events/autoscroll-with-non-scrollable-parent.html
 fast/events/context-no-deselect.html
 fast/events/event-listener-on-link.html
 fast/events/event-sender-mouse-moved.html
@@ -3107,7 +3065,6 @@ fast/lists/big-list-marker.html
 fast/lists/decimal-leading-zero.html
 fast/lists/dynamic-marker-crash.html
 fast/lists/inlineBoxWrapperNullCheck.html
-fast/lists/item-not-in-list-line-wrapping.html
 fast/lists/li-br.html
 fast/lists/list-item-line-height.html
 fast/lists/list-marker-with-line-height.html
@@ -3224,7 +3181,6 @@ fast/parser/001.html
 fast/parser/bad-xml-slash.html
 fast/parser/broken-comments-vs-parsing-mode.html
 fast/parser/comment-in-style.html
-fast/parser/comment-in-textarea.html
 fast/parser/comments.html
 fast/parser/document-write-option.html
 fast/parser/entity-comment-in-style.html
@@ -4821,7 +4777,6 @@ dom/xhtml/level3/core/canonicalform09.xhtml
 editing/deleting/delete-ligature-001.html
 editing/deleting/delete-ligature-002.html
 editing/deleting/delete-ligature-003.html
-editing/deleting/skip-virama-001.html
 editing/deleting/smart-editing-disabled.html
 editing/execCommand/19089.html
 editing/inserting/5803706-1.html
@@ -4845,20 +4800,16 @@ fast/dom/Element/getBoundingClientRect.html
 fast/dom/Element/getClientRects.html
 fast/dom/Range/getBoundingClientRect.html
 fast/dom/Range/getClientRects.html
-fast/dom/location-assign.html
 fast/dom/tabindex-clamp.html
 fast/dom/HTMLScriptElement/nested-execution.html
 fast/dom/Window/webkitConvertPoint.html
-fast/dom/Window/window-lookup-precedence.html
 fast/encoding/char-encoding-mac.html
 fast/encoding/hebrew/8859-8-e.html
 fast/encoding/hebrew/8859-8-i.html
 fast/encoding/hebrew/logical.html
-fast/events/autoscroll-nonscrollable-iframe-in-scrollable-div.html
 fast/events/crash-on-mutate-during-drop.html
 fast/events/pointer-events-2.html
 fast/events/special-key-events-in-input-text.html
-fast/events/stopPropagation-submit.html
 fast/events/tabindex-focus-blur-all.html
 fast/forms/option-mouseevents.html
 fast/forms/search-abs-pos-cancel-button.html
@@ -4866,7 +4817,6 @@ fast/forms/slider-transformed.html
 fast/forms/slider-zoomed.html
 fast/forms/text-control-intrinsic-widths.html
 fast/forms/textarea-metrics.html
-fast/history/back-forward-is-asynchronous.html
 fast/history/window-open.html
 fast/loader/cancel-load-during-port-block-timer.html
 fast/loader/javascript-url-hierarchical-execution.html
@@ -4874,9 +4824,6 @@ fast/loader/main-document-url-for-non-http-loads.html
 fast/loader/null-request-after-willSendRequest.html
 fast/loader/policy-delegate-action-hit-test-zoomed.html
 fast/loader/reload-policy-delegate.html
-fast/loading/subframe-removes-itself.html
-fast/replaced/table-percent-height-text-controls.html
-fast/xmlhttprequest/xmlhttprequest-gc.html
 platform/qt/fast/events/event-sender-keydown-frame.html
 plugins/netscape-plugin-setwindow-size-2.html
 security/set-form-autocomplete-attribute.html
@@ -4926,6 +4873,7 @@ userscripts
 
 # No authentication challenge handling
 http/tests/loading/basic-credentials-sent-automatically.html
+http/tests/loading/basic-auth-resend-wrong-credentials.html
 
 # This port doesn't support detecting slow unload handlers.
 fast/dom/Window/slow_unload_handler.html
@@ -4942,11 +4890,8 @@ inspector/elements-panel-structure.html
 inspector/evaluate-in-frontend.html
 
 # Skip xmlhttprequest tests - NETWORK_ERR: XMLHttpRequest Exception 101: A network error occured in synchronous requests.
-http/tests/xmlhttprequest/access-control-basic-allow-preflight-cache-timeout.html
 http/tests/xmlhttprequest/access-control-basic-allow-preflight-cache.html
-http/tests/xmlhttprequest/access-control-basic-allow-star.html
 http/tests/xmlhttprequest/access-control-basic-get-fail-non-simple.html
-http/tests/xmlhttprequest/basic-auth.html
 http/tests/xmlhttprequest/cross-origin-authorization.html
 http/tests/xmlhttprequest/cross-origin-no-authorization.html
 http/tests/xmlhttprequest/logout.html
@@ -4956,21 +4901,13 @@ http/tests/xmlhttprequest/workers/shared-worker-methods.html
 
 # Skip failing http/tests/misc tests
 http/tests/misc/acid3.html
-http/tests/misc/empty-file-formdata.html
 http/tests/misc/isindex-with-no-form-base-href.html
 http/tests/misc/isindex-with-no-form.html
-http/tests/misc/meta-refresh-stray-single-quote.html
-http/tests/misc/redirect-with-quotes.php
-http/tests/misc/referrer.html
 http/tests/misc/refresh-headers.php
-http/tests/misc/refresh-meta-with-newline.html
-http/tests/misc/text-refresh.html
 http/tests/misc/timer-vs-loading.html
-http/tests/misc/will-send-request-returns-null-on-redirect.html
 http/tests/misc/window-dot-stop.html
 
 # Skip failing http/tests/security tests
-http/tests/security/credentials-in-referer.html
 http/tests/security/cross-frame-access-callback-explicit-domain-ALLOW.html
 http/tests/security/cross-frame-access-enumeration.html
 http/tests/security/cross-frame-access-get-custom-property-cached.html
@@ -4981,16 +4918,10 @@ http/tests/security/cross-frame-access-history-get.html
 http/tests/security/cross-frame-access-location-get-override.html
 http/tests/security/cross-frame-access-location-get.html
 http/tests/security/cross-frame-access-private-browsing.html
-http/tests/security/cross-frame-access-protocol-explicit-domain.html
-http/tests/security/cross-frame-access-protocol.html
 http/tests/security/cross-frame-access-put.html
-http/tests/security/cross-origin-xsl-BLOCKED.html
 http/tests/security/dataTransfer-set-data-file-url.html
 http/tests/security/drag-over-remote-content-iframe.html
 http/tests/security/host-compare-case-insensitive.html
-http/tests/security/window-properties-clear-domain.html
-http/tests/security/window-properties-clear-port.html
-http/tests/security/window-properties-pass.html
 http/tests/security/xss-DENIED-xsl-document-redirect.xml
 http/tests/security/xss-DENIED-xsl-document.xml
 http/tests/security/XFrameOptions/x-frame-options-deny-meta-tag-in-body.html
@@ -5034,7 +4965,6 @@ http/tests/security/javascriptURL/xss-ALLOWED-to-javascript-url-window-open.html
 http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-subframe.html
 http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-window-open.html
 http/tests/security/originHeader/origin-header-for-empty.html
-http/tests/security/originHeader/origin-header-for-https.html
 
 # Skip xmlhttprequest tests
 http/tests/xmlhttprequest/XMLHttpRequestException.html
@@ -5052,25 +4982,12 @@ http/tests/xmlhttprequest/access-control-preflight-headers-sync.html
 http/tests/xmlhttprequest/cache-override.html
 http/tests/xmlhttprequest/connection-error-sync.html
 http/tests/xmlhttprequest/cookies.html
-http/tests/xmlhttprequest/cross-origin-cookie-storage.html
-http/tests/xmlhttprequest/failed-auth.html
 http/tests/xmlhttprequest/methods-lower-case.html
 http/tests/xmlhttprequest/methods.html
 http/tests/xmlhttprequest/re-login-async.html
 http/tests/xmlhttprequest/re-login.html
-http/tests/xmlhttprequest/redirect-cross-origin-2.html
-http/tests/xmlhttprequest/redirect-cross-origin-post.html
 http/tests/xmlhttprequest/redirect-cross-origin-tripmine.html
-http/tests/xmlhttprequest/redirect-cross-origin.html
-http/tests/xmlhttprequest/send-on-abort.html
 http/tests/xmlhttprequest/state-after-network-error.html
-http/tests/xmlhttprequest/upload-onload-event.html
-http/tests/xmlhttprequest/upload-onprogress-event.html
-http/tests/xmlhttprequest/upload-progress-events.html
-http/tests/xmlhttprequest/xmlhttprequest-onProgress-open-should-zero-length.html
-http/tests/xmlhttprequest/xmlhttprequest-post-crash.html
-http/tests/xmlhttprequest/xmlhttprequest-unsafe-redirect.html
-http/tests/xmlhttprequest/zero-length-response-sync.html
 http/tests/xmlhttprequest/workers/methods-async.html
 http/tests/xmlhttprequest/workers/methods.html
 http/tests/xmlhttprequest/workers/shared-worker-methods-async.html
@@ -5134,13 +5051,14 @@ fast/css/namespaces/namespaces-empty.xml
 # Failing tests due to
 # layoutTestController.notifyDone() bug
 # https://bugs.webkit.org/show_bug.cgi?id=31626
-
 fast/dom/javascript-url-crash-function.html
 fast/dom/location-new-window-no-crash.html
 fast/dom/Document/early-document-access.html
 fast/dom/Window/window-early-properties.html
 fast/events/open-window-from-another-frame.html
 fast/events/popup-blocking-click-in-iframe.html
+inspector/console-clear.html
+http/tests/misc/set-window-opener-to-null.html
 http/tests/security/aboutBlank/xss-DENIED-set-opener.html
 http/tests/security/dataURL/xss-DENIED-from-data-url-in-foreign-domain-window-open.html
 http/tests/security/dataURL/xss-DENIED-from-javascript-url-window-open.html
@@ -5165,7 +5083,6 @@ fast/repaint/block-selection-gap-stale-cache-2.html
 fast/repaint/block-selection-gap-stale-cache.html
 fast/repaint/inline-overflow.html
 fast/repaint/inline-relative-positioned.html
-http/tests/loading/state-object-security-exception.html
 http/tests/local/file-url-sent-as-referer.html
 http/tests/misc/bubble-drag-events.html
 http/tests/security/cross-frame-access-getOwnPropertyDescriptor.html
@@ -5194,3 +5111,14 @@ http/tests/xmlhttprequest/access-control-basic-denied-preflight-cache.html
 #              LayoutTests/svg/custom/use-instanceRoot-as-event-target.xhtml
 # https://bugs.webkit.org/show_bug.cgi?id=32519
 svg/custom/use-instanceRoot-as-event-target.xhtml
+
+# Missing variables:
+# SVGAltGlyphElement, SVGAnimateElement, SVGAnimateColorElement, SVGAnimateTransformElement
+# SVGFontElement, SVGGlyphElement, SVGMissingGlyphElement, SVGFontFaceElement, SVGFontFaceSrcElement
+# SVGFontFaceUriElement, SVGFontFaceFormatElement, SVGFontFaceNameElement, SVGForeignObjectElement
+# https://bugs.webkit.org/show_bug.cgi?id=32941
+svg/custom/global-constructors.html
+
+# DRT sideeffect - this test make http/tests/xmlhttprequest/null-auth.php fail:
+# https://bugs.webkit.org/show_bug.cgi?id=32961
+http/tests/xmlhttprequest/failed-auth.html

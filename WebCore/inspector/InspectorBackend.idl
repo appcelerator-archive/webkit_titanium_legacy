@@ -31,11 +31,10 @@
  */
 
 module core {
-    interface [
-        GenerateConstructor
-    ] InspectorBackend {
-        void clearMessages(in boolean clearUI);
+    interface InspectorBackend {
         void storeLastActivePanel(in DOMString panelName);
+
+        void saveFrontendSettings(in DOMString settings);
 
         void toggleNodeSearch();
         boolean searchingForNode();

@@ -34,7 +34,7 @@ from optparse import make_option
 
 from modules.bugzilla import parse_bug_id
 # FIXME: This list is rediculous.  We need to learn the ways of __all__.
-from modules.buildsteps import CommandOptions, EnsureBuildersAreGreenStep, EnsureLocalCommitIfNeeded, UpdateChangelogsWithReviewerStep, CleanWorkingDirectoryStep, CleanWorkingDirectoryWithLocalCommitsStep, UpdateStep, ApplyPatchStep, ApplyPatchWithLocalCommitStep, BuildStep, CheckStyleStep, RunTestsStep, CommitStep, ClosePatchStep, CloseBugStep, CloseBugForLandDiffStep, PrepareChangelogStep, PrepareChangelogForRevertStep, RevertRevisionStep, CompleteRollout
+from modules.buildsteps import CommandOptions, EnsureBuildersAreGreenStep, EnsureLocalCommitIfNeeded, UpdateChangeLogsWithReviewerStep, CleanWorkingDirectoryStep, CleanWorkingDirectoryWithLocalCommitsStep, UpdateStep, ApplyPatchStep, ApplyPatchWithLocalCommitStep, BuildStep, CheckStyleStep, RunTestsStep, CommitStep, ClosePatchStep, CloseBugStep, CloseBugForLandDiffStep, PrepareChangeLogForRevertStep, RevertRevisionStep, CompleteRollout
 from modules.changelogs import ChangeLog
 from modules.comments import bug_comment_from_commit_text
 from modules.executive import ScriptError
@@ -52,6 +52,7 @@ class AbstractDeclarativeCommmand(Command):
         Command.__init__(self, self.help_text, self.argument_names, options)
 
 
+# FIXME: Move this to a more general location.
 class AbstractSequencedCommmand(AbstractDeclarativeCommmand):
     steps = None
     def __init__(self):
@@ -68,8 +69,6 @@ class AbstractSequencedCommmand(AbstractDeclarativeCommmand):
 class Build(AbstractSequencedCommmand):
     name = "build"
     help_text = "Update working copy and build"
-    argument_names = ""
-    show_in_main_help = False
     steps = [
         CleanWorkingDirectoryStep,
         UpdateStep,
@@ -84,7 +83,7 @@ class LandDiff(AbstractSequencedCommmand):
     show_in_main_help = True
     steps = [
         EnsureBuildersAreGreenStep,
-        UpdateChangelogsWithReviewerStep,
+        UpdateChangeLogsWithReviewerStep,
         EnsureBuildersAreGreenStep,
         BuildStep,
         RunTestsStep,
@@ -166,7 +165,6 @@ class CheckStyle(AbstractPatchSequencingCommand, ProcessAttachmentsMixin):
     name = "check-style"
     help_text = "Run check-webkit-style on the specified attachments"
     argument_names = "ATTACHMENT_ID [ATTACHMENT_IDS]"
-    show_in_main_help = False
     main_steps = [
         CleanWorkingDirectoryStep,
         UpdateStep,
@@ -179,7 +177,6 @@ class BuildAttachment(AbstractPatchSequencingCommand, ProcessAttachmentsMixin):
     name = "build-attachment"
     help_text = "Apply and build patches from bugzilla"
     argument_names = "ATTACHMENT_ID [ATTACHMENT_IDS]"
-    show_in_main_help = False
     main_steps = [
         CleanWorkingDirectoryStep,
         UpdateStep,
@@ -253,7 +250,7 @@ class Rollout(Command):
             CleanWorkingDirectoryStep,
             UpdateStep,
             RevertRevisionStep,
-            PrepareChangelogForRevertStep,
+            PrepareChangeLogForRevertStep,
             CompleteRollout,
         ])
         Command.__init__(self, "Revert the given revision in the working copy and optionally commit the revert and re-open the original bug", "REVISION [BUGID]", options=self._sequence.options())

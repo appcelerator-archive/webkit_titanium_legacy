@@ -30,11 +30,26 @@ import unittest
 
 from modules.committers import CommitterList, Reviewer, Committer
 from modules.bugzilla import Bugzilla, parse_bug_id
+from modules.outputcapture import OutputCapture
 
 from modules.BeautifulSoup import BeautifulSoup
 
-class BugzillaTest(unittest.TestCase):
 
+class MockBrowser(object):
+    def open(self, url):
+        pass
+
+    def select_form(self, name):
+        pass
+
+    def __setitem__(self, key, value):
+        pass
+
+    def submit(self):
+        pass
+
+
+class BugzillaTest(unittest.TestCase):
     _example_attachment = '''
         <attachment
           isobsolete="1"
@@ -88,20 +103,110 @@ class BugzillaTest(unittest.TestCase):
         self.assertEquals(None, parse_bug_id("http://www.webkit.org/b/12345"))
         self.assertEquals(None, parse_bug_id("http://bugs.webkit.org/show_bug.cgi?ctype=xml&id=12345"))
 
+    _example_bug = """
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE bugzilla SYSTEM "https://bugs.webkit.org/bugzilla.dtd">
+<bugzilla version="3.2.3"
+          urlbase="https://bugs.webkit.org/"
+          maintainer="admin@webkit.org"
+          exporter="eric@webkit.org"
+>
+    <bug>
+          <bug_id>32585</bug_id>
+          <creation_ts>2009-12-15 15:17 PST</creation_ts>
+          <short_desc>bug to test bugzilla-tool and commit-queue failures</short_desc>
+          <delta_ts>2009-12-27 21:04:50 PST</delta_ts>
+          <reporter_accessible>1</reporter_accessible>
+          <cclist_accessible>1</cclist_accessible>
+          <classification_id>1</classification_id>
+          <classification>Unclassified</classification>
+          <product>WebKit</product>
+          <component>Tools / Tests</component>
+          <version>528+ (Nightly build)</version>
+          <rep_platform>PC</rep_platform>
+          <op_sys>Mac OS X 10.5</op_sys>
+          <bug_status>NEW</bug_status>
+          <priority>P2</priority>
+          <bug_severity>Normal</bug_severity>
+          <target_milestone>---</target_milestone>
+          <everconfirmed>1</everconfirmed>
+          <reporter name="Eric Seidel">eric@webkit.org</reporter>
+          <assigned_to name="Nobody">webkit-unassigned@lists.webkit.org</assigned_to>
+          <cc>foo@bar.com</cc>
+    <cc>example@example.com</cc>
+          <long_desc isprivate="0">
+            <who name="Eric Seidel">eric@webkit.org</who>
+            <bug_when>2009-12-15 15:17:28 PST</bug_when>
+            <thetext>bug to test bugzilla-tool and commit-queue failures
 
+Ignore this bug.  Just for testing failure modes of bugzilla-tool and the commit-queue.</thetext>
+          </long_desc>
+          <attachment 
+              isobsolete="0"
+              ispatch="1"
+              isprivate="0"
+          > 
+            <attachid>45548</attachid> 
+            <date>2009-12-27 23:51 PST</date> 
+            <desc>Patch</desc> 
+            <filename>bug-32585-20091228005112.patch</filename> 
+            <type>text/plain</type> 
+            <size>10882</size> 
+            <attacher>mjs@apple.com</attacher> 
+            
+              <token>1261988248-dc51409e9c421a4358f365fa8bec8357</token> 
+              <data encoding="base64">SW5kZXg6IFdlYktpdC9tYWMvQ2hhbmdlTG9nCj09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+removed-because-it-was-really-long
+ZEZpbmlzaExvYWRXaXRoUmVhc29uOnJlYXNvbl07Cit9CisKIEBlbmQKIAogI2VuZGlmCg==
+</data>        
+ 
+              <flag name="review"
+                    id="27602"
+                    status="?"
+                    setter="mjs@apple.com"
+               /> 
+          </attachment> 
+    </bug>
+</bugzilla>
+"""
+    _expected_example_bug_parsing = {
+        "id" : 32585,
+        "title" : u"bug to test bugzilla-tool and commit-queue failures",
+        "cc_emails" : ["foo@bar.com", "example@example.com"],
+        "reporter_email" : "eric@webkit.org",
+        "assign_to_email" : "webkit-unassigned@lists.webkit.org",
+        "attachments" : [{
+            'name': u'Patch',
+            'url': 'https://bugs.webkit.org/attachment.cgi?id=45548',
+            'is_obsolete': False,
+            'review': u'?',
+            'is_patch': True,
+            'attacher_email': 'mjs@apple.com',
+            'bug_id': 32585,
+            'type': 'text/plain',
+            'id': 45548
+        }],
+    }
+
+    def _assert_dictionaries_equal(self, actual, expected):
+        # Make sure we aren't parsing more or less than we expect
+        self.assertEquals(sorted(actual.keys()), sorted(expected.keys()))
+
+        for key, expected_value in expected.items():
+            self.assertEquals(actual[key], expected_value, ("Failure for key: %s: Actual='%s' Expected='%s'" % (key, actual[key], expected_value)))
+
+    def test_bug_parsing(self):
+        bug = Bugzilla()._parse_bug_page(self._example_bug)
+        self._assert_dictionaries_equal(bug, self._expected_example_bug_parsing)
+
+    # This could be combined into test_bug_parsing later if desired.
     def test_attachment_parsing(self):
         bugzilla = Bugzilla()
-
         soup = BeautifulSoup(self._example_attachment)
         attachment_element = soup.find("attachment")
         attachment = bugzilla._parse_attachment_element(attachment_element, self._expected_example_attachment_parsing['bug_id'])
         self.assertTrue(attachment)
-
-        # Make sure we aren't parsing more or less than we expect
-        self.assertEquals(sorted(attachment.keys()), sorted(self._expected_example_attachment_parsing.keys()))
-
-        for key, expected_value in self._expected_example_attachment_parsing.items():
-            self.assertEquals(attachment[key], expected_value, ("Failure for key: %s: Actual='%s' Expected='%s'" % (key, attachment[key], expected_value)))
+        self._assert_dictionaries_equal(attachment, self._expected_example_attachment_parsing)
 
     _sample_attachment_detail_page = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
@@ -168,6 +273,23 @@ class BugzillaTest(unittest.TestCase):
     def test_request_page_parsing(self):
         bugzilla = Bugzilla()
         self.assertEquals([40511, 40722, 40723], bugzilla._parse_attachment_ids_request_query(self._sample_request_page))
+
+    def test_add_cc_to_bug(self):
+        bugzilla = Bugzilla()
+        bugzilla.browser = MockBrowser()
+        bugzilla.authenticate = lambda: None
+        expected_stderr = "Adding ['adam@example.com'] to the CC list for bug 42\n"
+        OutputCapture().assert_outputs(self, bugzilla.add_cc_to_bug, [42, ["adam@example.com"]], expected_stderr=expected_stderr)
+
+    def test_flag_permission_rejection_message(self):
+        bugzilla = Bugzilla()
+        expected_messsage="""foo@foo.com does not have review permissions according to http://trac.webkit.org/browser/trunk/WebKitTools/Scripts/modules/committers.py.
+
+- If you do not have review rights please read http://webkit.org/coding/contributing.html for instructions on how to use bugzilla flags.
+
+- If you have review rights please correct the error in WebKitTools/Scripts/modules/committers.py by adding yourself to the file (no review needed).  Due to bug 30084 the commit-queue will require a restart after your change.  Please contact eseidel@chromium.org to request a commit-queue restart.  After restart the commit-queue will correctly respect your review rights."""
+        self.assertEqual(bugzilla._flag_permission_rejection_message("foo@foo.com", "review"), expected_messsage)
+
 
 if __name__ == '__main__':
     unittest.main()

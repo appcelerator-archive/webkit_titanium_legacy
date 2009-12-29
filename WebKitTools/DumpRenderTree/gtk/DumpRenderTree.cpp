@@ -333,6 +333,8 @@ static void resetDefaultsToConsistentValues()
                  "default-font-size", 16,
                  "default-monospace-font-size", 13,
                  "minimum-font-size", 1,
+                 "enable-caret-browsing", FALSE,
+                 "enable-page-cache", FALSE,
                  NULL);
 
     webkit_web_frame_clear_main_frame_name(mainFrame);
@@ -779,6 +781,11 @@ static WebKitWebView* createWebView()
                      "signal::show-window", webInspectorShowWindow, 0,
                      "signal::close-window", webInspectorCloseWindow, 0,
                      NULL);
+
+    if (webView) {
+        WebKitWebSettings* settings = webkit_web_view_get_settings(webView);
+        webkit_web_view_set_settings(view, settings);
+    }
 
     return view;
 }

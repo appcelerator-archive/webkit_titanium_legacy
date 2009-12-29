@@ -337,11 +337,11 @@ bool HTMLInputElement::stepMismatch() const
         // double's fractional part size is DBL_MAN_DIG-bit.  If the current
         // value is greater than step*2^DBL_MANT_DIG, the following fmod() makes
         // no sense.
-        if (doubleValue / pow(2, DBL_MANT_DIG) > step)
+        if (doubleValue / pow(2.0, DBL_MANT_DIG) > step)
             return false;
         double remainder = fmod(doubleValue, step);
         // Accepts errors in lower 7-bit.
-        double acceptableError = step / pow(2, DBL_MANT_DIG - 7);
+        double acceptableError = step / pow(2.0, DBL_MANT_DIG - 7);
         return acceptableError < remainder && remainder < (step - acceptableError);
     }
     // Non-RANGE types should be rejected by getAllowedValueStep().
@@ -1374,6 +1374,35 @@ void HTMLInputElement::setValue(const String& value, bool sendChangeEvent)
     updateValidity();
 }
 
+double HTMLInputElement::valueAsDate() const
+{
+    switch (inputType()) {
+    // valueAsDate doesn't work for the DATETIMELOCAL type according to the standard.
+    case DATE:
+    case DATETIME:
+    case MONTH:
+    case TIME:
+    case WEEK: {
+        ISODateTime dateTime;
+        if (!formStringToISODateTime(inputType(), value(), &dateTime))
+            return ISODateTime::invalidMilliseconds();
+        return dateTime.millisecondsSinceEpoch();
+    }
+    default:
+        return ISODateTime::invalidMilliseconds();
+    }
+}
+
+void HTMLInputElement::setValueAsDate(double value, ExceptionCode& ec)
+{
+    // FIXME: This is a temporary implementation to check Date binding.
+    if (!isnan(value) && !isinf(value) && inputType() == MONTH) {
+        setValue(String("1970-01"));
+        return;
+    }
+    ec = INVALID_STATE_ERR;
+}
+
 String HTMLInputElement::placeholder() const
 {
     return getAttribute(placeholderAttr).string();
@@ -2111,6 +2140,8 @@ bool HTMLInputElement::formStringToDouble(const String& src, double* out)
 
 bool HTMLInputElement::formStringToISODateTime(InputType type, const String& formString, ISODateTime* out)
 {
+    if (formString.isEmpty())
+        return false;
     ISODateTime ignoredResult;
     if (!out)
         out = &ignoredResult;

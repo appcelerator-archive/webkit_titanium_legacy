@@ -48,6 +48,7 @@
 #include <QFileInfo>
 #include <QFocusEvent>
 #include <QFontDatabase>
+#include <QLocale>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -317,7 +318,7 @@ DumpRenderTree::DumpRenderTree()
     m_page = new WebPage(m_mainView, this);
     m_mainView->setPage(m_page);
 
-    // create out controllers. This has to be done before connectFrame,
+    // create our controllers. This has to be done before connectFrame,
     // as it exports there to the JavaScript DOM window.
     m_controller = new LayoutTestController(this);
     connect(m_controller, SIGNAL(done()), this, SLOT(dump()));
@@ -607,6 +608,9 @@ static const char *methodNameStringForFailedTest(LayoutTestController *controlle
 
 void DumpRenderTree::dump()
 {
+    // Prevent any further frame load callbacks from appearing after we dump the result.
+    qt_dump_frame_loader(false);
+
     QWebFrame *mainFrame = m_page->mainFrame();
 
     //fprintf(stderr, "    Dumping\n");
@@ -753,6 +757,12 @@ int DumpRenderTree::windowCount() const
 {
 // include the main view in the count
     return windows.count() + 1;
+}
+
+void DumpRenderTree::switchFocus(bool focused)
+{
+    QFocusEvent event((focused) ? QEvent::FocusIn : QEvent::FocusOut, Qt::ActiveWindowFocusReason);
+    QApplication::sendEvent(m_mainView, &event);
 }
 
 #if defined(Q_WS_X11)

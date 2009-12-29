@@ -63,6 +63,7 @@ my $isGtk;
 my $isWx;
 my @wxArgs;
 my $isChromium;
+my $isInspectorFrontend;
 my $isCairoWin32;
 
 # Variables for Win32 support
@@ -238,7 +239,8 @@ sub argumentsForConfiguration()
     push(@args, '--gtk') if isGtk();
     push(@args, '--wx') if isWx();
     push(@args, '--chromium') if isChromium();
-		push(@args, '--cairo-win32') if isCairoWin32();
+    push(@args, '--cairo-win32') if isCairoWin32();
+    push(@args, '--inspector-frontend') if isInspectorFrontend();
     return @args;
 }
 
@@ -530,8 +532,13 @@ sub builtDylibPathForName
         $libraryName = "QtWebKit";
         if (isDarwin() and -d "$configurationProductDir/lib/$libraryName.framework") {
             return "$configurationProductDir/lib/$libraryName.framework/$libraryName";
-        } elsif (isWindows() or isCygwin()) {
-            return "$configurationProductDir/lib/$libraryName.dll";
+        } elsif (isWindows()) {
+            chomp(my $mkspec = `qmake -query QMAKE_MKSPECS`);
+            my $qtMajorVersion = retrieveQMakespecVar("$mkspec/qconfig.pri", "QT_MAJOR_VERSION");
+            if ($qtMajorVersion eq "unknown") {
+                $qtMajorVersion = "";
+            }
+            return "$configurationProductDir/lib/$libraryName$qtMajorVersion.dll";
         } else {
             return "$configurationProductDir/lib/lib$libraryName.so";
         }
@@ -564,7 +571,7 @@ sub checkFrameworks
     push(@frameworks, "WebKit") if isAppleMacWebKit();
     for my $framework (@frameworks) {
         my $path = builtDylibPathForName($framework);
-        die "Can't find built framework at \"$path\".\n" unless -x $path;
+        die "Can't find built framework at \"$path\".\n" unless -e $path;
     }
 }
 
@@ -774,6 +781,18 @@ sub checkWebCoreWCSSSupport
         die "$framework at \"$path\" does not include WCSS Support\n";
     }
     return $hasWCSS;
+}
+
+sub isInspectorFrontend()
+{
+    determineIsInspectorFrontend();
+    return $isInspectorFrontend;
+}
+
+sub determineIsInspectorFrontend()
+{
+    return if defined($isInspectorFrontend);
+    $isInspectorFrontend = checkForArgumentAndRemoveFromARGV("--inspector-frontend");
 }
 
 sub isQt()
@@ -1192,6 +1211,38 @@ sub setupCygwinEnv()
     print "Building results into: ", baseProductDir(), "\n";
     print "WEBKITOUTPUTDIR is set to: ", $ENV{"WEBKITOUTPUTDIR"}, "\n";
     print "WEBKITLIBRARIESDIR is set to: ", $ENV{"WEBKITLIBRARIESDIR"}, "\n";
+}
+
+sub copyInspectorFrontendFiles
+{
+    my $productDir = productDir();
+    my $sourceInspectorPath = sourceDir() . "/WebCore/inspector/front-end/";
+    my $inspectorResourcesDirPath = $ENV{"WEBKITINSPECTORRESOURCESDIR"};
+
+    if (!defined($inspectorResourcesDirPath)) {
+        $inspectorResourcesDirPath = "";
+    }
+
+    if (isAppleMacWebKit()) {
+        $inspectorResourcesDirPath = $productDir . "/WebCore.framework/Resources/inspector";
+    } elsif (isAppleWinWebKit()) {
+        $inspectorResourcesDirPath = $productDir . "/WebKit.resources/inspector";
+    } elsif (isQt() || isGtk()) {
+        my $prefix = $ENV{"WebKitInstallationPrefix"};
+        $inspectorResourcesDirPath = (defined($prefix) ? $prefix : "/usr/share") . "/webkit-1.0/webinspector";
+    }
+
+    if (! -d $inspectorResourcesDirPath) {
+        print "*************************************************************\n";
+        print "Cannot find '$inspectorResourcesDirPath'.\n" if (defined($inspectorResourcesDirPath));
+        print "Make sure that you have built WebKit first.\n" if (! -d $productDir || defined($inspectorResourcesDirPath));
+        print "Optionally, set the environment variable 'WebKitInspectorResourcesDir'\n";
+        print "to point to the directory that contains the WebKit Inspector front-end\n";
+        print "files for the built WebCore framework.\n";
+        print "*************************************************************\n";
+        die;
+    }
+    return system "rsync", "-aut", "--exclude=/.DS_Store", "--exclude=.svn/", !isQt() ? "--exclude=/WebKit.qrc" : "", $sourceInspectorPath, $inspectorResourcesDirPath;
 }
 
 sub buildXCodeProject($$@)

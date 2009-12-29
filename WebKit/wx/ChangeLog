@@ -1,3 +1,20 @@
+2009-12-28  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Use JS_NO_EXPORT for JSBase.h.
+
+        * wxwk-settings.bkl:
+
+2009-12-20  Kevin Ollivier  <kevino@theolliviers.com>
+
+        [wx] build fixes after recent changes.
+
+        * WebFrame.cpp: Added missing header.
+        * WebKitSupport/EditorClientWx.cpp: Added missing header.
+        * WebView.cpp: Updated Page constructor call.
+        (wxWebView::Create):
+
 2009-12-08  Kevin Watters  <kevinwatters@gmail.com>
 
         Reviewed by Kevin Ollivier.

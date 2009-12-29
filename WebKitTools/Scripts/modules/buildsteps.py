@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import StringIO
 
 from optparse import make_option
 
@@ -52,6 +53,13 @@ class CommandOptions(object):
     port = make_option("--port", action="store", dest="port", default=None, help="Specify a port (e.g., mac, qt, gtk, ...).")
     reviewer = make_option("-r", "--reviewer", action="store", type="string", dest="reviewer", help="Update ChangeLogs to say Reviewed by REVIEWER.")
     complete_rollout = make_option("--complete-rollout", action="store_true", dest="complete_rollout", help="Commit the revert and re-open the original bug.")
+    obsolete_patches = make_option("--no-obsolete", action="store_false", dest="obsolete_patches", default=True, help="Do not obsolete old patches before posting this one.")
+    review = make_option("--no-review", action="store_false", dest="review", default=True, help="Do not mark the patch for review.")
+    request_commit = make_option("--request-commit", action="store_true", dest="request_commit", default=False, help="Mark the patch as needing auto-commit after review.")
+    description = make_option("-m", "--description", action="store", type="string", dest="description", help="Description string for the attachment (default: \"patch\")")
+    cc = make_option("--cc", action="store", type="string", dest="cc", help="Comma-separated list of email addresses to carbon-copy.")
+    component = make_option("--component", action="store", type="string", dest="component", help="Component for the new bug.")
+    confirm = make_option("--no-confirm", action="store_false", dest="confirm", default=True, help="Skip confirmation steps.")
 
 
 class AbstractStep(object):
@@ -62,6 +70,7 @@ class AbstractStep(object):
 
     def _run_script(self, script_name, quiet=False, port=WebKitPort):
         log("Running %s" % script_name)
+        # FIXME: This should use self.port()
         self._tool.executive.run_and_throw_if_fail(port.script_path(script_name), quiet)
 
     # FIXME: The port should live on the tool.
@@ -104,12 +113,120 @@ class MetaStep(AbstractStep):
              step.run(state)
 
 
-class PrepareChangelogStep(AbstractStep):
+class PromptForBugOrTitleStep(AbstractStep):
     def run(self, state):
-        self._run_script("prepare-ChangeLog")
+        # No need to prompt if we alrady have the bug_id.
+        if state.get("bug_id"):
+            return
+        user_response = self._tool.user.prompt("Please enter a bug number or a title for a new bug:\n")
+        # If the user responds with a number, we assume it's bug number.
+        # Otherwise we assume it's a bug subject.
+        try:
+            state["bug_id"] = int(user_response)
+            return int_value
+        except ValueError, TypeError:
+            state["bug_title"] = user_response
+            # FIXME: This is kind of a lame description.
+            state["bug_description"] = user_response
 
 
-class PrepareChangelogForRevertStep(AbstractStep):
+class CreateBugStep(AbstractStep):
+    @classmethod
+    def options(cls):
+        return [
+            CommandOptions.cc,
+            CommandOptions.component,
+        ]
+
+    def run(self, state):
+        # No need to create a bug if we already have one.
+        if state.get("bug_id"):
+            return
+        state["bug_id"] = self._tool.bugs.create_bug(state["bug_title"], state["bug_description"], component=self._options.component, cc=self._options.cc)
+
+
+class PrepareChangeLogStep(AbstractStep):
+    @classmethod
+    def options(cls):
+        return [
+            CommandOptions.port,
+            CommandOptions.quiet,
+        ]
+
+    def run(self, state):
+        os.chdir(self._tool.scm().checkout_root)
+        args = [self.port().script_path("prepare-ChangeLog")]
+        if state["bug_id"]:
+            args.append("--bug=%s" % state["bug_id"])
+        self._tool.executive.run_and_throw_if_fail(args, self._options.quiet)
+
+
+class EditChangeLogStep(AbstractStep):
+    def run(self, state):
+        self._tool.user.edit(self._tool.scm().modified_changelogs())
+
+
+class ObsoletePatchesOnBugStep(AbstractStep):
+    @classmethod
+    def options(cls):
+        return [
+            CommandOptions.obsolete_patches,
+        ]
+
+    def run(self, state):
+        if not self._options.obsolete_patches:
+            return
+        bug_id = state["bug_id"]
+        patches = self._tool.bugs.fetch_patches_from_bug(bug_id)
+        if not patches:
+            return
+        log("Obsoleting %s on bug %s" % (pluralize("old patch", len(patches)), bug_id))
+        for patch in patches:
+            self._tool.bugs.obsolete_attachment(patch["id"])
+
+
+class AbstractDiffStep(AbstractStep):
+    def diff(self, state):
+        diff = state.get("diff")
+        if not diff:
+            diff = self._tool.scm().create_patch()
+            state["diff"] = diff
+        return diff
+
+
+class ConfirmDiffStep(AbstractDiffStep):
+    @classmethod
+    def options(cls):
+        return [
+            CommandOptions.confirm,
+        ]
+
+    def run(self, state):
+        if not self._options.confirm:
+            return
+        diff = self.diff(state)
+        self._tool.user.page(diff)
+        if not self._tool.user.confirm():
+            error("User declined to continue.")
+
+
+class PostDiffToBugStep(AbstractDiffStep):
+    @classmethod
+    def options(cls):
+        return [
+            CommandOptions.description,
+            CommandOptions.review,
+            CommandOptions.request_commit,
+        ]
+
+    def run(self, state):
+        diff = self.diff(state)
+        diff_file = StringIO.StringIO(diff) # add_patch_to_bug expects a file-like object
+        description = self._options.description or "Patch"
+        self._tool.bugs.add_patch_to_bug(state["bug_id"], diff_file, description, mark_for_review=self._options.review, mark_for_commit_queue=self._options.request_commit)
+
+
+class PrepareChangeLogForRevertStep(AbstractStep):
     def run(self, state):
         # First, discard the ChangeLog changes from the rollout.
         os.chdir(self._tool.scm().checkout_root)
@@ -224,7 +341,7 @@ class EnsureLocalCommitIfNeeded(AbstractStep):
             error("--local-commit passed, but %s does not support local commits" % self._tool.scm.display_name())
 
 
-class UpdateChangelogsWithReviewerStep(AbstractStep):
+class UpdateChangeLogsWithReviewerStep(AbstractStep):
     @classmethod
     def options(cls):
         return [

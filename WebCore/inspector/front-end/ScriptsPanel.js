@@ -310,6 +310,11 @@ WebInspector.ScriptsPanel.prototype = {
         return this._sourceIDMap[id];
     },
 
+    scriptForURL: function(url)
+    {
+        return this._scriptsForURLsInFilesSelect[url];
+    },
+
     addBreakpoint: function(breakpoint)
     {
         this.sidebarPanes.breakpoints.addBreakpoint(breakpoint);
@@ -497,9 +502,19 @@ WebInspector.ScriptsPanel.prototype = {
             x.show(this.viewsContainerElement);
     },
 
-    canShowResource: function(resource)
+    canShowSourceLineForURL: function(url)
     {
-        return resource && resource.scripts.length && InspectorBackend.debuggerEnabled();
+        return InspectorBackend.debuggerEnabled() &&
+            !!(WebInspector.resourceForURL(url) || this.scriptForURL(url));
+    },
+
+    showSourceLineForURL: function(url, line)
+    {
+        var resource = WebInspector.resourceForURL(url);
+        if (resource)
+            this.showResource(resource, line);
+        else
+            this.showScript(this.scriptForURL(url), line);
     },
 
     showScript: function(script, line)
@@ -608,7 +623,7 @@ WebInspector.ScriptsPanel.prototype = {
 
         var url = scriptOrResource.url || scriptOrResource.sourceURL;
         if (url && !options.initialLoad)
-            InspectorFrontendHost.setSetting("LastViewedScriptFile", url);
+            WebInspector.settings.lastViewedScriptFile = url;
 
         if (!options.fromBackForwardAction) {
             var oldIndex = this._currentBackForwardIndex;
@@ -651,7 +666,7 @@ WebInspector.ScriptsPanel.prototype = {
 
             console.assert(option);
         } else {
-            var script = this._scriptsForURLsInFilesSelect[url];
+            var script = this.scriptForURL(url);
             if (script)
                option = script.filesSelectOption;
         }
@@ -711,7 +726,7 @@ WebInspector.ScriptsPanel.prototype = {
         else {
             // if not first item, check to see if this was the last viewed
             var url = option.representedObject.url || option.representedObject.sourceURL;
-            var lastURL = InspectorFrontendHost.setting("LastViewedScriptFile");
+            var lastURL = WebInspector.settings.lastViewedScriptFile;
             if (url && url === lastURL)
                 this._showScriptOrResource(option.representedObject, {initialLoad: true});
         }

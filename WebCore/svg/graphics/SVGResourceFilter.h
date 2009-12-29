@@ -71,7 +71,7 @@ public:
     FloatRect filterBoundingBox() { return m_filterBBox; }
     void setFilterBoundingBox(const FloatRect& rect) { m_filterBBox = rect; }
 
-    void prepareFilter(GraphicsContext*&, const RenderObject*);
+    bool prepareFilter(GraphicsContext*&, const RenderObject*);
     void applyFilter(GraphicsContext*&, const RenderObject*);
 
     bool fitsInMaximumImageSize(const FloatSize&);
@@ -103,7 +103,7 @@ private:
     RefPtr<Filter> m_filter;
 };
 
-SVGResourceFilter* getFilterById(Document*, const AtomicString&);
+SVGResourceFilter* getFilterById(Document*, const AtomicString&, const RenderObject*);
 
 } // namespace WebCore
 

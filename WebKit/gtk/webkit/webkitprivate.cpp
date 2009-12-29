@@ -23,6 +23,7 @@
 #include "webkitsoupauthdialog.h"
 #include "webkitprivate.h"
 #include "ApplicationCacheStorage.h"
+#include "Chrome.h"
 #include "ChromeClientGtk.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -42,6 +43,7 @@
 #include <runtime/InitializeThreading.h>
 #include "SecurityOrigin.h"
 #include <stdlib.h>
+#include "TextEncodingRegistry.h"
 #include "webkitnetworkresponse.h"
 
 #if ENABLE(DATABASE)
@@ -245,10 +247,14 @@ void webkit_init()
     JSC::initializeThreading();
     WebCore::InitializeLoggingChannelsIfNecessary();
 
+    // We make sure the text codecs have been initialized, because
+    // that may only be done by the main thread.
+    atomicCanonicalTextEncodingName("UTF-8");
+
     // Page cache capacity (in pages). Comment from Mac port:
     // (Research indicates that value / page drops substantially after 3 pages.)
     // FIXME: Expose this with an API and/or calculate based on available resources
-    WebCore::pageCache()->setCapacity(3);
+    webkit_set_cache_model(WEBKIT_CACHE_MODEL_WEB_BROWSER);
 
 #if ENABLE(DATABASE)
     gchar* databaseDirectory = g_build_filename(g_get_user_data_dir(), "webkit", "databases", NULL);

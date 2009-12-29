@@ -201,7 +201,6 @@ void EditorClient::respondToChangedSelection()
 
 #if PLATFORM(X11)
     if (targetFrame->selection()->isRange()) {
-
         bool primary = PasteboardHelper::usePrimaryClipboard();
         PasteboardHelper::setUsePrimaryClipboard(true);
         GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(targetFrame);
@@ -535,6 +534,7 @@ void EditorClient::handleInputMethodKeydown(KeyboardEvent* event)
 EditorClient::EditorClient(WebKitWebView* webView)
     : m_isInRedo(false)
     , m_webView(webView)
+    , m_range(0)
 {
     WebKitWebViewPrivate* priv = m_webView->priv;
     g_signal_connect(priv->imContext, "commit", G_CALLBACK(imContextCommitted), this);

@@ -187,6 +187,8 @@ sub AddIncludesForType
     # reorganization, we won't need these special cases.
     if ($codeGenerator->IsPrimitiveType($type) or AvoidInclusionOfType($type)
         or $type eq "DOMString" or $type eq "DOMObject" or $type eq "Array") {
+    } elsif ($type eq "Date") {
+        $implIncludes{"<runtime/DateInstance.h>"} = 1;
     } elsif ($type =~ /SVGPathSeg/) {
         $joinedName = $type;
         $joinedName =~ s/Abs|Rel//;
@@ -574,7 +576,7 @@ sub GenerateHeader
     $implIncludes{"${className}Custom.h"} = 1 if $dataNode->extendedAttributes->{"CustomHeader"} || $dataNode->extendedAttributes->{"CustomPutFunction"} || $dataNode->extendedAttributes->{"DelegatingPutFunction"};
 
     my $hasGetter = $numAttributes > 0 
-                 || $dataNode->extendedAttributes->{"GenerateConstructor"} 
+                 || !$dataNode->extendedAttributes->{"OmitConstructor"}
                  || $dataNode->extendedAttributes->{"HasIndexGetter"}
                  || $dataNode->extendedAttributes->{"HasCustomIndexGetter"}
                  || $dataNode->extendedAttributes->{"HasNumericIndexGetter"}
@@ -677,7 +679,7 @@ sub GenerateHeader
     }
 
     # Constructor object getter
-    push(@headerContent, "    static JSC::JSValue getConstructor(JSC::ExecState*, JSC::JSGlobalObject*);\n") if $dataNode->extendedAttributes->{"GenerateConstructor"};
+    push(@headerContent, "    static JSC::JSValue getConstructor(JSC::ExecState*, JSC::JSGlobalObject*);\n") if !$dataNode->extendedAttributes->{"OmitConstructor"};
 
     my $numCustomFunctions = 0;
     my $numCustomAttributes = 0;
@@ -860,7 +862,7 @@ sub GenerateHeader
         }
     }
 
-    if ($numAttributes > 0 || $dataNode->extendedAttributes->{"GenerateConstructor"}) {
+    if ($numAttributes > 0 || !$dataNode->extendedAttributes->{"OmitConstructor"}) {
         push(@headerContent,"// Attributes\n\n");
         foreach my $attribute (@{$dataNode->attributes}) {
             my $getter = "js" . $interfaceName . $codeGenerator->WK_ucfirst($attribute->signature->name) . ($attribute->signature->type =~ /Constructor$/ ? "Constructor" : "");
@@ -871,7 +873,7 @@ sub GenerateHeader
             }
         }
         
-        if ($dataNode->extendedAttributes->{"GenerateConstructor"}) {
+        if (!$dataNode->extendedAttributes->{"OmitConstructor"}) {
             my $getter = "js" . $interfaceName . "Constructor";
             push(@headerContent, "JSC::JSValue ${getter}(JSC::ExecState*, const JSC::Identifier&, const JSC::PropertySlot&);\n");
         }
@@ -940,7 +942,7 @@ sub GenerateImplementation
 
     # - Add all attributes in a hashtable definition
     my $numAttributes = @{$dataNode->attributes};
-    $numAttributes++ if $dataNode->extendedAttributes->{"GenerateConstructor"};
+    $numAttributes++ if !$dataNode->extendedAttributes->{"OmitConstructor"};
 
     if ($numAttributes > 0) {
         my $hashSize = $numAttributes;
@@ -981,7 +983,7 @@ sub GenerateImplementation
             }
         }
 
-        if ($dataNode->extendedAttributes->{"GenerateConstructor"}) {
+        if (!$dataNode->extendedAttributes->{"OmitConstructor"}) {
             push(@hashKeys, "constructor");
             my $getter = "js" . $interfaceName . "Constructor";
             push(@hashValue1, $getter);
@@ -999,7 +1001,7 @@ sub GenerateImplementation
     my $numFunctions = @{$dataNode->functions};
 
     # - Add all constants
-    if ($dataNode->extendedAttributes->{"GenerateConstructor"}) {
+    if (!$dataNode->extendedAttributes->{"OmitConstructor"}) {
         $hashSize = $numConstants;
         $hashName = $className . "ConstructorTable";
 
@@ -1237,7 +1239,7 @@ sub GenerateImplementation
     }
 
     my $hasGetter = $numAttributes > 0 
-                 || $dataNode->extendedAttributes->{"GenerateConstructor"} 
+                 || !$dataNode->extendedAttributes->{"OmitConstructor"} 
                  || $dataNode->extendedAttributes->{"HasIndexGetter"}
                  || $dataNode->extendedAttributes->{"HasCustomIndexGetter"}
                  || $dataNode->extendedAttributes->{"HasNumericIndexGetter"}
@@ -1388,7 +1390,7 @@ sub GenerateImplementation
                 push(@implContent, "\n");
             }
 
-            if ($dataNode->extendedAttributes->{"GenerateConstructor"}) {
+            if (!$dataNode->extendedAttributes->{"OmitConstructor"}) {
                 my $constructorFunctionName = "js" . $interfaceName . "Constructor";
 
                 push(@implContent, "JSValue ${constructorFunctionName}(ExecState* exec, const Identifier&, const PropertySlot& slot)\n");
@@ -1546,7 +1548,7 @@ sub GenerateImplementation
         push(@implContent, "}\n\n");
     }
 
-    if ($dataNode->extendedAttributes->{"GenerateConstructor"}) {
+    if (!$dataNode->extendedAttributes->{"OmitConstructor"}) {
         push(@implContent, "JSValue ${className}::getConstructor(ExecState* exec, JSGlobalObject* globalObject)\n{\n");
         push(@implContent, "    return getDOMConstructor<${className}Constructor>(exec, static_cast<JSDOMGlobalObject*>(globalObject));\n");
         push(@implContent, "}\n\n");
@@ -1824,10 +1826,12 @@ my %nativeType = (
     "CompareHow" => "Range::CompareHow",
     "DOMString" => "const UString&",
     "NodeFilter" => "RefPtr<NodeFilter>",
+    "SVGAngle" => "SVGAngle",
     "SVGLength" => "SVGLength",
     "SVGMatrix" => "TransformationMatrix",
     "SVGNumber" => "float",
     "SVGPaintType" => "SVGPaint::SVGPaintType",
+    "SVGPreserveAspectRatio" => "SVGPreserveAspectRatio",
     "SVGPoint" => "FloatPoint",
     "SVGRect" => "FloatRect",
     "SVGTransform" => "SVGTransform",
@@ -1861,6 +1865,7 @@ sub JSValueToNative
     return "$value.toFloat(exec)" if $type eq "float" or $type eq "SVGNumber";
     return "$value.toInt32(exec)" if $type eq "unsigned long" or $type eq "long" or $type eq "unsigned short";
 
+    return "valueToDate(exec, $value)" if $type eq "Date";
     return "static_cast<Range::CompareHow>($value.toInt32(exec))" if $type eq "CompareHow";
     return "static_cast<SVGPaint::SVGPaintType>($value.toInt32(exec))" if $type eq "SVGPaintType";
 
@@ -1985,6 +1990,9 @@ sub NativeToJSValue
     } elsif ($type eq "SerializedScriptValue") {
         $implIncludes{"$type.h"} = 1;
         return "$value->deserialize(exec)";
+    } elsif ($type eq "Date") {
+        $implIncludes{"<runtime/DateInstance.h>"} = 1;
+        return "jsDateOrNull(exec, $value)";
     } else {
         # Default, include header with same name.
         $implIncludes{"JS$type.h"} = 1;

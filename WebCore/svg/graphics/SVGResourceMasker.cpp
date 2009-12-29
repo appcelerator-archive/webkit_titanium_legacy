@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+ *               2009 Dirk Schulze <krit@webkit.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,8 +39,6 @@
 #include "SVGRenderStyle.h"
 #include "TextStream.h"
 
-#include <wtf/ByteArray.h>
-
 using namespace std;
 
 namespace WebCore {
@@ -47,6 +46,7 @@ namespace WebCore {
 SVGResourceMasker::SVGResourceMasker(const SVGMaskElement* ownerElement)
     : SVGResource()
     , m_ownerElement(ownerElement)
+    , m_emptyMask(false)
 {
 }
 
@@ -58,44 +58,19 @@ void SVGResourceMasker::invalidate()
 {
     SVGResource::invalidate();
     m_mask.clear();
+    m_emptyMask = false;
 }
 
-void SVGResourceMasker::applyMask(GraphicsContext* context, const FloatRect& boundingBox)
+bool SVGResourceMasker::applyMask(GraphicsContext* context, const FloatRect& boundingBox)
 {
-    if (!m_mask)
-        m_mask = m_ownerElement->drawMaskerContent(boundingBox, m_maskRect);
+    if (!m_mask && !m_emptyMask)
+        m_mask = m_ownerElement->drawMaskerContent(boundingBox, m_maskRect, m_emptyMask);
 
     if (!m_mask)
-        return;
+        return false;
 
-    IntSize imageSize(m_mask->size());
-    IntRect intImageRect(0, 0, imageSize.width(), imageSize.height());
-
-    // Create new ImageBuffer to apply luminance
-    OwnPtr<ImageBuffer> luminancedImage = ImageBuffer::create(imageSize);
-    if (!luminancedImage)
-        return;
-
-    PassRefPtr<CanvasPixelArray> srcPixelArray(m_mask->getUnmultipliedImageData(intImageRect)->data());
-    PassRefPtr<ImageData> destImageData(luminancedImage->getUnmultipliedImageData(intImageRect));
-
-    for (unsigned pixelOffset = 0; pixelOffset < srcPixelArray->length(); pixelOffset++) {
-        unsigned pixelByteOffset = pixelOffset * 4;
-
-        unsigned char r = 0, g = 0, b = 0, a = 0;
-        srcPixelArray->get(pixelByteOffset, r);
-        srcPixelArray->get(pixelByteOffset + 1, g);
-        srcPixelArray->get(pixelByteOffset + 2, b);
-        srcPixelArray->get(pixelByteOffset + 3, a);
-
-        double luma = (r * 0.2125 + g * 0.7154 + b * 0.0721) * ((double)a / 255.0);
-
-        destImageData->data()->set(pixelByteOffset + 3, luma);
-    }
-
-    luminancedImage->putUnmultipliedImageData(destImageData.get(), intImageRect, IntPoint(0, 0));
-
-    context->clipToImageBuffer(m_maskRect, luminancedImage.get());
+    context->clipToImageBuffer(m_maskRect, m_mask.get());
+    return true;
 }
 
 TextStream& SVGResourceMasker::externalRepresentation(TextStream& ts) const
@@ -104,9 +79,9 @@ TextStream& SVGResourceMasker::externalRepresentation(TextStream& ts) const
     return ts;
 }
 
-SVGResourceMasker* getMaskerById(Document* document, const AtomicString& id)
+SVGResourceMasker* getMaskerById(Document* document, const AtomicString& id, const RenderObject* object)
 {
-    SVGResource* resource = getResourceById(document, id);
+    SVGResource* resource = getResourceById(document, id, object);
     if (resource && resource->isMasker())
         return static_cast<SVGResourceMasker*>(resource);
 

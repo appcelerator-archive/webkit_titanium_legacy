@@ -1890,6 +1890,14 @@ RenderLayer::updateScrollInfoAfterLayout()
         if (pageStep < 0) pageStep = clientWidth;
         m_hBar->setSteps(cScrollbarPixelsPerLineStep, pageStep);
         m_hBar->setProportion(clientWidth, m_scrollWidth);
+        // Explicitly set the horizontal scroll value.  This ensures that when a
+        // right-to-left scrollable area's width (or content width) changes, the
+        // top right corner of the content doesn't shift with respect to the top
+        // right corner of the area. Conceptually, right-to-left areas have
+        // their origin at the top-right, but RenderLayer is top-left oriented,
+        // so this is needed to keep everything working (see how scrollXOffset()
+        // differs from scrollYOffset() to get an idea of why the horizontal and
+        // vertical scrollbars need to be treated differently).
         m_hBar->setValue(scrollXOffset());
     }
     if (m_vBar) {
@@ -2346,15 +2354,10 @@ bool RenderLayer::hitTest(const HitTestRequest& request, HitTestResult& result)
         }
     }
 
-    // Now determine if the result is inside an anchor; make sure an image map wins if
-    // it already set URLElement and only use the innermost.
+    // Now determine if the result is inside an anchor - if the urlElement isn't already set.
     Node* node = result.innerNode();
-    while (node) {
-        // for imagemaps, URLElement is the associated area element not the image itself
-        if (node->isLink() && !result.URLElement() && !node->hasTagName(imgTag))
-            result.setURLElement(static_cast<Element*>(node));
-        node = node->eventParentNode();
-    }
+    if (node && !result.URLElement())
+        result.setURLElement(static_cast<Element*>(node->enclosingLinkEventParentOrSelf()));
 
     // Next set up the correct :hover/:active state along the new chain.
     updateHoverActiveState(request, result);
@@ -3317,7 +3320,7 @@ void RenderLayer::styleChanged(StyleDifference diff, const RenderStyle*)
         dirtyStackingContextZOrderLists();
     }
 
-    if (renderer()->style()->overflowX() == OMARQUEE && renderer()->style()->marqueeBehavior() != MNONE) {
+    if (renderer()->style()->overflowX() == OMARQUEE && renderer()->style()->marqueeBehavior() != MNONE && renderer()->isBox()) {
         if (!m_marquee)
             m_marquee = new RenderMarquee(this);
         m_marquee->updateMarqueeStyle();

@@ -22,7 +22,7 @@
 #define SVGMarkerElement_h
 
 #if ENABLE(SVG)
-
+#include "RenderObject.h"
 #include "SVGAngle.h"
 #include "SVGExternalResourcesRequired.h"
 #include "SVGFitToViewBox.h"
@@ -33,7 +33,6 @@
 namespace WebCore {
 
     class Document;
-    class SVGAngle;
 
     extern char SVGOrientTypeAttrIdentifier[];
     extern char SVGOrientAngleAttrIdentifier[];
@@ -61,14 +60,14 @@ namespace WebCore {
         TransformationMatrix viewBoxToViewTransform(float viewWidth, float viewHeight) const;
 
         void setOrientToAuto();
-        void setOrientToAngle(PassRefPtr<SVGAngle>);
+        void setOrientToAngle(const SVGAngle&);
 
         virtual void parseMappedAttribute(MappedAttribute*);
         virtual void svgAttributeChanged(const QualifiedName&);
         virtual void childrenChanged(bool changedByParser = false, Node* beforeChange = 0, Node* afterChange = 0, int childCountDelta = 0);
 
         virtual RenderObject* createRenderer(RenderArena*, RenderStyle*);
-        virtual SVGResource* canvasResource();
+        virtual SVGResource* canvasResource(const RenderObject*);
 
     private:
         ANIMATED_PROPERTY_DECLARATIONS(SVGMarkerElement, SVGNames::markerTagString, SVGNames::refXAttrString, SVGLength, RefX, refX)

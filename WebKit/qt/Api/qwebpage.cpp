@@ -32,6 +32,8 @@
 #include "qwebsettings.h"
 #include "qwebkitversion.h"
 
+#include "Chrome.h"
+#include "ContextMenuController.h"
 #include "Frame.h"
 #include "FrameTree.h"
 #include "FrameLoader.h"
@@ -1066,8 +1068,9 @@ void QWebPagePrivate::focusOutEvent(QFocusEvent*)
     // and the focus frame. But don't tell the focus controller so that upon
     // focusInEvent() we can re-activate the frame.
     FocusController *focusController = page->focusController();
-    focusController->setActive(false);
+    // Call setFocused first so that window.onblur doesn't get called twice
     focusController->setFocused(false);
+    focusController->setActive(false);
 }
 
 void QWebPagePrivate::dragEnterEvent(QGraphicsSceneDragDropEvent* ev)
@@ -3421,9 +3424,9 @@ quint64 QWebPage::bytesReceived() const
 /*!
     \fn void QWebPage::unsupportedContent(QNetworkReply *reply)
 
-    This signals is emitted when webkit cannot handle a link the user navigated to.
+    This signal is emitted when WebKit cannot handle a link the user navigated to.
 
-    At signal emissions time the meta data of the QNetworkReply \a reply is available.
+    At signal emission time the meta-data of the QNetworkReply \a reply is available.
 
     \note This signal is only emitted if the forwardUnsupportedContent property is set to true.
 

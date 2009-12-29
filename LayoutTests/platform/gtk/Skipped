@@ -2259,6 +2259,7 @@ fast/events/event-listener-on-link.html
 fast/events/event-sender-mouse-moved.html
 fast/events/focusingUnloadedFrame.html
 fast/events/keydown-1.html
+fast/events/keydown-numpad-keys.html
 fast/events/label-focus.html
 fast/events/mouseout-dead-node.html
 fast/events/onload-re-entry.html
@@ -3607,19 +3608,14 @@ http/tests/webarchive/test-preload-resources.html
 media/video-controls-transformed.html
 media/video-controls-zoomed.html
 media/video-size-intrinsic-scale.html
-# Missing API from https://bugs.webkit.org/show_bug.cgi?id=24001
-media/restore-from-page-cache.html
 # https://bugs.webkit.org/show_bug.cgi?id=30198
 media/video-source-error.html
 
 #   Tests timing out
-media/controls-drag-timebar.html
 media/unsupported-rtsp.html
 #   Tests generating new results
 media/audio-controls-rendering.html
 media/video-aspect-ratio.html
-media/video-controls-rendering.html
-media/video-controls-visible-audio-only.html
 media/video-display-toggle.html
 media/video-empty-source.html
 media/video-layer-crash.html
@@ -5437,9 +5433,6 @@ fast/text/international/khmer-selection.html
 fast/text/shadow-translucent-fill.html
 fast/text/text-letter-spacing.html
 media/audio-no-installed-engines.html
-media/controls-after-reload.html
-media/controls-strict.html
-media/controls-styling.html
 svg/batik/filters/feTile.svg
 svg/custom/createImageElement.svg
 svg/custom/createImageElement2.xhtml
@@ -5541,7 +5534,6 @@ editing/selection/move-left-right.html
 # Missing DRT ability to override 'standard' preferences.
 editing/selection/doubleclick-beside-cr-span.html
 fast/dom/Window/timer-resume-on-navigation-back.html
-fast/harness/use-page-cache.html
 fast/loader/input-element-page-cache-crash.html
 loader/go-back-to-different-window-size.html
 
@@ -5631,6 +5623,13 @@ fast/table/fixed-table-with-percent-width-inside-extra-large-div.html
 fast/table/fixed-table-with-percent-width-inside-fixed-width-table.html
 fast/table/fixed-table-with-small-percent-width.html
 transforms/2d/hindi-rotated.html
+editing/selection/select-text-overflow-ellipsis.html
+fast/forms/basic-selects.html
+fast/forms/basic-textareas-quirks.html
+fast/text/fake-italic.html
+svg/custom/empty-mask.svg
+svg/custom/mask-on-multiple-objects.svg
+svg/filters/filter-clip.svg
 
 # See https://bugs.webkit.org/show_bug.cgi?id=29683
 plugins/destroy-during-npp-new.html
@@ -5742,3 +5741,15 @@ svg/custom/use-instanceRoot-as-event-target.xhtml
 # https://bugs.webkit.org/show_bug.cgi?id=32604
 # Fails on the release bot because of, apparently, rouding errors
 svg/custom/path-getTotalLength.svg
+
+# Fails since it was checked in; our problem may be similar to Windows'
+# See https://bugs.webkit.org/show_bug.cgi?id=32727
+fast/dom/Element/id-in-deletebutton.html
+
+# Fails after after r52559
+# See https://bugs.webkit.org/show_bug.cgi?id=33014
+fast/dom/prototype-inheritance-2.html
+
+# Fails on and off locally, but always on the release bot
+# See https://bugs.webkit.org/show_bug.cgi?id=33015
+media/video-seek-past-end-playing.html

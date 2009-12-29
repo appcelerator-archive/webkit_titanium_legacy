@@ -8,6 +8,8 @@
  *  Copyright (C) 2008 Nuanti Ltd.
  *  Copyright (C) 2008, 2009 Collabora Ltd.
  *  Copyright (C) 2009 Igalia S.L.
+ *  Copyright (C) 2009 Movial Creative Technologies Inc.
+ *  Copyright (C) 2009 Bobby Powers
  *  Copyright (C) 2009 Martin Robinson
  *
  *  This library is free software; you can redistribute it and/or
@@ -41,6 +43,7 @@
 #include "AXObjectCache.h"
 #include "NotImplemented.h"
 #include "BackForwardList.h"
+#include "Cache.h"
 #include "CString.h"
 #include "ChromeClientGtk.h"
 #include "ContextMenu.h"
@@ -68,6 +71,7 @@
 #include "FrameLoader.h"
 #include "FrameView.h"
 #include "MouseEventWithHitTestResults.h"
+#include "PageCache.h"
 #include "Pasteboard.h"
 #include "PasteboardHelper.h"
 #include "PasteboardHelperGtk.h"
@@ -116,6 +120,7 @@
  */
 
 static const double defaultDPI = 96.0;
+static WebKitCacheModel cacheModel;
 
 using namespace WebKit;
 using namespace WebCore;
@@ -1616,9 +1621,10 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
      * @return: %TRUE if the download should be performed, %FALSE to cancel it.
      *
      * A new Download is being requested. By default, if the signal is
-     * not handled, the download is cancelled. Notice that while
-     * handling this signal you must set the target URI using
-     * webkit_download_set_target_uri().
+     * not handled, the download is cancelled. If you handle the download
+     * and call webkit_download_set_destination_uri(), it will be
+     * started for you. If you need to set the destination asynchronously
+     * you are responsible for starting or cancelling it yourself.
      *
      * If you intend to handle downloads yourself rather than using
      * the #WebKitDownload helper object you must handle this signal,
@@ -2535,7 +2541,8 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
         enableScripts, enablePlugins, enableDeveloperExtras, resizableTextAreas,
         enablePrivateBrowsing, enableCaretBrowsing, enableHTML5Database, enableHTML5LocalStorage,
         enableXSSAuditor, javascriptCanOpenWindows, enableOfflineWebAppCache,
-        enableUniversalAccessFromFileURI, enableDOMPaste, tabKeyCyclesThroughElements;
+        enableUniversalAccessFromFileURI, enableDOMPaste, tabKeyCyclesThroughElements,
+        enableSiteSpecificQuirks, usePageCache;
 
     WebKitEditingBehavior editingBehavior;
 
@@ -2566,6 +2573,8 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
                  "enable-universal-access-from-file-uris", &enableUniversalAccessFromFileURI,
                  "enable-dom-paste", &enableDOMPaste,
                  "tab-key-cycles-through-elements", &tabKeyCyclesThroughElements,
+                 "enable-site-specific-quirks", &enableSiteSpecificQuirks,
+                 "enable-page-cache", &usePageCache,
                  NULL);
 
     settings->setDefaultTextEncodingName(defaultEncoding);
@@ -2593,6 +2602,8 @@ static void webkit_web_view_update_settings(WebKitWebView* webView)
     settings->setEditingBehavior(core(editingBehavior));
     settings->setAllowUniversalAccessFromFileURLs(enableUniversalAccessFromFileURI);
     settings->setDOMPasteAllowed(enableDOMPaste);
+    settings->setNeedsSiteSpecificQuirks(enableSiteSpecificQuirks);
+    settings->setUsesPageCache(usePageCache);
 
     Page* page = core(webView);
     if (page)
@@ -2689,7 +2700,10 @@ static void webkit_web_view_settings_notify(WebKitWebSettings* webSettings, GPar
         Page* page = core(webView);
         if (page)
             page->setTabKeyCyclesThroughElements(g_value_get_boolean(&value));
-    }
+    } else if (name == g_intern_string("enable-site-specific-quirks"))
+        settings->setNeedsSiteSpecificQuirks(g_value_get_boolean(&value));
+    else if (name == g_intern_string("enable-page-cache"))
+        settings->setUsesPageCache(g_value_get_boolean(&value));
     else if (!g_object_class_find_property(G_OBJECT_GET_CLASS(webSettings), name))
         g_warning("Unexpected setting '%s'", name);
     g_value_unset(&value);
@@ -2774,7 +2788,10 @@ void webkit_web_view_request_download(WebKitWebView* webView, WebKitNetworkReque
         return;
     }
 
-    webkit_download_start(download);
+    /* Start the download now if it has a destination URI, otherwise it
+        may be handled asynchronously by the application. */
+    if (webkit_download_get_destination_uri(download))
+        webkit_download_start(download);
 }
 
 void webkit_web_view_set_settings(WebKitWebView* webView, WebKitWebSettings* webSettings)
@@ -4120,4 +4137,82 @@ G_CONST_RETURN gchar* webkit_web_view_get_icon_uri(WebKitWebView* webView)
     g_free(priv->iconURI);
     priv->iconURI = g_strdup(iconURL.utf8().data());
     return priv->iconURI;
+}
+
+/**
+ * webkit_set_cache_model:
+ * @cache_model: a #WebKitCacheModel
+ *
+ * Specifies a usage model for WebViews, which WebKit will use to
+ * determine its caching behavior. All web views follow the cache
+ * model. This cache model determines the RAM and disk space to use
+ * for caching previously viewed content .
+ *
+ * Research indicates that users tend to browse within clusters of
+ * documents that hold resources in common, and to revisit previously
+ * visited documents. WebKit and the frameworks below it include
+ * built-in caches that take advantage of these patterns,
+ * substantially improving document load speed in browsing
+ * situations. The WebKit cache model controls the behaviors of all of
+ * these caches, including various WebCore caches.
+ *
+ * Browsers can improve document load speed substantially by
+ * specifying WEBKIT_CACHE_MODEL_WEB_BROWSER. Applications without a
+ * browsing interface can reduce memory usage substantially by
+ * specifying WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER. Default value is
+ * WEBKIT_CACHE_MODEL_WEB_BROWSER.
+ *
+ * Since: 1.1.18
+ */
+void webkit_set_cache_model(WebKitCacheModel model)
+{
+    if (cacheModel == model)
+        return;
+
+    // FIXME: Add disk cache handling when soup has the API
+    guint cacheTotalCapacity;
+    guint cacheMinDeadCapacity;
+    guint cacheMaxDeadCapacity;
+    gdouble deadDecodedDataDeletionInterval;
+    guint pageCacheCapacity;
+
+    switch (model) {
+    case WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER:
+        pageCacheCapacity = 0;
+        cacheTotalCapacity = 0;
+        cacheMinDeadCapacity = 0;
+        cacheMaxDeadCapacity = 0;
+        deadDecodedDataDeletionInterval = 0;
+        break;
+    case WEBKIT_CACHE_MODEL_WEB_BROWSER:
+        pageCacheCapacity = 3;
+        cacheTotalCapacity = 32 * 1024 * 1024;
+        cacheMinDeadCapacity = cacheTotalCapacity / 4;
+        cacheMaxDeadCapacity = cacheTotalCapacity / 2;
+        deadDecodedDataDeletionInterval = 60;
+        break;
+    default:
+        g_return_if_reached();
+    }
+
+    cache()->setCapacities(cacheMinDeadCapacity, cacheMaxDeadCapacity, cacheTotalCapacity);
+    cache()->setDeadDecodedDataDeletionInterval(deadDecodedDataDeletionInterval);
+    pageCache()->setCapacity(pageCacheCapacity);
+    cacheModel = model;
+}
+
+/**
+ * webkit_get_cache_model:
+ *
+ * Returns the current cache model. For more information about this
+ * value check the documentation of the function
+ * webkit_set_cache_model().
+ *
+ * Return value: the current #WebKitCacheModel
+ *
+ * Since: 1.1.18
+ */
+WebKitCacheModel webkit_get_cache_model()
+{
+    return cacheModel;
 }

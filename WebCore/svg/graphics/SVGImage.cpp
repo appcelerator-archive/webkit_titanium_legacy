@@ -30,6 +30,7 @@
 
 #include "CachedPage.h"
 #include "DocumentLoader.h"
+#include "FileChooser.h"
 #include "FloatRect.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -265,6 +266,11 @@ bool SVGImage::dataChanged(bool allDataReceived)
     }
 
     return m_page;
+}
+
+String SVGImage::filenameExtension() const
+{
+    return "svg";
 }
 
 }

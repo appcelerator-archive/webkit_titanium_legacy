@@ -28,24 +28,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-var Preferences = {
-    showUserAgentStyles: true,
-    maxInlineTextChildLength: 80,
-    minConsoleHeight: 75,
-    minSidebarWidth: 100,
-    minElementsSidebarWidth: 200,
-    minScriptsSidebarWidth: 200,
-    showInheritedComputedStyleProperties: false,
-    styleRulesExpandedState: {},
-    showMissingLocalizedStrings: false,
-    heapProfilerPresent: false,
-    samplingCPUProfiler: false,
-    showColorNicknames: true,
-    colorFormat: "hex",
-    eventListenersFilter: "all",
-    resourcesLargeRows: true
-}
-
 function preloadImages()
 {
     (new Image()).src = "Images/clearConsoleButtonGlyph.png";
@@ -195,23 +177,13 @@ var WebInspector = {
 
         if (hiddenPanels.indexOf("storage") === -1 && hiddenPanels.indexOf("databases") === -1)
             this.panels.storage = new WebInspector.StoragePanel();
+
+        // FIXME: Uncomment when ready.
+        // if (hiddenPanels.indexOf("audits") === -1)
+        //    this.panels.audits = new WebInspector.AuditsPanel();
+
         if (hiddenPanels.indexOf("console") === -1)
             this.panels.console = new WebInspector.ConsolePanel();
-    },
-
-    _loadPreferences: function()
-    {
-        var colorFormat = InspectorFrontendHost.setting("color-format");
-        if (colorFormat)
-            Preferences.colorFormat = colorFormat;
-
-        var eventListenersFilter = InspectorFrontendHost.setting("event-listeners-filter");
-        if (eventListenersFilter)
-            Preferences.eventListenersFilter = eventListenersFilter;
-
-        var resourcesLargeRows = InspectorFrontendHost.setting("resources-large-rows");
-        if (typeof resourcesLargeRows !== "undefined")
-            Preferences.resourcesLargeRows = resourcesLargeRows;
     },
 
     get attached()
@@ -422,7 +394,7 @@ WebInspector.loaded = function()
     var port = WebInspector.port;
     document.body.addStyleClass("port-" + port);
 
-    this._loadPreferences();
+    this.settings = new WebInspector.Settings();
 
     this.drawer = new WebInspector.Drawer();
     this.console = new WebInspector.ConsoleView(this.drawer);
@@ -600,13 +572,13 @@ WebInspector.documentClick = function(event)
     function followLink()
     {
         // FIXME: support webkit-html-external-link links here.
-        if (anchor.href in WebInspector.resourceURLMap) {
+        if (WebInspector.canShowSourceLineForURL(anchor.href, anchor.preferredPanel)) {
             if (anchor.hasStyleClass("webkit-html-external-link")) {
                 anchor.removeStyleClass("webkit-html-external-link");
                 anchor.addStyleClass("webkit-html-resource-link");
             }
 
-            WebInspector.showResourceForURL(anchor.href, anchor.lineNumber, anchor.preferredPanel);
+            WebInspector.showSourceLineForURL(anchor.href, anchor.lineNumber, anchor.preferredPanel);
         } else {
             var profileString = WebInspector.ProfileType.URLRegExp.exec(anchor.href);
             if (profileString)
@@ -630,6 +602,14 @@ WebInspector.documentClick = function(event)
 
 WebInspector.documentKeyDown = function(event)
 {
+    if (this.currentFocusElement && this.currentFocusElement.handleKeyEvent) {
+        this.currentFocusElement.handleKeyEvent(event);
+        if (event.handled) {
+            event.preventDefault();
+            return;
+        }
+    }
+
     if (this.currentPanel && this.currentPanel.handleShortcut) {
         this.currentPanel.handleShortcut(event);
         if (event.handled) {
@@ -719,7 +699,8 @@ WebInspector.documentKeyDown = function(event)
 
 WebInspector.documentCanCopy = function(event)
 {
-    return this.currentPanel && this.currentPanel.handleCopyEvent;
+    if (this.currentPanel && this.currentPanel.handleCopyEvent)
+        event.preventDefault();
 }
 
 WebInspector.documentCopy = function(event)
@@ -962,39 +943,9 @@ WebInspector.showConsolePanel = function()
     this.currentPanel = this.panels.console;
 }
 
-WebInspector._addResource = function(identifier, payload)
-{
-    var resource = new WebInspector.Resource(
-        payload.requestHeaders,
-        payload.url,
-        payload.documentURL,
-        payload.host,
-        payload.path,
-        payload.lastPathComponent,
-        identifier,
-        payload.mainResource,
-        payload.cached,
-        payload.requestMethod,
-        payload.requestFormData);
-    this.resources[identifier] = resource;
-    this.resourceURLMap[resource.url] = resource;
-
-    if (resource.mainResource)
-        this.mainResource = resource;
-
-    if (this.panels.resources)
-        this.panels.resources.addResource(resource);
-
-    var match = payload.documentURL.match(/^(http[s]?|file):\/\/([\/]*[^\/]+)/i);
-    if (match)
-        this.addCookieDomain(match[1].toLowerCase() === "file" ? "" : match[2]);
-
-    return resource;
-}
-
 WebInspector.clearConsoleMessages = function()
 {
-    WebInspector.console.clearMessages(false);
+    WebInspector.console.clearMessages();
 }
 
 WebInspector.selectDatabase = function(o)
@@ -1013,20 +964,30 @@ WebInspector.updateResource = function(identifier, payload)
 {
     var resource = this.resources[identifier];
     if (!resource) {
-        resource = this._addResource(identifier, payload);
-        // Request info is already populated in constructor.
-        payload.didRequestChange = false;
+        resource = new WebInspector.Resource(identifier, payload.url);
+        this.resources[identifier] = resource;
+        this.resourceURLMap[resource.url] = resource;
+        if (this.panels.resources)
+            this.panels.resources.addResource(resource);
     }
 
     if (payload.didRequestChange) {
-        resource.url = payload.url;
-        resource.host = payload.domain;
+        resource.domain = payload.host;
         resource.path = payload.path;
         resource.lastPathComponent = payload.lastPathComponent;
         resource.requestHeaders = payload.requestHeaders;
         resource.mainResource = payload.mainResource;
         resource.requestMethod = payload.requestMethod;
         resource.requestFormData = payload.requestFormData;
+        resource.cached = payload.cached;
+        resource.documentURL = payload.documentURL;
+
+        if (resource.mainResource)
+            this.mainResource = resource;
+
+        var match = payload.documentURL.match(/^(http[s]?|file):\/\/([\/]*[^\/]+)/i);
+        if (match)
+            this.addCookieDomain(match[1].toLowerCase() === "file" ? "" : match[2]);
     }
 
     if (payload.didResponseChange) {
@@ -1065,6 +1026,8 @@ WebInspector.updateResource = function(identifier, payload)
             // of the resources panel instead of the individual resource.
             if (this.panels.resources)
                 this.panels.resources.mainResourceLoadTime = payload.loadEventTime;
+            if (this.panels.audits)
+                this.panels.audits.mainResourceLoadTime = payload.loadEventTime;
         }
 
         if (payload.domContentEventTime) {
@@ -1072,6 +1035,8 @@ WebInspector.updateResource = function(identifier, payload)
             // the resources panel for the same reasons as above.
             if (this.panels.resources)
                 this.panels.resources.mainResourceDOMContentTime = payload.domContentEventTime;
+            if (this.panels.audits)
+                this.panels.audits.mainResourceDOMContentTime = payload.domContentEventTime;
         }
     }
 }
@@ -1227,6 +1192,12 @@ WebInspector.didCommitLoad = function()
 {
     // Cleanup elements panel early on inspected page refresh.
     WebInspector.setDocument(null);
+}
+
+WebInspector.updateConsoleMessageExpiredCount = function(count)
+{
+    var message = String.sprintf(WebInspector.UIString("%d console messages are not shown."), count);
+    WebInspector.console.addMessage(new WebInspector.ConsoleTextMessage(message, WebInspector.ConsoleMessage.MessageLevel.Warning));
 }
 
 WebInspector.addConsoleMessage = function(payload)
@@ -1409,24 +1380,27 @@ WebInspector.resourceForURL = function(url)
     return null;
 }
 
-WebInspector.showResourceForURL = function(url, line, preferredPanel)
+WebInspector._choosePanelToShowSourceLineForURL = function(url, preferredPanel)
 {
-    var resource = this.resourceForURL(url);
-    if (!resource)
-        return false;
+    preferredPanel = preferredPanel || "resources";
+    var panel = this.panels[preferredPanel];
+    if (panel && panel.canShowSourceLineForURL(url))
+        return panel;
+    panel = this.panels.resources;
+    return panel.canShowSourceLineForURL(url) ? panel : null;
+}
 
-    if (preferredPanel && preferredPanel in WebInspector.panels) {
-        var panel = this.panels[preferredPanel];
-        if (!("showResource" in panel))
-            panel = null;
-        else if ("canShowResource" in panel && !panel.canShowResource(resource))
-            panel = null;
-    }
+WebInspector.canShowSourceLineForURL = function(url, preferredPanel)
+{
+    return !!this._choosePanelToShowSourceLineForURL(url, preferredPanel);
+}
 
-    this.currentPanel = panel || this.panels.resources;
+WebInspector.showSourceLineForURL = function(url, line, preferredPanel)
+{
+    this.currentPanel = this._choosePanelToShowSourceLineForURL(url, preferredPanel);
     if (!this.currentPanel)
         return false;
-    this.currentPanel.showResource(resource, line);
+    this.currentPanel.showSourceLineForURL(url, line);
     return true;
 }
 
@@ -1658,7 +1632,7 @@ WebInspector.isBeingEdited = function(element)
     return element.__editing;
 }
 
-WebInspector.startEditing = function(element, committedCallback, cancelledCallback, context)
+WebInspector.startEditing = function(element, committedCallback, cancelledCallback, context, multiline)
 {
     if (element.__editing)
         return;
@@ -1719,7 +1693,10 @@ WebInspector.startEditing = function(element, committedCallback, cancelledCallba
     }
 
     function keyDownEventListener(event) {
-        if (isEnterKey(event)) {
+        var isMetaOrCtrl = WebInspector.isMac() ?
+            event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey :
+            event.ctrlKey && !event.shiftKey && !event.metaKey && !event.altKey;
+        if (isEnterKey(event) && (!multiline || isMetaOrCtrl)) {
             editingCommitted.call(element);
             event.preventDefault();
             event.stopPropagation();

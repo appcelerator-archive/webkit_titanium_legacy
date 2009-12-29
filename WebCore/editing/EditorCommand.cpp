@@ -32,6 +32,7 @@
 #include "CSSMutableStyleDeclaration.h"
 #include "CSSPropertyNames.h"
 #include "CSSValueKeywords.h"
+#include "Chrome.h"
 #include "CreateLinkCommand.h"
 #include "DocumentFragment.h"
 #include "Editor.h"
@@ -471,7 +472,7 @@ static bool executeInsertHorizontalRule(Frame* frame, Event*, EditorCommandSourc
 {
     RefPtr<HTMLHRElement> hr = new HTMLHRElement(hrTag, frame->document());
     if (!value.isEmpty())
-        hr->setAttribute(idAttr, value);
+        hr->setAttribute(hr->idAttributeName(), value);
     return executeInsertNode(frame, hr.release());
 }
 

@@ -442,7 +442,7 @@ InjectedScript.getPrototypes = function(nodeId)
     return result;
 }
 
-InjectedScript.getProperties = function(objectProxy, ignoreHasOwnProperty)
+InjectedScript.getProperties = function(objectProxy, ignoreHasOwnProperty, abbreviate)
 {
     var object = InjectedScript._resolveObject(objectProxy);
     if (!object)
@@ -461,7 +461,7 @@ InjectedScript.getProperties = function(objectProxy, ignoreHasOwnProperty)
         var isGetter = object["__lookupGetter__"] && object.__lookupGetter__(propertyName);
         if (!property.isGetter) {
             var childObject = object[propertyName];
-            var childObjectProxy = new InjectedScript.createProxyObject(childObject, objectProxy.objectId, true);
+            var childObjectProxy = new InjectedScript.createProxyObject(childObject, objectProxy.objectId, abbreviate);
             childObjectProxy.path = objectProxy.path ? objectProxy.path.slice() : [];
             childObjectProxy.path.push(propertyName);
             childObjectProxy.protoDepth = objectProxy.protoDepth || 0;
@@ -510,6 +510,28 @@ InjectedScript.setPropertyValue = function(objectProxy, propertyName, expression
     }
 }
 
+InjectedScript.getNodePropertyValue = function(nodeId, propertyName)
+{
+    var node = InjectedScript._nodeForId(nodeId);
+    if (!node)
+        return false;
+    var result = node[propertyName];
+    return result !== undefined ? result : false;
+}
+
+InjectedScript.setOuterHTML = function(nodeId, value, expanded)
+{
+    var node = InjectedScript._nodeForId(nodeId);
+    if (!node)
+        return false;
+
+    var parent = node.parentNode;
+    var prevSibling = node.previousSibling;
+    node.outerHTML = value;
+    var newNode = prevSibling ? prevSibling.nextSibling : parent.firstChild;
+
+    return InjectedScriptHost.pushNodePathToFrontend(newNode, expanded, false);
+}
 
 InjectedScript.getCompletions = function(expression, includeInspectorCommandLineAPI, callFrameId)
 {
@@ -646,7 +668,7 @@ InjectedScript.performSearch = function(whitespaceTrimmedQuery)
 
             node[searchResultsProperty] = true;
             InjectedScript._searchResults.push(node);
-            var nodeId = InjectedScriptHost.pushNodePathToFrontend(node, false);
+            var nodeId = InjectedScriptHost.pushNodePathToFrontend(node, false, false);
             nodeIds.push(nodeId);
         }
         InjectedScriptHost.addNodesToSearchResult(nodeIds.join(","));
@@ -877,9 +899,10 @@ InjectedScript._callFrameForId = function(id)
     return callFrame;
 }
 
-InjectedScript._clearConsoleMessages = function()
+InjectedScript.clearConsoleMessages = function()
 {
-    InjectedScriptHost.clearMessages(true);
+    InjectedScriptHost.clearConsoleMessages();
+    return true;
 }
 
 InjectedScript._inspectObject = function(o)
@@ -890,7 +913,7 @@ InjectedScript._inspectObject = function(o)
     var inspectedWindow = InjectedScript._window();
     inspectedWindow.console.log(o);
     if (Object.type(o) === "node") {
-        InjectedScriptHost.pushNodePathToFrontend(o, true);
+        InjectedScriptHost.pushNodePathToFrontend(o, false, true);
     } else {
         switch (Object.describe(o)) {
             case "Database":
@@ -906,7 +929,7 @@ InjectedScript._inspectObject = function(o)
 InjectedScript._copy = function(o)
 {
     if (Object.type(o) === "node") {
-        var nodeId = InjectedScriptHost.pushNodePathToFrontend(o, false);
+        var nodeId = InjectedScriptHost.pushNodePathToFrontend(o, false, false);
         InjectedScriptHost.copyNode(nodeId);
     } else {
         InjectedScriptHost.copyText(o);
@@ -986,7 +1009,7 @@ InjectedScript._ensureCommandLineAPIInstalled = function(evalFunction, evalObjec
         get $4() { return console._inspectorCommandLineAPI._inspectedNodes[4] }, \n\
     };");
 
-    inspectorCommandLineAPI.clear = InjectedScriptHost.wrapCallback(InjectedScript._clearConsoleMessages);
+    inspectorCommandLineAPI.clear = InjectedScriptHost.wrapCallback(InjectedScript.clearConsoleMessages);
     inspectorCommandLineAPI.inspect = InjectedScriptHost.wrapCallback(InjectedScript._inspectObject);
     inspectorCommandLineAPI.copy = InjectedScriptHost.wrapCallback(InjectedScript._copy);
 }
@@ -1047,7 +1070,7 @@ InjectedScript.pushNodeToFrontend = function(objectProxy)
     var object = InjectedScript._resolveObject(objectProxy);
     if (!object || Object.type(object) !== "node")
         return false;
-    return InjectedScriptHost.pushNodePathToFrontend(object, false);
+    return InjectedScriptHost.pushNodePathToFrontend(object, false, false);
 }
 
 InjectedScript.nodeByPath = function(path)

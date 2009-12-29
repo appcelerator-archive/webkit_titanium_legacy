@@ -182,7 +182,7 @@ namespace WebCore {
         HashMap<const JSC::HashTable*, JSC::HashTable> m_map;
     };
 
-    class WebCoreJSClientData : public JSC::JSGlobalData::ClientData {
+    class WebCoreJSClientData : public JSC::JSGlobalData::ClientData, public Noncopyable {
         friend class JSGlobalDataWorldIterator;
 
     public:
@@ -355,6 +355,11 @@ namespace WebCore {
 
     JSC::UString valueToStringWithNullCheck(JSC::ExecState*, JSC::JSValue); // null if the value is null
     JSC::UString valueToStringWithUndefinedOrNullCheck(JSC::ExecState*, JSC::JSValue); // null if the value is null or undefined
+
+    // Returns a Date instance for the specified value, or null if the value is NaN or infinity.
+    JSC::JSValue jsDateOrNull(JSC::ExecState*, double);
+    // NaN if the value can't be converted to a date.
+    double valueToDate(JSC::ExecState*, JSC::JSValue);
 
     // FIXME: These are a stop-gap until all toJS calls can be converted to pass a globalObject
     template <typename T>

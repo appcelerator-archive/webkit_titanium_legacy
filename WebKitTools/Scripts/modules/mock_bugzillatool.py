@@ -57,7 +57,7 @@ class MockBugzilla(Mock):
     def fetch_attachment_ids_from_review_queue(self):
         return [197, 128]
 
-    def fetch_patches_from_commit_queue(self):
+    def fetch_patches_from_commit_queue(self, reject_invalid_patches=False):
         return [self.patch1, self.patch2]
 
     def fetch_patches_from_pending_commit_list(self):
@@ -108,6 +108,7 @@ class MockBuildBot(Mock):
     def red_core_builders_names(self):
         return []
 
+
 class MockSCM(Mock):
     def __init__(self):
         Mock.__init__(self)
@@ -142,9 +143,29 @@ class MockSCM(Mock):
         return []
 
 
+class MockUser(object):
+    def prompt(self, message):
+        return "Mock user response"
+
+    def edit(self, files):
+        pass
+
+    def page(self, message):
+        pass
+
+    def confirm(self):
+        return True
+
+
 class MockStatusBot(object):
     def __init__(self):
         self.statusbot_host = "example.com"
+
+    def patch_status(self, queue_name, patch_id):
+        return None
+
+    def update_status(self, queue_name, status, patch=None, results_file=None):
+        return 187
 
 
 class MockBugzillaTool():
@@ -152,6 +173,7 @@ class MockBugzillaTool():
         self.bugs = MockBugzilla()
         self.buildbot = MockBuildBot()
         self.executive = Mock()
+        self.user = MockUser()
         self._scm = MockSCM()
         self.status_bot = MockStatusBot()
 

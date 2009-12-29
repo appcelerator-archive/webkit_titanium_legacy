@@ -88,8 +88,8 @@ int HTMLElement::tagPriority() const
         return 0;
     if (hasLocalName(addressTag) || hasLocalName(ddTag) || hasLocalName(dtTag) || hasLocalName(noscriptTag) || hasLocalName(rpTag) || hasLocalName(rtTag))
         return 3;
-    if (hasLocalName(centerTag) || hasLocalName(nobrTag) || hasLocalName(rubyTag) || hasLocalName(navTag))
-        return 5;
+    if (hasLocalName(articleTag) || hasLocalName(asideTag) || hasLocalName(centerTag) || hasLocalName(nobrTag) || hasLocalName(rubyTag) || hasLocalName(navTag) || hasLocalName(sectionTag))
+        return 5; // Same as <div>.
     if (hasLocalName(noembedTag) || hasLocalName(noframesTag))
         return 10;
 
@@ -114,7 +114,7 @@ bool HTMLElement::mapToEntry(const QualifiedName& attrName, MappedAttributeEntry
     
 void HTMLElement::parseMappedAttribute(MappedAttribute *attr)
 {
-    if (attr->name() == idAttr || attr->name() == classAttr || attr->name() == styleAttr)
+    if (attr->name() == idAttributeName() || attr->name() == classAttr || attr->name() == styleAttr)
         return StyledElement::parseMappedAttribute(attr);
 
     String indexstring;
@@ -864,6 +864,8 @@ static HashSet<AtomicStringImpl*>* blockTagList()
     DEFINE_STATIC_LOCAL(HashSet<AtomicStringImpl*>, tagList, ());
     if (tagList.isEmpty()) {
         tagList.add(addressTag.localName().impl());
+        tagList.add(articleTag.localName().impl());
+        tagList.add(asideTag.localName().impl());
         tagList.add(blockquoteTag.localName().impl());
         tagList.add(centerTag.localName().impl());
         tagList.add(ddTag.localName().impl());
@@ -895,6 +897,7 @@ static HashSet<AtomicStringImpl*>* blockTagList()
         tagList.add(pTag.localName().impl());
         tagList.add(plaintextTag.localName().impl());
         tagList.add(preTag.localName().impl());
+        tagList.add(sectionTag.localName().impl());
         tagList.add(tableTag.localName().impl());
         tagList.add(ulTag.localName().impl());
         tagList.add(xmpTag.localName().impl());

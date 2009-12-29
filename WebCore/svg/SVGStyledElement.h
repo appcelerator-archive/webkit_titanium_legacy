@@ -31,6 +31,8 @@ namespace WebCore {
     extern char SVGStyledElementIdentifier[];
     class SVGResource;
 
+    void mapAttributeToCSSProperty(HashMap<AtomicStringImpl*, int>* propertyNameToIdMap, const QualifiedName& attrName);
+
     class SVGStyledElement : public SVGElement,
                              public SVGStylable {
     public:
@@ -46,7 +48,7 @@ namespace WebCore {
         bool isKnownAttribute(const QualifiedName&);
 
         virtual bool rendererIsNeeded(RenderStyle*);
-        virtual SVGResource* canvasResource() { return 0; }
+        virtual SVGResource* canvasResource(const RenderObject*) { return 0; }
         
         virtual bool mapToEntry(const QualifiedName&, MappedAttributeEntry&) const;
         virtual void parseMappedAttribute(MappedAttribute*);

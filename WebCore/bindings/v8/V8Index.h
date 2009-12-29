@@ -230,11 +230,13 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 #if ENABLE(SVG_FONTS)
 #define SVG_FONTS_ELEMENT_TYPES(V)                                      \
+    V(SVGFONTELEMENT, SVGFontElement)                                   \
     V(SVGFONTFACEELEMENT, SVGFontFaceElement)                           \
     V(SVGFONTFACEFORMATELEMENT, SVGFontFaceFormatElement)               \
     V(SVGFONTFACENAMEELEMENT, SVGFontFaceNameElement)                   \
     V(SVGFONTFACESRCELEMENT, SVGFontFaceSrcElement)                     \
-    V(SVGFONTFACEURIELEMENT, SVGFontFaceUriElement)
+    V(SVGFONTFACEURIELEMENT, SVGFontFaceUriElement)                     \
+    V(SVGMISSINGGLYPHELEMENT, SVGMissingGlyphElement)
 #else
 #define SVG_FONTS_ELEMENT_TYPES(V)
 #endif
@@ -517,7 +519,6 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #if ENABLE(SVG)
 // SVG_OBJECT_TYPES are svg non-node, non-pod types.
 #define SVG_OBJECT_TYPES(V)                                             \
-    V(SVGANGLE, SVGAngle)                                               \
     V(SVGANIMATEDANGLE, SVGAnimatedAngle)                               \
     V(SVGANIMATEDBOOLEAN, SVGAnimatedBoolean)                           \
     V(SVGANIMATEDENUMERATION, SVGAnimatedEnumeration)                   \
@@ -559,7 +560,6 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(SVGPATHSEGMOVETOABS, SVGPathSegMovetoAbs)                         \
     V(SVGPATHSEGMOVETOREL, SVGPathSegMovetoRel)                         \
     V(SVGPOINTLIST, SVGPointList)                                       \
-    V(SVGPRESERVEASPECTRATIO, SVGPreserveAspectRatio)                   \
     V(SVGRENDERINGINTENT, SVGRenderingIntent)                           \
     V(SVGSTRINGLIST, SVGStringList)                                     \
     V(SVGTRANSFORMLIST, SVGTransformList)                               \
@@ -568,7 +568,9 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 // SVG POD types should list all types whose IDL has PODType declaration.
 #define SVG_POD_TYPES(V)                                                \
+    V(SVGANGLE, SVGAngle)                                               \
     V(SVGLENGTH, SVGLength)                                             \
+    V(SVGPRESERVEASPECTRATIO, SVGPreserveAspectRatio)                   \
     V(SVGTRANSFORM, SVGTransform)                                       \
     V(SVGMATRIX, SVGMatrix)                                             \
     V(SVGNUMBER, SVGNumber)                                             \
@@ -577,7 +579,9 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
 // POD types can have different implementation names, see CodeGenerateV8.pm.
 #define SVG_POD_NATIVE_TYPES(V)                                         \
+    V(SVGANGLE, SVGAngle)                                               \
     V(SVGLENGTH, SVGLength)                                             \
+    V(SVGPRESERVEASPECTRATIO, SVGPreserveAspectRatio)                   \
     V(SVGTRANSFORM, SVGTransform)                                       \
     V(SVGMATRIX, TransformationMatrix)                                  \
     V(SVGNUMBER, float)                                                 \

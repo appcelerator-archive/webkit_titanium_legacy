@@ -33,8 +33,22 @@ from modules.commands.upload import *
 
 class UploadCommandsTest(CommandsTest):
     def test_obsolete_attachments(self):
-        self.assert_execute_outputs(ObsoleteAttachments(), [42])
+        expected_stderr = "Obsoleting 2 old patches on bug 42\n"
+        self.assert_execute_outputs(ObsoleteAttachments(), [42], expected_stderr=expected_stderr)
 
     def test_post_diff(self):
         expected_stderr = "Obsoleting 2 old patches on bug 42\n"
         self.assert_execute_outputs(PostDiff(), [42], expected_stderr=expected_stderr)
+
+    def test_prepare_diff_with_arg(self):
+        self.assert_execute_outputs(PrepareDiff(), [42])
+
+    def test_prepare_diff(self):
+        self.assert_execute_outputs(PrepareDiff(), [])
+
+    def test_create_review(self):
+        expected_stderr = "Obsoleting 2 old patches on bug 42\n"
+        self.assert_execute_outputs(CreateReview(), [42], expected_stderr=expected_stderr)
+
+    def test_edit_changelog(self):
+        self.assert_execute_outputs(EditChangeLog(), [])

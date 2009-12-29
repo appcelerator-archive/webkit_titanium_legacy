@@ -1,3 +1,245 @@
+2009-12-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Remove emission of signal that does not exist.
+
+        * WebCoreSupport/InspectorClientGtk.cpp:
+        (WebKit::InspectorClient::inspectorDestroyed):
+        (WebKit::InspectorClient::webViewDestroyed):
+
+2009-12-20  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Unset the adjustments in our FrameView when detaching from
+        parent. Fixes some crashers when transitioning to a new page from
+        a scrolled page.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::detachedFromParent2):
+
+2009-12-20  Xan Lopez  <xlopez@igalia.com>
+
+        Rubber-stamped by Gustavo Noronha.
+
+        Disable the page cache by default since:
+
+        - It was previously off by default.
+        - There are still some issues when enabling it.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+
+2009-12-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Provides a new API to copy WebKitWebHistoryItem objects.
+
+        * webkit/webkitwebhistoryitem.cpp:
+        (webkit_web_history_item_copy):
+        * webkit/webkitwebhistoryitem.h:
+
+2009-12-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Make sure we get the URI that is being loaded when updating
+        WebKitWebFrame's knowledge of it. This was causing problems now
+        that page cache is enabled.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::dispatchDidCommitLoad):
+        * tests/testloading.c:
+        (load_goback_status_changed_cb):
+        (load_wentback_status_changed_cb):
+        (test_loading_goback):
+        (main):
+
+2009-12-20  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] Cache control APIs
+        https://bugs.webkit.org/show_bug.cgi?id=24001
+
+        Original patch by Bobby Powers <bobby@laptop.org>
+
+        Added new API to specify cache models for GTK port.
+
+        * webkit/webkitprivate.cpp:
+        (webkit_init): set a default cache model.
+        * webkit/webkitwebview.cpp:
+        * webkit/webkitwebview.h:
+        (webkit_set_cache_model): Added function.
+        (webkit_get_cache_model): Added function.
+
+2009-12-20  Xan Lopez  <xlopez@igalia.com>
+
+        Revert the previous patch, it introduces some failures in the
+        bots.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::committedLoad):
+        (WebKit::FrameLoaderClient::transitionToCommittedForNewPage):
+
+2009-12-20  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        [GTK] crash when loading new page
+        https://bugs.webkit.org/show_bug.cgi?id=32752
+
+        Wait until the document is attached to adjust our alignments,
+        since we need to make sure the FrameView in the document content
+        render object matches the newly created FrameView for the new
+        page, otherwise we'll try to relayout the wrong view.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::committedLoad):
+        (WebKit::FrameLoaderClient::transitionToCommittedForNewPage):
+
+2009-12-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Create a new WebKitDataSource object when attaching to a frame, if
+        one does not exist. This may happen when we are fetching data from
+        the page cache.
+
+        * WebCoreSupport/DocumentLoaderGtk.cpp:
+        (WebKit::DocumentLoader::attachToFrame):
+        (WebKit::DocumentLoader::unrefDataSource):
+
+2009-12-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Rubber-stamped by Xan Lopez.
+
+        Make sure the text encoding machinery is initialized from the main
+        frame, before opening the icon database.
+
+        * webkit/webkitprivate.cpp:
+        (webkit_init):
+
+2009-12-19  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        Fixed the problem when pasting in the same window with the
+        middle-button, now we store a reference to the range instead of
+        requesting it every time, and we do not release it until the
+        clipboard is requested.
+        https://bugs.webkit.org/show_bug.cgi?id=28153
+
+        * WebKit/gtk/WebCoreSupport/EditorClientGtk.cpp:
+        * WebKit/gtk/WebCoreSupport/EditorClientGtk.h:
+
+2009-12-19  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Protect download objects when reporting errors, to make sure the
+        download stays alive between the status change notification, and
+        the error signal emission.
+
+        * webkit/webkitdownload.cpp:
+        (webkit_download_error):
+
+2009-12-18  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Fix gtk-doc of webkit_web_resource_new.
+
+        * webkit/webkitwebresource.cpp:
+
+2009-12-18  Adam Roben  <aroben@apple.com>
+
+        GTK build fix
+
+        * webkit/webkitprivate.cpp: Added #include.
+
+2009-12-18  Kalle Vahlman  <kalle.vahlman@movial.com> and Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] Add enable-page-cache property to WebSettings for disabling the Page Cache
+
+        * webkit/webkitwebsettings.cpp:
+        (_WebKitWebSettingsPrivate::):
+        (_WebKitWebSettingsPrivate::webkit_web_settings_class_init):
+        (_WebKitWebSettingsPrivate::webkit_web_settings_set_property):
+        (_WebKitWebSettingsPrivate::webkit_web_settings_get_property):
+        (_WebKitWebSettingsPrivate::webkit_web_settings_copy):
+        * webkit/webkitwebview.cpp:
+
+2009-12-17  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        More make distcheck fixes. Use a more robust solution to making
+        sure we are in the correct directory for running these tests.
+
+        * tests/testmimehandling.c:
+        (main):
+        * tests/testwebview.c:
+        (main):
+
+2009-12-17  Christian Dywan  <christian@twotoasts.de>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] Don't assume downloads are always synchronous
+        http://bugs.webkit.org/show_bug.cgi?id=32359
+
+        * tests/testdownload.c:
+        (download_requested_cb):
+        (set_filename):
+        (test_webkit_download_perform):
+        (test_webkit_download_synch):
+        (test_webkit_download_asynch):
+        (main): Test downloads synchronously and asynchronously.
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_class_init):
+        (webkit_web_view_request_download): Only try to start a requested
+        download if the destination URI is set and clarify the documentation.
+
+2009-12-17  Christian Dywan  <christian@twotoasts.de>
+
+        Reviewed by Xan Lopez.
+
+        Deprecate the title-changed signal of WebKitWebFrame.
+
+        * webkit/webkitwebframe.cpp:
+        (webkit_web_frame_class_init):
+
+2009-12-17  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] WebKit GTK needs a wrapper for ref counted glib/gobject structs
+        https://bugs.webkit.org/show_bug.cgi?id=21599
+
+        Convert a use of GOwnPtr for a reference counted type to GRefPtr.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::createPlugin):
+
+2009-12-17  Evan Martin  <evan@chromium.org>
+
+        Reviewed by Xan Lopez.
+
+        Expose the page workarounds ("quirks") setting to the GTK+ WebKit API.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_web_settings_class_init):
+        (webkit_web_settings_set_property):
+        (webkit_web_settings_get_property):
+        (webkit_web_settings_copy):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_update_settings):
+
 2009-12-16  Dan Winship  <danw@gnome.org>
 
         Reviewed by Gustavo Noronha Silva.

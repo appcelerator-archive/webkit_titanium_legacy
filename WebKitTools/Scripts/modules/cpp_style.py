@@ -37,7 +37,6 @@
 """Support for check-webkit-style."""
 
 import codecs
-import getopt
 import math  # for log
 import os
 import os.path
@@ -48,117 +47,7 @@ import sys
 import unicodedata
 
 
-# This is set by check-webkit-style.
 _USAGE = ''
-
-
-# Default options
-_DEFAULT_VERBOSITY = 1
-_DEFAULT_OUTPUT_FORMAT = 'emacs'
-
-
-# FIXME: For style categories we will never want to have, remove them.
-#        For categories for which we want to have similar functionality,
-#        modify the implementation and enable them.
-# FIXME: Add a unit test to ensure the corresponding categories
-#        are elements of _STYLE_CATEGORIES.
-#
-# For unambiguous terminology, we use "filter rule" rather than "filter"
-# for an individual boolean filter flag like "+foo". This allows us to 
-# reserve "filter" for what one gets by collectively applying all of 
-# the filter rules as specified by a --filter flag.
-_WEBKIT_FILTER_RULES = [
-    '-build/endif_comment',
-    '-build/header_guard',
-    '-build/include_what_you_use',  # <string> for std::string
-    '-build/storage_class',  # const static
-    '-legal/copyright',
-    '-readability/multiline_comment',
-    '-readability/braces',  # int foo() {};
-    '-readability/fn_size',
-    '-readability/casting',
-    '-readability/function',
-    '-runtime/arrays',  # variable length array
-    '-runtime/casting',
-    '-runtime/sizeof',
-    '-runtime/explicit',  # explicit
-    '-runtime/virtual',  # virtual dtor
-    '-runtime/printf',
-    '-runtime/threadsafe_fn',
-    '-runtime/rtti',
-    '-whitespace/blank_line',
-    '-whitespace/comments',
-    '-whitespace/end_of_line',
-    '-whitespace/labels',
-    ]
-
-
-# We categorize each style rule we print.  Here are the categories.
-# We want an explicit list so we can list them all in cpp_style --filter=.
-# If you add a new error message with a new category, add it to the list
-# here!  cpp_style_unittest.py should tell you if you forget to do this.
-_STYLE_CATEGORIES = [
-    'build/class',
-    'build/deprecated',
-    'build/endif_comment',
-    'build/forward_decl',
-    'build/header_guard',
-    'build/include',
-    'build/include_order',
-    'build/include_what_you_use',
-    'build/namespaces',
-    'build/printf_format',
-    'build/storage_class',
-    'build/using_std',
-    'legal/copyright',
-    'readability/braces',
-    'readability/casting',
-    'readability/check',
-    'readability/comparison_to_zero',
-    'readability/constructors',
-    'readability/control_flow',
-    'readability/fn_size',
-    'readability/function',
-    'readability/multiline_comment',
-    'readability/multiline_string',
-    'readability/naming',
-    'readability/null',
-    'readability/streams',
-    'readability/todo',
-    'readability/utf8',
-    'runtime/arrays',
-    'runtime/casting',
-    'runtime/explicit',
-    'runtime/init',
-    'runtime/int',
-    'runtime/invalid_increment',
-    'runtime/max_min_macros',
-    'runtime/memset',
-    'runtime/printf',
-    'runtime/printf_format',
-    'runtime/references',
-    'runtime/rtti',
-    'runtime/sizeof',
-    'runtime/string',
-    'runtime/threadsafe_fn',
-    'runtime/virtual',
-    'whitespace/blank_line',
-    'whitespace/braces',
-    'whitespace/comma',
-    'whitespace/comments',
-    'whitespace/declaration',
-    'whitespace/end_of_line',
-    'whitespace/ending_newline',
-    'whitespace/indent',
-    'whitespace/labels',
-    'whitespace/line_length',
-    'whitespace/newline',
-    'whitespace/operators',
-    'whitespace/parens',
-    'whitespace/semicolon',
-    'whitespace/tab',
-    'whitespace/todo',
-    ]
 
 
 # The default state of the category filter. This is overrided by the --filter=
@@ -234,6 +123,7 @@ for op, inv_replacement in [('==', 'NE'), ('!=', 'EQ'),
 _CONFIG_HEADER = 0
 _PRIMARY_HEADER = 1
 _OTHER_HEADER = 2
+_MOC_HEADER = 3
 
 
 # The regexp compilation caching is inlined in all regexp functions for
@@ -292,6 +182,7 @@ class _IncludeState(dict):
         _CONFIG_HEADER: 'WebCore config.h',
         _PRIMARY_HEADER: 'header this file implements',
         _OTHER_HEADER: 'other header',
+        _MOC_HEADER: 'moc file',
         }
     _SECTION_NAMES = {
         _INITIAL_SECTION: "... nothing.",
@@ -328,6 +219,8 @@ class _IncludeState(dict):
             return 'Header file should not contain WebCore config.h.'
         if header_type == _PRIMARY_HEADER and file_is_header:
             return 'Header file should not contain itself.'
+        if header_type == _MOC_HEADER:
+            return ''
 
         error_message = ''
         if self._section != self._OTHER_SECTION:
@@ -362,7 +255,7 @@ class _CppStyleState(object):
     """Maintains module-wide state.."""
 
     def __init__(self):
-        self.verbose_level = _DEFAULT_VERBOSITY  # global setting.
+        self.verbose_level = 1  # global setting.
         self.error_count = 0    # global count of reported errors
         # filters to apply when emitting error messages
         self.filters = _DEFAULT_FILTER_RULES[:]
@@ -370,7 +263,7 @@ class _CppStyleState(object):
         # output format:
         # "emacs" - format that emacs can parse (default)
         # "vs7" - format that Microsoft Visual Studio 7 can parse
-        self.output_format = _DEFAULT_OUTPUT_FORMAT
+        self.output_format = 'emacs'
 
     def set_output_format(self, output_format):
         """Sets the output format for errors."""
@@ -874,8 +767,7 @@ def get_header_guard_cpp_variable(filename):
 
     """
 
-    fileinfo = FileInfo(filename)
-    return sub(r'[-./\s]', '_', fileinfo.repository_name()).upper() + '_'
+    return sub(r'[-.\s]', '_', os.path.basename(filename))
 
 
 def check_for_header_guard(filename, lines, error):
@@ -918,23 +810,14 @@ def check_for_header_guard(filename, lines, error):
               cppvar)
         return
 
-    # The guard should be PATH_FILE_H_, but we also allow PATH_FILE_H__
-    # for backward compatibility.
+    # The guard should be File_h.
     if ifndef != cppvar:
-        error_level = 0
-        if ifndef != cppvar + '_':
-            error_level = 5
-
-        error(filename, ifndef_line_number, 'build/header_guard', error_level,
+        error(filename, ifndef_line_number, 'build/header_guard', 5,
               '#ifndef header guard has wrong style, please use: %s' % cppvar)
 
-    if endif != ('#endif  // %s' % cppvar):
-        error_level = 0
-        if endif != ('#endif  // %s' % (cppvar + '_')):
-            error_level = 5
-
-        error(filename, endif_line_number, 'build/header_guard', error_level,
-              '#endif line should be "#endif  // %s"' % cppvar)
+    if endif != ('#endif // %s' % cppvar):
+        error(filename, endif_line_number, 'build/header_guard', 5,
+              '#endif line should be "#endif // %s"' % cppvar)
 
 
 def check_for_unicode_replacement_characters(filename, lines, error):
@@ -1524,14 +1407,14 @@ def check_spacing(filename, clean_lines, line_number, error):
         # Check if the // may be in quotes.  If so, ignore it
         # Comparisons made explicit for clarity -- pylint: disable-msg=C6403
         if (line.count('"', 0, comment_position) - line.count('\\"', 0, comment_position)) % 2 == 0:   # not in quotes
-            # Allow one space for new scopes, two spaces otherwise:
-            if (not match(r'^\s*{ //', line)
-                and ((comment_position >= 1
-                      and line[comment_position-1] not in string.whitespace)
+            # Allow one space before end of line comment.
+            if (not match(r'^\s*$', line[:comment_position])
+                and (comment_position >= 1
+                and ((line[comment_position - 1] not in string.whitespace)
                      or (comment_position >= 2
-                         and line[comment_position-2] not in string.whitespace))):
-                error(filename, line_number, 'whitespace/comments', 2,
-                      'At least two spaces is best between code and comments')
+                         and line[comment_position - 2] in string.whitespace)))):
+                error(filename, line_number, 'whitespace/comments', 5,
+                      'One space before end of line comments')
             # There should always be a space between the // and the comment
             commentend = comment_position + 2
             if commentend < len(line) and not line[commentend] == ' ':
@@ -2115,6 +1998,11 @@ def check_for_null(filename, clean_lines, line_number, error):
         return
 
     line = clean_lines.elided[line_number]
+
+    # Don't warn about NULL usage in g_object_{get,set}(). See Bug 32858
+    if search(r'\bg_object_[sg]et\b', line):
+        return
+
     if search(r'\bNULL\b', line):
         error(filename, line_number, 'readability/null', 5, 'Use 0 instead of NULL.')
         return
@@ -2342,6 +2230,13 @@ def _classify_include(filename, include, is_system, include_state):
     elif include_state.visited_primary_section() and target_base == include_base:
         return _PRIMARY_HEADER
 
+    # Qt's moc files do not follow the naming and ordering rules, so they should be skipped
+    if include.startswith('moc_') and include.endswith('.cpp'):
+        return _MOC_HEADER
+
+    if include.endswith('.moc'):
+        return _MOC_HEADER
+
     return _OTHER_HEADER
 
 
@@ -2412,7 +2307,7 @@ def check_include_line(filename, clean_lines, line_number, include_state, error)
                   'You should add a blank line after implementation file\'s own header.')
 
     # Check to make sure all headers besides config.h and the primary header are
-    # alphabetically sorted.
+    # alphabetically sorted. Skip Qt's moc files.
     if not error_message and header_type == _OTHER_HEADER:
          previous_line_number = line_number - 1;
          previous_line = clean_lines.lines[previous_line_number]
@@ -2658,7 +2553,7 @@ def check_identifier_name_in_declaration(filename, line_number, line, error):
       error: The function to call with any errors found.
     """
     # We don't check a return statement.
-    if match(r'\s*return\b', line):
+    if match(r'\s*(return|delete)\b', line):
         return
 
     # Basically, a declaration is a type name followed by whitespaces
@@ -3168,98 +3063,6 @@ def process_file(filename, error=error):
             error(filename, 0, 'whitespace/newline', 1,
                   'One or more unexpected \\r (^M) found;'
                   'better to use only a \\n')
-
-
-def exit_with_usage(error_message, display_help=False):
-    """Exit and print a usage string with an optional error message.
-
-    Args:
-      error_message: The optional error message.
-      display_help: Whether to display help output. Suppressing help
-                    output is useful for unit tests.
-    """
-    if display_help:
-        sys.stderr.write(_USAGE)
-    if error_message:
-        sys.exit('\nFATAL ERROR: ' + error_message)
-    else:
-        sys.exit(1)
-
-
-def exit_with_categories(display_help=False):
-    """Exit and print all style categories, along with the default filter.
-
-    These category names appear in error messages.  They can be filtered
-    using the --filter flag.
-
-    Args:
-      display_help: Whether to display help output. Suppressing help
-                    output is useful for unit tests.
-    """
-    if display_help:
-        sys.stderr.write('\nAll categories:\n')
-        for category in sorted(_STYLE_CATEGORIES):
-            sys.stderr.write('    ' + category + '\n')
-
-        sys.stderr.write('\nDefault filter rules**:\n')
-        for filter_rule in sorted(_WEBKIT_FILTER_RULES):
-            sys.stderr.write('    ' + filter_rule + '\n')
-        sys.stderr.write('\n**The command always evaluates the above '
-                         'rules, and before any --filter flag.\n\n')
-
-    sys.exit(0)
-
-
-def parse_arguments(args, additional_flags=[], display_help=False):
-    """Parses the command line arguments.
-
-    This may set the output format and verbosity level as side-effects.
-
-    Args:
-      args: The command line arguments:
-      additional_flags: A list of strings which specifies flags we allow.
-      display_help: Whether to display help output. Suppressing help
-                    output is useful for unit tests.
-
-    Returns:
-      A tuple of (filenames, flags)
-
-      filenames: The list of filenames to lint.
-      flags: The dict of the flag names and the flag values.
-    """
-    flags = ['help', 'output=', 'verbose=', 'filter='] + additional_flags
-    additional_flag_values = {}
-    try:
-        (opts, filenames) = getopt.getopt(args, '', flags)
-    except getopt.GetoptError:
-        exit_with_usage('Invalid arguments.', display_help)
-
-    verbosity = _verbose_level()
-    output_format = _output_format()
-    filters = ''
-
-    for (opt, val) in opts:
-        if opt == '--help':
-            exit_with_usage(None, display_help)
-        elif opt == '--output':
-            if not val in ('emacs', 'vs7'):
-                exit_with_usage('The only allowed output formats are emacs and vs7.',
-                                display_help)
-            output_format = val
-        elif opt == '--verbose':
-            verbosity = int(val)
-        elif opt == '--filter':
-            filters = val
-            if not filters:
-                exit_with_categories(display_help)
-        else:
-            additional_flag_values[opt] = val
-
-    _set_output_format(output_format)
-    _set_verbose_level(verbosity)
-    _set_filters(filters)
-
-    return (filenames, additional_flag_values)
 
 
 def can_handle(filename):

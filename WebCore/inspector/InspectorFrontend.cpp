@@ -77,6 +77,22 @@ void InspectorFrontend::didCommitLoad()
     callSimpleFunction("didCommitLoad");
 }
 
+void InspectorFrontend::populateFrontendSettings(const String& settings)
+{
+    ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch");
+    function.appendArgument("populateFrontendSettings");
+    function.appendArgument(settings);
+    function.call();
+}
+
+void InspectorFrontend::updateConsoleMessageExpiredCount(unsigned count)
+{
+    ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
+    function.appendArgument("updateConsoleMessageExpiredCount");
+    function.appendArgument(count);
+    function.call();
+}
+
 void InspectorFrontend::addConsoleMessage(const ScriptObject& messageObj, const Vector<ScriptString>& frames, const Vector<ScriptValue> wrappedArguments, const String& message)
 {
     ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
@@ -93,7 +109,7 @@ void InspectorFrontend::addConsoleMessage(const ScriptObject& messageObj, const 
     function.call();
 }
 
-void InspectorFrontend::updateConsoleMessageRepeatCount(const int count)
+void InspectorFrontend::updateConsoleMessageRepeatCount(unsigned count)
 {
     ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
     function.appendArgument("updateConsoleMessageRepeatCount");

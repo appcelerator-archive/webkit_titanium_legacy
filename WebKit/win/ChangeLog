@@ -1,3 +1,119 @@
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Another try at fixing Windows build.
+
+        * WebKitPrefix.cpp: Touch it.
+
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        Turn off datagrid by default, at least for all platforms Apple ships.
+        The datagrid implementation isn't ready for general web use yet.
+
+        * WebKit.vcproj/WebKit.vcproj: Turn off datagrid by default.
+
+2009-12-21  Adam Roben  <aroben@apple.com>
+
+        Fix non-ACCELERATED_COMPOSITING builds
+
+        * WebPreferences.cpp:
+        (WebPreferences::acceleratedCompositingEnabled): Guard use of
+        WKCACFLayerRenderer with USE(ACCELERATED_COMPOSITING).
+
+2009-12-18  Adam Roben  <aroben@apple.com>
+
+        Add IWebPreferencesPrivate::[set]AcceleratedCompositingEnabled
+
+        Fixes <http://webkit.org/b/32745>.
+
+        Reviewed by Ada Chan.
+
+        * Interfaces/IWebPreferencesPrivate.idl: Added
+        [set]AcceleratedCompositingEnabled.
+
+        * Interfaces/WebKit.idl: Touched to force a build.
+
+        * WebPreferenceKeysPrivate.h: Added
+        WebKitAcceleratedCompositingEnabledPreferenceKey.
+
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings): Make accelerated
+        compositing be on by default.
+        (WebPreferences::setAcceleratedCompositingEnabled): Store the new
+        value.
+        (WebPreferences::acceleratedCompositingEnabled): If accelerated
+        compositing isn't available, return false. Otherwise, return the value
+        stored in preferences.
+
+        * WebPreferences.h: Added [set]AcceleratedCompositingAvailable.
+
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged): Just pass the value from
+        WebPreferences on down.
+
+2009-12-17  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of list items is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=32688
+
+        Reviewed by Adam Roben.
+
+        * AccessibleBase.cpp:
+        (MSAARole):
+        Make the WebCore list item role map to the MSAA list item role.
+
+2009-12-17  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of list markers is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=32687
+
+        Reviewed by Adam Roben.
+
+        * AccessibleBase.cpp:
+        (MSAARole):
+        Make the WebCore list marker role map to the MSAA static text role.
+
+2009-12-18  Adam Roben  <aroben@apple.com>
+
+        Add #includes needed after WebCore clean-up
+
+        Rubber-stamped by Anders Carlsson.
+
+        Fixes <http://webkit.org/b/32718>.
+
+        * WebCoreSupport/WebContextMenuClient.cpp:
+        * WebDataSource.cpp:
+        * WebHTMLRepresentation.cpp:
+        * WebView.cpp:
+        * WebView.h:
+
+2009-12-17  Benjamin Otte  <otte@gnome.org>
+
+        Reviewed by Adam Roben.
+
+        Don't include all JSC headers everywhere
+        https://bugs.webkit.org/show_bug.cgi?id=32663
+
+        * WebCoreLocalizedStrings.cpp: Added now-needed #include of
+        MathExtras.h.
+
+2009-12-17  Adam Roben  <aroben@apple.com>
+
+        Remove WebKit.sln's Debug_All and Debug_Internal configurations
+
+        These configurations aren't buildable by people outside of Apple, and
+        Apple doesn't use this solution file.
+
+        Fixes <http://webkit.org/b/31000> Windows WebKit Build Configuration
+        should default to Debug instead of Debug_all.
+
+        Rubber-stamped by Dan Bernstein.
+
+        * WebKit.vcproj/WebKit.sln:
+
 2009-12-16  Jon Honeycutt  <jhoneycutt@apple.com>
 
         MSAA: Accessibility role of text nodes is wrong

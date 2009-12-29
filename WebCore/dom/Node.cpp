@@ -37,6 +37,7 @@
 #include "CString.h"
 #include "ChildNodeList.h"
 #include "ClassNodeList.h"
+#include "ContextMenuController.h"
 #include "DOMImplementation.h"
 #include "Document.h"
 #include "DynamicNodeList.h"
@@ -518,6 +519,12 @@ void Node::setDocument(Document* document)
 #if USE(JSC)
     updateDOMNodeDocument(this, m_document, document);
 #endif
+
+    if (hasRareData() && rareData()->nodeLists()) {
+        if (m_document)
+            m_document->removeNodeListCache();
+        document->addNodeListCache();
+    }
 
     if (m_document)
         m_document->selfOnlyDeref();
@@ -1653,7 +1660,6 @@ PassRefPtr<Element> Node::querySelector(const String& selectors, ExceptionCode& 
 
     // FIXME: we could also optimize for the the [id="foo"] case
     if (strictParsing && inDocument() && querySelectorList.hasOneSelector() && querySelectorList.first()->m_match == CSSSelector::Id) {
-        ASSERT(querySelectorList.first()->attribute() == idAttr);
         Element* element = document()->getElementById(querySelectorList.first()->m_value);
         if (element && (isDocumentNode() || element->isDescendantOf(this)) && selectorChecker.checkSelector(querySelectorList.first(), element))
             return element;
@@ -2288,6 +2294,19 @@ ContainerNode* Node::eventParentNode()
     return static_cast<ContainerNode*>(parent);
 }
 
+Node* Node::enclosingLinkEventParentOrSelf()
+{
+    for (Node* node = this; node; node = node->eventParentNode()) {
+        // For imagemaps, the enclosing link node is the associated area element not the image itself.
+        // So we don't let images be the enclosingLinkNode, even though isLink sometimes returns true
+        // for them.
+        if (node->isLink() && !node->hasTagName(imgTag))
+            return node;
+    }
+
+    return 0;
+}
+
 // --------
 
 ScriptExecutionContext* Node::scriptExecutionContext() const
@@ -2831,9 +2850,11 @@ void Node::defaultEventHandler(Event* event)
 #if ENABLE(PAN_SCROLLING)
     } else if (eventType == eventNames().mousedownEvent) {
         MouseEvent* mouseEvent = static_cast<MouseEvent*>(event);
-        if (mouseEvent->button() == MiddleButton && !this->isLink()) {
-            RenderObject* renderer = this->renderer();
+        if (mouseEvent->button() == MiddleButton) {
+            if (enclosingLinkEventParentOrSelf())
+                return;
 
+            RenderObject* renderer = this->renderer();
             while (renderer && (!renderer->isBox() || !toRenderBox(renderer)->canBeScrolledAndHasScrollableArea()))
                 renderer = renderer->parent();
 

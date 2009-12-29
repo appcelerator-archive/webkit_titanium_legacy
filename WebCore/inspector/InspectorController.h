@@ -89,7 +89,9 @@ class InspectorResource;
 
 class InspectorController
 #if ENABLE(JAVASCRIPT_DEBUGGER)
-                          : JavaScriptDebugListener
+                          : JavaScriptDebugListener, public Noncopyable
+#else
+                          : public Noncopyable
 #endif
                                                     {
 public:
@@ -140,7 +142,7 @@ public:
 
     void addMessageToConsole(MessageSource, MessageType, MessageLevel, ScriptCallStack*);
     void addMessageToConsole(MessageSource, MessageType, MessageLevel, const String& message, unsigned lineNumber, const String& sourceID);
-    void clearConsoleMessages(bool clearUI);
+    void clearConsoleMessages();
     const Vector<ConsoleMessage*>& consoleMessages() const { return m_consoleMessages; }
 
     void attachWindow();
@@ -243,6 +245,7 @@ public:
     void evaluateForTestInFrontend(long callId, const String& script);
 
 private:
+    static const char* const FrontendSettingsSettingName;
     friend class InspectorBackend;
     friend class InspectorFrontendHost;
     friend class InjectedScriptHost;
@@ -321,6 +324,7 @@ private:
     HashSet<String> m_knownResources;
     FrameResourcesMap m_frameResources;
     Vector<ConsoleMessage*> m_consoleMessages;
+    unsigned m_expiredConsoleMessageCount;
     HashMap<String, double> m_times;
     HashMap<String, unsigned> m_counts;
 #if ENABLE(DATABASE)
