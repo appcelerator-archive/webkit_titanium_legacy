@@ -153,17 +153,7 @@
 #undef WTF_USE_WININET
 #define WTF_PLATFORM_CF 1
 #define WTF_USE_PTHREADS 0
-#include <winsock2.h>
 #endif
-
-/*#if PLATFORM(WIN)
-#define WTF_PLATFORM_CG 1
-#undef WTF_PLATFORM_CAIRO
-#define WTF_USE_CFNETWORK 1
-#undef WTF_USE_WININET
-#define WTF_PLATFORM_CF 1
-#define WTF_USE_PTHREADS 0
-#endif*/
 
 #if PLATFORM(MAC)
 // ATSUI vs. CoreText

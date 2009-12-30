@@ -526,7 +526,6 @@ HRESULT STDMETHODCALLTYPE UIDelegate::webViewGetDlgCode(
 HRESULT STDMETHODCALLTYPE UIDelegate::createWebViewWithRequest( 
         /* [in] */ IWebView *sender,
         /* [in] */ IWebURLRequest *request,
-        /* [in] */ IPropertyBag *features,
         /* [retval][out] */ IWebView **newWebView)
 {
     if (!::gLayoutTestController->canOpenWindows())
