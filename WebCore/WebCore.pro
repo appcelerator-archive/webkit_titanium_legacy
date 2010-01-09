@@ -27,9 +27,17 @@ TARGET = QtWebKit
 
 contains(QT_CONFIG, embedded):CONFIG += embedded
 
-CONFIG(QTDIR_build) {
+# Detect that we are building as a standalone package by the presence of
+# either the generated files directory or as part of the Qt package through
+# QTDIR_build
+CONFIG(QTDIR_build): CONFIG += standalone_package
+else:exists($$PWD/generated): CONFIG += standalone_package
+
+CONFIG(standalone_package) {
     GENERATED_SOURCES_DIR = $$PWD/generated
-    include($$QT_SOURCE_TREE/src/qbase.pri)
+
+    CONFIG(QTDIR_build):include($$QT_SOURCE_TREE/src/qbase.pri)
+
     PRECOMPILED_HEADER = $$PWD/../WebKit/qt/WebKit_pch.h
     DEFINES *= NDEBUG
 } else {
@@ -55,7 +63,7 @@ unix {
 unix:!mac:*-g++*:QMAKE_CXXFLAGS += -ffunction-sections -fdata-sections 
 unix:!mac:*-g++*:QMAKE_LFLAGS += -Wl,--gc-sections
 
-CONFIG(release):!CONFIG(QTDIR_build) {
+CONFIG(release):!CONFIG(standalone_package) {
     contains(QT_CONFIG, reduce_exports):CONFIG += hide_symbols
     unix:contains(QT_CONFIG, reduce_relocations):CONFIG += bsymbolic_functions
 }
@@ -177,6 +185,16 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 !contains(DEFINES, ENABLE_XSLT=.) {
     contains(QT_CONFIG, xmlpatterns):!lessThan(QT_MINOR_VERSION, 5):DEFINES += ENABLE_XSLT=1
     else:DEFINES += ENABLE_XSLT=0
+}
+
+
+!contains(DEFINES, ENABLE_QT_BEARER=.) {
+    symbian: {
+        exists($${EPOCROOT}epoc32/release/winscw/udeb/QtBearer.lib)| \
+        exists($${EPOCROOT}epoc32/release/armv5/lib/QtBearer.lib) {
+            DEFINES += ENABLE_QT_BEARER=1
+        }
+    }
 }
 
 DEFINES += WTF_CHANGES=1
@@ -1169,6 +1187,7 @@ SOURCES += \
     page/FrameTree.cpp \
     page/FrameView.cpp \
     page/Geolocation.cpp \
+    page/GeolocationController.cpp \
     page/History.cpp \
     page/Location.cpp \
     page/MouseEventWithHitTestResults.cpp \
@@ -1852,7 +1871,7 @@ HEADERS += \
     page/Chrome.h \
     page/Console.h \
     page/ContextMenuController.h \
-    page/ContextMenuSelectionHandler.h \
+    page/ContextMenuProvider.h \
     page/Coordinates.h \
     page/DOMSelection.h \
     page/DOMTimer.h \
@@ -1965,7 +1984,8 @@ HEADERS += \
     platform/PlatformTouchPoint.h \
     platform/qt/ClipboardQt.h \
     platform/qt/QWebPageClient.h \
-    platform/qt/QWebPopup.h \
+    platform/qt/QtAbstractWebPopup.h \
+    platform/qt/QtFallbackWebPopup.h \
     platform/qt/RenderThemeQt.h \
     platform/qt/ScrollbarThemeQt.h \
     platform/Scrollbar.h \
@@ -2424,7 +2444,8 @@ SOURCES += \
     platform/qt/PlatformTouchEventQt.cpp \
     platform/qt/PlatformTouchPointQt.cpp \
     platform/qt/PopupMenuQt.cpp \
-    platform/qt/QWebPopup.cpp \
+    platform/qt/QtAbstractWebPopup.cpp \
+    platform/qt/QtFallbackWebPopup.cpp \
     platform/qt/RenderThemeQt.cpp \
     platform/qt/ScrollbarQt.cpp \
     platform/qt/ScrollbarThemeQt.cpp \
@@ -2888,6 +2909,17 @@ contains(DEFINES, ENABLE_XHTMLMP=1) {
     FEATURE_DEFINES_JAVASCRIPT += ENABLE_XHTMLMP=1
 }
 
+contains(DEFINES, ENABLE_QT_BEARER=1) {
+    HEADERS += \
+        platform/network/qt/NetworkStateNotifierPrivate.h
+
+    SOURCES += \
+        platform/network/qt/NetworkStateNotifierQt.cpp
+
+    LIBS += -lQtBearer
+
+}
+
 contains(DEFINES, ENABLE_SVG=1) {
     FEATURE_DEFINES_JAVASCRIPT += ENABLE_SVG=1
 
@@ -3326,7 +3358,7 @@ addExtraCompiler(webkitversion)
 
 include($$PWD/../WebKit/qt/Api/headers.pri)
 HEADERS += $$WEBKIT_API_HEADERS
-!CONFIG(QTDIR_build) {
+!CONFIG(standalone_package) {
     target.path = $$[QT_INSTALL_LIBS]
     headers.files = $$WEBKIT_API_HEADERS
     headers.path = $$[QT_INSTALL_HEADERS]/QtWebKit
@@ -3377,7 +3409,7 @@ HEADERS += $$WEBKIT_API_HEADERS
     }
 }
 
-CONFIG(QTDIR_build):isEqual(QT_MAJOR_VERSION, 4):greaterThan(QT_MINOR_VERSION, 4) {
+CONFIG(standalone_package):isEqual(QT_MAJOR_VERSION, 4):greaterThan(QT_MINOR_VERSION, 4) {
     # start with 4.5
     # Remove the following 2 lines if you want debug information in WebCore
     CONFIG -= separate_debug_info

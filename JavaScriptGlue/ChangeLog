@@ -1,3 +1,29 @@
+2009-12-21  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32831
+        Replace UString::Rep implementation, following introduction of ropes to JSC.
+
+        * ForwardingHeaders/wtf/PossiblyNull.h: Added.
+            - add forwarding header.
+
+2009-12-16  Mark Rowe  <mrowe@apple.com>
+
+        Build fix.  Disable debug variants of WebKit frameworks.
+
+        * JavaScriptGlue.xcodeproj/project.pbxproj:
+
+2009-12-13  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+        
+        Changed GC from mark-sweep to mark-allocate.
+        
+        * JavaScriptGlue.cpp:
+        (JSCollect): Updated for rename. Fixed a bug where JSGlue would not check
+        to avoid nested GC calls.
+
 2009-12-08  Dmitry Titov  <dimich@chromium.org>
 
         Rubber-stamped by David Levin.

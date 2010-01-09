@@ -34,7 +34,6 @@ import os
 
 from modules.bugzilla import Bugzilla
 from modules.buildbot import BuildBot
-from modules.buildsteps import BuildSteps
 from modules.commands.download import *
 from modules.commands.early_warning_system import *
 from modules.commands.queries import *
@@ -44,22 +43,28 @@ from modules.executive import Executive
 from modules.logging import log
 from modules.multicommandtool import MultiCommandTool
 from modules.scm import detect_scm_system
+from modules.user import User
+
 
 class BugzillaTool(MultiCommandTool):
     def __init__(self):
         MultiCommandTool.__init__(self)
         self.global_option_parser.add_option("--dry-run", action="callback", help="do not touch remote servers", callback=self.dry_run_callback)
+        self.global_option_parser.add_option("--status-host", action="callback", type="string", nargs=1, help="Hostname (e.g. localhost or commit.webkit.org) where status updates should be posted.", callback=self.status_host_callback)
 
         self.bugs = Bugzilla()
         self.buildbot = BuildBot()
         self.executive = Executive()
+        self.user = User()
         self._scm = None
-        self._status = None
-        self.steps = BuildSteps()
+        self.status_bot = StatusBot()
 
     def dry_run_callback(self, option, opt, value, parser):
         self.scm().dryrun = True
         self.bugs.dryrun = True
+
+    def status_host_callback(self, option, opt, value, parser):
+        self.status_bot.set_host(value)
 
     def scm(self):
         # Lazily initialize SCM to not error-out before command line parsing (or when running non-scm commands).
@@ -77,11 +82,6 @@ class BugzillaTool(MultiCommandTool):
                 error("FATAL: Failed to determine the SCM system for either %s or %s" % (original_cwd, webkit_directory))
 
         return self._scm
-
-    def status(self):
-        if not self._status:
-            self._status = StatusBot()
-        return self._status
 
     def path(self):
         return __file__

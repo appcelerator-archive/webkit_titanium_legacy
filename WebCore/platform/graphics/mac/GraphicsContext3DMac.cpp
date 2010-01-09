@@ -48,9 +48,9 @@
 #include "ImageBuffer.h"
 #include "NotImplemented.h"
 #include "WebKitCSSMatrix.h"
-
 #include <CoreGraphics/CGBitmapContext.h>
 #include <OpenGL/CGLRenderers.h>
+#include <wtf/UnusedParam.h>
 
 namespace WebCore {
 
@@ -262,7 +262,7 @@ void GraphicsContext3D::bindBuffer(unsigned long target, WebGLBuffer* buffer)
 void GraphicsContext3D::bindFramebuffer(unsigned long target, WebGLFramebuffer* buffer)
 {
     ensureContext(m_contextObj);
-    ::glBindFramebufferEXT(target, buffer ? (GLuint) buffer->object() : m_fbo);
+    ::glBindFramebufferEXT(target, (buffer && buffer->object()) ? (GLuint) buffer->object() : m_fbo);
 }
 
 void GraphicsContext3D::bindRenderbuffer(unsigned long target, WebGLRenderbuffer* renderbuffer)

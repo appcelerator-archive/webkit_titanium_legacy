@@ -337,11 +337,11 @@ bool HTMLInputElement::stepMismatch() const
         // double's fractional part size is DBL_MAN_DIG-bit.  If the current
         // value is greater than step*2^DBL_MANT_DIG, the following fmod() makes
         // no sense.
-        if (doubleValue / pow(2, DBL_MANT_DIG) > step)
+        if (doubleValue / pow(2.0, DBL_MANT_DIG) > step)
             return false;
         double remainder = fmod(doubleValue, step);
         // Accepts errors in lower 7-bit.
-        double acceptableError = step / pow(2, DBL_MANT_DIG - 7);
+        double acceptableError = step / pow(2.0, DBL_MANT_DIG - 7);
         return acceptableError < remainder && remainder < (step - acceptableError);
     }
     // Non-RANGE types should be rejected by getAllowedValueStep().
@@ -1313,6 +1313,23 @@ void HTMLInputElement::setValueForUser(const String& value)
     setValue(value, true);
 }
 
+const String& HTMLInputElement::suggestedValue() const
+{
+    return m_data.suggestedValue();
+}
+
+void HTMLInputElement::setSuggestedValue(const String& value)
+{
+    if (inputType() != TEXT)
+        return;
+    setFormControlValueMatchesRenderer(false);
+    m_data.setSuggestedValue(sanitizeValue(value));
+    updatePlaceholderVisibility(false);
+    if (renderer())
+        renderer()->updateFromElement();
+    setNeedsStyleRecalc();
+}
+
 void HTMLInputElement::setValue(const String& value, bool sendChangeEvent)
 {
     // For security reasons, we don't allow setting the filename, but we do allow clearing it.
@@ -1345,6 +1362,7 @@ void HTMLInputElement::setValue(const String& value, bool sendChangeEvent)
             InputElement::updateSelectionRange(this, this, max, max);
         else
             cacheSelection(max, max);
+        m_data.setSuggestedValue(String());
     }
 
     // Don't dispatch the change event when focused, it will be dispatched
@@ -1354,6 +1372,24 @@ void HTMLInputElement::setValue(const String& value, bool sendChangeEvent)
 
     InputElement::notifyFormStateChanged(this);
     updateValidity();
+}
+
+double HTMLInputElement::valueAsDate() const
+{
+    // FIXME: This is a temporary implementation to check Date binding.
+    if (inputType() == MONTH)
+        return 0.0;
+    return std::numeric_limits<double>::quiet_NaN();
+}
+
+void HTMLInputElement::setValueAsDate(double value, ExceptionCode& ec)
+{
+    // FIXME: This is a temporary implementation to check Date binding.
+    if (!isnan(value) && !isinf(value) && inputType() == MONTH) {
+        setValue(String("1970-01"));
+        return;
+    }
+    ec = INVALID_STATE_ERR;
 }
 
 String HTMLInputElement::placeholder() const
@@ -1375,6 +1411,7 @@ void HTMLInputElement::setValueFromRenderer(const String& value)
 {
     // File upload controls will always use setFileListFromRenderer.
     ASSERT(inputType() != FILE);
+    m_data.setSuggestedValue(String());
     updatePlaceholderVisibility(false);
     InputElement::setValueFromRenderer(m_data, this, this, value);
     updateValidity();

@@ -1,3 +1,1030 @@
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        Turn off datagrid by default, at least for all platforms Apple ships.
+        The datagrid implementation isn't ready for general web use yet.
+
+        * Configurations/FeatureDefines.xcconfig: Turn off datagrid by default.
+
+2009-12-22  Steve Block  <steveblock@google.com>
+
+        Reviewed by David Levin.
+
+        Updates Android's scheduleDispatchFunctionsOnMainThread() to use new
+        AndroidThreading class, rather than using JavaSharedClient directly.
+        This fixes the current layering violation.
+        https://bugs.webkit.org/show_bug.cgi?id=32651
+
+        The pattern is copied from Chromium, which uses the ChromiumThreading
+        class. This patch also fixes the style in ChromiumThreading.h.
+
+        * wtf/android/AndroidThreading.h: Added. Declares AndroidThreading.
+        * wtf/android/MainThreadAndroid.cpp: Modified
+        (WTF::scheduleDispatchFunctionsOnMainThread): Uses AndroidThreading.
+        * wtf/chromium/ChromiumThreading.h: Modified. Fixes style.
+
+2009-12-22  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Fix a couple of problems with UntypedPtrAndBitfield.
+
+        Add a m_leaksPtr to reduce false positives from leaks in debug builds
+        (this isn't perfect because we'd like a solution for release builds,
+        but this is now at least as good as a PtrAndFlags would be).
+
+        Switch SmallStringsto use a regular string for the base, rather than
+        a static one.  UntypedPtrAndBitfield assumes all strings are at least
+        8 byte aligned; this migt not be true of static strings.  Shared buffers
+        are heap allocated, as are all UStringImpls other than static strings.
+        Static strings cannot end up being the owner string of substrings,
+        since the only static strings are length 0.
+
+        * runtime/SmallStrings.cpp:
+        (JSC::SmallStringsStorage::SmallStringsStorage):
+        * runtime/UStringImpl.h:
+        (JSC::UntypedPtrAndBitfield::UntypedPtrAndBitfield):
+        (JSC::UStringImpl::UStringImpl):
+
+2009-12-22  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Darin Adler.
+
+        RVCT (__ARMCC_VERSION < 400000) does not provide strcasecmp and strncasecmp
+        https://bugs.webkit.org/show_bug.cgi?id=32857
+
+        Add implementation of strcasecmp and strncasecmp for RVCT < 4.0
+        because earlier versions of RVCT 4.0 does not provide these functions.
+
+        * wtf/StringExtras.cpp: Added.
+        (strcasecmp):
+        (strncasecmp):
+        * wtf/StringExtras.h:
+
+2009-12-22  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Darin Adler.
+
+        Define ALWAYS_INLINE and WTF_PRIVATE_INLINE to __forceinline for RVCT
+        https://bugs.webkit.org/show_bug.cgi?id=32853
+
+        Use __forceinline forces RVCT to compile a C or C++ function
+        inline. The compiler attempts to inline the function, regardless of
+        the characteristics of the function.
+
+        * wtf/AlwaysInline.h:
+        * wtf/FastMalloc.h:
+
+2009-12-21  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Prospective GTK build fix: Add UStringImpl.cpp/h to the build.
+
+        * GNUmakefile.am:
+
+2009-12-21  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Fix the Qt build, add UStringImpl.cpp to the build.
+
+        * JavaScriptCore.pri:
+
+2009-12-21  Gavin Barraclough  <barraclough@apple.com>
+
+        Windows Build fix part 5.
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.vcproj:
+
+2009-12-21  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by NOBODY (build fix).
+        Fix breakage of world introduced in build fix to r52463.
+
+        * runtime/UStringImpl.h:
+
+2009-12-21  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32831
+        Replace UString::Rep implementation, following introduction of ropes to JSC.
+
+            * Remove redundant overcapacity mechanisms.
+            * Reduce memory cost of Rep's.
+            * Add an inline storage mechanism akin to that in WebCore's StringImpl.
+
+        ~1% Sunspider progression.
+
+        * JavaScriptCore.exp:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * runtime/JSString.cpp:
+        (JSC::JSString::resolveRope):
+        * runtime/SmallStrings.cpp:
+        (JSC::SmallStringsStorage::SmallStringsStorage):
+        * runtime/UString.cpp:
+        (JSC::initializeUString):
+        (JSC::createRep):
+        (JSC::UString::createFromUTF8):
+        (JSC::UString::createUninitialized):
+        (JSC::UString::spliceSubstringsWithSeparators):
+        (JSC::UString::replaceRange):
+        (JSC::UString::ascii):
+        (JSC::UString::operator=):
+        (JSC::UString::toStrictUInt32):
+        (JSC::equal):
+        * runtime/UString.h:
+        (JSC::UString::isEmpty):
+        (JSC::UString::cost):
+        (JSC::makeString):
+        * runtime/UStringImpl.cpp: Added.
+        (JSC::UStringImpl::baseSharedBuffer):
+        (JSC::UStringImpl::sharedBuffer):
+        (JSC::UStringImpl::destroy):
+        (JSC::UStringImpl::computeHash):
+        * runtime/UStringImpl.h: Added.
+        (JSC::UntypedPtrAndBitfield::UntypedPtrAndBitfield):
+        (JSC::UntypedPtrAndBitfield::asPtr):
+        (JSC::UntypedPtrAndBitfield::operator&=):
+        (JSC::UntypedPtrAndBitfield::operator|=):
+        (JSC::UntypedPtrAndBitfield::operator&):
+        (JSC::UStringImpl::create):
+        (JSC::UStringImpl::createCopying):
+        (JSC::UStringImpl::createUninitialized):
+        (JSC::UStringImpl::data):
+        (JSC::UStringImpl::size):
+        (JSC::UStringImpl::cost):
+        (JSC::UStringImpl::hash):
+        (JSC::UStringImpl::computedHash):
+        (JSC::UStringImpl::setHash):
+        (JSC::UStringImpl::identifierTable):
+        (JSC::UStringImpl::setIdentifierTable):
+        (JSC::UStringImpl::ref):
+        (JSC::UStringImpl::deref):
+        (JSC::UStringImpl::allocChars):
+        (JSC::UStringImpl::copyChars):
+        (JSC::UStringImpl::computeHash):
+        (JSC::UStringImpl::null):
+        (JSC::UStringImpl::empty):
+        (JSC::UStringImpl::checkConsistency):
+        (JSC::UStringImpl::):
+        (JSC::UStringImpl::UStringImpl):
+        (JSC::UStringImpl::operator new):
+        (JSC::UStringImpl::bufferOwnerString):
+        (JSC::UStringImpl::bufferOwnership):
+        (JSC::UStringImpl::isStatic):
+
+2009-12-18  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        Move some build decisions from Qt build system into source files
+        https://bugs.webkit.org/show_bug.cgi?id=31956
+
+        * JavaScriptCore.pri: Compile files unconditionally
+        * jit/ExecutableAllocatorPosix.cpp: Guard with PLATFORM(UNIX) && !PLATFORM(SYMBIAN)
+        * jit/ExecutableAllocatorWin.cpp: Guard with PLATFORM(WIN_OS)
+        * runtime/MarkStackPosix.cpp: Guard with PLATFORM(UNIX) && !PLATFORM(SYMBIAN)
+        * runtime/MarkStackSymbian.cpp: Guard with PLATFORM(SYMBIAN)
+        * runtime/MarkStackWin.cpp: Guard with PLATFORM(WIN_OS)
+        * wtf/Platform.h: Guard ENABLE_JSC_MULTIPLE_THREADS with ENABLE_SINGLE_THREADED for the Qt port
+        * wtf/ThreadingNone.cpp: Guard with ENABLE(SINGLE_THREADED)
+        * wtf/qt/ThreadingQt.cpp: Guard with !ENABLE(SINGLE_THREADED)
+
+2009-12-18  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Add createNonCopying method to UString to make replace constructor passed bool,
+        to make behaviour more explicit.  Add createFromUTF8 to UString (wrapping method
+        on UString::Rep), since other cases of transliteration (e.g.  from ascii) are
+        performed in UString constructors.  Add/use setHash & size() accessors on Rep,
+        rather than accessing _hash/len directly.
+
+        * API/JSClassRef.cpp:
+        (OpaqueJSClass::OpaqueJSClass):
+        * API/OpaqueJSString.cpp:
+        (OpaqueJSString::ustring):
+        * JavaScriptCore.exp:
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncToString):
+        * runtime/Identifier.cpp:
+        (JSC::Identifier::equal):
+        (JSC::CStringTranslator::translate):
+        (JSC::UCharBufferTranslator::translate):
+        (JSC::Identifier::addSlowCase):
+        * runtime/JSString.cpp:
+        (JSC::JSString::resolveRope):
+        * runtime/JSString.h:
+        (JSC::JSString::Rope::Fiber::refAndGetLength):
+        (JSC::JSString::Rope::append):
+        * runtime/StringBuilder.h:
+        (JSC::StringBuilder::release):
+        * runtime/StringConstructor.cpp:
+        (JSC::stringFromCharCodeSlowCase):
+        * runtime/StringPrototype.cpp:
+        (JSC::substituteBackreferencesSlow):
+        (JSC::stringProtoFuncToLowerCase):
+        (JSC::stringProtoFuncToUpperCase):
+        (JSC::stringProtoFuncFontsize):
+        (JSC::stringProtoFuncLink):
+        * runtime/UString.cpp:
+        (JSC::UString::UString):
+        (JSC::UString::createNonCopying):
+        (JSC::UString::createFromUTF8):
+        * runtime/UString.h:
+        (JSC::UString::Rep::setHash):
+        (JSC::UString::~UString):
+        (JSC::makeString):
+
+2009-12-18  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Cameron Zwarich and Gavin Barraclough.
+        
+        Changed Register constructors to assignment operators, to streamline
+        moving values into registers. (In theory, there's no difference between
+        the two, since the constructor should just inline away, but there seems
+        to be a big difference in the addled mind of the GCC optimizer.)
+
+        In the interpreter, this is a 3.5% SunSpider speedup and a 1K-2K
+        reduction in stack usage per privateExecute stack frame.
+
+        * interpreter/CallFrame.h:
+        (JSC::ExecState::setCalleeArguments):
+        (JSC::ExecState::setCallerFrame):
+        (JSC::ExecState::setScopeChain):
+        (JSC::ExecState::init):
+        (JSC::ExecState::setArgumentCount):
+        (JSC::ExecState::setCallee):
+        (JSC::ExecState::setCodeBlock): Added a little bit of casting so these
+        functions could use the new Register assignment operators.
+
+        * interpreter/Register.h:
+        (JSC::Register::withInt):
+        (JSC::Register::Register):
+        (JSC::Register::operator=): Swapped in assignment operators for constructors.
+
+2009-12-18  Yongjun Zhang  <yongjun.zhang@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32713
+        [Qt] make wtf/Assertions.h compile in winscw compiler.
+
+        Add string arg before ellipsis to help winscw compiler resolve variadic
+        macro definitions in wtf/Assertions.h. 
+
+        * wtf/Assertions.h:
+
+2009-12-18  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Fixed intermittent failure seen on Windows buildbot, and in other JSC
+        API clients.
+        
+        Added a WeakGCPtr class and changed OpaqueJSClass::cachedPrototype to
+        use it, to avoid vending a stale object as a prototype.
+
+        * API/JSClassRef.cpp:
+        (OpaqueJSClassContextData::OpaqueJSClassContextData):
+        (OpaqueJSClass::prototype):
+        * API/JSClassRef.h: Use WeakGCPtr.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * runtime/WeakGCPtr.h: Added.
+        (JSC::WeakGCPtr::WeakGCPtr):
+        (JSC::WeakGCPtr::get):
+        (JSC::WeakGCPtr::clear):
+        (JSC::WeakGCPtr::operator*):
+        (JSC::WeakGCPtr::operator->):
+        (JSC::WeakGCPtr::operator!):
+        (JSC::WeakGCPtr::operator bool):
+        (JSC::WeakGCPtr::operator UnspecifiedBoolType):
+        (JSC::WeakGCPtr::assign):
+        (JSC::::operator):
+        (JSC::operator==):
+        (JSC::operator!=):
+        (JSC::static_pointer_cast):
+        (JSC::const_pointer_cast):
+        (JSC::getPtr): Added WeakGCPtr to the project.
+
+2009-12-18  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32720
+
+        * JavaScriptCore.exp:
+            - Remove exports for UString::append
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+            - Make StringBuilder a private header (was project).
+
+2009-12-18  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] GRefPtr does not take a reference when assigned a raw pointer
+        https://bugs.webkit.org/show_bug.cgi?id=32709
+
+        Ensure that when assigning a raw pointer to a GRefPtr, the reference
+        count is incremented. Also remove the GRefPtr conversion overload as
+        GRefPtr types have necessarily incompatible reference counting.
+
+        * wtf/gtk/GRefPtr.h:
+        (WTF::GRefPtr::operator=):
+
+2009-12-18  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Clean up the qmake build system to distinguish between trunk builds and package builds
+
+        https://bugs.webkit.org/show_bug.cgi?id=32716
+
+        * pcre/pcre.pri: Use standalone_package instead of QTDIR_build
+
+2009-12-18  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] Compile warning from line 29 of GRefPtr.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=32703
+
+        Fix memory leak and compiler warning in GRefPtr GHashTable template
+        specialization.
+
+        * wtf/gtk/GRefPtr.cpp:
+        (WTF::refGPtr):
+
+2009-12-17  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Mark Rowe.
+
+        Add BUILDING_ON_SNOW_LEOPARD and TARGETING_SNOW_LEOPARD #defines.
+
+        * wtf/Platform.h:
+
+2009-12-17  Adam Roben  <aroben@apple.com>
+
+        Sync JavaScriptCore.vcproj with JavaScriptCore.xcodeproj and the
+        source tree
+
+        Fixes <http://webkit.org/b/32665>.
+
+        Reviewed by Ada Chan.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.vcproj: Moved
+        around files and filters so that the structure matches
+        JavaScriptCore.xcodeproj and the source tree. A few headers that were
+        previously omitted have been added, as well as JSZombie.{cpp,h}.
+
+2009-12-17  Adam Roben  <aroben@apple.com>
+
+        Remove HeavyProfile and TreeProfile completely
+
+        These were mostly removed in r42808, but the empty files were left in
+        place.
+
+        Fixes <http://webkit.org/b/32664>.
+
+        Reviewed by John Sullivan.
+
+        * Android.mk:
+        * GNUmakefile.am:
+        * JavaScriptCore.gypi:
+        * JavaScriptCore.pri:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.vcproj:
+        * JavaScriptCoreSources.bkl:
+        Removed HeavyProfile/TreeProfile source files.
+
+        * profiler/HeavyProfile.cpp: Removed.
+        * profiler/HeavyProfile.h: Removed.
+        * profiler/TreeProfile.cpp: Removed.
+        * profiler/TreeProfile.h: Removed.
+
+2009-12-17  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] WebKit GTK needs a wrapper for ref counted glib/gobject structs
+        https://bugs.webkit.org/show_bug.cgi?id=21599
+
+        Implement GRefPtr, a smart pointer for reference counted GObject types.
+
+        * GNUmakefile.am:
+        * wtf/gtk/GOwnPtr.cpp:
+        (WTF::GDir):
+        * wtf/gtk/GRefPtr.h: Added.
+        (WTF::):
+        (WTF::GRefPtr::GRefPtr):
+        (WTF::GRefPtr::~GRefPtr):
+        (WTF::GRefPtr::clear):
+        (WTF::GRefPtr::get):
+        (WTF::GRefPtr::operator*):
+        (WTF::GRefPtr::operator->):
+        (WTF::GRefPtr::operator!):
+        (WTF::GRefPtr::operator UnspecifiedBoolType):
+        (WTF::GRefPtr::hashTableDeletedValue):
+        (WTF::::operator):
+        (WTF::::swap):
+        (WTF::swap):
+        (WTF::operator==):
+        (WTF::operator!=):
+        (WTF::static_pointer_cast):
+        (WTF::const_pointer_cast):
+        (WTF::getPtr):
+        (WTF::adoptGRef):
+        (WTF::refGPtr):
+        (WTF::derefGPtr):
+
+2009-12-17  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed. Build fixes for make distcheck.
+
+        * GNUmakefile.am:
+
+2009-12-16  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Fixed <rdar://problem/7355025> Interpreter::privateExecute macro generates
+        bloated code
+        
+        This patch cuts Interpreter stack use by about a third.
+
+        * bytecode/Opcode.h: Changed Opcode to const void* to work with the
+        const static initiliazation we want to do in Interpreter::privateExecute.
+
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::Interpreter): Moved hashtable initialization here to
+        avoid polluting Interpreter::privateExecute's stack, and changed it from a
+        series of add() calls to one add() call in a loop, to cut down on code size.
+
+        (JSC::Interpreter::privateExecute): Changed a series of label computations
+        to a copy of a compile-time constant array to cut down on code size.
+
+2009-12-16  Mark Rowe  <mrowe@apple.com>
+
+        Build fix.  Disable debug variants of WebKit frameworks.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+
+2009-12-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam "r=me" Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32498
+        <rdar://problem/7471495>
+        REGRESSION(r51978-r52039): AJAX "Mark This Forum Read" function no longer
+        works
+        
+        Fixed a tyop.
+
+        * runtime/Operations.h:
+        (JSC::jsAdd): Use the '&&' operator, not the ',' operator.
+
+2009-12-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Try to fix the windows build: don't export this inlined function.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2009-12-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Beth Dakin.
+
+        Inlined JSCell's operator new.
+        
+        3.7% speedup on bench-allocate-nonretained.js.
+
+        * JavaScriptCore.exp:
+        * runtime/JSCell.cpp:
+        * runtime/JSCell.h:
+        (JSC::JSCell::operator new):
+
+2009-12-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Removed the number heap, replacing it with a one-item free list for
+        numbers, taking advantage of the fact that two number cells fit inside
+        the space for one regular cell, and number cells don't require destruction.
+        
+        SunSpider says 1.6% faster in JSVALUE32 mode (the only mode that
+        heap-allocates numbers).
+        
+        SunSpider says 1.1% faster in JSVALUE32_64 mode. v8 says 0.8% faster
+        in JSVALUE32_64 mode. 10% speedup on bench-alloc-nonretained.js. 6%
+        speedup on bench-alloc-retained.js.
+        
+        There's a lot of formulaic change in this patch, but not much substance.
+
+        * JavaScriptCore.exp:
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::recompileAllJSFunctions):
+        * runtime/Collector.cpp:
+        (JSC::Heap::Heap):
+        (JSC::Heap::destroy):
+        (JSC::Heap::allocateBlock):
+        (JSC::Heap::freeBlock):
+        (JSC::Heap::freeBlockPtr):
+        (JSC::Heap::freeBlocks):
+        (JSC::Heap::recordExtraCost):
+        (JSC::Heap::allocate):
+        (JSC::Heap::resizeBlocks):
+        (JSC::Heap::growBlocks):
+        (JSC::Heap::shrinkBlocks):
+        (JSC::Heap::markConservatively):
+        (JSC::Heap::clearMarkBits):
+        (JSC::Heap::markedCells):
+        (JSC::Heap::sweep):
+        (JSC::Heap::markRoots):
+        (JSC::Heap::objectCount):
+        (JSC::Heap::addToStatistics):
+        (JSC::Heap::statistics):
+        (JSC::Heap::isBusy):
+        (JSC::Heap::reset):
+        (JSC::Heap::collectAllGarbage):
+        (JSC::Heap::primaryHeapBegin):
+        (JSC::Heap::primaryHeapEnd):
+        * runtime/Collector.h:
+        (JSC::): Removed all code pertaining to the number heap, and changed all
+        heap template functions and classes to non-template functions and classes.
+
+        (JSC::Heap::allocateNumber): A new optimization to replace the number
+        heap: allocate half-sized number cells in pairs, returning the first
+        cell and caching the second cell for the next allocation.
+
+        * runtime/CollectorHeapIterator.h:
+        (JSC::LiveObjectIterator::LiveObjectIterator):
+        (JSC::LiveObjectIterator::operator++):
+        (JSC::DeadObjectIterator::DeadObjectIterator):
+        (JSC::DeadObjectIterator::operator++):
+        (JSC::ObjectIterator::ObjectIterator):
+        (JSC::ObjectIterator::operator++):
+        * runtime/JSCell.h:
+        (JSC::JSCell::isNumber): Removed all code pertaining to the number heap,
+        and changed all heap template functions and classes to non-template functions
+        and classes.
+
+2009-12-15  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Allow custom memory allocation control for WeakGCMap class
+        https://bugs.webkit.org/show_bug.cgi?id=32547
+
+        Inherits WeakGCMap from FastAllocBase because it is instantiated by
+        'new' at: WebCore/dom/Document.cpp:512.
+
+        * runtime/WeakGCMap.h:
+
+2009-12-15  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Allow custom memory allocation control for dtoa's P5Node struct
+        https://bugs.webkit.org/show_bug.cgi?id=32544
+
+        Inherits P5Node struct from Noncopyable because it is instantiated by
+        'new' at wtf/dtoa.cpp:588 and don't need to be copyable.
+
+        * wtf/dtoa.cpp:
+
+2009-12-14  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32524
+        REGRESSION(52084): fast/dom/prototypes.html failing two CSS tests
+
+        * wtf/StdLibExtras.h:
+        (WTF::bitCount): The original patch put the parentheses in the wrong
+        place, completely changing the calculation and making it almost always
+        wrong. Moved the parentheses around the '+' operation, like the original
+        compiler warning suggested.
+
+2009-12-14  Gabor Loki  <loki@inf.u-szeged.hu>
+
+        Unreviewed trivial buildfix.
+
+        Fix crosses initialization of usedPrimaryBlocks for JSValue32
+
+        * runtime/Collector.cpp:
+        (JSC::Heap::markConservatively):
+
+2009-12-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        GCC 4.3.x warning fixed. Suggested parantheses added.
+        warning: ../../../JavaScriptCore/wtf/StdLibExtras.h:77: warning: suggest parentheses around + or - in operand of &
+
+        * wtf/StdLibExtras.h:
+        (WTF::bitCount):
+
+2009-12-13  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+        
+        Changed GC from mark-sweep to mark-allocate.
+        
+        Added WeakGCMap to keep WebCore blissfully ignorant about objects that
+        have become garbage but haven't run their destructors yet.
+        
+        1% SunSpider speedup.
+        7.6% v8 speedup (37% splay speedup).
+        17% speedup on bench-alloc-nonretained.js.
+        18% speedup on bench-alloc-retained.js.
+
+        * API/JSBase.cpp:
+        (JSGarbageCollect):
+        * API/JSContextRef.cpp:
+        * JavaScriptCore.exp:
+        * JavaScriptCore.xcodeproj/project.pbxproj: Updated for renames and new
+        files.
+
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::recompileAllJSFunctions): Updated to use the Collector
+        iterator abstraction.
+
+        * jsc.cpp:
+        (functionGC): Updated for rename.
+
+        * runtime/Collector.cpp: Slightly reduced the number of allocations per
+        collection, so that small workloads only allocate on collector block,
+        rather than two.
+
+        (JSC::Heap::Heap): Updated to use the new allocateBlock function.
+
+        (JSC::Heap::destroy): Updated to use the new freeBlocks function.
+
+        (JSC::Heap::allocateBlock): New function to initialize a block when
+        allocating it.
+
+        (JSC::Heap::freeBlock): Consolidated the responsibility for running
+        destructors into this function.
+
+        (JSC::Heap::freeBlocks): Updated to use freeBlock.
+
+        (JSC::Heap::recordExtraCost): Sweep the heap in this reporting function,
+        so that allocation, which is more common, doesn't have to check extraCost.
+
+        (JSC::Heap::heapAllocate): Run destructors right before recycling a
+        garbage cell. This has better cache utilization than a separate sweep phase.
+
+        (JSC::Heap::resizeBlocks):
+        (JSC::Heap::growBlocks):
+        (JSC::Heap::shrinkBlocks): New set of functions for managing the size of
+        the heap, now that the heap doesn't maintain any information about its
+        size.
+
+        (JSC::isPointerAligned):
+        (JSC::isHalfCellAligned):
+        (JSC::isPossibleCell):
+        (JSC::isCellAligned):
+        (JSC::Heap::markConservatively): Cleaned up this code a bit.
+
+        (JSC::Heap::clearMarkBits):
+        (JSC::Heap::markedCells): Some helper functions for examining the the mark
+        bitmap.
+
+        (JSC::Heap::sweep): Simplified this function by using a DeadObjectIterator.
+
+        (JSC::Heap::markRoots): Reordered some operations for clarity.
+
+        (JSC::Heap::objectCount):
+        (JSC::Heap::addToStatistics):
+        (JSC::Heap::statistics): Rewrote these functions to calculate an object
+        count on demand, since the heap doesn't maintain this information by 
+        itself.
+
+        (JSC::Heap::reset): New function for resetting the heap once we've
+        exhausted heap space.
+
+        (JSC::Heap::collectAllGarbage): This function matches the old collect()
+        behavior, but it's now an uncommon function used only by API.
+
+        * runtime/Collector.h:
+        (JSC::CollectorBitmap::count):
+        (JSC::CollectorBitmap::isEmpty): Added some helper functions for managing
+        the collector mark bitmap.
+
+        (JSC::Heap::reportExtraMemoryCost): Changed reporting from cell equivalents
+        to bytes, so it's easier to understand.
+        
+        * runtime/CollectorHeapIterator.h:
+        (JSC::CollectorHeapIterator::CollectorHeapIterator):
+        (JSC::CollectorHeapIterator::operator!=):
+        (JSC::CollectorHeapIterator::operator*):
+        (JSC::CollectorHeapIterator::advance):
+        (JSC::::LiveObjectIterator):
+        (JSC::::operator):
+        (JSC::::DeadObjectIterator):
+        (JSC::::ObjectIterator): New iterators for encapsulating details about
+        heap layout, and what's live and dead on the heap.
+
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::putSlowCase):
+        (JSC::JSArray::increaseVectorLength): Delay reporting extra cost until
+        we're fully constructed, so the heap mark phase won't visit us in an
+        invalid state.
+
+        * runtime/JSCell.h:
+        (JSC::JSCell::):
+        (JSC::JSCell::createDummyStructure):
+        (JSC::JSCell::JSCell):
+        * runtime/JSGlobalData.cpp:
+        (JSC::JSGlobalData::JSGlobalData):
+        * runtime/JSGlobalData.h: Added a dummy cell to simplify allocation logic.
+
+        * runtime/JSString.h:
+        (JSC::jsSubstring): Don't report extra cost for substrings, since they
+        share a buffer that's already reported extra cost.
+
+        * runtime/Tracing.d:
+        * runtime/Tracing.h: Changed these dtrace hooks not to report object
+        counts, since they're no longer cheap to compute.
+
+        * runtime/UString.h: Updated for renames.
+
+        * runtime/WeakGCMap.h: Added.
+        (JSC::WeakGCMap::isEmpty):
+        (JSC::WeakGCMap::uncheckedGet):
+        (JSC::WeakGCMap::uncheckedBegin):
+        (JSC::WeakGCMap::uncheckedEnd):
+        (JSC::::get):
+        (JSC::::take):
+        (JSC::::set):
+        (JSC::::uncheckedRemove): Mentioned above.
+
+        * wtf/StdLibExtras.h:
+        (WTF::bitCount): Added a bit population count function, so the heap can
+        count live objects to fulfill statistics questions.
+
+The very last cell in the block is not allocated -- should not be marked.
+
+2009-12-13  Geoffrey Garen  <ggaren@apple.com>
+
+        Windows build fix: Export some new symbols.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2009-12-13  Geoffrey Garen  <ggaren@apple.com>
+
+        Windows build fix: Removed some old exports.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2009-12-13  Geoffrey Garen  <ggaren@apple.com>
+
+        Windows build fix: Use unsigned instead of uint32_t to avoid dependencies.
+
+        * wtf/StdLibExtras.h:
+        (WTF::bitCount):
+
+2009-12-13  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by NOBODY (speculative Windows build fix).
+
+        * runtime/JSGlobalObjectFunctions.cpp:
+
+2009-12-13  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32496
+        Switch remaining cases of string construction to use StringBuilder.
+        Builds strings using a vector rather than using string append / addition.
+
+        * JavaScriptCore.exp:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * runtime/Executable.cpp:
+        (JSC::FunctionExecutable::paramString):
+        * runtime/FunctionConstructor.cpp:
+        (JSC::constructFunction):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::encode):
+        (JSC::decode):
+        (JSC::globalFuncEscape):
+        (JSC::globalFuncUnescape):
+        * runtime/JSONObject.cpp:
+        (JSC::Stringifier::stringify):
+        (JSC::Stringifier::indent):
+        * runtime/JSString.h:
+        * runtime/LiteralParser.cpp:
+        (JSC::LiteralParser::Lexer::lexString):
+        * runtime/NumberPrototype.cpp:
+        (JSC::integerPartNoExp):
+        (JSC::numberProtoFuncToFixed):
+        (JSC::numberProtoFuncToPrecision):
+        * runtime/Operations.h:
+        (JSC::jsString):
+        * runtime/StringPrototype.cpp:
+        (JSC::substituteBackreferencesSlow):
+        (JSC::substituteBackreferences):
+        (JSC::stringProtoFuncConcat):
+
+2009-12-08  Jeremy Moskovich  <jeremy@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Add code to allow toggling ATSUI/Core Text rendering at runtime in ComplexTextController.
+        https://bugs.webkit.org/show_bug.cgi?id=31802
+
+        The goal here is to allow for a zero runtime hit for ports that decide to select
+        the API at compile time.
+        When both USE(ATSUI) and USE(CORE_TEXT) are true, the API is toggled
+        at runtime.  Core Text is used for OS Versions >= 10.6.
+
+        * wtf/Platform.h: #define USE_CORE_TEXT and USE_ATSUI on Chrome/Mac.
+
+2009-12-11  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Unify codegen for forward and backward variants of branches
+        https://bugs.webkit.org/show_bug.cgi?id=32463
+
+        * jit/JIT.h:
+        (JSC::JIT::emit_op_loop): Implemented in terms of forward variant.
+        (JSC::JIT::emit_op_loop_if_true): ditto
+        (JSC::JIT::emitSlow_op_loop_if_true): ditto
+        (JSC::JIT::emit_op_loop_if_false): ditto
+        (JSC::JIT::emitSlow_op_loop_if_false): ditto
+        (JSC::JIT::emit_op_loop_if_less): ditto
+        (JSC::JIT::emitSlow_op_loop_if_less): ditto
+        * jit/JITOpcodes.cpp:
+
+2009-12-11  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Anders Carlsson.
+
+        Allow WTFs concept of the main thread to differ from pthreads when necessary.
+
+        * wtf/ThreadingPthreads.cpp:
+        (WTF::initializeThreading):
+        (WTF::isMainThread):
+        * wtf/mac/MainThreadMac.mm:
+        (WTF::initializeMainThreadPlatform):
+        (WTF::scheduleDispatchFunctionsOnMainThread):
+
+2009-12-11  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32454
+        Refactor construction of simple strings to avoid string concatenation.
+
+        Building strings through concatenation has a memory and performance cost -
+        a memory cost since we must over-allocate the buffer to leave space to append
+        into, and performance in that the string may still require reallocation (and
+        thus copying during construction).  Instead move the full construction to
+        within a single function call (makeString), so that the arguments' lengths
+        can be calculated and an appropriate sized buffer allocated before copying
+        any characters.
+
+        ~No performance change (~2% progression on date tests).
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::escapeQuotes):
+        (JSC::valueToSourceString):
+        (JSC::constantName):
+        (JSC::idName):
+        (JSC::CodeBlock::registerName):
+        (JSC::regexpToSourceString):
+        (JSC::regexpName):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::substitute):
+        * profiler/Profiler.cpp:
+        (JSC::Profiler::createCallIdentifier):
+        * runtime/DateConstructor.cpp:
+        (JSC::callDate):
+        * runtime/DateConversion.cpp:
+        (JSC::formatDate):
+        (JSC::formatDateUTCVariant):
+        (JSC::formatTime):
+        (JSC::formatTimeUTC):
+        * runtime/DateConversion.h:
+        (JSC::):
+        * runtime/DatePrototype.cpp:
+        (JSC::dateProtoFuncToString):
+        (JSC::dateProtoFuncToUTCString):
+        (JSC::dateProtoFuncToDateString):
+        (JSC::dateProtoFuncToTimeString):
+        (JSC::dateProtoFuncToGMTString):
+        * runtime/ErrorPrototype.cpp:
+        (JSC::errorProtoFuncToString):
+        * runtime/ExceptionHelpers.cpp:
+        (JSC::createUndefinedVariableError):
+        (JSC::createErrorMessage):
+        (JSC::createInvalidParamError):
+        * runtime/FunctionPrototype.cpp:
+        (JSC::insertSemicolonIfNeeded):
+        (JSC::functionProtoFuncToString):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncToString):
+        * runtime/RegExpConstructor.cpp:
+        (JSC::constructRegExp):
+        * runtime/RegExpObject.cpp:
+        (JSC::RegExpObject::match):
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncCompile):
+        (JSC::regExpProtoFuncToString):
+        * runtime/StringPrototype.cpp:
+        (JSC::stringProtoFuncBig):
+        (JSC::stringProtoFuncSmall):
+        (JSC::stringProtoFuncBlink):
+        (JSC::stringProtoFuncBold):
+        (JSC::stringProtoFuncFixed):
+        (JSC::stringProtoFuncItalics):
+        (JSC::stringProtoFuncStrike):
+        (JSC::stringProtoFuncSub):
+        (JSC::stringProtoFuncSup):
+        (JSC::stringProtoFuncFontcolor):
+        (JSC::stringProtoFuncFontsize):
+        (JSC::stringProtoFuncAnchor):
+        * runtime/UString.h:
+        (JSC::):
+        (JSC::makeString):
+
+2009-12-10  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32400
+        Switch remaining cases of string addition to use ropes.
+
+        Re-landing r51975 - added toPrimitiveString method,
+        performs toPrimitive then subsequent toString operations.
+
+        ~1% progression on Sunspidey.
+
+        * jit/JITStubs.cpp:
+        (JSC::DEFINE_STUB_FUNCTION):
+        * runtime/JSString.h:
+        (JSC::JSString::JSString):
+        (JSC::JSString::appendStringInConstruct):
+        * runtime/Operations.cpp:
+        (JSC::jsAddSlowCase):
+        * runtime/Operations.h:
+        (JSC::jsString):
+        (JSC::jsAdd):
+
+2009-12-11  Adam Roben  <aroben@apple.com>
+
+        Windows build fix
+
+        * JavaScriptCore.vcproj/jsc/jscCommon.vsprops: Added
+        $(WebKitOutputDir)/include/private to the include path.
+
+2009-12-11  Adam Roben  <aroben@apple.com>
+
+        Move QuartzCorePresent.h to include/private
+
+        This fixes other projects that use wtf/Platform.h
+
+        Rubber-stamped by Steve Falkenburg.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.vcproj: Let VS do its thang.
+        * JavaScriptCore.vcproj/JavaScriptCore/build-generated-files.sh: Write
+        QuartzCorePresent.h to $(WebKitOutputDir)/include/private.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCoreCommon.vsprops:
+        * JavaScriptCore.vcproj/WTF/WTFCommon.vsprops:
+        Added $(WebKitOutputDir)/include/private to the include path.
+
+2009-12-11  Adam Roben  <aroben@apple.com>
+
+        Fix clean builds and everything rebuilding on every build
+
+        Reviewed by Sam Weinig.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/build-generated-files.sh: Don't
+        write out QuartzCorePresent.h if it exists but is older than
+        QuartzCore.h. Also, create the directory we write QuartzCorePresent.h
+        into first.
+
+2009-12-11  Adam Roben  <aroben@apple.com>
+
+        Windows build fix for systems with spaces in their paths
+
+        * JavaScriptCore.vcproj/JavaScriptCore/build-generated-files.sh: Quote some paths.
+
+2009-12-11  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Add check for presence of QuartzCore headers
+        https://bugs.webkit.org/show_bug.cgi?id=31856
+        
+        The script now checks for the presence of QuartzCore.h. If present
+        it will turn on ACCELERATED_COMPOSITING and 3D_RENDERING to enable
+        HW compositing on Windows. The script writes QuartzCorePresent.h to
+        the build directory which has a define telling whether QuartzCore is 
+        present.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/build-generated-files.sh:
+        * wtf/Platform.h:
+
 2009-12-11  Kent Tamura  <tkent@chromium.org>
 
         Reviewed by Darin Adler.

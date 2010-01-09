@@ -36,6 +36,7 @@
 #include "CSSProperty.h"
 #include "CSSPropertyNames.h"
 #include "CachedCSSStyleSheet.h"
+#include "Chrome.h"
 #include "DOMWindow.h"
 #include "DocLoader.h"
 #include "DocumentType.h"
@@ -556,19 +557,13 @@ void Frame::notifyRendererOfSelectionChange(bool userTriggered)
         toRenderTextControl(renderer)->selectionChanged(userTriggered);
 }
 
-void Frame::invalidateSelection()
-{
-    selection()->setNeedsLayout();
-    selectionLayoutChanged();
-}
-
 void Frame::setCaretVisible(bool flag)
 {
     if (m_caretVisible == flag)
         return;
     clearCaretRectIfNeeded();
     m_caretVisible = flag;
-    selectionLayoutChanged();
+    selection()->setNeedsDisplayUpdate();
 }
 
 void Frame::clearCaretRectIfNeeded()
@@ -635,6 +630,8 @@ void Frame::setFocusedNodeIfNeeded()
 
 void Frame::selectionLayoutChanged()
 {
+    selection()->setNeedsDisplayUpdate(false);
+
     bool caretRectChanged = selection()->recomputeCaretRect();
 
 #if ENABLE(TEXT_CARET)

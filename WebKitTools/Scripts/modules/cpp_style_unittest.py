@@ -45,12 +45,11 @@ import cpp_style
 
 # This class works as an error collector and replaces cpp_style.Error
 # function for the unit tests.  We also verify each category we see
-# is in cpp_style._ERROR_CATEGORIES, to help keep that list up to date.
+# is in cpp_style._STYLE_CATEGORIES, to help keep that list up to date.
 class ErrorCollector:
-    # These are a global list, covering all categories seen ever.
-    _ERROR_CATEGORIES = [x.strip()    # get rid of leading whitespace
-                         for x in cpp_style._ERROR_CATEGORIES.split()]
-    _SEEN_ERROR_CATEGORIES = {}
+    _all_style_categories = cpp_style._STYLE_CATEGORIES
+    # This a list including all categories seen in any unit test.
+    _seen_style_categories = {}
 
     def __init__(self, assert_fn):
         """assert_fn: a function to call when we notice a problem."""
@@ -59,10 +58,10 @@ class ErrorCollector:
 
     def __call__(self, unused_filename, unused_linenum,
                  category, confidence, message):
-        self._assert_fn(category in self._ERROR_CATEGORIES,
+        self._assert_fn(category in self._all_style_categories,
                         'Message "%s" has category "%s",'
-                        ' which is not in _ERROR_CATEGORIES' % (message, category))
-        self._SEEN_ERROR_CATEGORIES[category] = 1
+                        ' which is not in _STYLE_CATEGORIES' % (message, category))
+        self._seen_style_categories[category] = 1
         if cpp_style._should_print_error(category, confidence):
             self._errors.append('%s  [%s] [%d]' % (message, category, confidence))
 
@@ -76,16 +75,16 @@ class ErrorCollector:
         return self._errors
 
     def verify_all_categories_are_seen(self):
-        """Fails if there's a category in _ERROR_CATEGORIES - _SEEN_ERROR_CATEGORIES.
+        """Fails if there's a category in _all_style_categories - _seen_style_categories.
 
         This should only be called after all tests are run, so
-        _SEEN_ERROR_CATEGORIES has had a chance to fully populate.  Since
+        _seen_style_categories has had a chance to fully populate.  Since
         this isn't called from within the normal unittest framework, we
         can't use the normal unittest assert macros.  Instead we just exit
         when we see an error.  Good thing this test is always run last!
         """
-        for category in self._ERROR_CATEGORIES:
-            if category not in self._SEEN_ERROR_CATEGORIES:
+        for category in self._all_style_categories:
+            if category not in self._seen_style_categories:
                 import sys
                 sys.exit('FATAL ERROR: There are no tests for category "%s"' % category)
 
@@ -400,13 +399,13 @@ class CppStyleTest(CppStyleTestBase):
             '  [readability/casting] [4]')
         # Checks for false positives...
         self.assert_lint(
-            'int a = int();  // Constructor, o.k.',
+            'int a = int(); // Constructor, o.k.',
             '')
         self.assert_lint(
-            'X::X() : a(int()) {}  // default Constructor, o.k.',
+            'X::X() : a(int()) {} // default Constructor, o.k.',
             '')
         self.assert_lint(
-            'operator bool();  // Conversion operator, o.k.',
+            'operator bool(); // Conversion operator, o.k.',
             '')
 
     # The second parameter to a gMock method definition is a function signature
@@ -721,7 +720,7 @@ class CppStyleTest(CppStyleTestBase):
         # missing explicit, with distracting comment, is still bad
         self.assert_multi_line_lint(
             '''class Foo {
-                 Foo(int f);  // simpler than Foo(blargh, blarg)
+                 Foo(int f); // simpler than Foo(blargh, blarg)
                };''',
             'Single-argument constructors should be marked explicit.'
             '  [runtime/explicit] [5]')
@@ -1089,7 +1088,7 @@ class CppStyleTest(CppStyleTestBase):
                          '  [readability/check] [2]')
 
         self.assert_lint(
-            '    EXPECT_TRUE(42 < x)  // Random comment.',
+            '    EXPECT_TRUE(42 < x) // Random comment.',
             'Consider using EXPECT_LT instead of EXPECT_TRUE(a < b)'
             '  [readability/check] [2]')
         self.assert_lint(
@@ -1249,30 +1248,31 @@ class CppStyleTest(CppStyleTestBase):
                          '  [whitespace/operators] [3]')
         self.assert_lint('a<Foo*> t <<= *b/c;', 'Missing spaces around /'
                          '  [whitespace/operators] [3]')
-        self.assert_lint('a<Foo*> t <<= b/c; //Test', ['At least two spaces'
-                         ' is best between code and comments  [whitespace/'
-                         'comments] [2]', 'Should have a space between // '
-                         'and comment  [whitespace/comments] [4]', 'Missing'
+        self.assert_lint('a<Foo*> t <<= b/c; //Test', [
+                         'Should have a space between // and comment  '
+                         '[whitespace/comments] [4]', 'Missing'
                          ' spaces around /  [whitespace/operators] [3]'])
-        self.assert_lint('a<Foo*> t <<= b||c;  //Test', ['Should have a space'
-                         ' between // and comment  [whitespace/comments] [4]',
+        self.assert_lint('a<Foo*> t <<= b||c;  //Test', ['One space before end'
+                         ' of line comments  [whitespace/comments] [5]',
+                         'Should have a space between // and comment  '
+                         '[whitespace/comments] [4]',
                          'Missing spaces around ||  [whitespace/operators] [3]'])
-        self.assert_lint('a<Foo*> t <<= b&&c;  // Test', 'Missing spaces around'
+        self.assert_lint('a<Foo*> t <<= b&&c; // Test', 'Missing spaces around'
                          ' &&  [whitespace/operators] [3]')
-        self.assert_lint('a<Foo*> t <<= b&&&c;  // Test', 'Missing spaces around'
+        self.assert_lint('a<Foo*> t <<= b&&&c; // Test', 'Missing spaces around'
                          ' &&  [whitespace/operators] [3]')
-        self.assert_lint('a<Foo*> t <<= b&&*c;  // Test', 'Missing spaces around'
+        self.assert_lint('a<Foo*> t <<= b&&*c; // Test', 'Missing spaces around'
                          ' &&  [whitespace/operators] [3]')
-        self.assert_lint('a<Foo*> t <<= b && *c;  // Test', '')
-        self.assert_lint('a<Foo*> t <<= b && &c;  // Test', '')
+        self.assert_lint('a<Foo*> t <<= b && *c; // Test', '')
+        self.assert_lint('a<Foo*> t <<= b && &c; // Test', '')
         self.assert_lint('a<Foo*> t <<= b || &c;  /*Test', 'Complex multi-line '
                          '/*...*/-style comment found. Lint may give bogus '
                          'warnings.  Consider replacing these with //-style'
                          ' comments, with #if 0...#endif, or with more clearly'
                          ' structured multi-line comments.  [readability/multiline_comment] [5]')
         self.assert_lint('a<Foo&> t <<= &b | &c;', '')
-        self.assert_lint('a<Foo*> t <<= &b & &c;  // Test', '')
-        self.assert_lint('a<Foo*> t <<= *b / &c;  // Test', '')
+        self.assert_lint('a<Foo*> t <<= &b & &c; // Test', '')
+        self.assert_lint('a<Foo*> t <<= *b / &c; // Test', '')
         self.assert_lint('if (a=b == 1)', 'Missing spaces around =  [whitespace/operators] [4]')
         self.assert_lint('a = 1<<20', 'Missing spaces around <<  [whitespace/operators] [3]')
         self.assert_lint('if (a = b == 1)', '')
@@ -1306,7 +1306,7 @@ class CppStyleTest(CppStyleTestBase):
                          'For a static/global string constant, use a C style '
                          'string instead: "char foo[]".'
                          '  [runtime/string] [4]')
-        self.assert_lint('string kFoo = "hello";  // English',
+        self.assert_lint('string kFoo = "hello"; // English',
                          'For a static/global string constant, use a C style '
                          'string instead: "char kFoo[]".'
                          '  [runtime/string] [4]')
@@ -1365,25 +1365,27 @@ class CppStyleTest(CppStyleTestBase):
 
     def test_two_spaces_between_code_and_comments(self):
         self.assert_lint('} // namespace foo',
-                         'At least two spaces is best between code and comments'
-                         '  [whitespace/comments] [2]')
+                         '')
         self.assert_lint('}// namespace foo',
-                         'At least two spaces is best between code and comments'
-                         '  [whitespace/comments] [2]')
+                         'One space before end of line comments'
+                         '  [whitespace/comments] [5]')
         self.assert_lint('printf("foo"); // Outside quotes.',
-                         'At least two spaces is best between code and comments'
-                         '  [whitespace/comments] [2]')
-        self.assert_lint('int i = 0;  // Having two spaces is fine.', '')
-        self.assert_lint('int i = 0;   // Having three spaces is OK.', '')
+                         '')
+        self.assert_lint('int i = 0; // Having one space is fine.','')
+        self.assert_lint('int i = 0;  // Having two spaces is bad.',
+                         'One space before end of line comments'
+                         '  [whitespace/comments] [5]')
+        self.assert_lint('int i = 0;   // Having three spaces is bad.',
+                         'One space before end of line comments'
+                         '  [whitespace/comments] [5]')
         self.assert_lint('// Top level comment', '')
         self.assert_lint('    // Line starts with four spaces.', '')
         self.assert_lint('foo();\n'
                          '{ // A scope is opening.', '')
         self.assert_lint('    foo();\n'
                          '    { // An indented scope is opening.', '')
-        self.assert_lint('if (foo) { // not a pure scope; comment is too close!',
-                         'At least two spaces is best between code and comments'
-                         '  [whitespace/comments] [2]')
+        self.assert_lint('if (foo) { // not a pure scope',
+                         '')
         self.assert_lint('printf("// In quotes.")', '')
         self.assert_lint('printf("\\"%s // In quotes.")', '')
         self.assert_lint('printf("%s", "// In quotes.")', '')
@@ -1562,19 +1564,21 @@ class CppStyleTest(CppStyleTestBase):
     def test_tab(self):
         self.assert_lint('\tint a;',
                          'Tab found; better to use spaces  [whitespace/tab] [1]')
-        self.assert_lint('int a = 5;\t\t// set a to 5',
+        self.assert_lint('int a = 5;\t// set a to 5',
                          'Tab found; better to use spaces  [whitespace/tab] [1]')
 
     def test_parse_arguments(self):
         old_usage = cpp_style._USAGE
-        old_error_categories = cpp_style._ERROR_CATEGORIES
+        old_style_categories = cpp_style._STYLE_CATEGORIES
+        old_webkit_filter_rules = cpp_style._WEBKIT_FILTER_RULES
         old_output_format = cpp_style._cpp_style_state.output_format
         old_verbose_level = cpp_style._cpp_style_state.verbose_level
         old_filters = cpp_style._cpp_style_state.filters
         try:
             # Don't print usage during the tests, or filter categories
             cpp_style._USAGE = ''
-            cpp_style._ERROR_CATEGORIES = ''
+            cpp_style._STYLE_CATEGORIES = []
+            cpp_style._WEBKIT_FILTER_RULES = []
 
             self.assertRaises(SystemExit, cpp_style.parse_arguments, ['--badopt'])
             self.assertRaises(SystemExit, cpp_style.parse_arguments, ['--help'])
@@ -1632,7 +1636,8 @@ class CppStyleTest(CppStyleTestBase):
                               ['--footypo=bar', 'foo.cpp'], ['foo='])
         finally:
             cpp_style._USAGE = old_usage
-            cpp_style._ERROR_CATEGORIES = old_error_categories
+            cpp_style._STYLE_CATEGORIES = old_style_categories
+            cpp_style._WEBKIT_FILTER_RULES = old_webkit_filter_rules
             cpp_style._cpp_style_state.output_format = old_output_format
             cpp_style._cpp_style_state.verbose_level = old_verbose_level
             cpp_style._cpp_style_state.filters = old_filters
@@ -1651,9 +1656,9 @@ class CppStyleTest(CppStyleTestBase):
             cpp_style._cpp_style_state.filters = old_filters
 
     def test_default_filter(self):
-        default_filters = cpp_style._DEFAULT_FILTERS
+        default_filter_rules = cpp_style._DEFAULT_FILTER_RULES
         old_filters = cpp_style._cpp_style_state.filters
-        cpp_style._DEFAULT_FILTERS = [ '-whitespace' ]
+        cpp_style._DEFAULT_FILTER_RULES = [ '-whitespace' ]
         try:
             # Reset filters
             cpp_style._cpp_style_state.set_filters('')
@@ -1666,7 +1671,7 @@ class CppStyleTest(CppStyleTestBase):
             self.assert_lint(' weird opening space', '')
         finally:
             cpp_style._cpp_style_state.filters = old_filters
-            cpp_style._DEFAULT_FILTERS = default_filters
+            cpp_style._DEFAULT_FILTER_RULES = default_filter_rules
 
     def test_unnamed_namespaces_in_headers(self):
         self.assert_language_rules_check(
@@ -1728,7 +1733,7 @@ class CppStyleTest(CppStyleTestBase):
                          '  [build/forward_decl] [5]')
 
     def test_build_header_guard(self):
-        file_path = 'mydir/foo.h'
+        file_path = 'mydir/Foo.h'
 
         # We can't rely on our internal stuff to get a sane path on the open source
         # side of things, so just parse out the suggested header guard. This
@@ -1738,7 +1743,7 @@ class CppStyleTest(CppStyleTestBase):
         cpp_style.process_file_data(file_path, 'h', [], error_collector)
         expected_guard = ''
         matcher = re.compile(
-            'No \#ifndef header guard found\, suggested CPP variable is\: ([A-Z_0-9]+) ')
+            'No \#ifndef header guard found\, suggested CPP variable is\: ([A-Za-z_0-9]+) ')
         for error in error_collector.result_list():
             matches = matcher.match(error)
             if matches:
@@ -1792,7 +1797,7 @@ class CppStyleTest(CppStyleTestBase):
         self.assertEquals(
             1,
             error_collector.result_list().count(
-                '#endif line should be "#endif  // %s"'
+                '#endif line should be "#endif // %s"'
                 '  [build/header_guard] [5]' % expected_guard),
             error_collector.result_list())
 
@@ -1806,7 +1811,7 @@ class CppStyleTest(CppStyleTestBase):
         self.assertEquals(
             1,
             error_collector.result_list().count(
-                '#endif line should be "#endif  // %s"'
+                '#endif line should be "#endif // %s"'
                 '  [build/header_guard] [5]' % expected_guard),
             error_collector.result_list())
 
@@ -1820,7 +1825,7 @@ class CppStyleTest(CppStyleTestBase):
         self.assertEquals(
             1,
             error_collector.result_list().count(
-                '#endif line should be "#endif  // %s"'
+                '#endif line should be "#endif // %s"'
                 '  [build/header_guard] [5]' % expected_guard),
             error_collector.result_list())
 
@@ -1829,41 +1834,11 @@ class CppStyleTest(CppStyleTestBase):
         cpp_style.process_file_data(file_path, 'h',
                                     ['#ifndef %s' % expected_guard,
                                      '#define %s' % expected_guard,
-                                     '#endif  // %s' % expected_guard],
+                                     '#endif // %s' % expected_guard],
                                     error_collector)
         for line in error_collector.result_list():
             if line.find('build/header_guard') != -1:
                 self.fail('Unexpected error: %s' % line)
-
-        # No header guard errors for old-style guard
-        error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h',
-                                    ['#ifndef %s_' % expected_guard,
-                                     '#define %s_' % expected_guard,
-                                     '#endif  // %s_' % expected_guard],
-                                    error_collector)
-        for line in error_collector.result_list():
-            if line.find('build/header_guard') != -1:
-                self.fail('Unexpected error: %s' % line)
-
-        old_verbose_level = cpp_style._cpp_style_state.verbose_level
-        try:
-            cpp_style._cpp_style_state.verbose_level = 0
-            # Warn on old-style guard if verbosity is 0.
-            error_collector = ErrorCollector(self.assert_)
-            cpp_style.process_file_data(file_path, 'h',
-                                        ['#ifndef %s_' % expected_guard,
-                                         '#define %s_' % expected_guard,
-                                         '#endif  // %s_' % expected_guard],
-                                        error_collector)
-            self.assertEquals(
-                1,
-                error_collector.result_list().count(
-                    '#ifndef header guard has wrong style, please use: %s'
-                    '  [build/header_guard] [0]' % expected_guard),
-                error_collector.result_list())
-        finally:
-            cpp_style._cpp_style_state.verbose_level = old_verbose_level
 
         # Completely incorrect header guard
         error_collector = ErrorCollector(self.assert_)
@@ -1881,7 +1856,7 @@ class CppStyleTest(CppStyleTestBase):
         self.assertEquals(
             1,
             error_collector.result_list().count(
-                '#endif line should be "#endif  // %s"'
+                '#endif line should be "#endif // %s"'
                 '  [build/header_guard] [5]' % expected_guard),
             error_collector.result_list())
 
@@ -2910,7 +2885,7 @@ class WebKitStyleTest(CppStyleTestBase):
             'foo.cpp')
         self.assert_multi_line_lint(
             'namespace WebCore {\n\n'
-            'const char* foo(void* a = ";",  // ;\n'
+            'const char* foo(void* a = ";", // ;\n'
             '    void* b);\n'
             '    void* p;\n'
             '}\n',
@@ -2919,7 +2894,7 @@ class WebKitStyleTest(CppStyleTestBase):
         self.assert_multi_line_lint(
             'namespace WebCore {\n\n'
             'const char* foo[] = {\n'
-            '    "void* b);",  // ;\n'
+            '    "void* b);", // ;\n'
             '    "asfdf",\n'
             '    }\n'
             '    void* p;\n'
@@ -2929,7 +2904,7 @@ class WebKitStyleTest(CppStyleTestBase):
         self.assert_multi_line_lint(
             'namespace WebCore {\n\n'
             'const char* foo[] = {\n'
-            '    "void* b);",  // }\n'
+            '    "void* b);", // }\n'
             '    "asfdf",\n'
             '    }\n'
             '}\n',
@@ -2939,7 +2914,7 @@ class WebKitStyleTest(CppStyleTestBase):
             '    namespace WebCore {\n\n'
             '    void Document::Foo()\n'
             '    {\n'
-            'start:  // infinite loops are fun!\n'
+            'start: // infinite loops are fun!\n'
             '        goto start;\n'
             '    }',
             'namespace should never be indented.  [whitespace/indent] [4]',
@@ -3493,7 +3468,7 @@ class WebKitStyleTest(CppStyleTestBase):
             '  [readability/null] [4]',
             'foo.cpp')
         self.assert_lint(
-            '"A string with NULL"  // and a comment with NULL is tricky to flag correctly in cpp_style.',
+            '"A string with NULL" // and a comment with NULL is tricky to flag correctly in cpp_style.',
             'Use 0 instead of NULL.'
             '  [readability/null] [4]',
             'foo.cpp')
@@ -3518,6 +3493,14 @@ class WebKitStyleTest(CppStyleTestBase):
             'functionCall(NULL)',
             '',
             'foo.m')
+
+        # Make sure that the NULL check does not apply to g_object_{set,get}
+        self.assert_lint(
+            'g_object_get(foo, "prop", &bar, NULL);',
+            '')
+        self.assert_lint(
+            'g_object_set(foo, "prop", bar, NULL);',
+            '')
 
         # 2. C++ and C bool values should be written as true and
         #    false. Objective-C BOOL values should be written as YES and NO.
@@ -3683,6 +3666,7 @@ class WebKitStyleTest(CppStyleTestBase):
                          'under_score' + name_error_message)
         self.assert_lint('goto under_score;',
                          'under_score' + name_error_message)
+        self.assert_lint('delete static_cast<Foo*>(p);', '')
 
         # Multiple variables in one line.
         self.assert_lint('void myFunction(int variable1, int another_variable);',
@@ -3703,13 +3687,39 @@ class WebKitStyleTest(CppStyleTestBase):
         self.assert_lint('void this_op_code(int var1, int var2)', '', 'JavaScriptCore/foo.cpp')
         self.assert_lint('void this_op_code(int var1, int var2)', 'this_op_code' + name_error_message)
 
+        # There is an exception for some unit tests that begin with "tst_".
+        self.assert_lint('void tst_QWebFrame::arrayObjectEnumerable(int var1, int var2)', '')
+
         # const_iterator is allowed as well.
         self.assert_lint('typedef VectorType::const_iterator const_iterator;', '')
 
 
+    def test_comments(self):
+        # A comment at the beginning of a line is ok.
+        self.assert_lint('// comment', '')
+        self.assert_lint('    // comment', '')
+
+        self.assert_lint('}  // namespace WebCore',
+                         'One space before end of line comments'
+                         '  [whitespace/comments] [5]')
+
     def test_other(self):
         # FIXME: Implement this.
         pass
+
+
+    def test_can_handle(self):
+        """Tests for cpp_style.can_handle()."""
+        self.assert_(not cpp_style.can_handle(''))
+        self.assert_(cpp_style.can_handle('foo.h'))
+        self.assert_(not cpp_style.can_handle('foo.hpp'))
+        self.assert_(cpp_style.can_handle('foo.c'))
+        self.assert_(cpp_style.can_handle('foo.cpp'))
+        self.assert_(not cpp_style.can_handle('foo.cc'))
+        self.assert_(not cpp_style.can_handle('foo.cxx'))
+        self.assert_(not cpp_style.can_handle('foo.C'))
+        self.assert_(not cpp_style.can_handle('foo.mm'))
+        self.assert_(not cpp_style.can_handle('-'))
 
 
 def tearDown():

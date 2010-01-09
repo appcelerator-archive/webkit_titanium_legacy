@@ -1,3 +1,388 @@
+2009-12-22  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Eric Seidel.
+
+        [Chromium] Garbage in transparent regions of images uploaded as textures
+        https://bugs.webkit.org/show_bug.cgi?id=32888
+
+        Test: fast/canvas/webgl/bug-32888.html (works in Safari / DumpRenderTree)
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3D::texImage2D):
+
+2009-12-22  Adam Langley  <agl@google.com>
+
+        Build fix: not reviewed.
+
+        r52504 (https://bugs.webkit.org/show_bug.cgi?id=32845) broke the
+        Chromium build on Windows and Mac due to a misplaced #endif. The
+        buildbot didn't find the problem because it runs on Linux.
+
+        Have verified this patch with the author of the above.
+
+        * src/GraphicsContext3D.cpp:
+
+2009-12-22  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Eric Seidel.
+
+        [Chromium] WebGL crashes intermittently on Linux
+        https://bugs.webkit.org/show_bug.cgi?id=32845
+        
+        The dlclose'ing of libGL.so.1 and dlopen'ing of it each time a
+        GraphicsContext3D was created was occasionally causing it to be
+        re-mapped at a different base address. Since GLEW is not
+        re-initialized every time, primarily for performance reasons, its
+        cached function pointers were pointing to garbage. Stopped closing
+        and re-opening libGL.so.1 each time; now it is loaded lazily, when
+        the first 3D context is created. Also reused the X display
+        connection since the GLX routines' correctness might hinge upon it
+        not resulting in a change of GL implementation.
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::GLConnection::chooseFBConfig):
+        (WebCore::GraphicsContext3DInternal::GLConnection::createNewContext):
+        (WebCore::GraphicsContext3DInternal::GLConnection::createPbuffer):
+        (WebCore::GraphicsContext3DInternal::GLConnection::destroyPbuffer):
+        (WebCore::GraphicsContext3DInternal::GLConnection::makeCurrent):
+        (WebCore::GraphicsContext3DInternal::GLConnection::destroyContext):
+        (WebCore::GraphicsContext3DInternal::GLConnection::getCurrentContext):
+        (WebCore::GraphicsContext3DInternal::GLConnection::GLConnection):
+        (WebCore::GraphicsContext3DInternal::GLConnection::tryLoad):
+        (WebCore::GraphicsContext3DInternal::GLConnection::create):
+        (WebCore::GraphicsContext3DInternal::GLConnection::~GLConnection):
+        (WebCore::GraphicsContext3DInternal::GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::~GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::makeContextCurrent):
+
+2009-12-22  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        autoComplete and getElementById methods for WebKit API
+
+        https://bugs.webkit.org/show_bug.cgi?id=32866
+
+        * public/WebDocument.h:
+        * public/WebInputElement.h:
+        * src/WebDocument.cpp:
+        (WebKit::WebDocument::getElementById):
+        * src/WebInputElement.cpp:
+        (WebKit::WebInputElement::autoComplete):
+
+2009-12-18  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] Eliminate redundant data copy in GraphicsContext3D readback
+        https://bugs.webkit.org/show_bug.cgi?id=32763
+
+        Eliminated useless creation of a CGBitmapContext and from there a
+        CGImage. Now create CGImage directly from data. Also changed
+        readPixels parameters and CGImage alpha info to try to avoid byte
+        swapping, and disabled interpolation when drawing the GL content.
+        Some test cases run twice as fast with these changes, though more
+        work is needed to achieve desired performance.
+
+        No test case; performance optimization only. Ran WebGL demos from
+        Khronos site to verify changes.
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::~GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::reshape):
+        (WebCore::GraphicsContext3DInternal::beginPaint):
+
+2009-12-18  Peter Kasting  <pkasting@google.com>
+
+        Reviewed by Adam Barth.
+
+        Chromium build fix
+        https://bugs.webkit.org/show_bug.cgi?id=32756
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::):
+        * src/AssertMatchingEnums.cpp:
+
+2009-12-18  Adam Roben  <aroben@apple.com>
+
+        Chromium build fix
+
+        * src/ChromiumBridge.cpp:
+        * src/WebPluginContainerImpl.cpp:
+        * src/WebViewImpl.cpp:
+        Added #includes.
+
+2009-12-17  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r52291.
+        http://trac.webkit.org/changeset/52291
+        https://bugs.webkit.org/show_bug.cgi?id=32618
+
+        Darin Fisher points out that this will likely break
+        the SSL security indicator in Chromium.  Rolling out for now.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::WebViewImpl):
+
+2009-12-17  Alexander Pavlov  <apavlov@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Disable memory cache client calls so that a new identifier isn't created
+        for the same resource on reload.
+
+        With the calls enabled, duplicate entries for cached resources are created
+        in the Web Inspector. Safari for Windows disables the calls near the point of the
+        Frame instance creation, and we just follow this for Chromium.
+        https://bugs.webkit.org/show_bug.cgi?id=32618
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::WebViewImpl):
+
+2009-12-17  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Added WebPageSerializer to WebKit API and enriched the WebNode hierarchy to support
+        downstream unit-testing of serialization.
+
+        WebPageSerializer was adapted from Chromium's dom_serializer, originally authored by Johnny Ding.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31737
+
+        * WebKit.gyp:
+        * public/WebDocument.h: Added.
+        (WebKit::WebDocument::WebDocument):
+        (WebKit::WebDocument::operator=):
+        (WebKit::WebDocument::assign):
+        * public/WebElement.h:
+        * public/WebFormElement.h:
+        (WebKit::WebFormElement::operator=):
+        * public/WebFrame.h:
+        * public/WebNode.h:
+        (WebKit::WebNode::):
+        (WebKit::WebNode::toConstElement):
+        * public/WebNodeCollection.h: Added.
+        (WebKit::WebNodeCollection::~WebNodeCollection):
+        (WebKit::WebNodeCollection::WebNodeCollection):
+        (WebKit::WebNodeCollection::operator=):
+        * public/WebNodeList.h: Added.
+        (WebKit::WebNodeList::~WebNodeList):
+        (WebKit::WebNodeList::WebNodeList):
+        (WebKit::WebNodeList::operator=):
+        * public/WebPageSerializer.h: Added.
+        * public/WebPageSerializerClient.h: Added.
+        (WebKit::WebPageSerializerClient::):
+        (WebKit::WebPageSerializerClient::WebPageSerializerClient):
+        (WebKit::WebPageSerializerClient::~WebPageSerializerClient):
+        * public/WebString.h:
+        * public/WebView.h:
+        * src/AssertMatchingEnums.cpp:
+        * src/DOMUtilitiesPrivate.cpp:
+        (WebKit::elementHasLegalLinkAttribute):
+        * src/DOMUtilitiesPrivate.h:
+        * src/WebDocument.cpp: Added.
+        (WebKit::WebDocument::WebDocument):
+        (WebKit::WebDocument::operator=):
+        (WebKit::WebDocument::operator WTF::PassRefPtr<Document>):
+        (WebKit::WebDocument::frame):
+        (WebKit::WebDocument::isHTMLDocument):
+        (WebKit::WebDocument::baseURL):
+        (WebKit::WebDocument::body):
+        (WebKit::WebDocument::head):
+        (WebKit::WebDocument::all):
+        (WebKit::WebDocument::completeURL):
+        * src/WebElement.cpp:
+        (WebKit::WebElement::hasTagName):
+        (WebKit::WebElement::hasAttribute):
+        (WebKit::WebElement::getAttribute):
+        * src/WebEntities.cpp: Added.
+        (WebKit::populateMap):
+        (WebKit::):
+        (WebKit::WebEntities::WebEntities):
+        (WebKit::WebEntities::entityNameByCode):
+        (WebKit::WebEntities::convertEntitiesInString):
+        * src/WebEntities.h: Added.
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrame::fromFrameOwnerElement):
+        (WebKit::WebFrameImpl::encoding):
+        (WebKit::WebFrameImpl::document):
+        (WebKit::WebFrameImpl::fromFrameOwnerElement):
+        * src/WebFrameImpl.h:
+        * src/WebNode.cpp:
+        (WebKit::WebNode::nodeType):
+        (WebKit::WebNode::nodeValue):
+        (WebKit::WebNode::document):
+        (WebKit::WebNode::firstChild):
+        (WebKit::WebNode::lastChild):
+        (WebKit::WebNode::previousSibling):
+        (WebKit::WebNode::nextSibling):
+        (WebKit::WebNode::hasChildNodes):
+        (WebKit::WebNode::childNodes):
+        (WebKit::WebNode::createMarkup):
+        (WebKit::WebNode::isTextNode):
+        (WebKit::WebNode::isElementNode):
+        * src/WebNodeCollection.cpp: Added.
+        (WebKit::WebNodeCollection::reset):
+        (WebKit::WebNodeCollection::assign):
+        (WebKit::WebNodeCollection::WebNodeCollection):
+        (WebKit::WebNodeCollection::length):
+        (WebKit::WebNodeCollection::nextItem):
+        (WebKit::WebNodeCollection::firstItem):
+        * src/WebNodeList.cpp: Added.
+        (WebKit::WebNodeList::reset):
+        (WebKit::WebNodeList::assign):
+        (WebKit::WebNodeList::WebNodeList):
+        (WebKit::WebNodeList::length):
+        (WebKit::WebNodeList::item):
+        * src/WebPageSerializer.cpp: Added.
+        (WebKit::WebPageSerializer::serialize):
+        (WebKit::WebPageSerializer::generateMetaCharsetDeclaration):
+        (WebKit::WebPageSerializer::generateMarkOfTheWebDeclaration):
+        (WebKit::WebPageSerializer::generateBaseTagDeclaration):
+        * src/WebPageSerializerImpl.cpp: Added.
+        (WebKit::WebPageSerializerImpl::SerializeDomParam::SerializeDomParam):
+        (WebKit::WebPageSerializerImpl::preActionBeforeSerializeOpenTag):
+        (WebKit::WebPageSerializerImpl::postActionAfterSerializeOpenTag):
+        (WebKit::WebPageSerializerImpl::preActionBeforeSerializeEndTag):
+        (WebKit::WebPageSerializerImpl::postActionAfterSerializeEndTag):
+        (WebKit::WebPageSerializerImpl::saveHTMLContentToBuffer):
+        (WebKit::WebPageSerializerImpl::openTagToString):
+        (WebKit::WebPageSerializerImpl::endTagToString):
+        (WebKit::WebPageSerializerImpl::buildContentForNode):
+        (WebKit::WebPageSerializerImpl::WebPageSerializerImpl):
+        (WebKit::WebPageSerializerImpl::collectTargetFrames):
+        (WebKit::WebPageSerializerImpl::serialize):
+        * src/WebPageSerializerImpl.h: Added.
+        * src/WebString.cpp:
+        (WebKit::WebString::WebString):
+        (WebKit::WebString::operator=):
+        * src/WebViewImpl.cpp:
+
+2009-12-17  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by David Levin.
+
+        Provide explicit implementation of 'non-template' WebVector<T>::operator=
+
+        https://bugs.webkit.org/show_bug.cgi?id=32363
+
+        * public/WebVector.h:
+
+2009-12-16  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Unreviewed, build fix.
+
+        [Chromium] Add EditableTextRole to catch up with
+        http://trac.webkit.org/changeset/52233
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::): Added WebAccessibilityRoleEditableText
+        * src/AssertMatchingEnums.cpp: Added matching compile assert.
+
+2009-12-15  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Darin Fisher.
+
+        Don't allow default framebuffer to be mutated
+        https://bugs.webkit.org/show_bug.cgi?id=32391
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::reshape):
+        (WebCore::GraphicsContext3DInternal::beginPaint):
+        (WebCore::GraphicsContext3DInternal::bindFramebuffer):
+        (WebCore::GraphicsContext3D::bindFramebuffer):
+
+2009-12-15  Dimitri Glazkov  <dglazkov@chromium.org>
+
+        Unreviewed, build fix.
+
+        [Chromium] Add TreeGridRole to catch up with
+        http://trac.webkit.org/changeset/52159.
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::): Added WebAccessibilityRoleTreeGrid.
+        * src/AssertMatchingEnums.cpp: Added matching compile assert.
+
+2009-12-15  Jian Li  <jianli@chromium.org>
+
+        Reviewed by Dmitry Titov.
+
+        Bug 31090 - [Chromium] Add DownloadURL format to Chromium clipboard.
+        https://bugs.webkit.org/show_bug.cgi?id=31090
+
+        The proposal to whatwg can be found here:
+        http://lists.whatwg.org/htdig.cgi/whatwg-whatwg.org/2009-August/022118.html
+
+        * public/WebDragData.h:
+        * src/WebDragData.cpp:
+        (WebKit::WebDragData::downloadURL):
+        (WebKit::WebDragData::setDownloadURL):
+
+2009-12-14  Evan Stade  <estade@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32347
+        Chromium: Context menu launched by menu key has funky behavior
+
+        Make the context menu's position depend on the selection only when an
+        editable field has focus. Also, don't send multiple context menu events
+        for a single keypress.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::keyEvent):
+        (WebKit::WebViewImpl::sendContextMenuEvent):
+
+2009-12-13  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for https://bugs.webkit.org/show_bug.cgi?id=32499
+        Add client based Geolocation provider
+
+        Add first cut of a client based Geolocation provider. This is guarded by
+        ENABLE(CLIENT_BASED_GEOLOCATION) and is off by default for now. This adds a
+        GeolocationControllerClient interface that no-one currently implements,
+        but will in a subsequent patch.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::WebViewImpl):
+
+2009-12-13  Charles Reis  <creis@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Refactor some security code out of V8 bindings
+        https://bugs.webkit.org/show_bug.cgi?id=32326
+
+        * src/WebBindings.cpp:
+        (WebKit::getDragDataImpl):
+
+2009-12-11  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Expose shouldHideReferrer() in WebSecurityPolicy.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32398
+
+        * public/WebSecurityPolicy.h: Add shouldHideReferrer().
+        * src/WebSecurityPolicy.cpp:
+        (WebKit:: WebSecurityPolicy::shouldHideReferrer): Added.
+
+2009-12-11  Avi Drissman  <avi@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Tickmarks in the scrollbar are not cleared for non-main frames
+        https://bugs.webkit.org/show_bug.cgi?id=32385
+
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrameImpl::stopFinding):
+
 2009-12-11  Yury Semikhatsky  <yurys@chromium.org>
 
         Reviewed by Pavel Feldman.

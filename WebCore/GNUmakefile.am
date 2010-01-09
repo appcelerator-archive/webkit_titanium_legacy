@@ -26,6 +26,7 @@ webcore_cppflags += \
 	-I$(srcdir)/WebCore/loader/appcache \
 	-I$(srcdir)/WebCore/loader/archive \
 	-I$(srcdir)/WebCore/loader/icon \
+	-I$(srcdir)/WebCore/mathml \
 	-I$(srcdir)/WebCore/notifications \
 	-I$(srcdir)/WebCore/page \
 	-I$(srcdir)/WebCore/page/animation \
@@ -43,10 +44,18 @@ webcore_cppflags += \
 	-I$(srcdir)/WebCore/platform/image-decoders/xbm \
 	-I$(srcdir)/WebCore/platform/mock \
 	-I$(srcdir)/WebCore/platform/network \
+	-I$(srcdir)/WebCore/platform/sql \
 	-I$(srcdir)/WebCore/platform/text \
 	-I$(srcdir)/WebCore/plugins \
 	-I$(srcdir)/WebCore/rendering \
 	-I$(srcdir)/WebCore/rendering/style \
+	-I$(srcdir)/WebCore/storage \
+	-I$(srcdir)/WebCore/svg \
+	-I$(srcdir)/WebCore/svg/animation \
+	-I$(srcdir)/WebCore/svg/graphics \
+	-I$(srcdir)/WebCore/svg/graphics/filters \
+	-I$(srcdir)/WebCore/websockets \
+	-I$(srcdir)/WebCore/wml \
 	-I$(srcdir)/WebCore/workers \
 	-I$(srcdir)/WebCore/xml \
 	-I$(top_builddir)/WebCore/bindings/js \
@@ -434,7 +443,6 @@ webcore_sources += \
 	WebCore/bindings/js/JSPluginElementFunctions.cpp \
 	WebCore/bindings/js/JSPluginElementFunctions.h \
 	WebCore/bindings/js/JSPopStateEventCustom.cpp \
-	WebCore/bindings/js/JSPopStateEventCustom.h \
 	WebCore/bindings/js/JSQuarantinedObjectWrapper.cpp \
 	WebCore/bindings/js/JSQuarantinedObjectWrapper.h \
 	WebCore/bindings/js/JSStorageCustom.h \
@@ -1318,7 +1326,7 @@ webcore_sources += \
 	WebCore/page/ContextMenuClient.h \
 	WebCore/page/ContextMenuController.cpp \
 	WebCore/page/ContextMenuController.h \
-	WebCore/page/ContextMenuSelectionHandler.h \
+	WebCore/page/ContextMenuProvider.h \
 	WebCore/page/Coordinates.h \
 	WebCore/page/DOMSelection.cpp \
 	WebCore/page/DOMSelection.h \
@@ -1347,6 +1355,11 @@ webcore_sources += \
 	WebCore/page/FrameView.h \
 	WebCore/page/Geolocation.cpp \
 	WebCore/page/Geolocation.h \
+	WebCore/page/GeolocationController.cpp \
+	WebCore/page/GeolocationController.h \
+	WebCore/page/GeolocationControllerClient.h \
+	WebCore/page/GeolocationError.h \
+	WebCore/page/GeolocationPosition.h \
 	WebCore/page/Geoposition.h \
 	WebCore/page/HaltablePlugin.h \
 	WebCore/page/History.cpp \
@@ -1808,8 +1821,6 @@ webcore_sources += \
 	WebCore/rendering/RenderSelectionInfo.h \
 	WebCore/rendering/RenderSlider.cpp \
 	WebCore/rendering/RenderSlider.h \
-	WebCore/rendering/RenderSVGModelObject.cpp \
-	WebCore/rendering/RenderSVGModelObject.h \
 	WebCore/rendering/RenderTable.cpp \
 	WebCore/rendering/RenderTable.h \
 	WebCore/rendering/RenderTableCell.cpp \
@@ -1979,6 +1990,8 @@ webcoregtk_sources += \
 	WebCore/platform/gtk/EventLoopGtk.cpp \
 	WebCore/platform/gtk/FileChooserGtk.cpp \
 	WebCore/platform/gtk/FileSystemGtk.cpp \
+	WebCore/platform/gtk/GRefPtrGtk.cpp \
+	WebCore/platform/gtk/GRefPtrGtk.h \
 	WebCore/platform/gtk/GtkPluginWidget.cpp \
 	WebCore/platform/gtk/GtkPluginWidget.h \
 	WebCore/platform/gtk/KURLGtk.cpp \
@@ -2157,18 +2170,6 @@ webcore_sources += \
 endif # END ENABLE_OFFLINE_WEB_APPLICATIONS
 
 # ----
-# Dashboard Support
-# ----
-if ENABLE_DASHBOARD_SUPPORT
-
-webcore_cppflags += \
-	-DENABLE_DASHBOARD_SUPPORT=1
-
-WEBCORE_CSS_PROPERTY_NAMES += $(WebCore)/css/DashboardSupportCSSPropertyNames.in
-
-endif # END ENABLE_DASHBOARD_SUPPORT
-
-# ----
 # Database Support
 # ----
 if ENABLE_DATABASE
@@ -2182,9 +2183,7 @@ IDL_BINDINGS += \
 	WebCore/storage/SQLTransaction.idl
 
 webcore_cppflags += \
-	-DENABLE_DATABASE=1 \
-	-I$(top_srcdir)/WebCore/platform/sql \
-	-I$(top_srcdir)/WebCore/storage
+	-DENABLE_DATABASE=1
 
 webcore_sources += \
 	WebCore/bindings/js/JSCustomSQLStatementCallback.cpp \
@@ -2286,8 +2285,7 @@ IDL_BINDINGS += \
 	WebCore/storage/StorageEvent.idl
 
 webcore_cppflags += \
-	-DENABLE_DOM_STORAGE=1 \
-	-I$(top_srcdir)/WebCore/storage
+	-DENABLE_DOM_STORAGE=1
 
 webcore_sources += \
 	WebCore/bindings/js/JSStorageCustom.cpp \
@@ -2581,8 +2579,7 @@ webcore_built_sources += \
 	DerivedSources/WMLNames.cpp
 
 webcore_cppflags += \
-	-DENABLE_WML=1 \
-	-I$(top_srcdir)/WebCore/wml
+	-DENABLE_WML=1
 
 webcore_sources += \
 	WebCore/wml/WMLAElement.cpp \
@@ -2686,7 +2683,6 @@ if ENABLE_MATHML
 FEATURE_DEFINES_JAVASCRIPT += ENABLE_MATHML=1
 
 webcore_cppflags += \
-	-I$(srcdir)/WebCore/mathml \
 	-DENABLE_MATHML=1
 
 webcore_sources += \
@@ -2905,11 +2901,7 @@ IDL_BINDINGS += \
 	WebCore/svg/SVGZoomEvent.idl
 
 webcore_cppflags += \
-	-DENABLE_SVG=1 \
-	-I$(top_srcdir)/WebCore/svg \
-	-I$(top_srcdir)/WebCore/svg/animation \
-	-I$(top_srcdir)/WebCore/svg/graphics \
-	-I$(top_srcdir)/WebCore/svg/graphics/filters
+	-DENABLE_SVG=1
 
 webcore_sources += \
 	WebCore/bindings/js/JSSVGElementInstanceCustom.cpp \
@@ -2943,6 +2935,8 @@ webcore_sources += \
 	WebCore/rendering/RenderSVGInline.h \
 	WebCore/rendering/RenderSVGInlineText.cpp \
 	WebCore/rendering/RenderSVGInlineText.h \
+	WebCore/rendering/RenderSVGModelObject.cpp \
+	WebCore/rendering/RenderSVGModelObject.h \
 	WebCore/rendering/RenderSVGRoot.cpp \
 	WebCore/rendering/RenderSVGRoot.h \
 	WebCore/rendering/RenderSVGTSpan.cpp \
@@ -3375,8 +3369,7 @@ IDL_BINDINGS += \
 	WebCore/websockets/WebSocket.idl
 
 webcore_cppflags += \
-	-DENABLE_WEB_SOCKETS=1 \
-	-I$(srcdir)/WebCore/websockets
+	-DENABLE_WEB_SOCKETS=1
 
 webcore_sources += \
 	WebCore/bindings/js/JSWebSocketConstructor.cpp \
@@ -3458,7 +3451,8 @@ USER_AGENT_STYLE_SHEETS = \
 	$(WebCore)/css/view-source.css \
 	$(WebCore)/css/svg.css \
 	$(WebCore)/css/wml.css \
-	$(WebCore)/css/mediaControls.css
+	$(WebCore)/css/mediaControls.css \
+	$(WebCore)/css/mediaControlsGtk.css
 
 # new-style JavaScript bindings
 SCRIPTS_BINDINGS = \
@@ -3573,6 +3567,7 @@ webcore_dist += \
 	WebCore/css/svg.css \
 	WebCore/css/wml.css \
 	WebCore/css/mediaControls.css \
+	WebCore/css/mediaControlsGtk.css \
 	WebCore/css/CSSGrammar.y \
 	WebCore/css/CSSValueKeywords.in \
 	WebCore/css/SVGCSSPropertyNames.in \
@@ -3581,7 +3576,6 @@ webcore_dist += \
 	WebCore/css/makevalues.pl \
 	WebCore/css/tokenizer.flex \
 	WebCore/css/CSSPropertyNames.in \
-	WebCore/css/DashboardSupportCSSPropertyNames.in \
 	WebCore/css/make-css-file-arrays.pl \
 	WebCore/css/SVGCSSValueKeywords.in \
 	WebCore/css/makegrammar.pl \

@@ -54,12 +54,16 @@
 #include "WebPreferences.h"
 #include "WebScriptWorld.h"
 #include "WindowsTouch.h"
-#pragma warning( push, 0 )
+#include <JavaScriptCore/InitializeThreading.h>
+#include <JavaScriptCore/JSLock.h>
+#include <JavaScriptCore/JSValue.h>
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/AXObjectCache.h>
+#include <WebCore/BackForwardList.h>
 #include <WebCore/BitmapInfo.h>
 #include <WebCore/BString.h>
 #include <WebCore/Cache.h>
+#include <WebCore/Chrome.h>
 #include <WebCore/ContextMenu.h>
 #include <WebCore/ContextMenuController.h>
 #include <WebCore/CookieStorageWin.h>
@@ -113,10 +117,6 @@
 #include <WebCore/SimpleFontData.h>
 #include <WebCore/TypingCommand.h>
 #include <WebCore/WindowMessageBroadcaster.h>
-#pragma warning(pop)
-#include <JavaScriptCore/InitializeThreading.h>
-#include <JavaScriptCore/JSLock.h>
-#include <JavaScriptCore/JSValue.h>
 
 #if PLATFORM(CG)
 #include <CoreGraphics/CGContext.h>
@@ -2409,7 +2409,7 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
     if (SUCCEEDED(m_preferences->shouldUseHighResolutionTimers(&useHighResolutionTimer)))
         Settings::setShouldUseHighResolutionTimers(useHighResolutionTimer);
 
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this));
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this), 0);
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -4535,6 +4535,13 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings->setPluginAllowedRunTime(runTime);
+
+#if USE(ACCELERATED_COMPOSITING)
+    hr = prefsPrivate->acceleratedCompositingEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setAcceleratedCompositingEnabled(enabled);
+#endif
 
 #if ENABLE(3D_CANVAS)
     settings->setExperimentalWebGLEnabled(true);

@@ -77,6 +77,14 @@ void InspectorFrontend::didCommitLoad()
     callSimpleFunction("didCommitLoad");
 }
 
+void InspectorFrontend::updateConsoleMessageExpiredCount(unsigned count)
+{
+    ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
+    function.appendArgument("updateConsoleMessageExpiredCount");
+    function.appendArgument(count);
+    function.call();
+}
+
 void InspectorFrontend::addConsoleMessage(const ScriptObject& messageObj, const Vector<ScriptString>& frames, const Vector<ScriptValue> wrappedArguments, const String& message)
 {
     ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
@@ -93,7 +101,7 @@ void InspectorFrontend::addConsoleMessage(const ScriptObject& messageObj, const 
     function.call();
 }
 
-void InspectorFrontend::updateConsoleMessageRepeatCount(const int count)
+void InspectorFrontend::updateConsoleMessageRepeatCount(unsigned count)
 {
     ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
     function.appendArgument("updateConsoleMessageRepeatCount");
@@ -104,17 +112,6 @@ void InspectorFrontend::updateConsoleMessageRepeatCount(const int count)
 void InspectorFrontend::clearConsoleMessages()
 {
     callSimpleFunction("clearConsoleMessages");
-}
-
-bool InspectorFrontend::addResource(unsigned long identifier, const ScriptObject& resourceObj)
-{
-    ScriptFunctionCall function(m_scriptState, m_webInspector, "dispatch"); 
-    function.appendArgument("addResource");
-    function.appendArgument(identifier);
-    function.appendArgument(resourceObj);
-    bool hadException = false;
-    function.call(hadException);
-    return !hadException;
 }
 
 bool InspectorFrontend::updateResource(unsigned long identifier, const ScriptObject& resourceObj)

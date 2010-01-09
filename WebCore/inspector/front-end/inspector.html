@@ -62,6 +62,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <script type="text/javascript" src="SidebarPane.js"></script>
     <script type="text/javascript" src="ElementsTreeOutline.js"></script>
     <script type="text/javascript" src="SidebarTreeElement.js"></script>
+    <script type="text/javascript" src="Section.js"></script>
     <script type="text/javascript" src="PropertiesSection.js"></script>
     <script type="text/javascript" src="ObjectProxy.js"></script>
     <script type="text/javascript" src="ObjectPropertiesSection.js"></script>
@@ -85,6 +86,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <script type="text/javascript" src="ConsolePanel.js"></script>
     <script type="text/javascript" src="ResourceView.js"></script>
     <script type="text/javascript" src="SourceFrame.js"></script>
+    <script type="text/javascript" src="SourceSyntaxHighlighter.js"></script>
+    <script type="text/javascript" src="CSSSourceSyntaxHighlighter.js"></script>
+    <script type="text/javascript" src="JavaScriptSourceSyntaxHighlighter.js"></script>
     <script type="text/javascript" src="SourceView.js"></script>
     <script type="text/javascript" src="FontView.js"></script>
     <script type="text/javascript" src="ImageView.js"></script>
@@ -112,7 +116,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <div class="toolbar-item close-right"><button id="close-button-right"></button></div>
     </div>
     <div id="main">
-        <div id="main-panels" tabindex="0" spellcheck="false"></div>
+        <div id="main-panels" spellcheck="false"></div>
         <div id="main-status-bar" class="status-bar"><div id="anchored-status-bar-items"><button id="dock-status-bar-item" class="status-bar-item"><div class="glyph"></div><div class="glyph shadow"></div></button><button id="console-status-bar-item" class="status-bar-item"><div class="glyph"></div><div class="glyph shadow"></div></button><button id="changes-status-bar-item" class="status-bar-item hidden"></button><div id="count-items"><div id="changes-count" class="hidden"></div><div id="error-warning-count" class="hidden"></div></div></div></div>
     </div>
     <div id="drawer">

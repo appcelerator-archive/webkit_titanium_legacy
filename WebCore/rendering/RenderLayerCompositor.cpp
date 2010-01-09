@@ -29,6 +29,7 @@
 #include "RenderLayerCompositor.h"
 
 #include "AnimationController.h"
+#include "Chrome.h"
 #include "ChromeClient.h"
 #include "CSSPropertyNames.h"
 #include "Frame.h"
@@ -955,6 +956,8 @@ bool RenderLayerCompositor::requiresCompositingForVideo(RenderObject* renderer) 
         RenderVideo* video = toRenderVideo(renderer);
         return canAccelerateVideoRendering(video);
     }
+#else
+    UNUSED_PARAM(renderer);
 #endif
     return false;
 }

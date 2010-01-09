@@ -85,6 +85,7 @@ AccessibilityRenderObject::AccessibilityRenderObject(RenderObject* renderer)
     , m_renderer(renderer)
     , m_ariaRole(UnknownRole)
     , m_childrenDirty(false)
+    , m_roleForMSAA(UnknownRole)
 {
     updateAccessibilityRole();
 #ifndef NDEBUG
@@ -375,9 +376,16 @@ bool AccessibilityRenderObject::isHovered() const
     return m_renderer->node() && m_renderer->node()->hovered();
 }
 
-bool AccessibilityRenderObject::isMultiSelect() const
+bool AccessibilityRenderObject::isMultiSelectable() const
 {
     ASSERT(m_renderer);
+    
+    const AtomicString& ariaMultiSelectable = getAttribute(aria_multiselectableAttr);
+    if (equalIgnoringCase(ariaMultiSelectable, "true"))
+        return true;
+    if (equalIgnoringCase(ariaMultiSelectable, "false"))
+        return false;
+    
     if (!m_renderer->isListBox())
         return false;
     return m_renderer->node() && static_cast<HTMLSelectElement*>(m_renderer->node())->multiple();
@@ -1399,6 +1407,28 @@ bool AccessibilityRenderObject::isDescendantOfBarrenParent() const
     return false;
 }
     
+bool AccessibilityRenderObject::isAllowedChildOfTree() const
+{
+    // Determine if this is in a tree. If so, we apply special behavior to make it work like an AXOutline.
+    AccessibilityObject* axObj = parentObject();
+    bool isInTree = false;
+    while (axObj) {
+        if (axObj->isTree()) {
+            isInTree = true;
+            break;
+        }
+        axObj = axObj->parentObject();
+    }
+    
+    // If the object is in a tree, only tree items should be exposed (and the children of tree items).
+    if (isInTree) {
+        AccessibilityRole role = roleValue();
+        if (role != TreeItemRole && role != StaticTextRole)
+            return false;
+    }
+    return true;
+}
+    
 bool AccessibilityRenderObject::accessibilityIsIgnored() const
 {
     // Is the platform interested in this object?
@@ -1424,6 +1454,10 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
         return true;    
     
     if (roleValue() == IgnoredRole)
+        return true;
+    
+    // An ARIA tree can only have tree items and static text as children.
+    if (!isAllowedChildOfTree())
         return true;
     
     // ignore popup menu items because AppKit does
@@ -1727,13 +1761,18 @@ bool AccessibilityRenderObject::elementAttributeValue(const QualifiedName& attri
     
 void AccessibilityRenderObject::setIsExpanded(bool isExpanded)
 {
-    // Combo boxes and tree items can be expanded (in different ways on different platforms).
+    // Combo boxes, tree items and rows can be expanded (in different ways on different platforms).
     // That action translates into setting the aria-expanded attribute to true.
     AccessibilityRole role = roleValue();
-    if (role != ComboBoxRole && role != TreeItemRole)
-        return;
-    
-    setElementAttributeValue(aria_expandedAttr, isExpanded);
+    switch (role) {
+    case ComboBoxRole:
+    case TreeItemRole:
+    case RowRole:
+        setElementAttributeValue(aria_expandedAttr, isExpanded);
+        break;
+    default:
+        break;
+    }
 }
     
 bool AccessibilityRenderObject::isRequired() const
@@ -1858,13 +1897,14 @@ void AccessibilityRenderObject::setSelected(bool enabled)
 
 void AccessibilityRenderObject::setSelectedRows(AccessibilityChildrenVector& selectedRows)
 {
-    // Setting selected rows only works on trees for now.
-    if (roleValue() != TreeRole)
+    // Setting selected only makes sense in trees and tables (and tree-tables).
+    AccessibilityRole role = roleValue();
+    if (role != TreeRole && role != TreeGridRole && role != TableRole)
         return;
     
-    bool isMultiselectable = elementAttributeValue(aria_multiselectableAttr);
+    bool isMulti = isMultiSelectable();
     unsigned count = selectedRows.size();
-    if (count > 1 && !isMultiselectable)
+    if (count > 1 && !isMulti)
         count = 1;
     
     for (unsigned k = 0; k < count; ++k)
@@ -2834,20 +2874,20 @@ void AccessibilityRenderObject::addChildren()
     }
 }
 
-void AccessibilityRenderObject::ariaTreeSelectedRows(AccessibilityChildrenVector& result)
+void AccessibilityRenderObject::ariaSelectedRows(AccessibilityChildrenVector& result)
 {
     // Get all the rows. 
     AccessibilityChildrenVector allRows;
     ariaTreeRows(allRows);
 
     // Determine which rows are selected.
-    bool isMultiselectable = elementAttributeValue(aria_multiselectableAttr);
+    bool isMulti = isMultiSelectable();
 
     // Prefer active descendant over aria-selected.
     AccessibilityObject* activeDesc = activeDescendant();
-    if (activeDesc && activeDesc->isTreeItem()) {
+    if (activeDesc && (activeDesc->isTreeItem() || activeDesc->isTableRow())) {
         result.append(activeDesc);    
-        if (!isMultiselectable)
+        if (!isMulti)
             return;
     }
 
@@ -2855,7 +2895,7 @@ void AccessibilityRenderObject::ariaTreeSelectedRows(AccessibilityChildrenVector
     for (unsigned k = 0; k < count; ++k) {
         if (allRows[k]->isSelected()) {
             result.append(allRows[k]);
-            if (!isMultiselectable)
+            if (!isMulti)
                 break;
         }
     }
@@ -2869,7 +2909,7 @@ void AccessibilityRenderObject::ariaListboxSelectedChildren(AccessibilityChildre
     if (!element || !element->isElementNode()) // do this check to ensure safety of static_cast above
         return;
 
-    bool isMultiselectable = elementAttributeValue(aria_multiselectableAttr);
+    bool isMulti = isMultiSelectable();
     
     while (child) {
         // every child should have aria-role option, and if so, check for selected attribute/state
@@ -2883,7 +2923,7 @@ void AccessibilityRenderObject::ariaListboxSelectedChildren(AccessibilityChildre
                 String selectedAttrString = childElement->getAttribute(aria_selectedAttr).string();
                 if (equalIgnoringCase(selectedAttrString, "true")) {
                     result.append(child);
-                    if (isMultiselectable)
+                    if (isMulti)
                         return;
                 }
             }
@@ -2900,8 +2940,8 @@ void AccessibilityRenderObject::selectedChildren(AccessibilityChildrenVector& re
     AccessibilityRole role = roleValue();
     if (role == ListBoxRole) // native list boxes would be AccessibilityListBoxes, so only check for aria list boxes
         ariaListboxSelectedChildren(result);
-    else if (role == TreeRole)
-        ariaTreeSelectedRows(result);
+    else if (role == TreeRole || role == TreeGridRole || role == TableRole)
+        ariaSelectedRows(result);
 }
 
 void AccessibilityRenderObject::ariaListboxVisibleChildren(AccessibilityChildrenVector& result)      
@@ -3072,6 +3112,33 @@ String AccessibilityRenderObject::descriptionForMSAA() const
     }
 
     return String();
+}
+
+static AccessibilityRole msaaRoleForRenderer(const RenderObject* renderer)
+{
+    if (!renderer)
+        return UnknownRole;
+
+    if (renderer->isText())
+        return EditableTextRole;
+
+    if (renderer->isListItem())
+        return ListItemRole;
+
+    return UnknownRole;
+}
+
+AccessibilityRole AccessibilityRenderObject::roleValueForMSAA() const
+{
+    if (m_roleForMSAA != UnknownRole)
+        return m_roleForMSAA;
+
+    m_roleForMSAA = msaaRoleForRenderer(m_renderer);
+
+    if (m_roleForMSAA == UnknownRole)
+        m_roleForMSAA = roleValue();
+
+    return m_roleForMSAA;
 }
 
 } // namespace WebCore

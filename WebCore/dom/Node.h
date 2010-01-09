@@ -27,14 +27,8 @@
 
 #include "EventTarget.h"
 #include "KURLHash.h"
-#include "PlatformString.h"
-#include "RegisteredEventListener.h"
 #include "TreeShared.h"
-#include "FloatPoint.h"
-#include <wtf/Assertions.h>
 #include <wtf/ListHashSet.h>
-#include <wtf/OwnPtr.h>
-#include <wtf/PassRefPtr.h>
 
 namespace WebCore {
 
@@ -46,6 +40,7 @@ class DynamicNodeList;
 class Element;
 class Event;
 class EventListener;
+class FloatPoint;
 class Frame;
 class IntRect;
 class KeyboardEvent;
@@ -205,6 +200,9 @@ public:
 
     // The node's parent for the purpose of event capture and bubbling.
     virtual ContainerNode* eventParentNode();
+
+    // Returns the enclosing event parent node (or self) that, when clicked, would trigger a navigation.
+    Node* enclosingLinkEventParentOrSelf();
 
     // Node ancestors when concerned about event flow
     void eventAncestors(Vector<RefPtr<ContainerNode> > &ancestors);

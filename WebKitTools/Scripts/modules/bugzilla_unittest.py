@@ -30,8 +30,24 @@ import unittest
 
 from modules.committers import CommitterList, Reviewer, Committer
 from modules.bugzilla import Bugzilla, parse_bug_id
+from modules.outputcapture import OutputCapture
 
 from modules.BeautifulSoup import BeautifulSoup
+
+
+class MockBrowser(object):
+    def open(self, url):
+        pass
+
+    def select_form(self, name):
+        pass
+
+    def __setitem__(self, key, value):
+        pass
+
+    def submit(self):
+        pass
+
 
 class BugzillaTest(unittest.TestCase):
 
@@ -98,7 +114,7 @@ class BugzillaTest(unittest.TestCase):
         self.assertTrue(attachment)
 
         # Make sure we aren't parsing more or less than we expect
-        self.assertEquals(attachment.keys(), self._expected_example_attachment_parsing.keys())
+        self.assertEquals(sorted(attachment.keys()), sorted(self._expected_example_attachment_parsing.keys()))
 
         for key, expected_value in self._expected_example_attachment_parsing.items():
             self.assertEquals(attachment[key], expected_value, ("Failure for key: %s: Actual='%s' Expected='%s'" % (key, attachment[key], expected_value)))
@@ -168,6 +184,14 @@ class BugzillaTest(unittest.TestCase):
     def test_request_page_parsing(self):
         bugzilla = Bugzilla()
         self.assertEquals([40511, 40722, 40723], bugzilla._parse_attachment_ids_request_query(self._sample_request_page))
+
+    def test_add_cc_to_bug(self):
+        bugzilla = Bugzilla()
+        bugzilla.browser = MockBrowser()
+        bugzilla.authenticate = lambda: None
+        expected_stderr = "Adding ['adam@example.com'] to the CC list for bug 42\n"
+        OutputCapture().assert_outputs(self, bugzilla.add_cc_to_bug, [42, ["adam@example.com"]], expected_stderr=expected_stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

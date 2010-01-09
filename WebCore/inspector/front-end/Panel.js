@@ -81,7 +81,7 @@ WebInspector.Panel.prototype = {
         if ("_toolbarItem" in this)
             this._toolbarItem.addStyleClass("toggled-on");
 
-        WebInspector.currentFocusElement = document.getElementById("main-panels");
+        WebInspector.currentFocusElement = this.defaultFocusedElement;
 
         this.updateSidebarWidth();
     },
@@ -95,6 +95,11 @@ WebInspector.Panel.prototype = {
         delete this._statusBarItemContainer;
         if ("_toolbarItem" in this)
             this._toolbarItem.removeStyleClass("toggled-on");
+    },
+
+    get defaultFocusedElement()
+    {
+        return this.sidebarTreeElement || this.element;
     },
 
     attach: function()
@@ -274,17 +279,6 @@ WebInspector.Panel.prototype = {
             currentView.jumpToPreviousSearchResult();
     },
 
-    handleKeyEvent: function(event)
-    {
-        this.handleSidebarKeyEvent(event);
-    },
-
-    handleSidebarKeyEvent: function(event)
-    {
-        if (this.hasSidebar && this.sidebarTree)
-            this.sidebarTree.handleKeyEvent(event);
-    },
-
     createSidebar: function(parentElement, resizerParentElement)
     {
         if (this.hasSidebar)
@@ -369,6 +363,16 @@ WebInspector.Panel.prototype = {
     updateMainViewWidth: function(width)
     {
         // Should be implemented by ancestors.
+    },
+
+    canShowSourceLineForURL: function(url)
+    {
+        return false;
+    },
+
+    showSourceLineForURL: function(url, line)
+    {
+        return false;
     }
 }
 

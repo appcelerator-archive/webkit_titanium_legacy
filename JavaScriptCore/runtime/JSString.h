@@ -96,7 +96,7 @@ namespace JSC {
                 {
                     if (isString()) {
                         UString::Rep* rep = string();
-                        return rep->ref()->len;
+                        return rep->ref()->size();
                     } else {
                         Rope* r = rope();
                         r->ref();
@@ -135,7 +135,7 @@ namespace JSC {
             {
                 UString::Rep* rep = string.rep();
                 m_fibers[index++] = Fiber(rep);
-                m_stringLength += rep->ref()->len;
+                m_stringLength += rep->ref()->size();
             }
             void append(unsigned& index, JSString* jsString)
             {
@@ -203,6 +203,32 @@ namespace JSC {
             appendStringInConstruct(index, s2);
             ASSERT(ropeLength == index);
         }
+        // This constructor constructs a new string by concatenating s1 & s2.
+        // This should only be called with ropeLength <= 3.
+        JSString(JSGlobalData* globalData, unsigned ropeLength, JSString* s1, const UString& u2)
+            : JSCell(globalData->stringStructure.get())
+            , m_stringLength(s1->length() + u2.size())
+            , m_ropeLength(ropeLength)
+        {
+            ASSERT(ropeLength <= s_maxInternalRopeLength);
+            unsigned index = 0;
+            appendStringInConstruct(index, s1);
+            appendStringInConstruct(index, u2);
+            ASSERT(ropeLength == index);
+        }
+        // This constructor constructs a new string by concatenating s1 & s2.
+        // This should only be called with ropeLength <= 3.
+        JSString(JSGlobalData* globalData, unsigned ropeLength, const UString& u1, JSString* s2)
+            : JSCell(globalData->stringStructure.get())
+            , m_stringLength(u1.size() + s2->length())
+            , m_ropeLength(ropeLength)
+        {
+            ASSERT(ropeLength <= s_maxInternalRopeLength);
+            unsigned index = 0;
+            appendStringInConstruct(index, u1);
+            appendStringInConstruct(index, s2);
+            ASSERT(ropeLength == index);
+        }
         // This constructor constructs a new string by concatenating v1, v2 & v3.
         // This should only be called with ropeLength <= 3 ... which since every
         // value must require a ropeLength of at least one implies that the length
@@ -258,13 +284,18 @@ namespace JSC {
 
         void resolveRope(ExecState*) const;
 
+        void appendStringInConstruct(unsigned& index, const UString& string)
+        {
+            m_fibers[index++] = Rope::Fiber(string.rep()->ref());
+        }
+
         void appendStringInConstruct(unsigned& index, JSString* jsString)
         {
             if (jsString->isRope()) {
                 for (unsigned i = 0; i < jsString->m_ropeLength; ++i)
                     m_fibers[index++] = jsString->m_fibers[i].ref();
             } else
-                m_fibers[index++] = Rope::Fiber(jsString->string().rep()->ref());
+                appendStringInConstruct(index, jsString->string());
         }
 
         void appendValueInConstructAndIncrementLength(ExecState* exec, unsigned& index, JSValue v)
@@ -311,7 +342,10 @@ namespace JSC {
         unsigned ropeLength() { return m_ropeLength ? m_ropeLength : 1; }
 
         friend JSValue jsString(ExecState* exec, JSString* s1, JSString* s2);
+        friend JSValue jsString(ExecState* exec, const UString& u1, JSString* s2);
+        friend JSValue jsString(ExecState* exec, JSString* s1, const UString& u2);
         friend JSValue jsString(ExecState* exec, Register* strings, unsigned count);
+        friend JSValue jsString(ExecState* exec, JSValue thisValue, const ArgList& args);
     };
 
     JSString* asString(JSValue);
@@ -388,7 +422,7 @@ namespace JSC {
             if (c <= 0xFF)
                 return globalData->smallStrings.singleCharacterString(globalData, c);
         }
-        return new (globalData) JSString(globalData, UString(UString::Rep::create(s.rep(), offset, length)));
+        return new (globalData) JSString(globalData, UString(UString::Rep::create(s.rep(), offset, length)), JSString::HasOtherOwner);
     }
 
     inline JSString* jsOwnedString(JSGlobalData* globalData, const UString& s)
@@ -467,6 +501,26 @@ namespace JSC {
             return "undefined";
         ASSERT(isCell());
         return asCell()->toString(exec);
+    }
+
+    inline UString JSValue::toPrimitiveString(ExecState* exec) const
+    {
+        if (isString())
+            return static_cast<JSString*>(asCell())->value(exec);
+        if (isInt32())
+            return exec->globalData().numericStrings.add(asInt32());
+        if (isDouble())
+            return exec->globalData().numericStrings.add(asDouble());
+        if (isTrue())
+            return "true";
+        if (isFalse())
+            return "false";
+        if (isNull())
+            return "null";
+        if (isUndefined())
+            return "undefined";
+        ASSERT(isCell());
+        return asCell()->toPrimitive(exec, NoPreference).toString(exec);
     }
 
 } // namespace JSC

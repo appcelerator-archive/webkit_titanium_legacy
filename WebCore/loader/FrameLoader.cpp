@@ -36,6 +36,7 @@
 #include "ApplicationCacheHost.h"
 #include "Archive.h"
 #include "ArchiveFactory.h"
+#include "BackForwardList.h"
 #include "CString.h"
 #include "Cache.h"
 #include "CachedPage.h"
@@ -559,6 +560,8 @@ void FrameLoader::stopLoading(UnloadEventPolicy unloadEventPolicy, DatabasePolic
 #if ENABLE(DATABASE)
         if (databasePolicy == DatabasePolicyStop)
             doc->stopDatabases();
+#else
+    UNUSED_PARAM(databasePolicy);
 #endif
     }
 

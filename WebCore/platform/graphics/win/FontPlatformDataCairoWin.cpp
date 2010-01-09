@@ -50,7 +50,7 @@ void FontPlatformData::platformDataInit(HFONT font, float size, HDC hdc, WCHAR* 
     if (!fontOptions)
     {
        fontOptions = cairo_font_options_create();
-       cairo_font_options_set_antialias(fontOptions, CAIRO_ANTIALIAS_GRAY);
+       cairo_font_options_set_antialias(fontOptions, CAIRO_ANTIALIAS_SUBPIXEL);
     }
 
     m_scaledFont = cairo_scaled_font_create(m_fontFace, &sizeMatrix, &ctm, fontOptions);
@@ -74,7 +74,7 @@ FontPlatformData::FontPlatformData(cairo_font_face_t* fontFace, float size, bool
    // We force antialiasing and disable hinting to provide consistent
    // typographic qualities for custom fonts on all platforms.
    cairo_font_options_set_hint_style(options, CAIRO_HINT_STYLE_NONE);
-   cairo_font_options_set_antialias(options, CAIRO_ANTIALIAS_GRAY);
+   cairo_font_options_set_antialias(options, CAIRO_ANTIALIAS_SUBPIXEL);
 
    m_scaledFont = cairo_scaled_font_create(fontFace, &fontMatrix, &ctm, options);
    cairo_font_options_destroy(options);

@@ -1,3 +1,159 @@
+2009-12-22  Darin Adler  <darin@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        Turn off datagrid by default, at least for all platforms Apple ships.
+        The datagrid implementation isn't ready for general web use yet.
+
+        * Configurations/FeatureDefines.xcconfig: Turn off datagrid by default.
+
+2009-12-21  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Don't allocate a WebGeolocationControllerClient unless that compile-time setting is enabled.
+
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:usesDocumentViews:]):
+
+2009-12-18  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Add Mac WebKit side of the client based geolocation provider.
+
+        * Misc/WebKitErrors.m:
+        (registerErrors): Add Geolocation errors.
+        * Misc/WebKitErrorsPrivate.h:
+        * WebCoreSupport/WebGeolocationControllerClient.h: Added.
+        (WebGeolocationControllerClient::webView):
+        * WebCoreSupport/WebGeolocationControllerClient.mm: Added.
+        (WebGeolocationControllerClient::WebGeolocationControllerClient):
+        (WebGeolocationControllerClient::startUpdating):
+        (WebGeolocationControllerClient::stopUpdating):
+        (WebGeolocationControllerClient::lastPosition):
+        Add implementation of the WebGeolocationControllerClient.
+
+        * WebView/WebGeolocationPosition.h: Added.
+        * WebView/WebGeolocationPosition.mm: Added.
+        (-[WebGeolocationPositionInternal initWithCoreGeolocationPosition:]):
+        (core):
+        (-[WebGeolocationPosition initWithTimestamp:latitude:longitude:accuracy:]):
+        * WebView/WebGeolocationPositionInternal.h: Added.
+        Add an Objective-C wrapper for GeolocationPosition.
+ 
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:usesDocumentViews:]): Set the GeolocationControllerClient.
+        (-[WebView _setGeolocationProvider:]): Set the GeolocationProvider
+        (-[WebView _geolocationProvider]): Return the GeolocationProvider.
+        (-[WebView _geolocationDidChangePosition:]): Notify WebCore that the position changed.
+        (-[WebView _geolocationDidFailWithError:]): Notify WebCore that an error occured.
+        * WebView/WebViewData.h:
+        * WebView/WebViewPrivate.h:
+
+2009-12-18  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        REGRESSION(52325) Chromium build broken due to link failure
+        https://bugs.webkit.org/show_bug.cgi?id=32753
+
+        * WebCoreSupport/WebSystemInterface.m:
+         - Chromium Mac builds use this file, but do not
+           enable Pre-compiled Header (PCH) files so that
+           Chromium build bots can take advantage of the faster
+           distcc 3.  Eventually all mac builds will likely use
+           distcc, but for now we'll add Platform.h here and document
+           its usage so it's not removed by accident.
+
+2009-12-18  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Anders Carlsson.
+
+        Fix preference key name.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+
+2009-12-18  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Pass preference to plug-in host.
+
+        * Plugins/Hosted/NetscapePluginHostManager.mm:
+        (WebKit::NetscapePluginHostManager::spawnPluginHost):
+
+2009-12-18  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Add WKPCRunSyncOpenPanel implementation.
+
+        * Plugins/Hosted/NetscapePluginHostProxy.mm:
+        (WKPCRunSyncOpenPanel):
+        * Plugins/Hosted/WebKitPluginClient.defs:
+        * Plugins/Hosted/WebKitPluginHost.defs:
+
+2009-12-18  Anders Carlsson  <andersca@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Add a useProxiedOpenPanel WebPreference and tunnel it through to the plug-in host.
+
+        * Plugins/Hosted/NetscapePluginHostManager.h:
+        * Plugins/Hosted/NetscapePluginHostManager.mm:
+        (WebKit::NetscapePluginHostManager::hostForPackage):
+        (WebKit::NetscapePluginHostManager::spawnPluginHost):
+        (WebKit::NetscapePluginHostManager::instantiatePlugin):
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences usesProxiedOpenPanel]):
+        (-[WebPreferences setUsesProxiedOpenPanel:]):
+        * WebView/WebPreferencesPrivate.h:
+
+2009-12-18  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Anders Carlsson.
+
+        Update WebKitSystemInterface for <rdar://problem/7237059>.        
+
+        * WebCoreSupport/WebSystemInterface.m:
+        (InitWebCoreSystemInterface):
+
+2009-12-18  Adam Roben  <aroben@apple.com>
+
+        Add #includes needed after WebCore clean-up
+
+        Rubber-stamped by Anders Carlsson.
+
+        Fixes <http://webkit.org/b/32718>.
+
+        * WebView/WebFrame.mm:
+        * WebView/WebFrameView.mm:
+        * WebView/WebView.mm:
+
+2009-12-17  Adam Roben  <aroben@apple.com>
+
+        Mac build fix
+
+        * WebView/WebVideoFullscreenController.mm: Added now-needed #import.
+
+2009-12-13  Sam Weinig  <sam@webkit.org>
+
+        Reviewed by Dan Bernstein.
+
+        Fix for https://bugs.webkit.org/show_bug.cgi?id=32499
+        Add client based Geolocation provider
+
+        Add first cut of a client based Geolocation provider. This is guarded by
+        ENABLE(CLIENT_BASED_GEOLOCATION) and is off by default for now. This adds a
+        GeolocationControllerClient interface that no-one currently implements,
+        but will in a subsequent patch.
+
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:usesDocumentViews:]):
+
 2009-12-10  Jon Honeycutt  <jhoneycutt@apple.com>
 
         Mac build fix. Unreviewed.

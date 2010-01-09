@@ -228,6 +228,7 @@ typedef enum {
     WKMediaControllerFlagDisabled = 1 << 0,
     WKMediaControllerFlagPressed = 1 << 1,
     WKMediaControllerFlagDrawEndCaps = 1 << 3,
+    WKMediaControllerFlagFocused = 1 << 4
 } WKMediaControllerThemeState;
 
 BOOL WKMediaControllerThemeAvailable(int themeStyle);
@@ -289,7 +290,11 @@ BOOL WKIsLatchingWheelEvent(NSEvent *);
 void WKWindowSetAlpha(NSWindow *window, float alphaValue);
 void WKWindowSetScaledFrame(NSWindow *window, NSRect scaleFrame, NSRect nonScaledFrame);
 #endif
-    
+
+#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD)
+NSMutableArray *WKNoteOpenPanelFiles(NSArray *paths);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

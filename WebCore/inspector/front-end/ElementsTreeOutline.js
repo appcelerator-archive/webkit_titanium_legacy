@@ -43,6 +43,7 @@ WebInspector.ElementsTreeOutline = function() {
     this.focusedDOMNode = null;
 
     this.element.addEventListener("contextmenu", this._contextMenuEventFired.bind(this), true);
+    this.element.addEventListener("keydown", this._keyDown.bind(this), true);
 }
 
 WebInspector.ElementsTreeOutline.prototype = {
@@ -191,8 +192,11 @@ WebInspector.ElementsTreeOutline.prototype = {
         return element;
     },
     
-    handleKeyEvent: function(event)
+    _keyDown: function(event)
     {
+        if (event.target !== this.treeOutline.element)
+            return;
+
         var selectedElement = this.selectedTreeElement;
         if (!selectedElement)
             return;
@@ -201,12 +205,13 @@ WebInspector.ElementsTreeOutline.prototype = {
                 event.keyCode === WebInspector.KeyboardShortcut.KeyCodes.Delete) {
             selectedElement.remove();
             event.preventDefault();
+            event.stopPropagation();
             return;
         }
 
         // On Enter or Return start editing the first attribute
         // or create a new attribute on the selected element.
-        if (event.keyIdentifier === "Enter") {
+        if (isEnterKey(event)) {
             if (this._editing)
                 return;
 
@@ -214,10 +219,9 @@ WebInspector.ElementsTreeOutline.prototype = {
 
             // prevent a newline from being immediately inserted
             event.preventDefault();
+            event.stopPropagation();
             return;
         }
-
-        TreeOutline.prototype.handleKeyEvent.call(this, event);
     },
 
     _onmousedown: function(event)
@@ -331,15 +335,8 @@ WebInspector.ElementsTreeElement.prototype = {
             if (x) {
                 this.updateSelection();
                 this.listItemElement.addStyleClass("hovered");
-                if (this._canAddAttributes)
-                    this._pendingToggleNewAttribute = setTimeout(this.toggleNewAttributeButton.bind(this, true), 500);
             } else {
                 this.listItemElement.removeStyleClass("hovered");
-                if (this._pendingToggleNewAttribute) {
-                    clearTimeout(this._pendingToggleNewAttribute);
-                    delete this._pendingToggleNewAttribute;
-                }
-                this.toggleNewAttributeButton(false);
             }
         }
     },
@@ -362,30 +359,6 @@ WebInspector.ElementsTreeElement.prototype = {
         }
         var objectProxy = new WebInspector.ObjectProxy(node.id);
         WebInspector.ObjectProxy.getPropertiesAsync(objectProxy, ["naturalHeight", "naturalWidth", "offsetHeight", "offsetWidth"], createTooltipThenCallback);
-    },
-
-    toggleNewAttributeButton: function(visible)
-    {
-        function removeAddAttributeSpan()
-        {
-            if (this._addAttributeElement && this._addAttributeElement.parentNode)
-                this._addAttributeElement.parentNode.removeChild(this._addAttributeElement);
-            delete this._addAttributeElement;
-
-            this.updateSelection();
-        }
-
-        if (!this._addAttributeElement && visible && !this._editing) {
-            var span = document.createElement("span");
-            span.className = "add-attribute webkit-html-attribute-name";
-            span.textContent = " ?=\"\"";
-            span.addEventListener("dblclick", removeAddAttributeSpan.bind(this), false);
-            this._addAttributeElement = span;
-
-            var tag = this.listItemElement.getElementsByClassName("webkit-html-tag")[0];
-            this._insertInLastAttributePosition(tag, span);
-        } else if (!visible && this._addAttributeElement)
-            removeAddAttributeSpan.call(this);
     },
 
     updateSelection: function()
@@ -630,6 +603,7 @@ WebInspector.ElementsTreeElement.prototype = {
         contextMenu.appendSeparator();
 
         // Add node-related actions.
+        contextMenu.appendItem(WebInspector.UIString("Copy as HTML"), this._copyHTML.bind(this));
         contextMenu.appendItem(WebInspector.UIString("Delete Node"), this.remove.bind(this));
     },
 
@@ -646,7 +620,6 @@ WebInspector.ElementsTreeElement.prototype = {
         var listItem = this._listItemNode;
 
         if (this._canAddAttributes) {
-            this.toggleNewAttributeButton(false);
             var attribute = listItem.getElementsByClassName("webkit-html-attribute")[0];
             if (attribute)
                 return this._startEditingAttribute(attribute, attribute.getElementsByClassName("webkit-html-attribute-value")[0]);
@@ -829,14 +802,16 @@ WebInspector.ElementsTreeElement.prototype = {
 
         textNode.nodeValue = newText;
 
-        // No need to call _updateTitle here, it will be called after the nodeValue is committed.
+        // Need to restore attributes / node structure.
+        this._updateTitle();
     },
 
     _editingCancelled: function(element, context)
     {
         delete this._editing;
 
-        // No need to call _updateTitle here, the editing code will revert to the original text.
+        // Need to restore attributes structure.
+        this._updateTitle();
     },
 
     _updateTitle: function()
@@ -985,6 +960,11 @@ WebInspector.ElementsTreeElement.prototype = {
 
         var callId = WebInspector.Callback.wrap(removeNodeCallback);
         InspectorBackend.removeNode(callId, this.representedObject.id);
+    },
+
+    _copyHTML: function(node)
+    {
+        InspectorBackend.copyNode(this.representedObject.id);
     }
 }
 

@@ -33,6 +33,7 @@
 #include "FrameView.h"
 #include "FrameTree.h"
 #include "GOwnPtr.h"
+#include "GRefPtr.h"
 #include "GtkPluginWidget.h"
 #include "HTMLAppletElement.h"
 #include "HTMLFormElement.h"
@@ -442,7 +443,7 @@ PassRefPtr<Widget> FrameLoaderClient::createPlugin(const IntSize& pluginSize, HT
     CString mimeTypeString = mimeType.utf8();
 
     ASSERT(paramNames.size() == paramValues.size());
-    GOwnPtr<GHashTable> hash(g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free));
+    GRefPtr<GHashTable> hash = adoptGRef(g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free));
     for (unsigned i = 0; i < paramNames.size(); ++i) {
         g_hash_table_insert(hash.get(),
                             g_strdup(paramNames[i].utf8().data()),
@@ -641,7 +642,9 @@ void FrameLoaderClient::setCopiesOnScroll()
 
 void FrameLoaderClient::detachedFromParent2()
 {
-    notImplemented();
+    FrameView *view = core(m_frame)->view();
+    if (view)
+        view->setGtkAdjustments(0, 0);
 }
 
 void FrameLoaderClient::detachedFromParent3()
@@ -742,7 +745,7 @@ void FrameLoaderClient::dispatchDidCommitLoad()
 
     WebKitWebFramePrivate* priv = m_frame->priv;
     g_free(priv->uri);
-    priv->uri = g_strdup(core(m_frame)->loader()->url().prettyURL().utf8().data());
+    priv->uri = g_strdup(core(m_frame)->loader()->activeDocumentLoader()->url().prettyURL().utf8().data());
     g_free(priv->title);
     priv->title = NULL;
     g_object_notify(G_OBJECT(m_frame), "uri");

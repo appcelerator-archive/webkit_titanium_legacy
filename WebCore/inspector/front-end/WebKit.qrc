@@ -13,6 +13,7 @@
     <file>ConsoleView.js</file>
     <file>ContextMenu.js</file>
     <file>CookieItemsView.js</file>
+    <file>CSSSourceSyntaxHighlighter.js</file>
     <file>Database.js</file>
     <file>DatabaseQueryView.js</file>
     <file>DatabaseTableView.js</file>
@@ -31,6 +32,7 @@
     <file>inspector.js</file>
     <file>InspectorBackendStub.js</file>
     <file>InspectorFrontendHostStub.js</file>
+    <file>JavaScriptSourceSyntaxHighlighter.js</file>
     <file>KeyboardShortcut.js</file>
     <file>MetricsSidebarPane.js</file>
     <file>Object.js</file>
@@ -53,9 +55,11 @@
     <file>Script.js</file>
     <file>ScriptsPanel.js</file>
     <file>ScriptView.js</file>
+    <file>Section.js</file>
     <file>SidebarPane.js</file>
     <file>SidebarTreeElement.js</file>
     <file>SourceFrame.js</file>
+    <file>SourceSyntaxHighlighter.js</file>
     <file>SourceView.js</file>
     <file>StatusBarButton.js</file>
     <file>StoragePanel.js</file>
@@ -191,10 +195,6 @@
     <file>Images/timelinePillPurple.png</file>
     <file>Images/timelinePillRed.png</file>
     <file>Images/timelinePillYellow.png</file>
-    <file>Images/tipBalloon.png</file>
-    <file>Images/tipBalloonBottom.png</file>
-    <file>Images/tipIcon.png</file>
-    <file>Images/tipIconPressed.png</file>
     <file>Images/toolbarItemSelected.png</file>
     <file>Images/treeDownTriangleBlack.png</file>
     <file>Images/treeDownTriangleWhite.png</file>

@@ -46,11 +46,15 @@
 #define BUILDING_ON_TIGER 1
 #elif !defined(MAC_OS_X_VERSION_10_6) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6
 #define BUILDING_ON_LEOPARD 1
+#elif !defined(MAC_OS_X_VERSION_10_7) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
+#define BUILDING_ON_SNOW_LEOPARD 1
 #endif
 #if !defined(MAC_OS_X_VERSION_10_5) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
 #define TARGETING_TIGER 1
 #elif !defined(MAC_OS_X_VERSION_10_6) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_6
 #define TARGETING_LEOPARD 1
+#elif !defined(MAC_OS_X_VERSION_10_7) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+#define TARGETING_SNOW_LEOPARD 1
 #endif
 #include <TargetConditionals.h>
 #endif
@@ -200,6 +204,7 @@
 #define WTF_PLATFORM_CG 1
 #define WTF_PLATFORM_CI 1
 #define WTF_USE_ATSUI 1
+#define WTF_USE_CORE_TEXT 1
 #else
 #define WTF_PLATFORM_SKIA 1
 #endif
@@ -446,7 +451,7 @@
 #define WTF_COMPILER_WINSCW 1
 #endif
 
-#if (PLATFORM(IPHONE) || PLATFORM(MAC) || PLATFORM(WIN) || (PLATFORM(QT) && PLATFORM(DARWIN))) && !defined(ENABLE_JSC_MULTIPLE_THREADS)
+#if (PLATFORM(IPHONE) || PLATFORM(MAC) || PLATFORM(WIN) || (PLATFORM(QT) && PLATFORM(DARWIN) && !ENABLE(SINGLE_THREADED))) && !defined(ENABLE_JSC_MULTIPLE_THREADS)
 #define ENABLE_JSC_MULTIPLE_THREADS 1
 #endif
 
@@ -915,8 +920,15 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #define WTF_USE_ACCELERATED_COMPOSITING 1
 #endif
 
+/* FIXME: Defining ENABLE_3D_RENDERING here isn't really right, but it's always used with
+   with WTF_USE_ACCELERATED_COMPOSITING, and it allows the feature to be turned on and
+   off in one place. */
 #if PLATFORM(WIN)
-#define WTF_USE_ACCELERATED_COMPOSITING 0
+#include "QuartzCorePresent.h"
+#if QUARTZCORE_PRESENT
+#define WTF_USE_ACCELERATED_COMPOSITING 1
+#define ENABLE_3D_RENDERING 1
+#endif
 #endif
 
 #if COMPILER(GCC)

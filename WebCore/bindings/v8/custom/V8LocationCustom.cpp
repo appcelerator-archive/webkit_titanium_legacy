@@ -32,6 +32,7 @@
 #include "Location.h"
 
 #include "V8Binding.h"
+#include "V8BindingState.h"
 #include "V8CustomBinding.h"
 #include "V8CustomEventListener.h"
 #include "V8Location.h"
@@ -209,7 +210,7 @@ ACCESSOR_SETTER(LocationSearch)
 ACCESSOR_GETTER(LocationReload)
 {
     INC_STATS("DOM.Location.reload._get");
-    static v8::Persistent<v8::FunctionTemplate> privateTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(v8LocationReloadCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
+    static v8::Persistent<v8::FunctionTemplate> privateTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(V8Location::reloadCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
     v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::LOCATION, info.This());
     if (holder.IsEmpty()) {
         // can only reach here by 'object.__proto__.func', and it should passed
@@ -217,17 +218,17 @@ ACCESSOR_GETTER(LocationReload)
         return privateTemplate->GetFunction();
     }
     Location* imp = V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, holder);
-    if (!V8Proxy::canAccessFrame(imp->frame(), false)) {
-        static v8::Persistent<v8::FunctionTemplate> sharedTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(v8LocationReloadCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
+    if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), false)) {
+        static v8::Persistent<v8::FunctionTemplate> sharedTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(V8Location::reloadCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
         return sharedTemplate->GetFunction();
-    } else
-        return privateTemplate->GetFunction();
+    }
+    return privateTemplate->GetFunction();
 }
 
 ACCESSOR_GETTER(LocationReplace)
 {
     INC_STATS("DOM.Location.replace._get");
-    static v8::Persistent<v8::FunctionTemplate> privateTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(v8LocationReplaceCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
+    static v8::Persistent<v8::FunctionTemplate> privateTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(V8Location::replaceCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
     v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::LOCATION, info.This());
     if (holder.IsEmpty()) {
         // can only reach here by 'object.__proto__.func', and it should passed
@@ -235,18 +236,18 @@ ACCESSOR_GETTER(LocationReplace)
         return privateTemplate->GetFunction();
     }
     Location* imp = V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, holder);
-    if (!V8Proxy::canAccessFrame(imp->frame(), false)) {
-        static v8::Persistent<v8::FunctionTemplate> sharedTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(v8LocationReplaceCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
+    if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), false)) {
+        static v8::Persistent<v8::FunctionTemplate> sharedTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(V8Location::replaceCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
         return sharedTemplate->GetFunction();
-    } else
-        return privateTemplate->GetFunction();
+    }
+    return privateTemplate->GetFunction();
 }
 
 ACCESSOR_GETTER(LocationAssign)
 {
     INC_STATS("DOM.Location.assign._get");
     static v8::Persistent<v8::FunctionTemplate> privateTemplate =
-    v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(v8LocationAssignCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
+        v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(V8Location::assignCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
     v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::LOCATION, info.This());
     if (holder.IsEmpty()) {
         // can only reach here by 'object.__proto__.func', and it should passed
@@ -254,14 +255,14 @@ ACCESSOR_GETTER(LocationAssign)
         return privateTemplate->GetFunction();
     }
     Location* imp = V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, holder);
-    if (!V8Proxy::canAccessFrame(imp->frame(), false)) {
-        static v8::Persistent<v8::FunctionTemplate> sharedTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(v8LocationAssignCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
+    if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), false)) {
+        static v8::Persistent<v8::FunctionTemplate> sharedTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(V8Location::assignCallback, v8::Handle<v8::Value>(), v8::Signature::New(V8Location::GetRawTemplate())));
         return sharedTemplate->GetFunction();
-    } else
-        return privateTemplate->GetFunction();
+    }
+    return privateTemplate->GetFunction();
 }
 
-CALLBACK_FUNC_DECL(LocationReload)
+v8::Handle<v8::Value> V8Location::reloadCallback(const v8::Arguments& args)
 {
     // FIXME: we ignore the "forceget" parameter.
 
@@ -278,7 +279,7 @@ CALLBACK_FUNC_DECL(LocationReload)
     return v8::Undefined();
 }
 
-CALLBACK_FUNC_DECL(LocationReplace)
+v8::Handle<v8::Value> V8Location::replaceCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.Location.replace");
     v8::Handle<v8::Object> holder = args.Holder();
@@ -299,7 +300,7 @@ CALLBACK_FUNC_DECL(LocationReplace)
     return v8::Undefined();
 }
 
-CALLBACK_FUNC_DECL(LocationAssign)
+v8::Handle<v8::Value> V8Location::assignCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.Location.assign");
     v8::Handle<v8::Object> holder = args.Holder();
@@ -320,7 +321,7 @@ CALLBACK_FUNC_DECL(LocationAssign)
     return v8::Undefined();
 }
 
-CALLBACK_FUNC_DECL(LocationValueOf)
+v8::Handle<v8::Value> V8Location::valueOfCallback(const v8::Arguments& args)
 {
     // Just return the this object the way the normal valueOf function
     // on the Object prototype would.  The valueOf function is only
@@ -330,12 +331,12 @@ CALLBACK_FUNC_DECL(LocationValueOf)
     return args.This();
 }
 
-CALLBACK_FUNC_DECL(LocationToString)
+v8::Handle<v8::Value> V8Location::toStringCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.Location.toString");
     v8::Handle<v8::Object> holder = args.Holder();
     Location* imp = V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, holder);
-    if (!V8Proxy::canAccessFrame(imp->frame(), true))
+    if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), true))
         return v8::Undefined();
     String result = imp->href();
     return v8String(result);
@@ -346,7 +347,7 @@ INDEXED_ACCESS_CHECK(Location)
     ASSERT(V8ClassIndex::FromInt(data->Int32Value()) == V8ClassIndex::LOCATION);
     // Only allow same origin access
     Location* imp =  V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, host);
-    return V8Proxy::canAccessFrame(imp->frame(), false);
+    return V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), false);
 }
 
 NAMED_ACCESS_CHECK(Location)
@@ -354,7 +355,7 @@ NAMED_ACCESS_CHECK(Location)
     ASSERT(V8ClassIndex::FromInt(data->Int32Value()) == V8ClassIndex::LOCATION);
     // Only allow same origin access
     Location* imp = V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, host);
-    return V8Proxy::canAccessFrame(imp->frame(), false);
+    return V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), false);
 }
 
 }  // namespace WebCore

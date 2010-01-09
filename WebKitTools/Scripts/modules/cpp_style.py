@@ -34,18 +34,7 @@
 # This is the modified version of Google's cpplint. The original code is
 # http://google-styleguide.googlecode.com/svn/trunk/cpplint/cpplint.py
 
-"""Does WebKit-lint on c++ files.
-
-The goal of this script is to identify places in the code that *may*
-be in non-compliance with WebKit style.  It does not attempt to fix
-up these problems -- the point is to educate.  It does also not
-attempt to find all problems, or to ensure that everything it does
-find is legitimately a problem.
-
-In particular, we can get very confused by /* and // inside strings!
-We do a small hack, which is to ignore //'s with "'s after them on the
-same line, but it is far from perfect (in either direction).
-"""
+"""Support for check-webkit-style."""
 
 import codecs
 import getopt
@@ -59,121 +48,122 @@ import sys
 import unicodedata
 
 
-_USAGE = """
-Syntax: %(program_name)s [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
-        <file> [file] ...
+# This is set by check-webkit-style.
+_USAGE = ''
 
-  The style guidelines this tries to follow are those in
-    http://webkit.org/coding/coding-style.html
 
-  Every problem is given a confidence score from 1-5, with 5 meaning we are
-  certain of the problem, and 1 meaning it could be a legitimate construct.
-  This will miss some errors, and is not a substitute for a code review.
+# Default options
+_DEFAULT_VERBOSITY = 1
+_DEFAULT_OUTPUT_FORMAT = 'emacs'
 
-  To prevent specific lines from being linted, add a '// NOLINT' comment to the
-  end of the line.
 
-  The files passed in will be linted; at least one file must be provided.
-  Linted extensions are .cpp, .c and .h.  Other file types will be ignored.
+# FIXME: For style categories we will never want to have, remove them.
+#        For categories for which we want to have similar functionality,
+#        modify the implementation and enable them.
+# FIXME: Add a unit test to ensure the corresponding categories
+#        are elements of _STYLE_CATEGORIES.
+#
+# For unambiguous terminology, we use "filter rule" rather than "filter"
+# for an individual boolean filter flag like "+foo". This allows us to 
+# reserve "filter" for what one gets by collectively applying all of 
+# the filter rules as specified by a --filter flag.
+_WEBKIT_FILTER_RULES = [
+    '-build/endif_comment',
+    '-build/include_what_you_use',  # <string> for std::string
+    '-build/storage_class',  # const static
+    '-legal/copyright',
+    '-readability/multiline_comment',
+    '-readability/braces',  # int foo() {};
+    '-readability/fn_size',
+    '-readability/casting',
+    '-readability/function',
+    '-runtime/arrays',  # variable length array
+    '-runtime/casting',
+    '-runtime/sizeof',
+    '-runtime/explicit',  # explicit
+    '-runtime/virtual',  # virtual dtor
+    '-runtime/printf',
+    '-runtime/threadsafe_fn',
+    '-runtime/rtti',
+    '-whitespace/blank_line',
+    '-whitespace/end_of_line',
+    '-whitespace/labels',
+    ]
 
-  Flags:
 
-    output=vs7
-      By default, the output is formatted to ease emacs parsing.  Visual Studio
-      compatible output (vs7) may also be used.  Other formats are unsupported.
-
-    verbose=#
-      Specify a number 0-5 to restrict errors to certain verbosity levels.
-
-    filter=-x,+y,...
-      Specify a comma-separated list of category-filters to apply: only
-      error messages whose category names pass the filters will be printed.
-      (Category names are printed with the message and look like
-      "[whitespace/indent]".)  Filters are evaluated left to right.
-      "-FOO" and "FOO" means "do not print categories that start with FOO".
-      "+FOO" means "do print categories that start with FOO".
-
-      Examples: --filter=-whitespace,+whitespace/braces
-                --filter=whitespace,runtime/printf,+runtime/printf_format
-                --filter=-,+build/include_what_you_use
-
-      To see a list of all the categories used in %(program_name)s, pass no arg:
-         --filter=
-""" % {'program_name': sys.argv[0]}
-
-# We categorize each error message we print.  Here are the categories.
+# We categorize each style rule we print.  Here are the categories.
 # We want an explicit list so we can list them all in cpp_style --filter=.
 # If you add a new error message with a new category, add it to the list
 # here!  cpp_style_unittest.py should tell you if you forget to do this.
-# \ used for clearer layout -- pylint: disable-msg=C6013
-_ERROR_CATEGORIES = '''\
-    build/class
-    build/deprecated
-    build/endif_comment
-    build/forward_decl
-    build/header_guard
-    build/include
-    build/include_order
-    build/include_what_you_use
-    build/namespaces
-    build/printf_format
-    build/storage_class
-    build/using_std
-    legal/copyright
-    readability/braces
-    readability/casting
-    readability/check
-    readability/comparison_to_zero
-    readability/constructors
-    readability/control_flow
-    readability/fn_size
-    readability/function
-    readability/multiline_comment
-    readability/multiline_string
-    readability/naming
-    readability/null
-    readability/streams
-    readability/todo
-    readability/utf8
-    runtime/arrays
-    runtime/casting
-    runtime/explicit
-    runtime/int
-    runtime/init
-    runtime/invalid_increment
-    runtime/max_min_macros
-    runtime/memset
-    runtime/printf
-    runtime/printf_format
-    runtime/references
-    runtime/rtti
-    runtime/sizeof
-    runtime/string
-    runtime/threadsafe_fn
-    runtime/virtual
-    whitespace/blank_line
-    whitespace/braces
-    whitespace/comma
-    whitespace/comments
-    whitespace/declaration
-    whitespace/end_of_line
-    whitespace/ending_newline
-    whitespace/indent
-    whitespace/labels
-    whitespace/line_length
-    whitespace/newline
-    whitespace/operators
-    whitespace/parens
-    whitespace/semicolon
-    whitespace/tab
-    whitespace/todo
-'''
+_STYLE_CATEGORIES = [
+    'build/class',
+    'build/deprecated',
+    'build/endif_comment',
+    'build/forward_decl',
+    'build/header_guard',
+    'build/include',
+    'build/include_order',
+    'build/include_what_you_use',
+    'build/namespaces',
+    'build/printf_format',
+    'build/storage_class',
+    'build/using_std',
+    'legal/copyright',
+    'readability/braces',
+    'readability/casting',
+    'readability/check',
+    'readability/comparison_to_zero',
+    'readability/constructors',
+    'readability/control_flow',
+    'readability/fn_size',
+    'readability/function',
+    'readability/multiline_comment',
+    'readability/multiline_string',
+    'readability/naming',
+    'readability/null',
+    'readability/streams',
+    'readability/todo',
+    'readability/utf8',
+    'runtime/arrays',
+    'runtime/casting',
+    'runtime/explicit',
+    'runtime/init',
+    'runtime/int',
+    'runtime/invalid_increment',
+    'runtime/max_min_macros',
+    'runtime/memset',
+    'runtime/printf',
+    'runtime/printf_format',
+    'runtime/references',
+    'runtime/rtti',
+    'runtime/sizeof',
+    'runtime/string',
+    'runtime/threadsafe_fn',
+    'runtime/virtual',
+    'whitespace/blank_line',
+    'whitespace/braces',
+    'whitespace/comma',
+    'whitespace/comments',
+    'whitespace/declaration',
+    'whitespace/end_of_line',
+    'whitespace/ending_newline',
+    'whitespace/indent',
+    'whitespace/labels',
+    'whitespace/line_length',
+    'whitespace/newline',
+    'whitespace/operators',
+    'whitespace/parens',
+    'whitespace/semicolon',
+    'whitespace/tab',
+    'whitespace/todo',
+    ]
+
 
 # The default state of the category filter. This is overrided by the --filter=
 # flag. By default all errors are on, so only add here categories that should be
 # off by default (i.e., categories that must be enabled by the --filter= flags).
 # All entries here should start with a '-' or '+', as in the --filter= flag.
-_DEFAULT_FILTERS = []
+_DEFAULT_FILTER_RULES = []
 
 # Headers that we consider STL headers.
 _STL_HEADERS = frozenset([
@@ -370,15 +360,15 @@ class _CppStyleState(object):
     """Maintains module-wide state.."""
 
     def __init__(self):
-        self.verbose_level = 1  # global setting.
+        self.verbose_level = _DEFAULT_VERBOSITY  # global setting.
         self.error_count = 0    # global count of reported errors
         # filters to apply when emitting error messages
-        self.filters = _DEFAULT_FILTERS[:]
+        self.filters = _DEFAULT_FILTER_RULES[:]
 
         # output format:
         # "emacs" - format that emacs can parse (default)
         # "vs7" - format that Microsoft Visual Studio 7 can parse
-        self.output_format = 'emacs'
+        self.output_format = _DEFAULT_OUTPUT_FORMAT
 
     def set_output_format(self, output_format):
         """Sets the output format for errors."""
@@ -405,7 +395,7 @@ class _CppStyleState(object):
                       E.g. "-,+whitespace,-whitespace/indent,whitespace/badfilter"
         """
         # Default filters always have less priority than the flag ones.
-        self.filters = _DEFAULT_FILTERS[:]
+        self.filters = _DEFAULT_FILTER_RULES[:]
         for filter in filters.split(','):
             clean_filter = filter.strip()
             if clean_filter:
@@ -882,8 +872,7 @@ def get_header_guard_cpp_variable(filename):
 
     """
 
-    fileinfo = FileInfo(filename)
-    return sub(r'[-./\s]', '_', fileinfo.repository_name()).upper() + '_'
+    return sub(r'[-.\s]', '_', os.path.basename(filename))
 
 
 def check_for_header_guard(filename, lines, error):
@@ -926,23 +915,14 @@ def check_for_header_guard(filename, lines, error):
               cppvar)
         return
 
-    # The guard should be PATH_FILE_H_, but we also allow PATH_FILE_H__
-    # for backward compatibility.
+    # The guard should be File_h.
     if ifndef != cppvar:
-        error_level = 0
-        if ifndef != cppvar + '_':
-            error_level = 5
-
-        error(filename, ifndef_line_number, 'build/header_guard', error_level,
+        error(filename, ifndef_line_number, 'build/header_guard', 5,
               '#ifndef header guard has wrong style, please use: %s' % cppvar)
 
-    if endif != ('#endif  // %s' % cppvar):
-        error_level = 0
-        if endif != ('#endif  // %s' % (cppvar + '_')):
-            error_level = 5
-
-        error(filename, endif_line_number, 'build/header_guard', error_level,
-              '#endif line should be "#endif  // %s"' % cppvar)
+    if endif != ('#endif // %s' % cppvar):
+        error(filename, endif_line_number, 'build/header_guard', 5,
+              '#endif line should be "#endif // %s"' % cppvar)
 
 
 def check_for_unicode_replacement_characters(filename, lines, error):
@@ -1532,14 +1512,14 @@ def check_spacing(filename, clean_lines, line_number, error):
         # Check if the // may be in quotes.  If so, ignore it
         # Comparisons made explicit for clarity -- pylint: disable-msg=C6403
         if (line.count('"', 0, comment_position) - line.count('\\"', 0, comment_position)) % 2 == 0:   # not in quotes
-            # Allow one space for new scopes, two spaces otherwise:
-            if (not match(r'^\s*{ //', line)
-                and ((comment_position >= 1
-                      and line[comment_position-1] not in string.whitespace)
+            # Allow one space before end of line comment.
+            if (not match(r'^\s*$', line[:comment_position])
+                and (comment_position >= 1
+                and ((line[comment_position - 1] not in string.whitespace)
                      or (comment_position >= 2
-                         and line[comment_position-2] not in string.whitespace))):
-                error(filename, line_number, 'whitespace/comments', 2,
-                      'At least two spaces is best between code and comments')
+                         and line[comment_position - 2] in string.whitespace)))):
+                error(filename, line_number, 'whitespace/comments', 5,
+                      'One space before end of line comments')
             # There should always be a space between the // and the comment
             commentend = comment_position + 2
             if commentend < len(line) and not line[commentend] == ' ':
@@ -2123,6 +2103,11 @@ def check_for_null(filename, clean_lines, line_number, error):
         return
 
     line = clean_lines.elided[line_number]
+
+    # Don't warn about NULL usage in g_object_{get,set}(). See Bug 32858
+    if search(r'\bg_object_[sg]et\b', line):
+        return
+
     if search(r'\bNULL\b', line):
         error(filename, line_number, 'readability/null', 5, 'Use 0 instead of NULL.')
         return
@@ -2666,7 +2651,7 @@ def check_identifier_name_in_declaration(filename, line_number, line, error):
       error: The function to call with any errors found.
     """
     # We don't check a return statement.
-    if match(r'\s*return\b', line):
+    if match(r'\s*(return|delete)\b', line):
         return
 
     # Basically, a declaration is a type name followed by whitespaces
@@ -2737,6 +2722,7 @@ def check_identifier_name_in_declaration(filename, line_number, line, error):
         if modified_identifier.find('_') >= 0:
             # Various exceptions to the rule: JavaScript op codes functions, const_iterator.
             if (not (filename.find('JavaScriptCore') >= 0 and modified_identifier.find('_op_') >= 0)
+                and not modified_identifier.startswith('tst_')
                 and not modified_identifier == "const_iterator"):
                 error(filename, line_number, 'readability/naming', 4, identifier + " is incorrectly named. Don't use underscores in your identifier names.")
 
@@ -3165,8 +3151,7 @@ def process_file(filename, error=error):
 
     # When reading from stdin, the extension is unknown, so no cpp_style tests
     # should rely on the extension.
-    if (filename != '-' and file_extension != 'h' and file_extension != 'cpp'
-        and file_extension != 'c'):
+    if (filename != '-' and not can_handle(filename)):
         sys.stderr.write('Ignoring %s; not a .cpp, .c or .h file\n' % filename)
     else:
         process_file_data(filename, file_extension, lines, error)
@@ -3178,29 +3163,47 @@ def process_file(filename, error=error):
                   'better to use only a \\n')
 
 
-def print_usage(message):
-    """Prints a brief usage string and exits, optionally with an error message.
+def exit_with_usage(error_message, display_help=False):
+    """Exit and print a usage string with an optional error message.
 
     Args:
-      message: The optional error message.
+      error_message: The optional error message.
+      display_help: Whether to display help output. Suppressing help
+                    output is useful for unit tests.
     """
-    sys.stderr.write(_USAGE)
-    if message:
-        sys.exit('\nFATAL ERROR: ' + message)
+    if display_help:
+        sys.stderr.write(_USAGE)
+    if error_message:
+        sys.exit('\nFATAL ERROR: ' + error_message)
     else:
         sys.exit(1)
 
 
-def print_categories():
-    """Prints a list of all the error-categories used by error messages.
+def exit_with_categories(display_help=False):
+    """Exit and print all style categories, along with the default filter.
 
-    These are the categories used to filter messages via --filter.
+    These category names appear in error messages.  They can be filtered
+    using the --filter flag.
+
+    Args:
+      display_help: Whether to display help output. Suppressing help
+                    output is useful for unit tests.
     """
-    sys.stderr.write(_ERROR_CATEGORIES)
+    if display_help:
+        sys.stderr.write('\nAll categories:\n')
+        for category in sorted(_STYLE_CATEGORIES):
+            sys.stderr.write('    ' + category + '\n')
+
+        sys.stderr.write('\nDefault filter rules**:\n')
+        for filter_rule in sorted(_WEBKIT_FILTER_RULES):
+            sys.stderr.write('    ' + filter_rule + '\n')
+        sys.stderr.write('\n**The command always evaluates the above '
+                         'rules, and before any --filter flag.\n\n')
+
     sys.exit(0)
 
 
-def parse_arguments(args, additional_flags=[]):
+def parse_arguments(args, additional_flags=[], display_help=False):
     """Parses the command line arguments.
 
     This may set the output format and verbosity level as side-effects.
@@ -3208,6 +3211,8 @@ def parse_arguments(args, additional_flags=[]):
     Args:
       args: The command line arguments:
       additional_flags: A list of strings which specifies flags we allow.
+      display_help: Whether to display help output. Suppressing help
+                    output is useful for unit tests.
 
     Returns:
       A tuple of (filenames, flags)
@@ -3220,7 +3225,7 @@ def parse_arguments(args, additional_flags=[]):
     try:
         (opts, filenames) = getopt.getopt(args, '', flags)
     except getopt.GetoptError:
-        print_usage('Invalid arguments.')
+        exit_with_usage('Invalid arguments.', display_help)
 
     verbosity = _verbose_level()
     output_format = _output_format()
@@ -3228,17 +3233,18 @@ def parse_arguments(args, additional_flags=[]):
 
     for (opt, val) in opts:
         if opt == '--help':
-            print_usage(None)
+            exit_with_usage(None, display_help)
         elif opt == '--output':
             if not val in ('emacs', 'vs7'):
-                print_usage('The only allowed output formats are emacs and vs7.')
+                exit_with_usage('The only allowed output formats are emacs and vs7.',
+                                display_help)
             output_format = val
         elif opt == '--verbose':
             verbosity = int(val)
         elif opt == '--filter':
             filters = val
             if not filters:
-                print_categories()
+                exit_with_categories(display_help)
         else:
             additional_flag_values[opt] = val
 
@@ -3249,69 +3255,10 @@ def parse_arguments(args, additional_flags=[]):
     return (filenames, additional_flag_values)
 
 
-def use_webkit_styles():
-    """Disables some features which are not suitable for WebKit."""
-    # FIXME: For filters we will never want to have, remove them.
-    #        For filters we want to have similar functionalities,
-    #        modify the implementation and enable them.
-    global _DEFAULT_FILTERS
-    _DEFAULT_FILTERS = [
-        '-whitespace/end_of_line',
-        '-whitespace/comments',
-        '-whitespace/blank_line',
-        '-runtime/explicit',  # explicit
-        '-runtime/virtual',  # virtual dtor
-        '-runtime/printf',
-        '-runtime/threadsafe_fn',
-        '-runtime/rtti',
-        '-build/include_what_you_use',  # <string> for std::string
-        '-legal/copyright',
-        '-readability/multiline_comment',
-        '-readability/braces',  # int foo() {};
-        '-readability/fn_size',
-        '-build/storage_class',  # const static
-        '-build/endif_comment',
-        '-whitespace/labels',
-        '-runtime/arrays',  # variable length array
-        '-build/header_guard',
-        '-readability/casting',
-        '-readability/function',
-        '-runtime/casting',
-        '-runtime/sizeof',
-    ]
+def can_handle(filename):
+    """Checks if this module supports for the specified file type.
 
-
-def main():
-    sys.stderr.write(
-        '''********************* WARNING WARNING WARNING *********************
-
-This tool is in the process of development and may give inaccurate
-results at present.  Please file bugs (and/or patches) for things
-that you notice that it flags incorrectly.
-
-********************* WARNING WARNING WARNING *********************
-
-''')
-
-    use_webkit_styles()
-
-    (filenames, flags) = parse_arguments(sys.argv[1:])
-    if not filenames:
-        print_usage('No files were specified.')
-
-    # Change stderr to write with replacement characters so we don't die
-    # if we try to print something containing non-ASCII characters.
-    sys.stderr = codecs.StreamReaderWriter(sys.stderr,
-                                           codecs.getreader('utf8'),
-                                           codecs.getwriter('utf8'),
-                                           'replace')
-
-    _cpp_style_state.reset_error_count()
-    for filename in filenames:
-        process_file(filename)
-    sys.stderr.write('Total errors found: %d\n' % _cpp_style_state.error_count)
-    sys.exit(_cpp_style_state.error_count > 0)
-
-
-if __name__ == '__main__':
-    main()
+    Args:
+      filename: A filename. It may contain directory names.
+     """
+    return os.path.splitext(filename)[1] in ('.h', '.cpp', '.c')

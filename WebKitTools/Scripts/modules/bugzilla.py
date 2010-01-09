@@ -29,68 +29,21 @@
 #
 # WebKit's Python module for interacting with Bugzilla
 
-import getpass
-import platform
 import re
 import subprocess
-import urllib2
 
 from datetime import datetime # used in timestamp()
 
 # Import WebKit-specific modules.
 from modules.logging import error, log
 from modules.committers import CommitterList
+from modules.credentials import Credentials
 
 # WebKit includes a built copy of BeautifulSoup in Scripts/modules
 # so this import should always succeed.
 from .BeautifulSoup import BeautifulSoup, SoupStrainer
 
-try:
-    from mechanize import Browser
-except ImportError, e:
-    print """
-mechanize is required.
-
-To install:
-sudo easy_install mechanize
-
-Or from the web:
-http://wwwsearch.sourceforge.net/mechanize/
-"""
-    exit(1)
-
-def credentials_from_git():
-    return [read_config("username"), read_config("password")]
-
-def credentials_from_keychain(username=None):
-    if not is_mac_os_x():
-        return [username, None]
-
-    command = "/usr/bin/security %s -g -s %s" % ("find-internet-password", Bugzilla.bug_server_host)
-    if username:
-        command += " -a %s" % username
-
-    log('Reading Keychain for %s account and password.  Click "Allow" to continue...' % Bugzilla.bug_server_host)
-    keychain_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-    value = keychain_process.communicate()[0]
-    exit_code = keychain_process.wait()
-
-    if exit_code:
-        return [username, None]
-
-    match = re.search('^\s*"acct"<blob>="(?P<username>.+)"', value, re.MULTILINE)
-    if match:
-        username = match.group('username')
-
-    password = None
-    match = re.search('^password: "(?P<password>.+)"', value, re.MULTILINE)
-    if match:
-        password = match.group('password')
-
-    return [username, password]
-
-def is_mac_os_x():
-    return platform.mac_ver()[0]
+from modules.webkit_mechanize import Browser
 
 def parse_bug_id(message):
     match = re.search("http\://webkit\.org/b/(?P<bug_id>\d+)", message)
@@ -101,29 +54,6 @@ def parse_bug_id(message):
         return int(match.group('bug_id'))
     return None
 
-# FIXME: This should not depend on git for config storage
-def read_config(key):
-    # Need a way to read from svn too
-    config_process = subprocess.Popen("git config --get bugzilla.%s" % key, stdout=subprocess.PIPE, shell=True)
-    value = config_process.communicate()[0]
-    return_code = config_process.wait()
-
-    if return_code:
-        return None
-    return value.rstrip('\n')
-
-def read_credentials():
-    (username, password) = credentials_from_git()
-
-    if not username or not password:
-        (username, password) = credentials_from_keychain(username)
-
-    if not username:
-        username = raw_input("Bugzilla login: ")
-    if not password:
-        password = getpass.getpass("Bugzilla password for %s: " % username)
-
-    return [username, password]
 
 def timestamp():
     return datetime.now().strftime("%Y%m%d%H%M%S")
@@ -133,7 +63,7 @@ class BugzillaError(Exception):
     pass
 
 
-class Bugzilla:
+class Bugzilla(object):
     def __init__(self, dryrun=False, committers=CommitterList()):
         self.dryrun = dryrun
         self.authenticated = False
@@ -186,7 +116,7 @@ class Bugzilla:
         bug_url = self.bug_url_for_bug_id(bug_id, xml=True)
         log("Fetching: %s" % bug_url)
 
-        page = urllib2.urlopen(bug_url)
+        page = self.browser.open(bug_url)
         soup = BeautifulSoup(page)
 
         attachments = []
@@ -205,7 +135,7 @@ class Bugzilla:
     def bug_id_for_attachment_id(self, attachment_id):
         attachment_url = self.attachment_url_for_id(attachment_id, 'edit')
         log("Fetching: %s" % attachment_url)
-        page = urllib2.urlopen(attachment_url)
+        page = self.browser.open(attachment_url)
         return self._parse_bug_id_from_attachment_page(page)
 
     # This should really return an Attachment object
@@ -227,7 +157,7 @@ class Bugzilla:
 
     def fetch_title_from_bug(self, bug_id):
         bug_url = self.bug_url_for_bug_id(bug_id, xml=True)
-        page = urllib2.urlopen(bug_url)
+        page = self.browser.open(bug_url)
         soup = BeautifulSoup(page)
         return soup.find('short_desc').string
 
@@ -301,7 +231,7 @@ class Bugzilla:
         return commit_queue_patches
 
     def _fetch_bug_ids_advanced_query(self, query):
-        page = urllib2.urlopen(query)
+        page = self.browser.open(query)
         soup = BeautifulSoup(page)
 
         bug_ids = []
@@ -319,7 +249,7 @@ class Bugzilla:
         return [int(digits.search(tag["href"]).group(0)) for tag in BeautifulSoup(page, parseOnlyThese=attachment_links)]
 
     def _fetch_attachment_ids_request_query(self, query):
-        return self._parse_attachment_ids_request_query(urllib2.urlopen(query))
+        return self._parse_attachment_ids_request_query(self.browser.open(query))
 
     def fetch_bug_ids_from_commit_queue(self):
         commit_queue_url = self.bug_server_url + "buglist.cgi?query_format=advanced&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&field0-0-0=flagtypes.name&type0-0-0=equals&value0-0-0=commit-queue%2B"
@@ -370,7 +300,7 @@ class Bugzilla:
             self.authenticated = True
             return
 
-        (username, password) = read_credentials()
+        (username, password) = Credentials(self.bug_server_host, git_prefix="bugzilla").read_credentials()
 
         log("Logging in as %s..." % username)
         self.browser.open(self.bug_server_url + "index.cgi?GoAheadAndLogIn=1")
@@ -536,16 +466,16 @@ class Bugzilla:
             self.browser.set_value(comment_text, name='comment', nr=0)
         self.browser.submit()
 
-    def add_cc_to_bug(self, bug_id, email_address):
+    def add_cc_to_bug(self, bug_id, email_address_list):
         self.authenticate()
 
-        log("Adding %s to the CC list for bug %s" % (email_address, bug_id))
+        log("Adding %s to the CC list for bug %s" % (email_address_list, bug_id))
         if self.dryrun:
             return
 
         self.browser.open(self.bug_url_for_bug_id(bug_id))
         self.browser.select_form(name="changeform")
-        self.browser["newcc"] = email_address
+        self.browser["newcc"] = ", ".join(email_address_list)
         self.browser.submit()
 
     def post_comment_to_bug(self, bug_id, comment_text, cc=None):
@@ -560,7 +490,7 @@ class Bugzilla:
         self.browser.select_form(name="changeform")
         self.browser["comment"] = comment_text
         if cc:
-            self.browser["newcc"] = cc
+            self.browser["newcc"] = ", ".join(cc)
         self.browser.submit()
 
     def close_bug_as_fixed(self, bug_id, comment_text=None):

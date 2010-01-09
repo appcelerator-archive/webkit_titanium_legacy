@@ -29,6 +29,7 @@
 
 #include "AXObjectCache.h"
 #include "CachedImage.h"
+#include "Chrome.h"
 #include "ChromeClient.h"
 #include "Cursor.h"
 #include "Document.h"
@@ -72,6 +73,11 @@
 #include "SVGElementInstance.h"
 #include "SVGNames.h"
 #include "SVGUseElement.h"
+#endif
+
+#if ENABLE(TOUCH_EVENTS)
+#include "PlatformTouchEvent.h"
+#include "TouchEvent.h"
 #endif
 
 namespace WebCore {
@@ -120,7 +126,7 @@ static inline void scrollAndAcceptEvent(float delta, ScrollDirection positiveDir
         e.accept();
 }
 
-#if !PLATFORM(MAC)
+#if !PLATFORM(MAC) || ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
 
 inline bool EventHandler::eventLoopHandleMouseUp(const MouseEventWithHitTestResults&)
 {
@@ -164,7 +170,7 @@ EventHandler::EventHandler(Frame* frame)
     , m_mouseDownTimestamp(0)
     , m_useLatchedWheelEventNode(false)
     , m_widgetIsLatched(false)
-#if PLATFORM(MAC)
+#if PLATFORM(MAC) && !ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
     , m_mouseDownView(nil)
     , m_sendingEventToSubview(false)
     , m_activationEventNumber(0)
@@ -689,6 +695,14 @@ void EventHandler::autoscrollTimerFired(Timer<EventHandler>*)
 
 #if ENABLE(PAN_SCROLLING)
 
+void EventHandler::startPanScrolling(RenderObject* renderer)
+{
+    m_panScrollInProgress = true;
+    m_panScrollButtonPressed = true;
+    handleAutoscroll(renderer);
+    invalidateClick();
+}
+
 void EventHandler::updatePanScrollState()
 {
     FrameView* view = m_frame->view();
@@ -1188,25 +1202,6 @@ bool EventHandler::handleMousePressEvent(const PlatformMouseEvent& mouseEvent)
         invalidateClick();
         return true;
     }
-
-    if (mouseEvent.button() == MiddleButton && !mev.isOverLink()) {
-        RenderObject* renderer = mev.targetNode()->renderer();
-
-        while (renderer && (!renderer->isBox() || !toRenderBox(renderer)->canBeScrolledAndHasScrollableArea())) {
-            if (!renderer->parent() && renderer->node() == renderer->document() && renderer->document()->ownerElement())
-                renderer = renderer->document()->ownerElement()->renderer();
-            else
-                renderer = renderer->parent();
-        }
-
-        if (renderer) {
-            m_panScrollInProgress = true;
-            m_panScrollButtonPressed = true;
-            handleAutoscroll(renderer);
-            invalidateClick();
-            return true;
-        }
-    }
 #endif
 
     m_clickCount = mouseEvent.clickCount();
@@ -1618,7 +1613,7 @@ void EventHandler::clearDragState()
     m_dragTarget = 0;
     m_capturingMouseEventsNode = 0;
     m_shouldOnlyFireDragOverEvent = false;
-#if PLATFORM(MAC)
+#if PLATFORM(MAC) && !ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
     m_sendingEventToSubview = false;
 #endif
 }
@@ -2538,5 +2533,87 @@ void EventHandler::updateLastScrollbarUnderMouse(Scrollbar* scrollbar, bool setL
         m_lastScrollbarUnderMouse = setLast ? scrollbar : 0;
     }
 }
+
+#if ENABLE(TOUCH_EVENTS)
+bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
+{
+    Document* doc = m_frame->document();
+    if (!doc)
+        return false;
+
+    if (!doc->hasListenerType(Document::TOUCH_LISTENER))
+        return false;
+
+    RefPtr<TouchList> touches = TouchList::create();
+    RefPtr<TouchList> changedTouches = TouchList::create();
+    RefPtr<TouchList> targetTouches = TouchList::create();
+
+    const Vector<PlatformTouchPoint>& points = event.touchPoints();
+    for (int i = 0; i < points.size(); ++i) {
+        const PlatformTouchPoint& point = points[i];
+
+        IntPoint framePoint = documentPointForWindowPoint(m_frame, point.pos());
+        HitTestResult result = hitTestResultAtPoint(framePoint, /*allowShadowContent*/ false);
+
+        Node* target = result.innerNode();
+        // Touch events should not go to text nodes
+        if (target && target->isTextNode())
+            target = target->parentNode();
+
+        RefPtr<Touch> touch = Touch::create(m_frame, target, point.id(),
+                                            point.screenPos().x(), point.screenPos().y(),
+                                            framePoint.x(), framePoint.y());
+
+        if (event.type() == TouchStart && !i) {
+            m_touchEventTarget = target;
+            m_firstTouchScreenPos = point.screenPos();
+            m_firstTouchPagePos = framePoint;
+        }
+
+        if (point.state() != PlatformTouchPoint::TouchReleased) {
+            touches->append(touch);
+
+            if (m_touchEventTarget == target)
+               targetTouches->append(touch);
+        }
+
+        if (point.state() != PlatformTouchPoint::TouchStationary)
+            changedTouches->append(touch);
+    }
+
+    AtomicString* eventName = 0;
+    switch (event.type()) {
+    case TouchStart:
+        eventName = &eventNames().touchstartEvent;
+        break;
+    case TouchMove:
+        eventName = &eventNames().touchmoveEvent;
+        break;
+    case TouchEnd:
+        eventName = &eventNames().touchendEvent;
+        break;
+    }
+
+    if (!m_touchEventTarget)
+        return false;
+
+    RefPtr<TouchEvent> ev = TouchEvent::create(touches.get(), targetTouches.get(), changedTouches.get(),
+                                               *eventName, m_touchEventTarget->document()->defaultView(),
+                                               m_firstTouchScreenPos.x(), m_firstTouchScreenPos.y(),
+                                               m_firstTouchPagePos.x(), m_firstTouchPagePos.y(),
+                                               event.ctrlKey(), event.altKey(), event.shiftKey(),
+                                               event.metaKey());
+
+    ExceptionCode ec = 0;
+    m_touchEventTarget->dispatchEvent(ev.get(), ec);
+
+    if (event.type() == TouchEnd)
+        m_touchEventTarget = 0;
+
+    m_previousTouchEvent = ev;
+
+    return ev->defaultPrevented();
+}
+#endif
 
 }

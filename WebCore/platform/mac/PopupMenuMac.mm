@@ -20,6 +20,7 @@
 #import "config.h"
 #import "PopupMenu.h"
 
+#import "Chrome.h"
 #import "ChromeClient.h"
 #import "EventHandler.h"
 #import "Frame.h"
@@ -98,6 +99,8 @@ void PopupMenu::populate()
 
     [[m_popup.get() menu] setMenuChangedMessagesEnabled:messagesEnabled];
 }
+
+#if !ENABLE(EXPERIMENTAL_SINGLE_VIEW_MODE)
 
 void PopupMenu::show(const IntRect& r, FrameView* v, int index)
 {
@@ -178,6 +181,14 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
 
     [event release];
 }
+
+#else
+
+void PopupMenu::show(const IntRect&, FrameView*, int)
+{
+}
+
+#endif
 
 void PopupMenu::hide()
 {

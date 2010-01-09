@@ -54,5 +54,21 @@ WebElement::operator WTF::PassRefPtr<Element>() const
     return PassRefPtr<Element>(static_cast<Element*>(m_private));
 }
 
+bool WebElement::hasTagName(const WebString& tagName) const
+{
+    return equalIgnoringCase(constUnwrap<Element>()->tagName(),
+                             tagName.operator WebCore::String());
+}
+
+bool WebElement::hasAttribute(const WebString& attrName) const
+{
+    return constUnwrap<Element>()->hasAttribute(attrName);
+}
+
+WebString WebElement::getAttribute(const WebString& attrName) const
+{
+    return constUnwrap<Element>()->getAttribute(attrName);
+}
+
 } // namespace WebKit
 

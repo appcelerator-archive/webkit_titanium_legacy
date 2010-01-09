@@ -28,23 +28,12 @@
 #
 # WebKit's Python module for interacting with the Commit Queue status page.
 
+from modules.logging import log
+from modules.webkit_mechanize import Browser
+
 # WebKit includes a built copy of BeautifulSoup in Scripts/modules
 # so this import should always succeed.
 from .BeautifulSoup import BeautifulSoup
-
-try:
-    from mechanize import Browser
-except ImportError, e:
-    print """
-mechanize is required.
-
-To install:
-sudo easy_install mechanize
-
-Or from the web:
-http://wwwsearch.sourceforge.net/mechanize/
-"""
-    exit(1)
 
 import urllib2
 
@@ -60,11 +49,15 @@ class StatusBot:
         self.statusbot_host = host
         self.statusbot_server_url = "http://%s" % self.statusbot_host
 
+    def results_url_for_status(self, status_id):
+        return "%s/results/%s" % (self.statusbot_server_url, status_id)
+
     def update_status(self, queue_name, status, patch=None, results_file=None):
         # During unit testing, statusbot_host is None
         if not self.statusbot_host:
             return
 
+        log(status)
         update_status_url = "%s/update-status" % self.statusbot_server_url
         self.browser.open(update_status_url)
         self.browser.select_form(name="update_status")
@@ -77,7 +70,8 @@ class StatusBot:
         self.browser['status'] = status
         if results_file:
             self.browser.add_file(results_file, "text/plain", "results.txt", 'results_file')
-        self.browser.submit()
+        response = self.browser.submit()
+        return response.read() # This is the id of the newly created status object.
 
     def patch_status(self, queue_name, patch_id):
         update_status_url = "%s/patch-status/%s/%s" % (self.statusbot_server_url, queue_name, patch_id)

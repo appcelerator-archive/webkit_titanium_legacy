@@ -54,7 +54,7 @@ namespace WebCore {
     class ScriptString;
     class Storage;
 
-    class InspectorFrontend {
+    class InspectorFrontend : public Noncopyable {
     public:
         InspectorFrontend(InspectorController* inspectorController, ScriptState*, ScriptObject webInspector);
         ~InspectorFrontend();
@@ -63,11 +63,12 @@ namespace WebCore {
         ScriptObject newScriptObject();
 
         void didCommitLoad();
+
+        void updateConsoleMessageExpiredCount(unsigned count);
         void addConsoleMessage(const ScriptObject& messageObj, const Vector<ScriptString>& frames, const Vector<ScriptValue> wrappedArguments, const String& message);
-        void updateConsoleMessageRepeatCount(const int count);
+        void updateConsoleMessageRepeatCount(unsigned count);
         void clearConsoleMessages();
 
-        bool addResource(unsigned long identifier, const ScriptObject& resourceObj);
         bool updateResource(unsigned long identifier, const ScriptObject& resourceObj);
         void removeResource(unsigned long identifier);
 

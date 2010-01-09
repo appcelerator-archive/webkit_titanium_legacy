@@ -21,14 +21,11 @@
 #ifndef Page_h
 #define Page_h
 
-#include "BackForwardList.h"
-#include "Chrome.h"
-#include "ContextMenuController.h"
 #include "FrameLoaderTypes.h"
-#include "LinkHash.h"
 #include "PlatformString.h"
+#include <wtf/Forward.h>
 #include <wtf/HashSet.h>
-#include <wtf/OwnPtr.h>
+#include <wtf/Noncopyable.h>
 
 #if PLATFORM(MAC)
 #include "SchedulePair.h"
@@ -44,6 +41,7 @@ namespace JSC {
 
 namespace WebCore {
 
+    class BackForwardList;
     class Chrome;
     class ChromeClient;
     class ContextMenuClient;
@@ -54,7 +52,10 @@ namespace WebCore {
     class EditorClient;
     class FocusController;
     class Frame;
+    class GeolocationController;
+    class GeolocationControllerClient;
     class HaltablePlugin;
+    class HistoryItem;
     class InspectorClient;
     class InspectorController;
     class InspectorTimelineAgent;
@@ -79,13 +80,15 @@ namespace WebCore {
     class NotificationPresenter;
 #endif
 
+    typedef uint64_t LinkHash;
+
     enum FindDirection { FindDirectionForward, FindDirectionBackward };
 
     class Page : public Noncopyable {
     public:
         static void setNeedsReapplyStyles();
 
-        Page(ChromeClient*, ContextMenuClient*, EditorClient*, DragClient*, InspectorClient*, PluginHalterClient*);
+        Page(ChromeClient*, ContextMenuClient*, EditorClient*, DragClient*, InspectorClient*, PluginHalterClient*, GeolocationControllerClient*);
         ~Page();
 
         RenderTheme* theme() const { return m_theme.get(); };
@@ -143,6 +146,9 @@ namespace WebCore {
 #endif
 #if ENABLE(INSPECTOR)
         InspectorController* inspectorController() const { return m_inspectorController.get(); }
+#endif
+#if ENABLE(CLIENT_BASED_GEOLOCATION)
+        GeolocationController* geolocationController() const { return m_geolocationController.get(); }
 #endif
         Settings* settings() const { return m_settings.get(); }
         ProgressTracker* progress() const { return m_progress.get(); }
@@ -249,6 +255,9 @@ namespace WebCore {
 #endif
 #if ENABLE(INSPECTOR)
         OwnPtr<InspectorController> m_inspectorController;
+#endif
+#if ENABLE(CLIENT_BASED_GEOLOCATION)
+        OwnPtr<GeolocationController> m_geolocationController;
 #endif
         OwnPtr<Settings> m_settings;
         OwnPtr<ProgressTracker> m_progress;

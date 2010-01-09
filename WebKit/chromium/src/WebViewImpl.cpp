@@ -33,6 +33,7 @@
 
 #include "AutocompletePopupMenuClient.h"
 #include "AXObjectCache.h"
+#include "Chrome.h"
 #include "ContextMenu.h"
 #include "ContextMenuController.h"
 #include "ContextMenuItem.h"
@@ -229,6 +230,7 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
                         &m_editorClientImpl,
                         &m_dragClientImpl,
                         &m_inspectorClientImpl,
+                        0,
                         0));
 
     m_page->backForwardList()->setClient(&m_backForwardListClientImpl);
@@ -452,8 +454,16 @@ bool WebViewImpl::keyEvent(const WebKeyboardEvent& event)
         return keyEventDefault(event);
 
 #if PLATFORM(WIN_OS) || PLATFORM(LINUX)
-    if ((!event.modifiers && (event.windowsKeyCode == VKEY_APPS))
-        || ((event.modifiers == WebInputEvent::ShiftKey) && (event.windowsKeyCode == VKEY_F10))) {
+    const WebInputEvent::Type contextMenuTriggeringEventType =
+#if PLATFORM(WIN_OS)
+        WebInputEvent::KeyUp;
+#elif PLATFORM(LINUX)
+        WebInputEvent::RawKeyDown;
+#endif
+
+    if (((!event.modifiers && (event.windowsKeyCode == VKEY_APPS))
+        || ((event.modifiers == WebInputEvent::ShiftKey) && (event.windowsKeyCode == VKEY_F10)))
+        && event.type == contextMenuTriggeringEventType) {
         sendContextMenuEvent(event);
         return true;
     }
@@ -591,15 +601,12 @@ bool WebViewImpl::sendContextMenuEvent(const WebKeyboardEvent& event)
 #endif
     IntPoint location;
 
-    // The context menu event was generated from the keyboard, so show the
-    // context menu by the current selection.
-    Position start = mainFrameImpl->selection()->selection().start();
-    Position end = mainFrameImpl->selection()->selection().end();
 
     Frame* focusedFrame = page()->focusController()->focusedOrMainFrame();
     Node* focusedNode = focusedFrame->document()->focusedNode();
+    Position start = mainFrameImpl->selection()->selection().start();
 
-    if (start.node() && end.node()) {
+    if (focusedFrame->editor() && focusedFrame->editor()->canEdit() && start.node()) {
         RenderObject* renderer = start.node()->renderer();
         if (!renderer)
             return false;

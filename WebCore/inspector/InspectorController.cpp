@@ -34,6 +34,7 @@
 
 #include "CString.h"
 #include "CachedResource.h"
+#include "Chrome.h"
 #include "Console.h"
 #include "ConsoleMessage.h"
 #include "Cookie.h"
@@ -100,6 +101,7 @@
 #include <profiler/Profile.h>
 #include <profiler/Profiler.h>
 #include <runtime/JSLock.h>
+#include <runtime/StringBuilder.h>
 #include <runtime/UString.h>
 
 using namespace JSC;
@@ -119,6 +121,8 @@ static const char* const lastActivePanelSettingName = "lastActivePanel";
 static const unsigned defaultAttachedHeight = 300;
 static const float minimumAttachedHeight = 250.0f;
 static const float maximumAttachedHeightRatio = 0.75f;
+static const unsigned maximumConsoleMessages = 1000;
+static const unsigned expireConsoleMessagesStep = 100;
 
 static unsigned s_inspectorControllerCount;
 
@@ -126,6 +130,7 @@ InspectorController::InspectorController(Page* page, InspectorClient* client)
     : m_inspectedPage(page)
     , m_client(client)
     , m_page(0)
+    , m_expiredConsoleMessageCount(0)
     , m_scriptState(0)
     , m_windowVisible(false)
     , m_showAfterVisible(CurrentPanel)
@@ -353,12 +358,20 @@ void InspectorController::addConsoleMessage(ScriptState* scriptState, ConsoleMes
         if (windowVisible())
             m_previousMessage->addToConsole(m_frontend.get());
     }
+
+    if (!windowVisible() && m_consoleMessages.size() >= maximumConsoleMessages) {
+        m_expiredConsoleMessageCount += expireConsoleMessagesStep;
+        for (size_t i = 0; i < expireConsoleMessagesStep; ++i)
+            delete m_consoleMessages[i];
+        m_consoleMessages.remove(0, expireConsoleMessagesStep);
+    }
 }
 
 void InspectorController::clearConsoleMessages(bool clearUI)
 {
     deleteAllValues(m_consoleMessages);
     m_consoleMessages.clear();
+    m_expiredConsoleMessageCount = 0;
     m_previousMessage = 0;
     m_groupLevel = 0;
     releaseWrapperObjectGroup("console");
@@ -648,8 +661,10 @@ void InspectorController::populateScriptObjects()
 
     ResourcesMap::iterator resourcesEnd = m_resources.end();
     for (ResourcesMap::iterator it = m_resources.begin(); it != resourcesEnd; ++it)
-        it->second->createScriptObject(m_frontend.get());
+        it->second->updateScriptObject(m_frontend.get());
 
+    if (m_expiredConsoleMessageCount)
+        m_frontend->updateConsoleMessageExpiredCount(m_expiredConsoleMessageCount);
     unsigned messageCount = m_consoleMessages.size();
     for (unsigned i = 0; i < messageCount; ++i)
         m_consoleMessages[i]->addToConsole(m_frontend.get());
@@ -758,7 +773,7 @@ void InspectorController::didCommitLoad(DocumentLoader* loader)
                 // needed to keep the load for a user-entered URL from showing up in the
                 // list of resources for the page they are navigating away from.
                 if (windowVisible())
-                    m_mainResource->createScriptObject(m_frontend.get());
+                    m_mainResource->updateScriptObject(m_frontend.get());
             } else {
                 // Pages loaded from the page cache are committed before
                 // m_mainResource is the right resource for this load, so we
@@ -853,7 +868,7 @@ void InspectorController::didLoadResourceFromMemoryCache(DocumentLoader* loader,
     if (!isMainResource && !m_resourceTrackingEnabled)
         return;
 
-    RefPtr<InspectorResource> resource = InspectorResource::createCached(m_inspectedPage->progress()->createUniqueIdentifier() , loader, cachedResource);
+    RefPtr<InspectorResource> resource = InspectorResource::createCached(m_inspectedPage->progress()->createUniqueIdentifier(), loader, cachedResource);
 
     if (isMainResource) {
         m_mainResource = resource;
@@ -863,7 +878,7 @@ void InspectorController::didLoadResourceFromMemoryCache(DocumentLoader* loader,
     addResource(resource.get());
 
     if (windowVisible())
-        resource->createScriptObject(m_frontend.get());
+        resource->updateScriptObject(m_frontend.get());
 }
 
 void InspectorController::identifierForInitialRequest(unsigned long identifier, DocumentLoader* loader, const ResourceRequest& request)
@@ -877,9 +892,7 @@ void InspectorController::identifierForInitialRequest(unsigned long identifier, 
     if (!isMainResource && !m_resourceTrackingEnabled)
         return;
 
-    RefPtr<InspectorResource> resource = InspectorResource::create(identifier, loader);
-
-    resource->updateRequest(request);
+    RefPtr<InspectorResource> resource = InspectorResource::create(identifier, loader, request.url());
 
     if (isMainResource) {
         m_mainResource = resource;
@@ -889,7 +902,7 @@ void InspectorController::identifierForInitialRequest(unsigned long identifier, 
     addResource(resource.get());
 
     if (windowVisible() && loader->frameLoader()->isLoadingFromCachedPage() && resource == m_mainResource)
-        resource->createScriptObject(m_frontend.get());
+        resource->updateScriptObject(m_frontend.get());
 }
 
 void InspectorController::mainResourceFiredDOMContentEvent(DocumentLoader* loader, const KURL& url)
@@ -931,15 +944,28 @@ void InspectorController::willSendRequest(unsigned long identifier, const Resour
     if (!resource)
         return;
 
-    resource->startTiming();
-
     if (!redirectResponse.isNull()) {
-        resource->updateRequest(request);
+        resource->markResponseReceivedTime();
+        resource->endTiming();
         resource->updateResponse(redirectResponse);
+
+        // We always store last redirect by the original id key. Rest of the redirects are stored within the last one.
+        unsigned long id = m_inspectedPage->progress()->createUniqueIdentifier();
+        RefPtr<InspectorResource> withRedirect = resource->appendRedirect(id, request.url());
+        removeResource(resource.get());
+        addResource(withRedirect.get());
+        if (isMainResource) {
+            m_mainResource = withRedirect;
+            withRedirect->markMainResource();
+        }
+        resource = withRedirect;
     }
 
+    resource->startTiming();
+    resource->updateRequest(request);
+
     if (resource != m_mainResource && windowVisible())
-        resource->createScriptObject(m_frontend.get());
+        resource->updateScriptObject(m_frontend.get());
 }
 
 void InspectorController::didReceiveResponse(unsigned long identifier, const ResourceResponse& response)
@@ -954,7 +980,7 @@ void InspectorController::didReceiveResponse(unsigned long identifier, const Res
     resource->updateResponse(response);
     resource->markResponseReceivedTime();
 
-    if (windowVisible())
+    if (resource != m_mainResource && windowVisible())
         resource->updateScriptObject(m_frontend.get());
 }
 
@@ -966,7 +992,7 @@ void InspectorController::didReceiveContentLength(unsigned long identifier, int 
 
     resource->addLength(lengthReceived);
 
-    if (windowVisible())
+    if (resource != m_mainResource && windowVisible())
         resource->updateScriptObject(m_frontend.get());
 }
 
@@ -979,13 +1005,9 @@ void InspectorController::didFinishLoading(unsigned long identifier)
     if (!resource)
         return;
 
-    removeResource(resource.get());
-
     resource->endTiming();
 
-    addResource(resource.get());
-
-    if (windowVisible())
+    if (resource != m_mainResource && windowVisible())
         resource->updateScriptObject(m_frontend.get());
 }
 
@@ -998,14 +1020,10 @@ void InspectorController::didFailLoading(unsigned long identifier, const Resourc
     if (!resource)
         return;
 
-    removeResource(resource.get());
-
     resource->markFailed();
     resource->endTiming();
 
-    addResource(resource.get());
-
-    if (windowVisible())
+    if (resource != m_mainResource && windowVisible())
         resource->updateScriptObject(m_frontend.get());
 }
 
@@ -1036,7 +1054,7 @@ void InspectorController::scriptImported(unsigned long identifier, const String&
     // FIXME: imported script and XHR response are currently viewed as the same
     // thing by the Inspector. They should be made into distinct types.
     resource->setXMLHttpResponseText(ScriptString(sourceString));
-    
+
     if (windowVisible())
         resource->updateScriptObject(m_frontend.get());
 }
@@ -1352,24 +1370,26 @@ void InspectorController::addProfileFinishedMessageToConsole(PassRefPtr<Profile>
 {
     RefPtr<Profile> profile = prpProfile;
 
-    UString message = "Profile \"webkit-profile://";
-    message += encodeWithURLEscapeSequences(CPUProfileType);
-    message += "/";
-    message += encodeWithURLEscapeSequences(profile->title());
-    message += "#";
-    message += UString::from(profile->uid());
-    message += "\" finished.";
-    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message, lineNumber, sourceURL);
+    JSC::StringBuilder message;
+    message.append("Profile \"webkit-profile://");
+    message.append((UString)encodeWithURLEscapeSequences(CPUProfileType));
+    message.append("/");
+    message.append((UString)encodeWithURLEscapeSequences(profile->title()));
+    message.append("#");
+    message.append(UString::from(profile->uid()));
+    message.append("\" finished.");
+    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message.release(), lineNumber, sourceURL);
 }
 
 void InspectorController::addStartProfilingMessageToConsole(const UString& title, unsigned lineNumber, const UString& sourceURL)
 {
-    UString message = "Profile \"webkit-profile://";
-    message += encodeWithURLEscapeSequences(CPUProfileType);
-    message += "/";
-    message += encodeWithURLEscapeSequences(title);
-    message += "#0\" started.";
-    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message, lineNumber, sourceURL);
+    JSC::StringBuilder message;
+    message.append("Profile \"webkit-profile://");
+    message.append(encodeWithURLEscapeSequences(CPUProfileType));
+    message.append("/");
+    message.append(encodeWithURLEscapeSequences(title));
+    message.append("#0\" started.");
+    addMessageToConsole(JSMessageSource, LogMessageType, LogMessageLevel, message.release(), lineNumber, sourceURL);
 }
 
 void InspectorController::getProfileHeaders(long callId)
@@ -1407,11 +1427,12 @@ UString InspectorController::getCurrentUserInitiatedProfileName(bool incrementPr
     if (incrementProfileNumber)
         m_currentUserInitiatedProfileNumber = m_nextUserInitiatedProfileNumber++;        
 
-    UString title = UserInitiatedProfileName;
-    title += ".";
-    title += UString::from(m_currentUserInitiatedProfileNumber);
+    JSC::StringBuilder title;
+    title.append(UserInitiatedProfileName);
+    title.append(".");
+    title.append(UString::from(m_currentUserInitiatedProfileNumber));
     
-    return title;
+    return title.release();
 }
 
 void InspectorController::startUserInitiatedProfilingSoon()

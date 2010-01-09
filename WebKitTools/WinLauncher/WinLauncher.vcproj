@@ -56,7 +56,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="comctl32.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
+				AdditionalDependencies="comctl32.lib comsupp.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(WebKitOutputDir)\lib&quot;;&quot;$(ProjectDir)\..\..\..\&quot;"
 				GenerateDebugInformation="true"
@@ -134,7 +134,7 @@
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
 				AdditionalOptions="&#x0D;&#x0A;"
-				AdditionalDependencies="comctl32.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
+				AdditionalDependencies="comctl32.lib comsupp.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(WebKitOutputDir)\lib&quot;;&quot;$(ProjectDir)\..\..\..\&quot;"
 				GenerateDebugInformation="true"
@@ -212,7 +212,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="comctl32.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
+				AdditionalDependencies="comctl32.lib comsupp.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(WebKitOutputDir)\lib&quot;;&quot;$(ProjectDir)\..\..\..\&quot;"
 				GenerateDebugInformation="true"
@@ -288,7 +288,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="comctl32.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
+				AdditionalDependencies="comctl32.lib comsupp.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(WebKitOutputDir)\lib&quot;;&quot;$(ProjectDir)\..\..\..\&quot;"
 				GenerateDebugInformation="true"
@@ -364,7 +364,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="comctl32.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
+				AdditionalDependencies="comctl32.lib comsupp.lib shlwapi.lib user32.lib ole32.lib oleaut32.lib WebKitGUID$(WebKitConfigSuffix).lib WebKit$(WebKitDLLConfigSuffix).lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(WebKitOutputDir)\lib&quot;;&quot;$(ProjectDir)\..\..\..\&quot;"
 				GenerateDebugInformation="true"
@@ -408,6 +408,10 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\PrintWebUIDelegate.cpp"
+				>
+			</File>
 			<File
 				RelativePath=".\stdafx.cpp"
 				>
@@ -462,6 +466,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\PrintWebUIDelegate.h"
+				>
+			</File>
 			<File
 				RelativePath=".\Resource.h"
 				>

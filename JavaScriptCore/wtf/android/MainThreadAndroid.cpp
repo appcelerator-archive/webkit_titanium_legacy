@@ -26,17 +26,9 @@
 #include "config.h"
 #include "MainThread.h"
 
-#include "JavaSharedClient.h"
-
-using namespace android;
+#include "AndroidThreading.h"
 
 namespace WTF {
-
-// Callback in the main thread.
-static void timeoutFired(void*)
-{
-    dispatchFunctionsFromMainThread();
-}
 
 void initializeMainThreadPlatform()
 {
@@ -44,7 +36,7 @@ void initializeMainThreadPlatform()
 
 void scheduleDispatchFunctionsOnMainThread()
 {
-    JavaSharedClient::EnqueueFunctionPtr(timeoutFired, 0);
+    AndroidThreading::scheduleDispatchFunctionsOnMainThread();
 }
 
 } // namespace WTF

@@ -56,7 +56,6 @@ WebInspector.ScriptsPanel = function()
     this.filesSelectElement.className = "status-bar-item";
     this.filesSelectElement.id = "scripts-files";
     this.filesSelectElement.addEventListener("change", this._changeVisibleFile.bind(this), false);
-    this.filesSelectElement.handleKeyEvent = this.handleKeyEvent.bind(this);
     this.topStatusBar.appendChild(this.filesSelectElement);
 
     this.functionsSelectElement = document.createElement("select");
@@ -208,6 +207,11 @@ WebInspector.ScriptsPanel.prototype = {
         return [this.enableToggleButton.element, this.pauseOnExceptionButton.element];
     },
 
+    get defaultFocusedElement()
+    {
+        return this.filesSelectElement;
+    },
+
     get paused()
     {
         return this._paused;
@@ -304,6 +308,11 @@ WebInspector.ScriptsPanel.prototype = {
     scriptOrResourceForID: function(id)
     {
         return this._sourceIDMap[id];
+    },
+
+    scriptForURL: function(url)
+    {
+        return this._scriptsForURLsInFilesSelect[url];
     },
 
     addBreakpoint: function(breakpoint)
@@ -493,9 +502,19 @@ WebInspector.ScriptsPanel.prototype = {
             x.show(this.viewsContainerElement);
     },
 
-    canShowResource: function(resource)
+    canShowSourceLineForURL: function(url)
     {
-        return resource && resource.scripts.length && InspectorBackend.debuggerEnabled();
+        return InspectorBackend.debuggerEnabled() &&
+            !!(WebInspector.resourceForURL(url) || this.scriptForURL(url));
+    },
+
+    showSourceLineForURL: function(url, line)
+    {
+        var resource = WebInspector.resourceForURL(url);
+        if (resource)
+            this.showResource(resource, line);
+        else
+            this.showScript(this.scriptForURL(url), line);
     },
 
     showScript: function(script, line)
@@ -515,17 +534,15 @@ WebInspector.ScriptsPanel.prototype = {
         this._showScriptOrResource((view.resource || view.script));
     },
 
-    handleKeyEvent: function(event)
+    handleShortcut: function(event)
     {
         var shortcut = WebInspector.KeyboardShortcut.makeKeyFromEvent(event);
         var handler = this._shortcuts[shortcut];
         if (handler) {
             handler(event);
-            event.preventDefault();
             event.handled = true;
-        } else {
-            this.sidebarPanes.callstack.handleKeyEvent(event);
-        }
+        } else
+            this.sidebarPanes.callstack.handleShortcut(event);
     },
 
     scriptViewForScript: function(script)
@@ -649,7 +666,7 @@ WebInspector.ScriptsPanel.prototype = {
 
             console.assert(option);
         } else {
-            var script = this._scriptsForURLsInFilesSelect[url];
+            var script = this.scriptForURL(url);
             if (script)
                option = script.filesSelectOption;
         }
