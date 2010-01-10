@@ -62,7 +62,6 @@ namespace JSC {
 
     struct HashTable;
     struct Instruction;    
-    struct VPtrSet;
 
     struct DSTOffsetCache {
         DSTOffsetCache()
@@ -93,8 +92,9 @@ namespace JSC {
         static bool sharedInstanceExists();
         static JSGlobalData& sharedInstance();
 
-        static PassRefPtr<JSGlobalData> create(bool isShared = false);
+        static PassRefPtr<JSGlobalData> create();
         static PassRefPtr<JSGlobalData> createLeaked();
+        static PassRefPtr<JSGlobalData> createNonDefault();
         ~JSGlobalData();
 
 #if ENABLE(JSC_MULTIPLE_THREADS)
@@ -129,10 +129,11 @@ namespace JSC {
         RefPtr<Structure> numberStructure;
 #endif
 
-        void* jsArrayVPtr;
-        void* jsByteArrayVPtr;
-        void* jsStringVPtr;
-        void* jsFunctionVPtr;
+        static void storeVPtrs();
+        static JS_EXPORTDATA void* jsArrayVPtr;
+        static JS_EXPORTDATA void* jsByteArrayVPtr;
+        static JS_EXPORTDATA void* jsStringVPtr;
+        static JS_EXPORTDATA void* jsFunctionVPtr;
 
         IdentifierTable* identifierTable;
         CommonIdentifiers* propertyNames;
@@ -193,7 +194,7 @@ namespace JSC {
         void stopSampling();
         void dumpSampleData(ExecState* exec);
     private:
-        JSGlobalData(bool isShared, const VPtrSet&);
+        JSGlobalData(bool isShared);
         static JSGlobalData*& sharedInstanceInternal();
         void createNativeThunk();
     };

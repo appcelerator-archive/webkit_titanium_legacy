@@ -71,7 +71,7 @@ typedef class PlatformContextSkia PlatformGraphicsContext;
 class BView;
 typedef BView PlatformGraphicsContext;
 struct pattern;
-#elif PLATFORM(WINCE)
+#elif OS(WINCE)
 typedef struct HDC__ PlatformGraphicsContext;
 #else
 typedef void PlatformGraphicsContext;
@@ -96,7 +96,7 @@ typedef unsigned char UInt8;
 
 namespace WebCore {
 
-#if PLATFORM(WINCE) && !PLATFORM(QT)
+#if OS(WINCE) && !PLATFORM(QT)
     class SharedBitmap;
     class SimpleFontData;
     class GlyphBuffer;
@@ -144,7 +144,7 @@ namespace WebCore {
         GraphicsContext(PlatformGraphicsContext*);
         ~GraphicsContext();
 
-#if !PLATFORM(WINCE) || PLATFORM(QT)
+#if !OS(WINCE) || PLATFORM(QT)
         PlatformGraphicsContext* platformContext() const;
 #endif
 
@@ -262,11 +262,7 @@ namespace WebCore {
         bool getShadow(IntSize&, int&, Color&) const;
         void clearShadow();
 
-        void initFocusRing(int width, int offset);
-        void addFocusRingRect(const IntRect&);
-        void drawFocusRing(const Color&);
-        void clearFocusRing();
-        IntRect focusRingBoundingRect();
+        void drawFocusRing(const Vector<IntRect>&, int width, int offset, const Color&);
 
         void setLineCap(LineCap);
         void setLineDash(const DashArray&, float dashOffset);
@@ -303,7 +299,7 @@ namespace WebCore {
         void concatCTM(const TransformationMatrix&);
         TransformationMatrix getCTM() const;
 
-#if PLATFORM(WINCE) && !PLATFORM(QT)
+#if OS(WINCE) && !PLATFORM(QT)
         void setBitmap(PassRefPtr<SharedBitmap>);
         const TransformationMatrix& affineTransform() const;
         TransformationMatrix& affineTransform();
@@ -361,7 +357,7 @@ namespace WebCore {
         void drawWindowsBitmap(WindowsBitmap*, const IntPoint&);
 #endif
 
-#if (PLATFORM(QT) && defined(Q_WS_WIN)) || (PLATFORM(WX) && PLATFORM(WIN_OS))
+#if (PLATFORM(QT) && defined(Q_WS_WIN)) || (PLATFORM(WX) && OS(WINDOWS))
         HDC getWindowsContext(const IntRect&, bool supportAlphaBlend = true, bool mayCreateBitmap = true);
         void releaseWindowsContext(HDC, const IntRect&, bool supportAlphaBlend = true, bool mayCreateBitmap = true);
         bool shouldIncludeChildWindows() const { return false; }
@@ -410,10 +406,6 @@ namespace WebCore {
         void clearPlatformShadow();
 
         static void adjustLineToPixelBoundaries(FloatPoint& p1, FloatPoint& p2, float strokeWidth, const StrokeStyle&);
-
-        int focusRingWidth() const;
-        int focusRingOffset() const;
-        const Vector<IntRect>& focusRingRects() const;
 
         static GraphicsContextPrivate* createGraphicsContextPrivate();
         static void destroyGraphicsContextPrivate(GraphicsContextPrivate*);

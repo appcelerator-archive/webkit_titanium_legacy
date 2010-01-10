@@ -117,6 +117,7 @@ static const char* const debuggerEnabledSettingName = "debuggerEnabled";
 static const char* const profilerEnabledSettingName = "profilerEnabled";
 static const char* const inspectorAttachedHeightName = "inspectorAttachedHeight";
 static const char* const lastActivePanelSettingName = "lastActivePanel";
+const char* const InspectorController::FrontendSettingsSettingName = "frontendSettings";
 
 static const unsigned defaultAttachedHeight = 300;
 static const float minimumAttachedHeight = 250.0f;
@@ -367,7 +368,7 @@ void InspectorController::addConsoleMessage(ScriptState* scriptState, ConsoleMes
     }
 }
 
-void InspectorController::clearConsoleMessages(bool clearUI)
+void InspectorController::clearConsoleMessages()
 {
     deleteAllValues(m_consoleMessages);
     m_consoleMessages.clear();
@@ -377,7 +378,7 @@ void InspectorController::clearConsoleMessages(bool clearUI)
     releaseWrapperObjectGroup("console");
     if (m_domAgent)
         m_domAgent->releaseDanglingNodes();
-    if (clearUI && m_frontend)
+    if (m_frontend)
         m_frontend->clearConsoleMessages();
 }
 
@@ -657,6 +658,7 @@ void InspectorController::populateScriptObjects()
     if (!m_frontend)
         return;
 
+    m_frontend->populateFrontendSettings(setting(FrontendSettingsSettingName));
     m_domAgent->setDocument(m_inspectedPage->mainFrame()->document());
 
     ResourcesMap::iterator resourcesEnd = m_resources.end();
@@ -746,7 +748,7 @@ void InspectorController::didCommitLoad(DocumentLoader* loader)
     if (loader->frame() == m_inspectedPage->mainFrame()) {
         m_client->inspectedURLChanged(loader->url().string());
 
-        clearConsoleMessages(false);
+        clearConsoleMessages();
 
         m_times.clear();
         m_counts.clear();
@@ -1872,6 +1874,6 @@ void InspectorController::deleteCookie(const String& cookieName, const String& d
     }
 }
 
-} // namespace WebCore
+}  // namespace WebCore
     
 #endif // ENABLE(INSPECTOR)

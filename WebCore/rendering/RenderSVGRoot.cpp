@@ -113,7 +113,7 @@ bool RenderSVGRoot::selfWillPaint() const
 {
 #if ENABLE(FILTERS)
     const SVGRenderStyle* svgStyle = style()->svgStyle();
-    SVGResourceFilter* filter = getFilterById(document(), svgStyle->filter());
+    SVGResourceFilter* filter = getFilterById(document(), svgStyle->filter(), this);
     if (filter)
         return true;
 #endif
@@ -153,10 +153,13 @@ void RenderSVGRoot::paint(PaintInfo& paintInfo, int parentX, int parentY)
 
     SVGResourceFilter* filter = 0;
     FloatRect boundingBox = repaintRectInLocalCoordinates();
-    if (childPaintInfo.phase == PaintPhaseForeground)
-        prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter);
 
-    RenderBox::paint(childPaintInfo, 0, 0);
+    bool continueRendering = true;
+    if (childPaintInfo.phase == PaintPhaseForeground)
+        continueRendering = prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter);
+
+    if (continueRendering)
+        RenderBox::paint(childPaintInfo, 0, 0);
 
     if (childPaintInfo.phase == PaintPhaseForeground)
         finishRenderSVGContent(this, childPaintInfo, filter, paintInfo.context);
@@ -248,7 +251,7 @@ FloatRect RenderSVGRoot::objectBoundingBox() const
 
 FloatRect RenderSVGRoot::repaintRectInLocalCoordinates() const
 {
-    // FIXME: This does not include the border but it should!
+    // FIXME: This does not include the border or shadow but it should!
     return computeContainerBoundingBox(this, true);
 }
 
@@ -259,8 +262,10 @@ TransformationMatrix RenderSVGRoot::localTransform() const
 
 void RenderSVGRoot::computeRectForRepaint(RenderBoxModelObject* repaintContainer, IntRect& repaintRect, bool fixed)
 {
-    // Apply our local transforms (except for x/y translation) and call RenderBox's method to handle all the normal CSS Box model bits
+    // Apply our local transforms (except for x/y translation), then our shadow, 
+    // and then call RenderBox's method to handle all the normal CSS Box model bits
     repaintRect = localToBorderBoxTransform().mapRect(repaintRect);
+    inflateForShadow(style(), repaintRect);
     RenderBox::computeRectForRepaint(repaintContainer, repaintRect, fixed);
 }
 

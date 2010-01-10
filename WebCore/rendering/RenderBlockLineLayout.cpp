@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2000 Lars Knoll (knoll@kde.org)
  * Copyright (C) 2003, 2004, 2006, 2007, 2008, 2009 Apple Inc. All right reserved.
+ * Copyright (C) 2010 Google Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -823,7 +824,7 @@ void RenderBlock::layoutInlineChildren(bool relayoutChildren, int& repaintTop, i
 
     // Figure out if we should clear out our line boxes.
     // FIXME: Handle resize eventually!
-    bool fullLayout = !firstLineBox() || !firstChild() || selfNeedsLayout() || relayoutChildren;
+    bool fullLayout = !firstLineBox() || selfNeedsLayout() || relayoutChildren;
     if (fullLayout)
         lineBoxes()->deleteLineBoxes(renderArena());
 
@@ -843,6 +844,7 @@ void RenderBlock::layoutInlineChildren(bool relayoutChildren, int& repaintTop, i
         bool endOfInline = false;
         RenderObject* o = bidiFirst(this, 0, false);
         Vector<FloatWithRect> floats;
+        bool hasInlineChild = false;
         while (o) {
             if (o->isReplaced() || o->isFloating() || o->isPositioned()) {
                 RenderBox* box = toRenderBox(o);
@@ -865,6 +867,7 @@ void RenderBlock::layoutInlineChildren(bool relayoutChildren, int& repaintTop, i
                     o->layoutIfNeeded();
                 }
             } else if (o->isText() || (o->isRenderInline() && !endOfInline)) {
+                hasInlineChild = true;
                 if (fullLayout || o->selfNeedsLayout())
                     dirtyLineBoxesForRenderer(o, fullLayout);
                 o->setNeedsLayout(false);
@@ -881,7 +884,7 @@ void RenderBlock::layoutInlineChildren(bool relayoutChildren, int& repaintTop, i
         bool previousLineBrokeCleanly = true;
         RootInlineBox* startLine = determineStartPosition(firstLine, fullLayout, previousLineBrokeCleanly, resolver, floats, floatIndex);
 
-        if (fullLayout && !selfNeedsLayout()) {
+        if (fullLayout && hasInlineChild && !selfNeedsLayout()) {
             setNeedsLayout(true, false);  // Mark ourselves as needing a full layout. This way we'll repaint like
                                           // we're supposed to.
             RenderView* v = view();
@@ -1801,6 +1804,10 @@ InlineIterator RenderBlock::findNextLineBreak(InlineBidiResolver& resolver, bool
             int wordSpacing = o->style()->wordSpacing();
             int lastSpaceWordSpacing = 0;
 
+            // Non-zero only when kerning is enabled, in which case we measure words with their trailing
+            // space, then subtract its width.
+            int wordTrailingSpaceWidth = f.typesettingFeatures() & Kerning ? f.spaceWidth() + wordSpacing : 0;
+
             int wrapW = tmpW + inlineWidth(o, !appliedStartWidth, true);
             int charWidth = 0;
             bool breakNBSP = autoWrap && o->style()->nbspMode() == SPACE;
@@ -1895,7 +1902,11 @@ InlineIterator RenderBlock::findNextLineBreak(InlineBidiResolver& resolver, bool
                         }
                     }
 
-                    int additionalTmpW = textWidth(t, lastSpace, pos - lastSpace, f, w + tmpW, isFixedPitch, collapseWhiteSpace) + lastSpaceWordSpacing;
+                    int additionalTmpW;
+                    if (wordTrailingSpaceWidth && currentCharacterIsSpace)
+                        additionalTmpW = textWidth(t, lastSpace, pos + 1 - lastSpace, f, w + tmpW, isFixedPitch, collapseWhiteSpace) - wordTrailingSpaceWidth + lastSpaceWordSpacing;
+                    else
+                        additionalTmpW = textWidth(t, lastSpace, pos - lastSpace, f, w + tmpW, isFixedPitch, collapseWhiteSpace) + lastSpaceWordSpacing;
                     tmpW += additionalTmpW;
                     if (!appliedStartWidth) {
                         tmpW += inlineWidth(o, true, false);
@@ -1927,7 +1938,7 @@ InlineIterator RenderBlock::findNextLineBreak(InlineBidiResolver& resolver, bool
                             }
                         }
                         if (lineWasTooWide || w + tmpW > width) {
-                            if (lBreak.obj && shouldPreserveNewline(lBreak.obj) && lBreak.obj->isText() && !toRenderText(lBreak.obj)->isWordBreak() && toRenderText(lBreak.obj)->characters()[lBreak.pos] == '\n') {
+                            if (lBreak.obj && shouldPreserveNewline(lBreak.obj) && lBreak.obj->isText() && toRenderText(lBreak.obj)->textLength() && !toRenderText(lBreak.obj)->isWordBreak() && toRenderText(lBreak.obj)->characters()[lBreak.pos] == '\n') {
                                 if (!stoppedIgnoringSpaces && pos > 0) {
                                     // We need to stop right before the newline and then start up again.
                                     addMidpoint(lineMidpointState, InlineIterator(0, o, pos - 1)); // Stop

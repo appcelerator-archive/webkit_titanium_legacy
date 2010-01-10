@@ -2,6 +2,9 @@
 <qresource prefix="/webkit/inspector">
     <file>inspector.html</file>
     <file>AbstractTimelinePanel.js</file>
+    <file>AuditLauncherView.js</file>
+    <file>AuditResultView.js</file>
+    <file>AuditsPanel.js</file>
     <file>BottomUpProfileDataGridTree.js</file>
     <file>Breakpoint.js</file>
     <file>BreakpointsSidebarPane.js</file>
@@ -33,6 +36,7 @@
     <file>InspectorBackendStub.js</file>
     <file>InspectorFrontendHostStub.js</file>
     <file>JavaScriptSourceSyntaxHighlighter.js</file>
+    <file>JavaScriptTokenizer.js</file>
     <file>KeyboardShortcut.js</file>
     <file>MetricsSidebarPane.js</file>
     <file>Object.js</file>
@@ -56,6 +60,7 @@
     <file>ScriptsPanel.js</file>
     <file>ScriptView.js</file>
     <file>Section.js</file>
+    <file>Settings.js</file>
     <file>SidebarPane.js</file>
     <file>SidebarTreeElement.js</file>
     <file>SourceFrame.js</file>
@@ -66,6 +71,9 @@
     <file>StylesSidebarPane.js</file>
     <file>SummaryBar.js</file>
     <file>TestController.js</file>
+    <file>TextEditor.js</file>
+    <file>TextEditorHighlighter.js</file>
+    <file>TextEditorModel.js</file>
     <file>TextPrompt.js</file>
     <file>TimelineAgent.js</file>
     <file>TimelineGrid.js</file>
@@ -76,6 +84,7 @@
     <file>utilities.js</file>
     <file>View.js</file>
     <file>WatchExpressionsSidebarPane.js</file>
+    <file>audits.css</file>
     <file>inspector.css</file>
     <file>inspectorSyntaxHighlight.css</file>
     <file>Images/back.png</file>

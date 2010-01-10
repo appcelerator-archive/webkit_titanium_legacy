@@ -800,12 +800,11 @@ void GraphicsContext::clipPath(WindRule clipRule)
  * RenderTheme handles drawing focus on widgets which 
  * need it.
  */
-void GraphicsContext::drawFocusRing(const Color& color)
+void GraphicsContext::drawFocusRing(const Vector<IntRect>& rects, int /* width */, int /* offset */, const Color& color)
 {
     if (paintingDisabled())
         return;
 
-    const Vector<IntRect>& rects = focusRingRects();
     unsigned rectCount = rects.size();
 
     if (!rects.size())
@@ -1054,7 +1053,7 @@ void GraphicsContext::clipOut(const Path& path)
         p->setClipPath(newClip, Qt::IntersectClip);
     } else {
         newClip.addRect(p->window());
-        newClip.addPath(clippedOut & newClip);
+        newClip.addPath(clippedOut.intersected(newClip));
         p->setClipPath(newClip);
     }
 }
@@ -1293,7 +1292,7 @@ HDC GraphicsContext::getWindowsContext(const IntRect& dstRect, bool supportAlpha
         memset(bmpInfo.bmBits, 0, bufferSize);
     }
 
-#if !PLATFORM(WINCE)
+#if !OS(WINCE)
     // Make sure we can do world transforms.
     SetGraphicsMode(bitmapDC, GM_ADVANCED);
 

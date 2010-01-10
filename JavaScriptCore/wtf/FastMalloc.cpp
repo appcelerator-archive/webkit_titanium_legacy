@@ -191,13 +191,6 @@ TryMallocReturnValue tryFastZeroedMalloc(size_t n)
 
 #if FORCE_SYSTEM_MALLOC
 
-#include <stdlib.h>
-#if !PLATFORM(WIN_OS)
-    #include <pthread.h>
-#else
-    #include "windows.h"
-#endif
-
 namespace WTF {
 
 TryMallocReturnValue tryFastMalloc(size_t n) 
@@ -349,7 +342,7 @@ FastMallocStatistics fastMallocStatistics()
 
 } // namespace WTF
 
-#if PLATFORM(DARWIN)
+#if OS(DARWIN)
 // This symbol is present in the JavaScriptCore exports file even when FastMalloc is disabled.
 // It will never be used in this case, so it's type and value are less interesting than its presence.
 extern "C" const int jscore_fastmalloc_introspection = 0;
@@ -379,7 +372,7 @@ extern "C" const int jscore_fastmalloc_introspection = 0;
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
-#if PLATFORM(UNIX)
+#if OS(UNIX)
 #include <unistd.h>
 #endif
 #if COMPILER(MSVC)
@@ -391,7 +384,7 @@ extern "C" const int jscore_fastmalloc_introspection = 0;
 
 #if WTF_CHANGES
 
-#if PLATFORM(DARWIN)
+#if OS(DARWIN)
 #include "MallocZoneSupport.h"
 #include <wtf/HashSet.h>
 #include <wtf/Vector.h>
@@ -405,7 +398,7 @@ extern "C" const int jscore_fastmalloc_introspection = 0;
 // call to the function on Mac OS X, and it's used in performance-critical code. So we
 // use a function pointer. But that's not necessarily faster on other platforms, and we had
 // problems with this technique on Windows, so we'll do this only on Mac OS X.
-#if PLATFORM(DARWIN)
+#if OS(DARWIN)
 static void* (*pthread_getspecific_function_pointer)(pthread_key_t) = pthread_getspecific;
 #define pthread_getspecific(key) pthread_getspecific_function_pointer(key)
 #endif
@@ -433,7 +426,7 @@ namespace WTF {
 #define MESSAGE LOG_ERROR
 #define CHECK_CONDITION ASSERT
 
-#if PLATFORM(DARWIN)
+#if OS(DARWIN)
 class Span;
 class TCMalloc_Central_FreeListPadded;
 class TCMalloc_PageHeap;
@@ -990,7 +983,7 @@ class PageHeapAllocator {
 
   int inuse() const { return inuse_; }
 
-#if defined(WTF_CHANGES) && PLATFORM(DARWIN)
+#if defined(WTF_CHANGES) && OS(DARWIN)
   template <class Recorder>
   void recordAdministrativeRegions(Recorder& recorder, const RemoteMemoryReader& reader)
   {
@@ -1172,7 +1165,7 @@ template <int BITS> class MapSelector {
 };
 
 #if defined(WTF_CHANGES)
-#if PLATFORM(X86_64)
+#if CPU(X86_64)
 // On all known X86-64 platforms, the upper 16 bits are always unused and therefore 
 // can be excluded from the PageMap key.
 // See http://en.wikipedia.org/wiki/X86-64#Virtual_address_space_details
@@ -1223,7 +1216,7 @@ static const int kScavengeTimerDelayInSeconds = 5;
 static const size_t kMinimumFreeCommittedPageCount = 512;
 
 // During a scavenge, we'll release up to a fraction of the free committed pages.
-#if PLATFORM(WIN)
+#if OS(WINDOWS)
 // We are slightly less aggressive in releasing memory on Windows due to performance reasons.
 static const int kMaxScavengeAmountFactor = 3;
 #else
@@ -1372,7 +1365,7 @@ class TCMalloc_PageHeap {
   // Index of last free list we scavenged
   size_t scavenge_index_;
   
-#if defined(WTF_CHANGES) && PLATFORM(DARWIN)
+#if defined(WTF_CHANGES) && OS(DARWIN)
   friend class FastMallocZone;
 #endif
 
@@ -2278,7 +2271,7 @@ static inline TCMalloc_PageHeap* getPageHeap()
 #define pageheap getPageHeap()
 
 #if USE_BACKGROUND_THREAD_TO_SCAVENGE_MEMORY
-#if PLATFORM(WIN_OS)
+#if OS(WINDOWS)
 static void sleep(unsigned seconds)
 {
     ::Sleep(seconds * 1000);
@@ -2816,7 +2809,7 @@ void TCMalloc_ThreadCache::InitModule() {
     }
     pageheap->init();
     phinited = 1;
-#if defined(WTF_CHANGES) && PLATFORM(DARWIN)
+#if defined(WTF_CHANGES) && OS(DARWIN)
     FastMallocZone::init();
 #endif
   }
@@ -3795,7 +3788,7 @@ void* realloc(void* old_ptr, size_t new_size) {
     return new_ptr;
   } else {
 #if ENABLE(FAST_MALLOC_MATCH_VALIDATION)
-    old_ptr = pByte + sizeof(AllocAlignmentInteger);  // Set old_ptr back to the user pointer.
+    old_ptr = static_cast<AllocAlignmentInteger*>(old_ptr) + 1; // Set old_ptr back to the user pointer.
 #endif
     return old_ptr;
   }
@@ -4014,7 +4007,7 @@ void *(*__memalign_hook)(size_t, size_t, const void *) = MemalignOverride;
 
 #endif
 
-#if defined(WTF_CHANGES) && PLATFORM(DARWIN)
+#if defined(WTF_CHANGES) && OS(DARWIN)
 
 class FreeObjectFinder {
     const RemoteMemoryReader& m_reader;
@@ -4297,7 +4290,7 @@ extern "C" {
 malloc_introspection_t jscore_fastmalloc_introspection = { &FastMallocZone::enumerate, &FastMallocZone::goodSize, &FastMallocZone::check, &FastMallocZone::print,
     &FastMallocZone::log, &FastMallocZone::forceLock, &FastMallocZone::forceUnlock, &FastMallocZone::statistics
 
-#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD) && !PLATFORM(IPHONE)
+#if !defined(BUILDING_ON_TIGER) && !defined(BUILDING_ON_LEOPARD) && !OS(IPHONE_OS)
     , 0 // zone_locked will not be called on the zone unless it advertises itself as version five or higher.
 #endif
 

@@ -472,10 +472,12 @@ void ContextMenu::populate()
         if (!inPasswordField) {
             appendItem(*separatorItem());
 #ifndef BUILDING_ON_TIGER
+#if !PLATFORM(GTK)
             ContextMenuItem SpellingAndGrammarMenuItem(SubmenuType, ContextMenuItemTagSpellingMenu, 
                 contextMenuItemTagSpellingMenu());
             createAndAppendSpellingAndGrammarSubMenu(m_hitTestResult, SpellingAndGrammarMenuItem);
             appendItem(SpellingAndGrammarMenuItem);
+#endif
 #else
             ContextMenuItem SpellingMenuItem(SubmenuType, ContextMenuItemTagSpellingMenu, 
                 contextMenuItemTagSpellingMenu());
@@ -492,10 +494,17 @@ void ContextMenu::populate()
             createAndAppendTransformationsSubMenu(m_hitTestResult, transformationsMenuItem);
             appendItem(transformationsMenuItem);
 #endif
-            ContextMenuItem  FontMenuItem(SubmenuType, ContextMenuItemTagFontMenu, 
-                contextMenuItemTagFontMenu());
-            createAndAppendFontSubMenu(m_hitTestResult, FontMenuItem);
-            appendItem(FontMenuItem);
+#if PLATFORM(GTK)
+            bool shouldShowFontMenu = frame->editor()->canEditRichly();
+#else
+            bool shouldShowFontMenu = true;
+#endif
+            if (shouldShowFontMenu) {
+                ContextMenuItem FontMenuItem(SubmenuType, ContextMenuItemTagFontMenu, 
+                    contextMenuItemTagFontMenu());
+                createAndAppendFontSubMenu(m_hitTestResult, FontMenuItem);
+                appendItem(FontMenuItem);
+            }
 #if PLATFORM(MAC)
             ContextMenuItem SpeechMenuItem(SubmenuType, ContextMenuItemTagSpeechMenu, contextMenuItemTagSpeechMenu());
             createAndAppendSpeechSubMenu(m_hitTestResult, SpeechMenuItem);

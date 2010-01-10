@@ -1,3 +1,69 @@
+2010-01-07  Daniel Bates  <dbates@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32987
+
+        Added ENABLE_XHTMLMP flag. Disabled by default.
+
+        * configure.ac:
+
+2010-01-05  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        Based on idea and original patch by Evan Martin.
+
+        Remove libWebCore intermediate library, to improve link time.
+
+        [GTK] Build time must be reduced
+        https://bugs.webkit.org/show_bug.cgi?id=32921
+
+        * GNUmakefile.am:
+
+2010-01-05  Xan Lopez  <xlopez@igalia.com>
+
+        Bump for 1.1.18 release.
+
+        * configure.ac:
+
+2010-01-04  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Fix JSCore-1.0.gir path to fix make distcheck.
+
+        * GNUmakefile.am:
+
+2010-01-04  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Fix standalone package builds.
+
+        * WebKit.pri: Add logic for detecting standalone builds. Set OUTPUT_DIR to the top-level dir in that case.
+        * WebKit.pro: Don't build JSC and DRT for package builds.
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool should not require users to install mechanize
+        https://bugs.webkit.org/show_bug.cgi?id=32635
+
+        * .gitignore: Ignore autoinstall.cache.d directory created by autoinstall.py
+
+2009-12-28  Estêvão Samuel Procópio  <tevaum@gmail.com>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        Bug 32940: [GTK] Changing the download throttle conditions.
+        https://bugs.webkit.org/show_bug.cgi?id=32716
+
+        The WebKitDownload progress notification was taking long to
+        update. This fix makes notification happens each 0.7 secs
+        or when the progress ups in 1%.
+
+        * WebKit/gtk/webkit/webkitdownload.cpp:
+
 2009-12-22  Simon Hausmann  <simon.hausmann@nokia.com>
 
         Rubber-stamped by Holger Freyther.

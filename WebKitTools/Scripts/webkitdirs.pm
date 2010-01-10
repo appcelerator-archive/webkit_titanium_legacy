@@ -71,6 +71,9 @@ my $vcBuildPath;
 my $windowsTmpPath;
 my $windowsSourceDir;
 
+# Defined in VCSUtils.
+sub exitStatus($);
+
 sub determineSourceDir
 {
     return if $sourceDir;
@@ -532,8 +535,13 @@ sub builtDylibPathForName
         $libraryName = "QtWebKit";
         if (isDarwin() and -d "$configurationProductDir/lib/$libraryName.framework") {
             return "$configurationProductDir/lib/$libraryName.framework/$libraryName";
-        } elsif (isWindows() or isCygwin()) {
-            return "$configurationProductDir/lib/$libraryName.dll";
+        } elsif (isWindows()) {
+            chomp(my $mkspec = `qmake -query QMAKE_MKSPECS`);
+            my $qtMajorVersion = retrieveQMakespecVar("$mkspec/qconfig.pri", "QT_MAJOR_VERSION");
+            if ($qtMajorVersion eq "unknown") {
+                $qtMajorVersion = "";
+            }
+            return "$configurationProductDir/lib/$libraryName$qtMajorVersion.dll";
         } else {
             return "$configurationProductDir/lib/lib$libraryName.so";
         }
@@ -566,7 +574,7 @@ sub checkFrameworks
     push(@frameworks, "WebKit") if isAppleMacWebKit();
     for my $framework (@frameworks) {
         my $path = builtDylibPathForName($framework);
-        die "Can't find built framework at \"$path\".\n" unless -x $path;
+        die "Can't find built framework at \"$path\".\n" unless -e $path;
     }
 }
 
@@ -614,15 +622,12 @@ sub hasSVGSupport
 {
     my $path = shift;
 
-    if (isQt()) {
-        return 1;
-    }
-    
     if (isWx()) {
         return 0;
     }
 
-    return libraryContainsSymbol($path, "SVGElement");
+    # We used to look for SVGElement but isSVGElement is a valid symbol in --no-svg builds.
+    return libraryContainsSymbol($path, "SVGDefsElement");
 }
 
 sub removeLibraryDependingOnSVG
@@ -1617,15 +1622,6 @@ sub setPathForRunningWebKitApp
     return unless isAppleWinWebKit();
 
     $env->{PATH} = join(':', productDir(), dirname(installedSafariPath()), appleApplicationSupportPath(), $env->{PATH} || "");
-}
-
-sub exitStatus($)
-{
-    my ($returnvalue) = @_;
-    if ($^O eq "MSWin32") {
-        return $returnvalue >> 8;
-    }
-    return WEXITSTATUS($returnvalue);
 }
 
 sub runSafari

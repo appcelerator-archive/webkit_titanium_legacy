@@ -77,10 +77,10 @@ InspectorBackend::~InspectorBackend()
 {
 }
 
-void InspectorBackend::clearMessages(bool clearUI)
+void InspectorBackend::saveFrontendSettings(const String& settings)
 {
     if (m_inspectorController)
-        m_inspectorController->clearConsoleMessages(clearUI);
+        m_inspectorController->setSetting(InspectorController::FrontendSettingsSettingName, settings);
 }
 
 void InspectorBackend::storeLastActivePanel(const String& panelName)

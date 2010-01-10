@@ -51,6 +51,7 @@
 #include "Settings.h"
 #include "V8Binding.h"
 #include "V8BindingState.h"
+#include "V8IsolatedContext.h"
 #include "V8NPObject.h"
 #include "V8Proxy.h"
 #include "Widget.h"
@@ -139,7 +140,7 @@ void ScriptController::clearScriptObjects()
 
 void ScriptController::updateSecurityOrigin()
 {
-    m_proxy->updateSecurityOrigin();
+    m_proxy->windowShell()->updateSecurityOrigin();
 }
 
 void ScriptController::updatePlatformScriptObjects()
@@ -210,11 +211,6 @@ void ScriptController::evaluateInIsolatedWorld(unsigned worldID, const Vector<Sc
 void ScriptController::evaluateInIsolatedWorld(unsigned worldID, const Vector<ScriptSourceCode>& sources, int extensionGroup)
 {
     m_proxy->evaluateInIsolatedWorld(worldID, sources, extensionGroup);
-}
-
-void ScriptController::evaluateInNewContext(const Vector<ScriptSourceCode>& sources, int extensionGroup)
-{
-    m_proxy->evaluateInNewContext(sources, extensionGroup);
 }
 
 // Evaluate a script file in the environment of this proxy.
@@ -295,7 +291,7 @@ void ScriptController::lowMemoryNotification()
 
 bool ScriptController::haveInterpreter() const
 {
-    return m_proxy->isContextInitialized();
+    return m_proxy->windowShell()->isContextInitialized();
 }
 
 bool ScriptController::isEnabled() const
@@ -364,9 +360,20 @@ void ScriptController::getAllWorlds(Vector<DOMWrapperWorld*>& worlds)
 
 ScriptState* ScriptController::mainWorldScriptState()
 {
-    if (!m_mainWorldScriptState)
+    if (!m_mainWorldScriptState) {
+        v8::HandleScope handleScope;
         m_mainWorldScriptState.set(new ScriptState(m_frame, V8Proxy::mainWorldContext(m_frame)));
+    }
     return m_mainWorldScriptState.get();
+}
+
+ScriptState* ScriptController::currentScriptState()
+{
+    if (V8IsolatedContext* context = V8IsolatedContext::getEntered())
+        return context->scriptState();
+    Frame* frame = V8Proxy::retrieveFrameForCurrentContext();
+    ASSERT(frame);
+    return frame->script()->mainWorldScriptState();
 }
 
 static NPObject* createNoScriptObject()
@@ -431,6 +438,8 @@ NPObject* ScriptController::createScriptObjectForPluginElement(HTMLPlugInElement
 
 void ScriptController::clearWindowShell()
 {
+    m_mainWorldScriptState.clear();
+
     // V8 binding expects ScriptController::clearWindowShell only be called
     // when a frame is loading a new page. V8Proxy::clearForNavigation
     // creates a new context for the new page.
@@ -444,7 +453,7 @@ void ScriptController::attachDebugger(void*)
 
 void ScriptController::updateDocument()
 {
-    m_proxy->updateDocument();
+    m_proxy->windowShell()->updateDocument();
 }
 
 } // namespace WebCore

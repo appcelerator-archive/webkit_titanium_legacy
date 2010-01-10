@@ -554,6 +554,10 @@ void RenderBlock::removeChild(RenderObject* oldChild)
         anonBlock->deleteLineBoxTree();
         anonBlock->destroy();
     }
+
+    // If this was our last child be sure to clear out our line boxes.
+    if (childrenInline() && !firstChild())
+        lineBoxes()->deleteLineBoxes(renderArena());
 }
 
 bool RenderBlock::isSelfCollapsingBlock() const
@@ -3191,22 +3195,35 @@ int RenderBlock::getClearDelta(RenderBox* child, int yPos)
     }
 
     // We also clear floats if we are too big to sit on the same line as a float (and wish to avoid floats by default).
-    // FIXME: Note that the remaining space checks aren't quite accurate, since you should be able to clear only some floats (the minimum # needed
-    // to fit) and not all (we should be using nextFloatBottomBelow and looping).
     int result = clearSet ? max(0, bottom - yPos) : 0;
     if (!result && child->avoidsFloats()) {
-        int widthAtCurrentHeight = lineWidth(yPos, false);
         int availableWidth = this->availableWidth();
-        if (widthAtCurrentHeight < availableWidth) {
-            int oldYPos = child->y();
-            int oldWidth = child->width();
-            child->setY(yPos);
+        if (child->minPrefWidth() > availableWidth)
+            return 0;
+
+        int y = yPos;
+        while (true) {
+            int widthAtY = lineWidth(y, false);
+            if (widthAtY == availableWidth)
+                return y - yPos;
+
+            int oldChildY = child->y();
+            int oldChildWidth = child->width();
+            child->setY(y);
             child->calcWidth();
-            if (child->width() > widthAtCurrentHeight && child->minPrefWidth() <= availableWidth)
-                result = max(0, floatBottom() - yPos);
-            child->setY(oldYPos);
-            child->setWidth(oldWidth);
+            int childWidthAtY = child->width();
+            child->setY(oldChildY);
+            child->setWidth(oldChildWidth);
+
+            if (childWidthAtY <= widthAtY)
+                return y - yPos;
+
+            y = nextFloatBottomBelow(y);
+            ASSERT(y >= yPos);
+            if (y < yPos)
+                break;
         }
+        ASSERT_NOT_REACHED();
     }
     return result;
 }
@@ -4995,7 +5012,7 @@ IntRect RenderBlock::localCaretRect(InlineBox* inlineBox, int caretOffset, int* 
     return IntRect(x, y, caretWidth, height);
 }
 
-void RenderBlock::addFocusRingRects(GraphicsContext* graphicsContext, int tx, int ty)
+void RenderBlock::addFocusRingRects(Vector<IntRect>& rects, int tx, int ty)
 {
     // For blocks inside inlines, we go ahead and include margins so that we run right up to the
     // inline boxes above and below us (thus getting merged with them to form a single irregular
@@ -5007,16 +5024,19 @@ void RenderBlock::addFocusRingRects(GraphicsContext* graphicsContext, int tx, in
         bool prevInlineHasLineBox = toRenderInline(inlineContinuation()->node()->renderer())->firstLineBox(); 
         int topMargin = prevInlineHasLineBox ? collapsedMarginTop() : 0;
         int bottomMargin = nextInlineHasLineBox ? collapsedMarginBottom() : 0;
-        graphicsContext->addFocusRingRect(IntRect(tx, ty - topMargin, 
-                                                  width(), height() + topMargin + bottomMargin));
-    } else
-        graphicsContext->addFocusRingRect(IntRect(tx, ty, width(), height()));
+        IntRect rect(tx, ty - topMargin, width(), height() + topMargin + bottomMargin);
+        if (!rect.isEmpty())
+            rects.append(rect);
+    } else if (width() && height())
+        rects.append(IntRect(tx, ty, width(), height()));
 
     if (!hasOverflowClip() && !hasControlClip()) {
         for (RootInlineBox* curr = firstRootBox(); curr; curr = curr->nextRootBox()) {
             int top = max(curr->lineTop(), curr->y());
             int bottom = min(curr->lineBottom(), curr->y() + curr->height());
-            graphicsContext->addFocusRingRect(IntRect(tx + curr->x(), ty + top, curr->width(), bottom - top));
+            IntRect rect(tx + curr->x(), ty + top, curr->width(), bottom - top);
+            if (!rect.isEmpty())
+                rects.append(rect);
         }
 
         for (RenderObject* curr = firstChild(); curr; curr = curr->nextSibling()) {
@@ -5028,13 +5048,13 @@ void RenderBlock::addFocusRingRects(GraphicsContext* graphicsContext, int tx, in
                     pos = curr->localToAbsolute();
                 else
                     pos = FloatPoint(tx + box->x(), ty + box->y());
-                box->addFocusRingRects(graphicsContext, pos.x(), pos.y());
+                box->addFocusRingRects(rects, pos.x(), pos.y());
             }
         }
     }
 
     if (inlineContinuation())
-        inlineContinuation()->addFocusRingRects(graphicsContext, 
+        inlineContinuation()->addFocusRingRects(rects, 
                                                 tx - x() + inlineContinuation()->containingBlock()->x(),
                                                 ty - y() + inlineContinuation()->containingBlock()->y());
 }

@@ -474,20 +474,25 @@ bool validBlockTag(const AtomicString& blockTag)
     DEFINE_STATIC_LOCAL(HashSet<AtomicString>, blockTags, ());
     if (blockTags.isEmpty()) {
         blockTags.add(addressTag.localName());
+        blockTags.add(articleTag.localName());
+        blockTags.add(asideTag.localName());
         blockTags.add(blockquoteTag.localName());
         blockTags.add(ddTag.localName());
         blockTags.add(divTag.localName());
         blockTags.add(dlTag.localName());
         blockTags.add(dtTag.localName());
+        blockTags.add(footerTag.localName());
         blockTags.add(h1Tag.localName());
         blockTags.add(h2Tag.localName());
         blockTags.add(h3Tag.localName());
         blockTags.add(h4Tag.localName());
         blockTags.add(h5Tag.localName());
         blockTags.add(h6Tag.localName());
+        blockTags.add(headerTag.localName());
         blockTags.add(navTag.localName());
         blockTags.add(pTag.localName());
         blockTags.add(preTag.localName());
+        blockTags.add(sectionTag.localName());
     }
     return blockTags.contains(blockTag);
 }

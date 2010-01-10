@@ -58,7 +58,11 @@ public:
     void setNetworkStateChangedFunction(void (*)());
     
     bool onLine() const { return m_isOnLine; }
-    
+
+#if (PLATFORM(QT) && ENABLE(QT_BEARER))
+    void setNetworkAccessAllowed(bool);
+#endif
+
 private:    
     bool m_isOnLine;
     void (*m_networkStateChangedFunction)();
@@ -84,6 +88,10 @@ private:
 
 #elif PLATFORM(CHROMIUM)
     NetworkStateNotifierPrivate p;
+
+#elif PLATFORM(ANDROID)
+public:
+    void networkStateChange(bool online);
 
 #elif PLATFORM(QT) && ENABLE(QT_BEARER)
     friend class NetworkStateNotifierPrivate;

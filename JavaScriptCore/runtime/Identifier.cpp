@@ -28,6 +28,8 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/HashSet.h>
 
+using WTF::ThreadSpecific;
+
 namespace JSC {
 
 typedef HashMap<const char*, RefPtr<UString::Rep>, PtrHash<const char*> > LiteralIdentifierTable;
@@ -38,13 +40,13 @@ public:
     {
         HashSet<UString::Rep*>::iterator end = m_table.end();
         for (HashSet<UString::Rep*>::iterator iter = m_table.begin(); iter != end; ++iter)
-            (*iter)->setIdentifierTable(0);
+            (*iter)->setIsIdentifier(false);
     }
     
     std::pair<HashSet<UString::Rep*>::iterator, bool> add(UString::Rep* value)
     {
         std::pair<HashSet<UString::Rep*>::iterator, bool> result = m_table.add(value);
-        (*result.first)->setIdentifierTable(this);
+        (*result.first)->setIsIdentifier(true);
         return result;
     }
 
@@ -52,7 +54,7 @@ public:
     std::pair<HashSet<UString::Rep*>::iterator, bool> add(U value)
     {
         std::pair<HashSet<UString::Rep*>::iterator, bool> result = m_table.add<U, V>(value);
-        (*result.first)->setIdentifierTable(this);
+        (*result.first)->setIsIdentifier(true);
         return result;
     }
 
@@ -212,12 +214,12 @@ PassRefPtr<UString::Rep> Identifier::add(ExecState* exec, const UChar* s, int le
 
 PassRefPtr<UString::Rep> Identifier::addSlowCase(JSGlobalData* globalData, UString::Rep* r)
 {
-    ASSERT(!r->identifierTable());
+    ASSERT(!r->isIdentifier());
     if (r->size() == 1) {
         UChar c = r->data()[0];
         if (c <= 0xFF)
             r = globalData->smallStrings.singleCharacterStringRep(c);
-            if (r->identifierTable()) {
+            if (r->isIdentifier()) {
 #ifndef NDEBUG
                 checkSameIdentifierTable(globalData, r);
 #endif
@@ -238,19 +240,19 @@ PassRefPtr<UString::Rep> Identifier::addSlowCase(ExecState* exec, UString::Rep* 
 
 void Identifier::remove(UString::Rep* r)
 {
-    r->identifierTable()->remove(r);
+    currentIdentifierTable()->remove(r);
 }
 
 #ifndef NDEBUG
 
-void Identifier::checkSameIdentifierTable(ExecState* exec, UString::Rep* rep)
+void Identifier::checkSameIdentifierTable(ExecState* exec, UString::Rep*)
 {
-    ASSERT(rep->identifierTable() == exec->globalData().identifierTable);
+    ASSERT(exec->globalData().identifierTable == currentIdentifierTable());
 }
 
-void Identifier::checkSameIdentifierTable(JSGlobalData* globalData, UString::Rep* rep)
+void Identifier::checkSameIdentifierTable(JSGlobalData* globalData, UString::Rep*)
 {
-    ASSERT(rep->identifierTable() == globalData->identifierTable);
+    ASSERT(globalData->identifierTable == currentIdentifierTable());
 }
 
 #else
@@ -261,6 +263,32 @@ void Identifier::checkSameIdentifierTable(ExecState*, UString::Rep*)
 
 void Identifier::checkSameIdentifierTable(JSGlobalData*, UString::Rep*)
 {
+}
+
+#endif
+
+ThreadSpecific<ThreadIdentifierTableData>* g_identifierTableSpecific = 0;
+
+#if ENABLE(JSC_MULTIPLE_THREADS)
+
+pthread_once_t createIdentifierTableSpecificOnce = PTHREAD_ONCE_INIT;
+static void createIdentifierTableSpecificCallback()
+{
+    ASSERT(!g_identifierTableSpecific);
+    g_identifierTableSpecific = new ThreadSpecific<ThreadIdentifierTableData>();
+}
+void createIdentifierTableSpecific()
+{
+    pthread_once(&createIdentifierTableSpecificOnce, createIdentifierTableSpecificCallback);
+    ASSERT(g_identifierTableSpecific);
+}
+
+#else 
+
+void createIdentifierTableSpecific()
+{
+    ASSERT(!g_identifierTableSpecific);
+    g_identifierTableSpecific = new ThreadSpecific<ThreadIdentifierTableData>();
 }
 
 #endif

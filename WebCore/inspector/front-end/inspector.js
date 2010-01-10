@@ -28,24 +28,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-var Preferences = {
-    showUserAgentStyles: true,
-    maxInlineTextChildLength: 80,
-    minConsoleHeight: 75,
-    minSidebarWidth: 100,
-    minElementsSidebarWidth: 200,
-    minScriptsSidebarWidth: 200,
-    showInheritedComputedStyleProperties: false,
-    styleRulesExpandedState: {},
-    showMissingLocalizedStrings: false,
-    heapProfilerPresent: false,
-    samplingCPUProfiler: false,
-    showColorNicknames: true,
-    colorFormat: "hex",
-    eventListenersFilter: "all",
-    resourcesLargeRows: true
-}
-
 function preloadImages()
 {
     (new Image()).src = "Images/clearConsoleButtonGlyph.png";
@@ -195,23 +177,13 @@ var WebInspector = {
 
         if (hiddenPanels.indexOf("storage") === -1 && hiddenPanels.indexOf("databases") === -1)
             this.panels.storage = new WebInspector.StoragePanel();
+
+        // FIXME: Uncomment when ready.
+        // if (hiddenPanels.indexOf("audits") === -1)
+        //    this.panels.audits = new WebInspector.AuditsPanel();
+
         if (hiddenPanels.indexOf("console") === -1)
             this.panels.console = new WebInspector.ConsolePanel();
-    },
-
-    _loadPreferences: function()
-    {
-        var colorFormat = InspectorFrontendHost.setting("color-format");
-        if (colorFormat)
-            Preferences.colorFormat = colorFormat;
-
-        var eventListenersFilter = InspectorFrontendHost.setting("event-listeners-filter");
-        if (eventListenersFilter)
-            Preferences.eventListenersFilter = eventListenersFilter;
-
-        var resourcesLargeRows = InspectorFrontendHost.setting("resources-large-rows");
-        if (typeof resourcesLargeRows !== "undefined")
-            Preferences.resourcesLargeRows = resourcesLargeRows;
     },
 
     get attached()
@@ -422,7 +394,7 @@ WebInspector.loaded = function()
     var port = WebInspector.port;
     document.body.addStyleClass("port-" + port);
 
-    this._loadPreferences();
+    this.settings = new WebInspector.Settings();
 
     this.drawer = new WebInspector.Drawer();
     this.console = new WebInspector.ConsoleView(this.drawer);
@@ -973,7 +945,7 @@ WebInspector.showConsolePanel = function()
 
 WebInspector.clearConsoleMessages = function()
 {
-    WebInspector.console.clearMessages(false);
+    WebInspector.console.clearMessages();
 }
 
 WebInspector.selectDatabase = function(o)
@@ -1000,7 +972,7 @@ WebInspector.updateResource = function(identifier, payload)
     }
 
     if (payload.didRequestChange) {
-        resource.host = payload.domain;
+        resource.domain = payload.host;
         resource.path = payload.path;
         resource.lastPathComponent = payload.lastPathComponent;
         resource.requestHeaders = payload.requestHeaders;
@@ -1013,9 +985,12 @@ WebInspector.updateResource = function(identifier, payload)
         if (resource.mainResource)
             this.mainResource = resource;
 
-        var match = payload.documentURL.match(/^(http[s]?|file):\/\/([\/]*[^\/]+)/i);
-        if (match)
-            this.addCookieDomain(match[1].toLowerCase() === "file" ? "" : match[2]);
+        var match = payload.documentURL.match(WebInspector.URLRegExp);
+        if (match) {
+            var protocol = match[1].toLowerCase();
+            if (protocol.indexOf("http") === 0 || protocol === "file")
+                this.addCookieDomain(protocol === "file" ? "" : match[2]);
+        }
     }
 
     if (payload.didResponseChange) {
@@ -1054,6 +1029,8 @@ WebInspector.updateResource = function(identifier, payload)
             // of the resources panel instead of the individual resource.
             if (this.panels.resources)
                 this.panels.resources.mainResourceLoadTime = payload.loadEventTime;
+            if (this.panels.audits)
+                this.panels.audits.mainResourceLoadTime = payload.loadEventTime;
         }
 
         if (payload.domContentEventTime) {
@@ -1061,6 +1038,8 @@ WebInspector.updateResource = function(identifier, payload)
             // the resources panel for the same reasons as above.
             if (this.panels.resources)
                 this.panels.resources.mainResourceDOMContentTime = payload.domContentEventTime;
+            if (this.panels.audits)
+                this.panels.audits.mainResourceDOMContentTime = payload.domContentEventTime;
         }
     }
 }
@@ -1656,7 +1635,7 @@ WebInspector.isBeingEdited = function(element)
     return element.__editing;
 }
 
-WebInspector.startEditing = function(element, committedCallback, cancelledCallback, context)
+WebInspector.startEditing = function(element, committedCallback, cancelledCallback, context, multiline)
 {
     if (element.__editing)
         return;
@@ -1717,7 +1696,10 @@ WebInspector.startEditing = function(element, committedCallback, cancelledCallba
     }
 
     function keyDownEventListener(event) {
-        if (isEnterKey(event)) {
+        var isMetaOrCtrl = WebInspector.isMac() ?
+            event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey :
+            event.ctrlKey && !event.shiftKey && !event.metaKey && !event.altKey;
+        if (isEnterKey(event) && (!multiline || isMetaOrCtrl)) {
             editingCommitted.call(element);
             event.preventDefault();
             event.stopPropagation();

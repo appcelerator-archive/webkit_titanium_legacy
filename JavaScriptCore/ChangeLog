@@ -1,3 +1,953 @@
+2010-01-08  Yong Li  <yoli@rim.com>
+
+        Reviewed by Darin Adler.
+
+        Remove unnecessary #include from FastMalloc.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=33393
+
+        * wtf/FastMalloc.cpp:
+
+2010-01-08  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r52983.
+        http://trac.webkit.org/changeset/52983
+        https://bugs.webkit.org/show_bug.cgi?id=33321
+
+        Broke 59 JavaScriptCore tests.  I don't think Kent knew about
+        run-javascriptcore-tests.  Sadly neither does the commit-bot,
+        yet.
+
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::RegExp):
+        * runtime/RegExp.h:
+        (JSC::RegExp::flags):
+
+2010-01-08  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r52981.
+        http://trac.webkit.org/changeset/52981
+        https://bugs.webkit.org/show_bug.cgi?id=33319
+
+        Caused two JS tests to start failing:
+        ecma_2/RegExp/properties-001.js and js1_2/regexp/toString.js
+
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncToString):
+
+2010-01-08  Kent Hansen  <kent.hansen@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Don't store RegExp flags string representation
+        https://bugs.webkit.org/show_bug.cgi?id=33321
+
+        It's unused; the string representation is reconstructed from flags.
+
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::RegExp):
+        * runtime/RegExp.h:
+
+2010-01-08  Kent Hansen  <kent.hansen@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        RegExp.prototype.toString returns "//" for empty regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=33319
+
+        "//" starts a single-line comment, hence "/(?:)/" should be used, according to ECMA.
+
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncToString):
+
+2010-01-08  Norbert Leser  <norbert.leser@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        RVCT compiler with "-Otime -O3" optimization tries to optimize out 
+        inline new'ed pointers that are passed as arguments.
+        Proposed patch assigns new'ed pointer explicitly outside function call.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33084
+
+        * API/JSClassRef.cpp:
+        (OpaqueJSClass::OpaqueJSClass):
+        (OpaqueJSClassContextData::OpaqueJSClassContextData):
+
+2010-01-08  Gabor Loki  <loki@webkit.org>
+
+        Reviewed by Gavin Barraclough.
+
+        Remove an unnecessary cacheFlush from ARM_TRADITIONAL JIT
+        https://bugs.webkit.org/show_bug.cgi?id=33203
+
+        * assembler/ARMAssembler.cpp: Remove obsolete linkBranch function.
+        (JSC::ARMAssembler::executableCopy): Inline a clean linkBranch code.
+        * assembler/ARMAssembler.h:
+        (JSC::ARMAssembler::getLdrImmAddress): Use inline function.
+        (JSC::ARMAssembler::getLdrImmAddressOnPool): Ditto.
+        (JSC::ARMAssembler::patchPointerInternal): Remove an unnecessary cacheFlush.
+        (JSC::ARMAssembler::linkJump): Use patchPointerInternal instead of linkBranch.
+        (JSC::ARMAssembler::linkCall): Ditto.
+        (JSC::ARMAssembler::relinkCall): Ditto.
+
+2010-01-07  Gabor Loki  <loki@webkit.org>
+
+        Reviewed by Gavin Barraclough.
+
+        Build fix for JSVALUE32 when ENABLE_JIT_OPTIMIZE* are disabled
+        https://bugs.webkit.org/show_bug.cgi?id=33311
+
+        Move compileGetDirectOffset function to common part of JSVALUE32
+
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::compileGetDirectOffset):
+
+2010-01-07  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Allow call sites to determine if ASSERT_* and LOG_* macros are operational
+        https://bugs.webkit.org/show_bug.cgi?id=33020
+
+        * wtf/Assertions.h: Set ASSERT_MSG_DISABLED, FATAL_DISABLED,
+        ERROR_DISABLED, LOG_DISABLED to 1 if the compiler does not support
+        variadic macros. Refactor for better readibility.
+
+2010-01-07  Daniel Bates  <dbates@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32987
+
+        Added ENABLE_XHTMLMP flag. Disabled by default.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2010-01-07  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Gavin Barraclough.
+
+        [Symbian] Port ARM traditional JIT Trampolines to RVCT
+        https://bugs.webkit.org/show_bug.cgi?id=30552
+
+        Take the GCC implementation and mechanically convert
+        it to RVCT syntax.
+
+        Use 'bx rX' instead of 'mov pc, rX' when it is available.
+
+        Developed in cooperation with Iain Campbell and Gabor Loki.
+
+        * JavaScriptCore.pri: Extra step to generate RVCT stubs. The 
+        script generation intentionally executed all the time not just
+        for RVCT targets.
+
+        * create_rvct_stubs: Added. Perl script to expand precompiler macros
+        for RVCT assembler - the template is defined in JITStubs.cpp.
+
+        * jit/JITStubs.cpp:
+        (JSC::ctiTrampoline):
+        (JSC::ctiVMThrowTrampoline):
+        (JSC::ctiOpThrowNotCaught):
+
+2010-01-07  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Fix a crash seen on the buildbots.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init): Disable specific function tracking here,
+        instead of in WebCore, to ensure that the disabling happens before a
+        specific function can be registered.
+
+2010-01-07  Alexey Proskuryakov  <ap@apple.com>
+
+        Mac build fix.
+
+        * JavaScriptCore.exp: Export new JSGlobalData static data members.
+
+2010-01-07  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Geoffrey Garen.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33057
+        REGRESSION(r49365): typeof(xhr.responseText) != "string" in Windows
+
+        <rdar://problem/7296920> REGRESSION: WebKit fails to start PeaceKeeper benchmark
+
+        Test: fast/js/webcore-string-comparison.html
+
+        In r49365, some code was moved from JSString.cpp to JSString.h, and as a result, WebCore
+        got a way to directly instantiate JSStrings over DLL borders. Since vftable for JSString was
+        not exported, objects created from WebCore got a different vptr, and JavaScriptCore
+        optimizations that relied on vptr of all JSString objects being equal failed.
+
+        * config.h: Added a JS_EXPORTCLASS macro for exporting classes. It's currently the same as
+        JS_EXPORTDATA, but it clearly needed a new name.
+
+        * runtime/InitializeThreading.cpp:
+        (JSC::initializeThreadingOnce):
+        * runtime/JSGlobalData.cpp:
+        (JSC::JSGlobalData::storeVPtrs):
+        (JSC::JSGlobalData::JSGlobalData):
+        (JSC::JSGlobalData::createNonDefault):
+        (JSC::JSGlobalData::create):
+        (JSC::JSGlobalData::sharedInstance):
+        * runtime/JSGlobalData.h:
+        Store vptrs just once, no need to repeatedly pick and copy them. This makes it possible to
+        assert vptr correctness in object destructors (which don't have access to JSGlobalData,
+        and even Heap::heap(this) will fail for fake objects created from storeVPtrs()).
+
+        * runtime/JSArray.cpp: (JSC::JSArray::~JSArray): Assert that vptr is what we expect it to be.
+        It's important to assert in destructor, because MSVC changes the vptr after constructor
+        is invoked.
+        * runtime/JSByteArray.cpp: (JSC::JSByteArray::~JSByteArray): Ditto.
+        * runtime/JSByteArray.h: Ditto.
+        * runtime/JSFunction.h: Ditto.
+        * runtime/JSFunction.cpp: (JSC::JSFunction::~JSFunction): Ditto.
+
+        * runtime/JSCell.h: (JSC::JSCell::setVPtr): Added a method to substitute vptr for another
+        one.
+
+        * runtime/JSString.h: Export JSString class together with its vftable, and tell other
+        libraries tp import it. This is needed on platforms that have a separate JavaScriptCore
+        dynamic library - and on Mac, we already did the export via JavaScriptCore.exp.
+        (JSC::JSString::~JSString): Assert tha vptr is what we expect it to be.
+        (JSC::fixupVPtr): Store a previously saved primary vftable pointer (do nothing if building
+        JavaScriptCore itself).
+        (JSC::jsSingleCharacterString): Call fixupVPtr in case this is call across DLL boundary.
+        (JSC::jsSingleCharacterSubstring): Ditto.
+        (JSC::jsNontrivialString): Ditto.
+        (JSC::jsString): Ditto.
+        (JSC::jsSubstring): Ditto.
+        (JSC::jsOwnedString): Ditto.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def: Export the new static
+        JSGlobalData members that are used in WebCore via inline functions.
+
+2010-01-07  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Safari memory usage skyrockets using new Google AdWords interface
+        https://bugs.webkit.org/show_bug.cgi?id=33343
+
+        The memory use was caused by the global object creating too many structures
+        as it thrashed between different specific functions.
+
+        * runtime/Structure.cpp:
+        (JSC::Structure::Structure):
+        (JSC::Structure::addPropertyTransition):
+        (JSC::Structure::changePrototypeTransition):
+        (JSC::Structure::despecifyFunctionTransition):
+        (JSC::Structure::addAnonymousSlotsTransition):
+        (JSC::Structure::getterSetterTransition):
+        (JSC::Structure::toDictionaryTransition):
+        (JSC::Structure::addPropertyWithoutTransition):
+        (JSC::Structure::despecifyAllFunctions):
+        * runtime/Structure.h:
+        (JSC::Structure::disableSpecificFunctionTracking): Track a thrash count
+        for specific functions. Disable specific function tracking once the
+        thrash count has been hit.
+
+2010-01-07  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Enable JIT in debug mode on win32 after r51141 fixed the crashes.
+
+        * JavaScriptCore.pri:
+
+2010-01-07  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Holger Freyther.
+
+        [Mac] Build fix when FAST_MALLOC_MATCH_VALIDATION=1
+        https://bugs.webkit.org/show_bug.cgi?id=33312
+
+        Using of operator += cause compile error on Mac, so it is changed to
+        "= static_cast<AllocAlignmentInteger*>(old_ptr) + 1".
+
+        * wtf/FastMalloc.cpp:
+        (WTF::TCMallocStats::realloc):
+
+2010-01-07  Zoltan Horvath  <zoltan@webkit.org>
+
+        Reviewed by Holger Freyther.
+
+        [Qt] Build fix when FAST_MALLOC_MATCH_VALIDATION=1
+        https://bugs.webkit.org/show_bug.cgi?id=33312
+
+        Remove pByte (committed in r42344 from #20422), because pByte doesn't
+        exist and it is unnecessary.
+
+        * wtf/FastMalloc.cpp:
+        (WTF::TCMallocStats::realloc):
+
+2010-01-06  Gavin Barraclough  <barraclough@apple.com>
+
+        QT build fix.
+
+        * runtime/Identifier.cpp:
+        (JSC::createIdentifierTableSpecific):
+
+2010-01-06  Gavin Barraclough  <barraclough@apple.com>
+
+        Windows build fix part I.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2010-01-06  Dan Bernstein  <mitz@apple.com>
+
+        Build fix
+
+        * runtime/Identifier.cpp:
+        (JSC::createIdentifierTableSpecificCallback):
+
+2010-01-05  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33236
+        Remove m_identifierTable pointer from UString
+
+        Currently every string holds a pointer so that during destruction,
+        if a string has been used as an identifier, it can remove itself
+        from the table.  By instead accessing the identifierTable via a
+        thread specific tracking the table associated with the current
+        globaldata, we can save the memory cost of this pointer.
+
+        * API/APIShims.h:
+        (JSC::APIEntryShimWithoutLock::APIEntryShimWithoutLock):
+        (JSC::APIEntryShimWithoutLock::~APIEntryShimWithoutLock):
+        (JSC::APICallbackShim::APICallbackShim):
+        (JSC::APICallbackShim::~APICallbackShim):
+
+            - change the API shims to track the identifierTable of the current JSGlobalData.
+
+        * API/JSContextRef.cpp:
+        (JSContextGroupCreate):
+
+            - update creation of JSGlobalData for API usage to use new create method.
+            - fix shim instanciation bug in JSGlobalContextCreateInGroup.
+
+        * JavaScriptCore.exp:
+        * runtime/Completion.cpp:
+        (JSC::checkSyntax):
+        (JSC::evaluate):
+
+            - add asserts to check the identifierTable is being tracked correctly.
+
+        * runtime/Identifier.cpp:
+        (JSC::IdentifierTable::~IdentifierTable):
+        (JSC::IdentifierTable::add):
+        (JSC::Identifier::remove):
+        (JSC::Identifier::checkSameIdentifierTable):
+        (JSC::createIdentifierTableSpecificCallback):
+        (JSC::createIdentifierTableSpecific):
+        (JSC::createDefaultDataSpecific):
+
+            - Use currentIdentifierTable() instead of UStringImpl::m_identifierTable.
+            - Define methods to access the thread specific identifier tables.
+
+        * runtime/Identifier.h:
+        (JSC::ThreadIdentifierTableData::ThreadIdentifierTableData):
+        (JSC::defaultIdentifierTable):
+        (JSC::setDefaultIdentifierTable):
+        (JSC::currentIdentifierTable):
+        (JSC::setCurrentIdentifierTable):
+        (JSC::resetCurrentIdentifierTable):
+
+            - Declare methods to access the thread specific identifier tables.
+
+        * runtime/JSGlobalData.cpp:
+        (JSC::JSGlobalData::createNonDefault):
+        (JSC::JSGlobalData::create):
+        (JSC::JSGlobalData::sharedInstance):
+
+            - creation of JSGlobalData objects, other than for API usage, associate themselves with the current thread.
+
+        * runtime/JSGlobalData.h:
+        * runtime/UStringImpl.cpp:
+        (JSC::UStringImpl::destroy):
+
+            - destroy() method should be using isIdentifier().
+
+        * runtime/UStringImpl.h:
+        (JSC::UStringImpl::isIdentifier):
+        (JSC::UStringImpl::setIsIdentifier):
+        (JSC::UStringImpl::checkConsistency):
+        (JSC::UStringImpl::UStringImpl):
+
+            - replace m_identifierTable with a single m_isIdentifier bit.
+
+        * wtf/StringHashFunctions.h:
+        (WTF::stringHash):
+
+            - change string hash result from 32-bit to 31-bit, to free a bit in UStringImpl for m_isIdentifier.
+
+2009-12-25 Patrick Gansterer <paroga@paroga.com>
+ 
+        Reviewed by Eric Seidel.
+
+        Buildfix for WinCE + style fixes.
+        https://bugs.webkit.org/show_bug.cgi?id=32939
+
+        * jsc.cpp:
+        (functionPrint):
+        (functionQuit):
+        (parseArguments):
+        (fillBufferWithContentsOfFile):
+ 
+2010-01-05  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Eric Seidel.
+
+        WinCE buildfix after r52791 (renamed PLATFORM(WINCE) to OS(WINCE)).
+        https://bugs.webkit.org/show_bug.cgi?id=33205
+
+        * jit/ExecutableAllocator.h:
+
+2010-01-05  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Darin Adler.
+
+        Added compiler error for unsupported platforms.
+        https://bugs.webkit.org/show_bug.cgi?id=33112
+
+        * jit/JITStubs.cpp:
+
+2010-01-05  Gabor Loki  <loki@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Follow r52729 in ARMAssembler.
+        https://bugs.webkit.org/show_bug.cgi?id=33208
+
+        Use WTF_ARM_ARCH_AT_LEAST instead of ARM_ARCH_VERSION
+
+        * assembler/ARMAssembler.cpp:
+        (JSC::ARMAssembler::encodeComplexImm): Move tmp declaration to ARMv7
+        * assembler/ARMAssembler.h:
+        (JSC::ARMAssembler::):
+        (JSC::ARMAssembler::bkpt):
+
+2010-01-05  Maciej Stachowiak  <mjs@apple.com>
+
+        Unreviewed build fix for Gtk+
+
+        Don't use // comments in Platform.h, at least some of them seem to make the version of GCC
+        used on the Gtk buildbot unhappy.
+
+        * wtf/Platform.h:
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Darin Fisher.
+
+        Reorganize, document and rename OS() platform macros.
+        https://bugs.webkit.org/show_bug.cgi?id=33198
+
+        * wtf/Platform.h: Rename, reorganize and document OS() macros.
+
+        Adapt to name changes. Also fixed a few incorrect OS checks.
+
+        * API/JSContextRef.cpp:
+        * assembler/MacroAssemblerARM.cpp:
+        (JSC::isVFPPresent):
+        * assembler/MacroAssemblerX86Common.h:
+        * bytecode/SamplingTool.cpp:
+        * config.h:
+        * interpreter/RegisterFile.cpp:
+        (JSC::RegisterFile::~RegisterFile):
+        * interpreter/RegisterFile.h:
+        (JSC::RegisterFile::RegisterFile):
+        (JSC::RegisterFile::grow):
+        * jit/ExecutableAllocator.h:
+        * jit/ExecutableAllocatorFixedVMPool.cpp:
+        * jit/ExecutableAllocatorPosix.cpp:
+        * jit/ExecutableAllocatorSymbian.cpp:
+        * jit/ExecutableAllocatorWin.cpp:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::privateCompileCTIMachineTrampolines):
+        * jit/JITStubs.cpp:
+        * jsc.cpp:
+        (main):
+        * parser/Grammar.y:
+        * profiler/ProfileNode.cpp:
+        (JSC::getCount):
+        * runtime/Collector.cpp:
+        (JSC::Heap::Heap):
+        (JSC::Heap::allocateBlock):
+        (JSC::Heap::freeBlockPtr):
+        (JSC::currentThreadStackBase):
+        (JSC::getCurrentPlatformThread):
+        (JSC::suspendThread):
+        (JSC::resumeThread):
+        (JSC::getPlatformThreadRegisters):
+        (JSC::otherThreadStackPointer):
+        * runtime/Collector.h:
+        * runtime/DateConstructor.cpp:
+        * runtime/DatePrototype.cpp:
+        (JSC::formatLocaleDate):
+        * runtime/InitializeThreading.cpp:
+        (JSC::initializeThreading):
+        * runtime/MarkStack.h:
+        (JSC::MarkStack::MarkStackArray::shrinkAllocation):
+        * runtime/MarkStackPosix.cpp:
+        * runtime/MarkStackSymbian.cpp:
+        * runtime/MarkStackWin.cpp:
+        * runtime/StringPrototype.cpp:
+        (JSC::stringProtoFuncLastIndexOf):
+        * runtime/TimeoutChecker.cpp:
+        (JSC::getCPUTime):
+        * runtime/UString.cpp:
+        (JSC::UString::from):
+        * wtf/Assertions.cpp:
+        * wtf/Assertions.h:
+        * wtf/CurrentTime.cpp:
+        (WTF::lowResUTCTime):
+        * wtf/CurrentTime.h:
+        (WTF::getLocalTime):
+        * wtf/DateMath.cpp:
+        * wtf/FastMalloc.cpp:
+        (WTF::TCMalloc_ThreadCache::InitModule):
+        (WTF::TCMallocStats::):
+        * wtf/FastMalloc.h:
+        * wtf/MathExtras.h:
+        * wtf/RandomNumber.cpp:
+        (WTF::randomNumber):
+        * wtf/RandomNumberSeed.h:
+        (WTF::initializeRandomNumberGenerator):
+        * wtf/StringExtras.h:
+        * wtf/TCSpinLock.h:
+        (TCMalloc_SpinLock::Unlock):
+        (TCMalloc_SlowLock):
+        * wtf/TCSystemAlloc.cpp:
+        * wtf/ThreadSpecific.h:
+        (WTF::::destroy):
+        * wtf/Threading.h:
+        * wtf/ThreadingPthreads.cpp:
+        (WTF::initializeThreading):
+        (WTF::isMainThread):
+        * wtf/ThreadingWin.cpp:
+        (WTF::wtfThreadEntryPoint):
+        (WTF::createThreadInternal):
+        * wtf/VMTags.h:
+        * wtf/unicode/icu/CollatorICU.cpp:
+        (WTF::Collator::userDefault):
+        * wtf/win/MainThreadWin.cpp:
+        (WTF::initializeMainThreadPlatform):
+
+2010-01-04  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Add missing files to the build system - make distcheck build fix.
+
+        * GNUmakefile.am:
+
+2010-01-04  Gavin Barraclough <barraclough@apple.com>
+
+        Reviewed by Sam Weinig, additional coding by Mark Rowe.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33163
+        Add string hashing functions to WTF.
+        Use WTF's string hashing functions from UStringImpl.
+
+        * GNUmakefile.am:
+        * JavaScriptCore.exp:
+        * JavaScriptCore.gypi:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * runtime/UStringImpl.cpp:
+        * runtime/UStringImpl.h:
+        (JSC::UStringImpl::computeHash):
+        * wtf/HashFunctions.h:
+        * wtf/StringHashFunctions.h: Added.
+        (WTF::stringHash):
+
+2010-01-04  Dmitry Titov  <dimich@chromium.org>
+
+        Not reviewed, attempt to fix ARM bulid.
+
+        * wtf/Platform.h:
+
+2010-01-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Rubber stamped by Geoff Garen.
+
+        Add an 'isIdentifier' to UStringImpl, use this where appropriate
+        (where previously 'identifierTable' was being tested).
+
+        * API/JSClassRef.cpp:
+        (OpaqueJSClass::~OpaqueJSClass):
+        (OpaqueJSClassContextData::OpaqueJSClassContextData):
+        * runtime/Identifier.cpp:
+        (JSC::Identifier::addSlowCase):
+        * runtime/Identifier.h:
+        (JSC::Identifier::add):
+        * runtime/PropertyNameArray.cpp:
+        (JSC::PropertyNameArray::add):
+        * runtime/UStringImpl.h:
+        (JSC::UStringImpl::isIdentifier):
+
+2010-01-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam "Shimmey Shimmey" Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33158
+        Refactor JSC API entry/exit to use RAII instead of copy/pasting code.
+        Make it easier to change set of actions taken when passing across the API boundary.
+
+        * API/APIShims.h: Added.
+        (JSC::APIEntryShimWithoutLock::APIEntryShimWithoutLock):
+        (JSC::APIEntryShimWithoutLock::~APIEntryShimWithoutLock):
+        (JSC::APIEntryShim::APIEntryShim):
+        (JSC::APICallbackShim::APICallbackShim):
+        (JSC::APICallbackShim::~APICallbackShim):
+        * API/JSBase.cpp:
+        (JSEvaluateScript):
+        (JSCheckScriptSyntax):
+        (JSGarbageCollect):
+        (JSReportExtraMemoryCost):
+        * API/JSCallbackConstructor.cpp:
+        (JSC::constructJSCallback):
+        * API/JSCallbackFunction.cpp:
+        (JSC::JSCallbackFunction::call):
+        * API/JSCallbackObjectFunctions.h:
+        (JSC::::init):
+        (JSC::::getOwnPropertySlot):
+        (JSC::::put):
+        (JSC::::deleteProperty):
+        (JSC::::construct):
+        (JSC::::hasInstance):
+        (JSC::::call):
+        (JSC::::getOwnPropertyNames):
+        (JSC::::toNumber):
+        (JSC::::toString):
+        (JSC::::staticValueGetter):
+        (JSC::::callbackGetter):
+        * API/JSContextRef.cpp:
+        * API/JSObjectRef.cpp:
+        (JSObjectMake):
+        (JSObjectMakeFunctionWithCallback):
+        (JSObjectMakeConstructor):
+        (JSObjectMakeFunction):
+        (JSObjectMakeArray):
+        (JSObjectMakeDate):
+        (JSObjectMakeError):
+        (JSObjectMakeRegExp):
+        (JSObjectGetPrototype):
+        (JSObjectSetPrototype):
+        (JSObjectHasProperty):
+        (JSObjectGetProperty):
+        (JSObjectSetProperty):
+        (JSObjectGetPropertyAtIndex):
+        (JSObjectSetPropertyAtIndex):
+        (JSObjectDeleteProperty):
+        (JSObjectCallAsFunction):
+        (JSObjectCallAsConstructor):
+        (JSObjectCopyPropertyNames):
+        (JSPropertyNameArrayRelease):
+        (JSPropertyNameAccumulatorAddName):
+        * API/JSValueRef.cpp:
+        (JSValueGetType):
+        (JSValueIsUndefined):
+        (JSValueIsNull):
+        (JSValueIsBoolean):
+        (JSValueIsNumber):
+        (JSValueIsString):
+        (JSValueIsObject):
+        (JSValueIsObjectOfClass):
+        (JSValueIsEqual):
+        (JSValueIsStrictEqual):
+        (JSValueIsInstanceOfConstructor):
+        (JSValueMakeUndefined):
+        (JSValueMakeNull):
+        (JSValueMakeBoolean):
+        (JSValueMakeNumber):
+        (JSValueMakeString):
+        (JSValueToBoolean):
+        (JSValueToNumber):
+        (JSValueToStringCopy):
+        (JSValueToObject):
+        (JSValueProtect):
+        (JSValueUnprotect):
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+
+2010-01-04  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Ada Chan and Mark Rowe.
+
+        Updated copyright string
+
+        * Info.plist:
+        * JavaScriptCore.vcproj/JavaScriptCore.resources/Info.plist:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.rc:
+
+2010-01-04  Adam Roben  <aroben@apple.com>
+
+        No review, rolling out r52741.
+        http://trac.webkit.org/changeset/52741
+        https://bugs.webkit.org/show_bug.cgi?id=33056
+
+        * wtf/AlwaysInline.h:
+
+2010-01-04  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Darin Adler.
+
+        Add cacheFlush support for WinCE
+        https://bugs.webkit.org/show_bug.cgi?id=33110
+
+        * jit/ExecutableAllocator.h:
+        (JSC::ExecutableAllocator::cacheFlush):
+
+2010-01-04  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Adam Roben.
+
+        Implement NO_RETURN for COMPILER(MSVC).
+        https://bugs.webkit.org/show_bug.cgi?id=33056
+
+        * wtf/AlwaysInline.h:
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Simon Hausmann.
+
+        Fix some PLATFORM(*_ENDIAN) uses to CPU()
+        https://bugs.webkit.org/show_bug.cgi?id=33148
+
+        * runtime/JSCell.cpp:
+        (JSC::):
+        * runtime/JSValue.h:
+        (JSC::JSValue::):
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Adam Barth.
+
+        Document CPU() macros in comments.
+        https://bugs.webkit.org/show_bug.cgi?id=33147
+
+        * wtf/Platform.h:
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Adam Barth.
+
+        Reorganize, document and rename CPU() platform macros.
+        https://bugs.webkit.org/show_bug.cgi?id=33145
+        ExecutableAllocatorSymbian appears to have buggy ARM version check
+        https://bugs.webkit.org/show_bug.cgi?id=33138
+        
+        * wtf/Platform.h:
+        Rename all macros related to detection of particular CPUs or
+        classes of CPUs to CPU(), reorganize and document them.
+
+        All remaining changes are adapting to the renames, plus fixing the
+        second bug cited above.
+        
+        * assembler/ARMAssembler.cpp:
+        * assembler/ARMAssembler.h:
+        * assembler/ARMv7Assembler.h:
+        * assembler/AbstractMacroAssembler.h:
+        (JSC::AbstractMacroAssembler::Imm32::Imm32):
+        * assembler/MacroAssembler.h:
+        * assembler/MacroAssemblerARM.cpp:
+        * assembler/MacroAssemblerARM.h:
+        * assembler/MacroAssemblerCodeRef.h:
+        (JSC::MacroAssemblerCodePtr::MacroAssemblerCodePtr):
+        * assembler/MacroAssemblerX86.h:
+        * assembler/MacroAssemblerX86Common.h:
+        * assembler/MacroAssemblerX86_64.h:
+        * assembler/X86Assembler.h:
+        (JSC::X86Registers::):
+        (JSC::X86Assembler::):
+        (JSC::X86Assembler::movl_mEAX):
+        (JSC::X86Assembler::movl_EAXm):
+        (JSC::X86Assembler::repatchLoadPtrToLEA):
+        (JSC::X86Assembler::X86InstructionFormatter::memoryModRM):
+        * jit/ExecutableAllocator.h:
+        * jit/ExecutableAllocatorFixedVMPool.cpp:
+        * jit/ExecutableAllocatorPosix.cpp:
+        * jit/ExecutableAllocatorSymbian.cpp:
+        (JSC::ExecutableAllocator::intializePageSize):
+        * jit/JIT.cpp:
+        * jit/JIT.h:
+        * jit/JITArithmetic.cpp:
+        * jit/JITInlineMethods.h:
+        (JSC::JIT::beginUninterruptedSequence):
+        (JSC::JIT::restoreArgumentReferenceForTrampoline):
+        (JSC::JIT::emitCount):
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::privateCompileCTIMachineTrampolines):
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::privateCompileGetByIdProto):
+        (JSC::JIT::privateCompileGetByIdProtoList):
+        (JSC::JIT::privateCompileGetByIdChainList):
+        (JSC::JIT::privateCompileGetByIdChain):
+        * jit/JITStubs.cpp:
+        (JSC::JITThunks::JITThunks):
+        * jit/JITStubs.h:
+        * runtime/Collector.cpp:
+        (JSC::currentThreadStackBase):
+        (JSC::getPlatformThreadRegisters):
+        (JSC::otherThreadStackPointer):
+        * wrec/WREC.h:
+        * wrec/WRECGenerator.cpp:
+        (JSC::WREC::Generator::generateEnter):
+        (JSC::WREC::Generator::generateReturnSuccess):
+        (JSC::WREC::Generator::generateReturnFailure):
+        * wrec/WRECGenerator.h:
+        * wtf/FastMalloc.cpp:
+        * wtf/TCSpinLock.h:
+        (TCMalloc_SpinLock::Lock):
+        (TCMalloc_SpinLock::Unlock):
+        (TCMalloc_SlowLock):
+        * wtf/Threading.h:
+        * wtf/dtoa.cpp:
+        * yarr/RegexJIT.cpp:
+        (JSC::Yarr::RegexGenerator::generateEnter):
+        (JSC::Yarr::RegexGenerator::generateReturn):
+        * yarr/RegexJIT.h:
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Adam Barth.
+
+        Clean up COMPILER macros and remove unused ones.
+        https://bugs.webkit.org/show_bug.cgi?id=33132
+        
+        Removed values are COMPILER(BORLAND) and COMPILER(CYGWIN) - they were
+        not used anywhere.
+
+        * wtf/Platform.h:
+
+2010-01-03  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Eric Seidel.
+
+        Update wtf/Platform.h to document the new system for porting macros.
+        https://bugs.webkit.org/show_bug.cgi?id=33130
+
+        * wtf/Platform.h:
+
+2009-12-29  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        PLATFORM(CAIRO) should be defined by WIN_CAIRO define
+        https://bugs.webkit.org/show_bug.cgi?id=22250
+
+        * wtf/Platform.h: Define WTF_PLATFORM_CAIRO for GTK port only
+        For the WinCairo port WTF_PLATFORM_CAIRO is already defined in config.h
+
+2009-12-28  Shu Chang  <Chang.Shu@nokia.com>
+
+        Reviewed by Laszlo Gombos.
+
+        [Qt] Delete ThreadPrivate instance after it is finished.
+        https://bugs.webkit.org/show_bug.cgi?id=32614
+
+        * wtf/qt/ThreadingQt.cpp:
+        (WTF::ThreadMonitor::instance):
+        (WTF::ThreadMonitor::threadFinished):
+        (WTF::createThreadInternal):
+        (WTF::detachThread):
+
+2009-12-28  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Cleanup of #define JS_EXPORT.
+
+        * API/JSBase.h:
+
+2009-12-27  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Adam Barth.
+
+        WinCE buildfix (HWND_MESSAGE isn't supported there)
+
+        * wtf/win/MainThreadWin.cpp:
+        (WTF::initializeMainThreadPlatform):
+
+2009-12-27  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Adam Barth.
+
+        Added a file with WinMain function to link agains in WinCE.
+
+        * os-win32/WinMain.cpp: Added.
+        (convertToUtf8):
+        (WinMain):
+
+2009-12-24  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Unreviewed; revert of r52550.
+
+        The change regressed the following LayoutTests for QtWebKit.
+
+        fast/workers/worker-call.html -> crashed
+        fast/workers/worker-close.html -> crashed
+
+        * wtf/qt/ThreadingQt.cpp:
+        (WTF::waitForThreadCompletion):
+        (WTF::detachThread):
+
+2009-12-24  Shu Chang  <Chang.Shu@nokia.com>
+
+        Reviewed by Laszlo Gombos.
+
+        [Qt] Fix memory leak by deleting instance of ThreadPrivate
+        in function waitForThreadCompletion(), synchronously, or in
+        detachThread(), asynchronously.
+        https://bugs.webkit.org/show_bug.cgi?id=32614 
+
+        * wtf/qt/ThreadingQt.cpp:
+        (WTF::waitForThreadCompletion):
+        (WTF::detachThread):
+
+2009-12-23  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Laszlo Gombos.
+
+        Include stddef.h for ptrdiff_t
+        https://bugs.webkit.org/show_bug.cgi?id=32891
+
+        ptrdiff_t is typedef-ed in stddef.h.
+        Include stddef.h in jit/ExecutableAllocator.h.
+
+        * jit/ExecutableAllocator.h:
+
+2009-12-23  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Eric Seidel.
+
+        Buildfix after r47092.
+
+        * wtf/wince/MemoryManager.cpp:
+        (WTF::tryFastMalloc):
+        (WTF::tryFastZeroedMalloc):
+        (WTF::tryFastCalloc):
+        (WTF::tryFastRealloc):
+
+2009-12-23  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate getter support.
+        https://bugs.webkit.org/show_bug.cgi?id=32876
+
+        Expose dateToDaysFrom1970().
+
+        * JavaScriptCore.exp:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+        * wtf/DateMath.cpp:
+        (WTF::dateToDaysFrom1970):
+        * wtf/DateMath.h:
+
 2009-12-22  Darin Adler  <darin@apple.com>
 
         Reviewed by Mark Rowe.

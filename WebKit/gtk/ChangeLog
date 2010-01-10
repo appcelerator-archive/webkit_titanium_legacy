@@ -1,3 +1,71 @@
+2010-01-08  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] loading test should use SoupServer instead of actual sites
+        https://bugs.webkit.org/show_bug.cgi?id=33353
+
+        Make all the loading tests use SoupServer, instead of fetching
+        stuff from the Internet.
+
+        * tests/testloading.c:
+        (server_callback):
+        (get_uri_for_path):
+        (test_loading_status):
+        (test_loading_error):
+        (test_loading_cancelled):
+        (load_wentback_status_changed_cb):
+        (load_error_test):
+        (test_loading_goback):
+        (main):
+
+2010-01-06  Joanmarie Diggs  <joanmarie.diggs@gmail.com>
+
+        Reviewed by Xan Lopez.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30883
+        [Gtk] Implement AtkText for HTML elements which contain text
+
+        * tests/testatk.c
+        (test_webkit_atk_get_text_at_offset):
+        (test_webkit_atk_get_text_at_offset_forms):
+        (test_webkit_atk_get_text_at_offset_newlines):
+
+2010-01-05  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Updated docs for 1.1.18 release.
+
+        * docs/webkitgtk-docs.sgml:
+        * docs/webkitgtk-sections.txt:
+
+2010-01-05  Xan Lopez  <xlopez@igalia.com>
+
+        Update for 1.1.18 release.
+
+        * NEWS:
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Darin Fisher.
+
+        Reorganize, document and rename OS() platform macros.
+        https://bugs.webkit.org/show_bug.cgi?id=33198
+
+        Adapt to name changes.
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_get_user_agent):
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Adam Barth.
+
+        Reorganize, document and rename CPU() platform macros.
+        https://bugs.webkit.org/show_bug.cgi?id=33145
+
+        * webkit/webkitwebsettings.cpp:
+        (webkit_get_user_agent):
+
 2009-12-20  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
 
         Reviewed by Xan Lopez.

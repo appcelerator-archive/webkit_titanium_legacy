@@ -48,13 +48,18 @@
 #include "V8DOMWindow.h"
 #include "V8EventListenerList.h"
 #include "V8HTMLCollection.h"
-#include "V8HTMLPlugInElementCustom.h"
 #include "V8Index.h"
-#include "V8IsolatedWorld.h"
+#include "V8IsolatedContext.h"
+#include "V8Location.h"
+#include "V8NodeList.h"
 #include "V8Proxy.h"
 #include "WebGLArray.h"
 #include "WebGLUniformLocation.h"
 #include "WorkerContextExecutionProxy.h"
+
+#if ENABLE(SVG)
+#include "SVGPathSeg.h"
+#endif
 
 #include <algorithm>
 #include <utility>
@@ -96,6 +101,35 @@ static v8::Handle<v8::Value> ConstructorToString(const v8::Arguments& args)
 }
 
 #if ENABLE(SVG)
+
+static V8ClassIndex::V8WrapperType downcastSVGPathSeg(void* pathSeg)
+{
+    SVGPathSeg* realPathSeg = reinterpret_cast<SVGPathSeg*>(pathSeg);
+
+    switch (realPathSeg->pathSegType()) {
+    case SVGPathSeg::PATHSEG_CLOSEPATH:                    return V8ClassIndex::SVGPATHSEGCLOSEPATH;
+    case SVGPathSeg::PATHSEG_MOVETO_ABS:                   return V8ClassIndex::SVGPATHSEGMOVETOABS;
+    case SVGPathSeg::PATHSEG_MOVETO_REL:                   return V8ClassIndex::SVGPATHSEGMOVETOREL;
+    case SVGPathSeg::PATHSEG_LINETO_ABS:                   return V8ClassIndex::SVGPATHSEGLINETOABS;
+    case SVGPathSeg::PATHSEG_LINETO_REL:                   return V8ClassIndex::SVGPATHSEGLINETOREL;
+    case SVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS:            return V8ClassIndex::SVGPATHSEGCURVETOCUBICABS;
+    case SVGPathSeg::PATHSEG_CURVETO_CUBIC_REL:            return V8ClassIndex::SVGPATHSEGCURVETOCUBICREL;
+    case SVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS:        return V8ClassIndex::SVGPATHSEGCURVETOQUADRATICABS;
+    case SVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL:        return V8ClassIndex::SVGPATHSEGCURVETOQUADRATICREL;
+    case SVGPathSeg::PATHSEG_ARC_ABS:                      return V8ClassIndex::SVGPATHSEGARCABS;
+    case SVGPathSeg::PATHSEG_ARC_REL:                      return V8ClassIndex::SVGPATHSEGARCREL;
+    case SVGPathSeg::PATHSEG_LINETO_HORIZONTAL_ABS:        return V8ClassIndex::SVGPATHSEGLINETOHORIZONTALABS;
+    case SVGPathSeg::PATHSEG_LINETO_HORIZONTAL_REL:        return V8ClassIndex::SVGPATHSEGLINETOHORIZONTALREL;
+    case SVGPathSeg::PATHSEG_LINETO_VERTICAL_ABS:          return V8ClassIndex::SVGPATHSEGLINETOVERTICALABS;
+    case SVGPathSeg::PATHSEG_LINETO_VERTICAL_REL:          return V8ClassIndex::SVGPATHSEGLINETOVERTICALREL;
+    case SVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS:     return V8ClassIndex::SVGPATHSEGCURVETOCUBICSMOOTHABS;
+    case SVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL:     return V8ClassIndex::SVGPATHSEGCURVETOCUBICSMOOTHREL;
+    case SVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS: return V8ClassIndex::SVGPATHSEGCURVETOQUADRATICSMOOTHABS;
+    case SVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL: return V8ClassIndex::SVGPATHSEGCURVETOQUADRATICSMOOTHREL;
+    default:                                               return V8ClassIndex::INVALID_CLASS_INDEX;
+    }
+}
+
 v8::Handle<v8::Value> V8DOMWrapper::convertSVGElementInstanceToV8Object(SVGElementInstance* instance)
 {
     if (!instance)
@@ -127,7 +161,7 @@ v8::Handle<v8::Value> V8DOMWrapper::convertSVGObjectWithContextToV8Object(V8Clas
 
     // Special case: SVGPathSegs need to be downcast to their real type
     if (type == V8ClassIndex::SVGPATHSEG)
-        type = V8Custom::DowncastSVGPathSeg(object);
+        type = downcastSVGPathSeg(object);
 
     v8::Local<v8::Object> v8Object = instantiateV8Object(type, type, object);
     if (!v8Object.IsEmpty()) {
@@ -151,7 +185,7 @@ v8::Handle<v8::Value> V8DOMWrapper::convertSVGObjectWithContextToV8Object(V8Clas
     return result;
 }
 
-#endif
+#endif // ENABLE(SVG)
 
 #if ENABLE(3D_CANVAS)
 void V8DOMWrapper::setIndexedPropertiesToExternalArray(v8::Handle<v8::Object> wrapper,
@@ -191,25 +225,6 @@ void V8DOMWrapper::setIndexedPropertiesToExternalArray(v8::Handle<v8::Object> wr
                                                      length);
 }
 #endif
-
-bool V8DOMWrapper::domObjectHasJSWrapper(void* object)
-{
-    return getDOMObjectMap().contains(object) || getActiveDOMObjectMap().contains(object);
-}
-
-v8::Persistent<v8::Object> V8DOMWrapper::jsWrapperForDOMObject(void* object)
-{
-    v8::Persistent<v8::Object> wrapper = getDOMObjectMap().get(object);
-    ASSERT(!wrapper.IsEmpty());
-    return wrapper;
-}
-
-v8::Persistent<v8::Object> V8DOMWrapper::jsWrapperForActiveDOMObject(void* object)
-{
-    v8::Persistent<v8::Object> wrapper = getActiveDOMObjectMap().get(object);
-    ASSERT(!wrapper.IsEmpty());
-    return wrapper;
-}
 
 // The caller must have increased obj's ref count.
 void V8DOMWrapper::setJSWrapperForDOMObject(void* object, v8::Persistent<v8::Object> wrapper)
@@ -273,22 +288,7 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         toStringTemplate = v8::Persistent<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(ConstructorToString));
     descriptor->Set(GetToStringName(), toStringTemplate);
     switch (type) {
-    case V8ClassIndex::HTMLALLCOLLECTION:
-        descriptor->InstanceTemplate()->MarkAsUndetectable(); // fall through
-    case V8ClassIndex::HTMLCOLLECTION:
-        descriptor->InstanceTemplate()->SetCallAsFunctionHandler(V8HTMLCollection::callAsFunctionCallback);
-        break;
-    case V8ClassIndex::HTMLOPTIONSCOLLECTION:
-        descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(HTMLCollection));
-        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(HTMLOptionsCollection), USE_INDEXED_PROPERTY_SETTER(HTMLOptionsCollection));
-        descriptor->InstanceTemplate()->SetCallAsFunctionHandler(V8HTMLCollection::callAsFunctionCallback);
-        break;
-    case V8ClassIndex::HTMLSELECTELEMENT:
-        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(HTMLSelectElement), USE_INDEXED_PROPERTY_SETTER(HTMLSelectElement), 0, 0, nodeCollectionIndexedPropertyEnumerator<HTMLSelectElement>, v8::Integer::New(V8ClassIndex::NODE));
-        break;
     case V8ClassIndex::HTMLDOCUMENT: {
-        descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(HTMLDocument), 0, 0, USE_NAMED_PROPERTY_DELETER(HTMLDocument));
-
         // We add an extra internal field to all Document wrappers for
         // storing a per document DOMImplementation wrapper.
         //
@@ -314,23 +314,6 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         instanceTemplate->SetInternalFieldCount( V8Custom::kDocumentMinimumInternalFieldCount);
         break;
     }
-    case V8ClassIndex::HTMLAPPLETELEMENT:  // fall through
-    case V8ClassIndex::HTMLEMBEDELEMENT:  // fall through
-    case V8ClassIndex::HTMLOBJECTELEMENT:
-        // HTMLAppletElement, HTMLEmbedElement and HTMLObjectElement are
-        // inherited from HTMLPlugInElement, and they share the same property
-        // handling code.
-        descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(HTMLPlugInElement), USE_NAMED_PROPERTY_SETTER(HTMLPlugInElement));
-        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(HTMLPlugInElement), USE_INDEXED_PROPERTY_SETTER(HTMLPlugInElement));
-        descriptor->InstanceTemplate()->SetCallAsFunctionHandler(V8HTMLPlugInElement::defaultCallback);
-        break;
-    case V8ClassIndex::HTMLFRAMESETELEMENT:
-        descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(HTMLFrameSetElement));
-        break;
-    case V8ClassIndex::HTMLFORMELEMENT:
-        descriptor->InstanceTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(HTMLFormElement));
-        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(HTMLFormElement), 0, 0, 0, nodeCollectionIndexedPropertyEnumerator<HTMLFormElement>, v8::Integer::New(V8ClassIndex::NODE));
-        break;
     case V8ClassIndex::STYLESHEET:  // fall through
     case V8ClassIndex::CSSSTYLESHEET: {
         // We add an extra internal field to hold a reference to
@@ -345,21 +328,10 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         v8::Local<v8::ObjectTemplate> instanceTemplate = descriptor->InstanceTemplate();
         ASSERT(instanceTemplate->InternalFieldCount() == V8Custom::kDefaultWrapperInternalFieldCount);
         instanceTemplate->SetInternalFieldCount(V8Custom::kNamedNodeMapInternalFieldCount);
-        instanceTemplate->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(NamedNodeMap), 0, 0, 0, collectionIndexedPropertyEnumerator<NamedNodeMap>, v8::Integer::New(V8ClassIndex::NODE));
         break;
     }
-#if ENABLE(DOM_STORAGE)
-    case V8ClassIndex::STORAGE:
-        descriptor->InstanceTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(Storage), USE_INDEXED_PROPERTY_SETTER(Storage), 0, USE_INDEXED_PROPERTY_DELETER(Storage));
-        break;
-#endif
     case V8ClassIndex::DOMWINDOW: {
-        v8::Local<v8::Signature> defaultSignature = v8::Signature::New(descriptor);
-
-        descriptor->PrototypeTemplate()->SetNamedPropertyHandler(USE_NAMED_PROPERTY_GETTER(DOMWindow));
-        descriptor->PrototypeTemplate()->SetIndexedPropertyHandler(USE_INDEXED_PROPERTY_GETTER(DOMWindow));
         descriptor->PrototypeTemplate()->SetInternalFieldCount(V8Custom::kDOMWindowInternalFieldCount);
-
         descriptor->SetHiddenPrototype(true);
 
         // Reserve spaces for references to location, history and
@@ -370,7 +342,7 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         // Set access check callbacks, but turned off initially.
         // When a context is detached from a frame, turn on the access check.
         // Turning on checks also invalidates inline caches of the object.
-        instanceTemplate->SetAccessCheckCallbacks(V8Custom::v8DOMWindowNamedSecurityCheck, V8Custom::v8DOMWindowIndexedSecurityCheck, v8::Integer::New(V8ClassIndex::DOMWINDOW), false);
+        instanceTemplate->SetAccessCheckCallbacks(V8DOMWindow::namedSecurityCheck, V8DOMWindow::indexedSecurityCheck, v8::Integer::New(V8ClassIndex::DOMWINDOW), false);
         break;
     }
     case V8ClassIndex::LOCATION: {
@@ -378,9 +350,9 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
         // instead of on the prototype object to insure that they cannot
         // be overwritten.
         v8::Local<v8::ObjectTemplate> instance = descriptor->InstanceTemplate();
-        instance->SetAccessor(v8::String::New("reload"), V8Custom::v8LocationReloadAccessorGetter, 0, v8::Handle<v8::Value>(), v8::ALL_CAN_READ, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly));
-        instance->SetAccessor(v8::String::New("replace"), V8Custom::v8LocationReplaceAccessorGetter, 0, v8::Handle<v8::Value>(), v8::ALL_CAN_READ, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly));
-        instance->SetAccessor(v8::String::New("assign"), V8Custom::v8LocationAssignAccessorGetter, 0, v8::Handle<v8::Value>(), v8::ALL_CAN_READ, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly));
+        instance->SetAccessor(v8::String::New("reload"), V8Location::reloadAccessorGetter, 0, v8::Handle<v8::Value>(), v8::ALL_CAN_READ, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly));
+        instance->SetAccessor(v8::String::New("replace"), V8Location::replaceAccessorGetter, 0, v8::Handle<v8::Value>(), v8::ALL_CAN_READ, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly));
+        instance->SetAccessor(v8::String::New("assign"), V8Location::assignAccessorGetter, 0, v8::Handle<v8::Value>(), v8::ALL_CAN_READ, static_cast<v8::PropertyAttribute>(v8::DontDelete | v8::ReadOnly));
         break;
     }
     case V8ClassIndex::HISTORY:
@@ -586,7 +558,7 @@ v8::Local<v8::Function> V8DOMWrapper::getConstructorForContext(V8ClassIndex::V8W
     // Enter the scope for this context to get the correct constructor.
     v8::Context::Scope scope(context);
 
-    return getConstructor(type, V8Proxy::getHiddenObjectPrototype(context));
+    return getConstructor(type, V8DOMWindowShell::getHiddenObjectPrototype(context));
 }
 
 v8::Local<v8::Function> V8DOMWrapper::getConstructor(V8ClassIndex::V8WrapperType type, DOMWindow* window)
@@ -851,17 +823,19 @@ v8::Local<v8::Object> V8DOMWrapper::instantiateV8Object(V8Proxy* proxy, V8ClassI
     if (descriptorType == V8ClassIndex::HTMLCOLLECTION && static_cast<HTMLCollection*>(impl)->type() == DocAll)
         descriptorType = V8ClassIndex::HTMLALLCOLLECTION;
 
-    if (V8IsolatedWorld::getEntered()) {
+    if (V8IsolatedContext::getEntered()) {
         // This effectively disables the wrapper cache for isolated worlds.
         proxy = 0;
         // FIXME: Do we need a wrapper cache for the isolated world?  We should
-        // see if the performance gains are worth while.
+        //        see if the performance gains are worth while.
+        // We'll get one once we give the isolated context a proper window shell.
     } else if (!proxy)
         proxy = V8Proxy::retrieve();
 
     v8::Local<v8::Object> instance;
     if (proxy)
-        instance = proxy->createWrapperFromCache(descriptorType);
+        // FIXME: Fix this to work properly with isolated worlds (see above).
+        instance = proxy->windowShell()->createWrapperFromCache(descriptorType);
     else {
         v8::Local<v8::Function> function = getTemplate(descriptorType)->GetFunction();
         instance = SafeAllocation::newInstance(function);
@@ -1264,7 +1238,7 @@ v8::Handle<v8::Value> V8DOMWrapper::convertDocumentToV8Object(Document* document
     // checking if the node already has a wrapper.
     V8Proxy* proxy = V8Proxy::retrieve(document->frame());
     if (proxy)
-        proxy->initContextIfNeeded();
+        proxy->windowShell()->initContextIfNeeded();
 
     DOMWrapperMap<Node>& domNodeMap = getDOMNodeMap();
     v8::Handle<v8::Object> wrapper = domNodeMap.get(document);
@@ -1354,7 +1328,7 @@ v8::Handle<v8::Value> V8DOMWrapper::convertNewNodeToV8Object(Node* node, V8Proxy
 
     if (isDocument) {
         if (proxy)
-            proxy->updateDocumentWrapper(result);
+            proxy->windowShell()->updateDocumentWrapper(result);
 
         if (type == V8ClassIndex::HTMLDOCUMENT) {
             // Create marker object and insert it in two internal fields.
@@ -1666,7 +1640,7 @@ v8::Handle<v8::Value> V8DOMWrapper::convertWindowToV8Object(DOMWindow* window)
     if (!frame)
         return v8::Handle<v8::Object>();
 
-    // Special case: Because of evaluateInNewContext() one DOMWindow can have
+    // Special case: Because of evaluateInIsolatedWorld() one DOMWindow can have
     // multiple contexts and multiple global objects associated with it. When
     // code running in one of those contexts accesses the window object, we
     // want to return the global object associated with that context, not

@@ -826,7 +826,7 @@ void RenderLayer::beginTransparencyLayers(GraphicsContext* p, const RenderLayer*
         p->clip(clipRect);
         p->beginTransparencyLayer(renderer()->opacity());
 #ifdef REVEAL_TRANSPARENCY_LAYERS
-        p->setFillColor(Color(0.0f, 0.0f, 0.5f, 0.2f));
+        p->setFillColor(Color(0.0f, 0.0f, 0.5f, 0.2f), DeviceColorSpace);
         p->fillRect(clipRect);
 #endif
     }
@@ -1699,6 +1699,11 @@ IntSize RenderLayer::offsetFromResizeCorner(const IntPoint& absolutePoint) const
     IntPoint bottomRight(width(), height());
     IntPoint localPoint = absoluteToContents(absolutePoint);
     return localPoint - bottomRight;
+}
+
+bool RenderLayer::hasOverflowControls() const
+{
+    return m_hBar || m_vBar || m_scrollCorner || renderer()->style()->resize() != RESIZE_NONE;
 }
 
 void RenderLayer::positionOverflowControls(int tx, int ty)

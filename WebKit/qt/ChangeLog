@@ -1,3 +1,234 @@
+2010-01-08  Luiz Agostini  <luiz.agostini@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Delegation client
+        https://bugs.webkit.org/show_bug.cgi?id=32826
+
+        Added method createPopup to ChromeClientQt used to create popups.
+        QtFallbackWebPopup moved from WebCore/platform/qt to
+        WebKit/qt/WebCoreSupport.
+
+        * WebCoreSupport/ChromeClientQt.cpp:
+        (WebCore::ChromeClientQt::createPopup):
+        * WebCoreSupport/ChromeClientQt.h:
+        * WebCoreSupport/QtFallbackWebPopup.cpp: Added.
+        (WebCore::QtFallbackWebPopup::QtFallbackWebPopup):
+        (WebCore::QtFallbackWebPopup::show):
+        (WebCore::QtFallbackWebPopup::populate):
+        (WebCore::QtFallbackWebPopup::showPopup):
+        (WebCore::QtFallbackWebPopup::hidePopup):
+        (WebCore::QtFallbackWebPopup::activeChanged):
+        (WebCore::QtFallbackWebPopup::setParent):
+        * WebCoreSupport/QtFallbackWebPopup.h: Added.
+        (WebCore::QtFallbackWebPopup::hide):
+
+2010-01-07  Yael Aharon  <yael.aharon@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Allow the application to override online/offline network status
+        https://bugs.webkit.org/show_bug.cgi?id=32684
+
+        Add a setting so that applications can overide the network status.
+        Applications that use this setting still need to block network access
+        through QNAM.
+
+        * Api/qwebsettings.cpp:
+        (qt_networkAccessAllowed):
+
+2010-01-07  Yongjun Zhang  <yongjun.zhang@nokia.com>, Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] need an API to suspend and resume active Javascript DOM objects.
+        https://bugs.webkit.org/show_bug.cgi?id=31673
+
+        Add suspend and resume DOM objects private API to QWebFrame.
+
+        * Api/qwebframe.cpp:
+        (qt_suspendActiveDOMObjects):
+        (qt_resumeActiveDOMObjects):
+
+2010-01-06  Andreas Kling  <andreas.kling@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Return an invalid Qt::ImMicroFocus if queried while the view needs to layout.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33204
+
+        * Api/qwebpage.cpp:
+        (QWebPage::inputMethodQuery):
+
+2010-01-05  Yael Aharon  <yael.aharon@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        Drag & drop layout tests fail even when run manually
+        https://bugs.webkit.org/show_bug.cgi?id=33055
+
+        No new tests. Fix 3 layout tests when run manually.
+        fast/events/drag-and-drop.html
+        fast/events/drag-and-drop-dataTransfer-types-nocrash.html
+        fast/events/drag-and-drop-fire-drag-dragover.html
+        Running these tests in DRT will be fixed in 31332.
+
+        * Api/qwebpage.cpp:
+        (dropActionToDragOp):
+        (dragOpToDropAction):
+        (QWebPagePrivate::dragEnterEvent):
+        (QWebPagePrivate::dragMoveEvent):
+        (QWebPagePrivate::dropEvent):
+        Accept drag events even if they are not over a drop target. 
+        This is to ensure that drag events will continue to be delivered.
+
+        * Api/qwebpage_p.h:
+        * WebCoreSupport/DragClientQt.cpp:
+        (WebCore::dragOperationToDropActions):
+        (WebCore::dropActionToDragOperation):
+        (WebCore::DragClientQt::startDrag):
+        Send dragEnd event.
+
+2010-01-04  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33097
+
+        Cleans up the File menu to better conform to the File menu in Safari
+        both in terms of options and keyboard shortcuts. Adds a "Quit" menu
+        options to close all open windows.
+
+        * QGVLauncher/main.cpp:
+        (MainWindow::buildUI):
+
+2009-12-31  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Enable all HTML5 persistent features for QGVLauncher
+        https://bugs.webkit.org/show_bug.cgi?id=33086
+
+        * QGVLauncher/main.cpp: Call enablePersistentStorage()
+        (main):
+
+2009-12-30  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] It should be possible to disable inspector
+        https://bugs.webkit.org/show_bug.cgi?id=32724
+
+        This change fixes the build break. Some QtWebKit interfaces
+        will not be fully functional (most notable QWebInspector) if
+        INSPECTOR is disabled.
+
+        * Api/qwebinspector.cpp:
+        (QWebInspector::showEvent):
+        (QWebInspector::closeEvent):
+        * Api/qwebpage.cpp:
+        (webActionForContextMenuAction):
+        (QWebPagePrivate::getOrCreateInspector):
+        (QWebPagePrivate::inspectorController):
+        (QWebPage::triggerAction):
+        (QWebPage::updatePositionDependentActions):
+        * WebCoreSupport/InspectorClientQt.cpp:
+        (WebCore::InspectorClientQt::showWindow):
+        (WebCore::InspectorClientQt::closeWindow):
+
+2009-12-30  Janne Koskinen  <janne.p.koskinen@digia.com>
+
+        Reviewed by Simon Hausmann.
+
+        Upstream Symbian def files from Qt 4.6.
+
+        These files define the ABI of QtWebKit on Symbian.
+
+        * symbian/bwins/QtWebKitu.def: Added.
+        * symbian/eabi/QtWebKitu.def: Added.
+
+2009-12-29  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32925
+
+        Adds an Open File dialog to make it convenient to open a file
+        to view in the browser.
+
+        * QGVLauncher/main.cpp:
+        (MainWindow::load): Modified to call loadURL.
+        (MainWindow::openFile): Added.
+        (MainWindow::loadURL): Added.
+        (MainWindow::buildUI): Added menu item Open File.
+
+2009-12-29  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] Fix crash on LayoutTests/fast/loader/empty-embed-src-attribute.html
+        
+        Related to https://bugs.webkit.org/show_bug.cgi?id=23806
+        
+        If an embedded document is loaded within a page and it has an empty
+        URL, use a blank URL for the load request.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=33017
+
+        * WebCoreSupport/FrameLoaderClientQt.cpp:
+        (WebCore::FrameLoaderClientQt::createFrame):
+
+2009-12-29  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Rubber-stamped by Simon Hausmann and Holger Freyther.
+
+        [Qt] Remove WebKit/qt/WebKitPart empty directory
+
+        The content of the directory has been removed by r34888.
+
+        * WebKitPart: Removed.
+
+2009-12-29  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] DRT: Frame loader callbacks differ from the Mac port
+        https://bugs.webkit.org/show_bug.cgi?id=32989
+
+        Remove messages from the callbacks that should not dump them to match
+        the expected results for the http/loading tests.
+
+        Unskip some http/loading tests which succeed now.
+
+        * WebCoreSupport/FrameLoaderClientQt.cpp:
+        (WebCore::FrameLoaderClientQt::dispatchDidPopStateWithinPage):
+        (WebCore::FrameLoaderClientQt::dispatchWillClose):
+        (WebCore::FrameLoaderClientQt::dispatchDidReceiveIcon):
+        (WebCore::FrameLoaderClientQt::dispatchDidClearWindowObjectInWorld):
+
+2009-12-29  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] fix fast/dom/Window/window-onFocus.html
+        
+        Add support for layouttestcontroller.windowIsKey to Qt DRT and fix issue where
+        window.onblur was getting dispatched twice from QtWebKit.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32990
+
+        * Api/qwebpage.cpp:
+        (QWebPagePrivate::focusOutEvent):
+
+2009-12-24  Girish Ramakrishnan  <girish@forwardbias.in>
+
+        Reviewed by Gustavo Noronha.
+
+        Doc : QGraphicsWebView::zoomFactor was introduced in 4.6.
+        
+        * Api/qgraphicswebview.cpp:
+
 2009-12-22  Simon Hausmann  <simon.hausmann@nokia.com>
 
         Rubber-stamped by Holger Freyther.

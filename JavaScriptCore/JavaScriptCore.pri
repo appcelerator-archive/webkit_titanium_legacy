@@ -52,11 +52,6 @@ contains(JAVASCRIPTCORE_JIT,no) {
     DEFINES+=ENABLE_YARR=0
 }
 
-# In debug mode JIT disabled until crash fixed
-win32-* {
-    CONFIG(debug):!contains(DEFINES, ENABLE_JIT=1): DEFINES+=ENABLE_JIT=0
-}
-
 # Rules when JIT enabled (not disabled)
 !contains(DEFINES, ENABLE_JIT=0) {
     linux*-g++*:greaterThan(QT_GCC_MAJOR_VERSION,3):greaterThan(QT_GCC_MINOR_VERSION,0) {
@@ -88,6 +83,9 @@ KEYWORDLUT_FILES += \
 
 JSCBISON += \
     parser/Grammar.y
+
+RVCT_STUB_FILES += \
+    jit/JITStubs.cpp
 
 SOURCES += \
     API/JSBase.cpp \
@@ -268,3 +266,10 @@ jscbison.dependency_type = TYPE_C
 jscbison.CONFIG = target_predeps
 addExtraCompilerWithHeader(jscbison)
 
+# GENERATOR 3: JIT Stub functions for RVCT
+rvctstubs.output = $${GENERATED_SOURCES_DIR}$${QMAKE_DIR_SEP}Generated${QMAKE_FILE_BASE}_RVCT.h
+rvctstubs.commands = perl $$PWD/create_rvct_stubs ${QMAKE_FILE_NAME} -i > ${QMAKE_FILE_OUT}
+rvctstubs.depend = ${QMAKE_FILE_NAME}
+rvctstubs.input = RVCT_STUB_FILES
+rvctstubs.CONFIG += no_link
+addExtraCompiler(rvctstubs)

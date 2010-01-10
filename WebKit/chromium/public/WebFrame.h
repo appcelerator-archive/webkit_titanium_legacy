@@ -45,6 +45,7 @@ template <class T> class Local;
 
 namespace WebKit {
 
+class WebAnimationController;
 class WebData;
 class WebDataSource;
 class WebDocument;
@@ -68,6 +69,9 @@ template <typename T> class WebVector;
 
 class WebFrame {
 public:
+    // Returns the number of live WebFrame objects, used for leak checking.
+    WEBKIT_API static int instanceCount();
+
     // The two functions below retrieve the WebFrame instances relating the
     // currently executing JavaScript.  Since JavaScript can make function
     // calls across frames, though, we need to be more precise.
@@ -96,6 +100,7 @@ public:
 
     // The name of this frame.
     virtual WebString name() const = 0;
+    virtual void clearName() = 0;
 
     // The url of the document loaded in this frame.  This is equivalent to
     // dataSource()->request().url().
@@ -111,6 +116,7 @@ public:
 
     // Return the frame's encoding.
     virtual WebString encoding() const = 0;
+
 
     // Geometry -----------------------------------------------------------
 
@@ -176,6 +182,9 @@ public:
 
     virtual void forms(WebVector<WebFormElement>&) const = 0;
 
+    virtual WebAnimationController* animationController() = 0;
+
+
     // Scripting ----------------------------------------------------------
 
     // Returns the security origin of the current document.
@@ -194,17 +203,6 @@ public:
 
     // Executes script in the context of the current page.
     virtual void executeScript(const WebScriptSource&) = 0;
-
-    // Executes script in a new context associated with the frame. The
-    // script gets its own global scope and its own prototypes for
-    // intrinsic JS objects (String, Array, and so-on). It shares the
-    // wrappers for all DOM nodes and DOM constructors.  extensionGroup is
-    // an embedder-provided specifier that controls which v8 extensions are
-    // loaded into the new context - see WebKit::registerExtension for the
-    // corresponding specifier.
-    virtual void executeScriptInNewContext(const WebScriptSource* sources,
-                                           unsigned numSources,
-                                           int extensionGroup) = 0;
 
     // Executes JavaScript in a new world associated with the web frame.
     // The script gets its own global scope and its own prototypes for
@@ -437,6 +435,7 @@ public:
     // of matches found during the scoping effort.
     virtual void resetMatchCount() = 0;
 
+
     // Password autocompletion ---------------------------------------------
 
     // Registers a listener for the specified user name input element. The
@@ -446,6 +445,7 @@ public:
     virtual void registerPasswordListener(
         WebInputElement,
         WebPasswordAutocompleteListener*) = 0;
+
 
     // Utility -------------------------------------------------------------
 
@@ -469,6 +469,14 @@ public:
     // Returns HTML text for the contents of this frame.  This is generated
     // from the DOM.
     virtual WebString contentAsMarkup() const = 0;
+
+    // Returns a text representation of the render tree.  This method is used
+    // to support layout tests.
+    virtual WebString renderTreeAsText() const = 0;
+
+    // Returns the counter value for the specified element.  This method is
+    // used to support layout tests.
+    virtual WebString counterValueForElementById(const WebString& id) const = 0;
 
 protected:
     ~WebFrame() { }

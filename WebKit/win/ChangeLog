@@ -1,3 +1,261 @@
+2010-01-08  Brent Fulgham  <bfulgham@webkit.org>
+
+        Build fix, no review.
+
+        Protect video control logic inside ENABLE(VIDEO).
+
+        * WebView.cpp:
+        (WebView::enterFullscreenForNode):
+        (WebView::exitFullscreen):
+        * WebView.h:
+
+2010-01-08  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Implement full-screen video for Windows
+        https://bugs.webkit.org/show_bug.cgi?id=31318
+        
+        This adds a full-screen controller, FullscreenVideoController, 
+        which manages going in and out of full-screen. The actual 
+        full-screen window is created and managed by logic added 
+        to QTMovieWin. FullscreenVideoController also creates and
+        manages a HUD. The HUD renders and manages events to
+        control the playing video. Movie controller events go to 
+        FullscreenVideoController which then sends them to HTMLMediaElement, 
+        which is passed to the controller by WebView, which gets the call 
+        to go into full-screen mode from HTMLMediaElement via 
+        ChromeClient.
+        
+        I've also updated the icons so the related sets (Play/Pause and
+        volume high/volume low/exit fullscreen) are the same size. This 
+        allows me to position them using common code.
+
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::supportsFullscreenForNode):
+        (WebChromeClient::enterFullscreenForNode):
+        (WebChromeClient::exitFullscreenForNode):
+        * WebCoreSupport/WebChromeClient.h:
+        * WebKit.vcproj/WebKit.vcproj:
+        * WebKit.vcproj/fsVideoAudioVolumeHigh.png:
+        * WebKit.vcproj/fsVideoAudioVolumeLow.png:
+        * WebKit.vcproj/fsVideoExitFullscreen.png:
+        * WebKit.vcproj/fsVideoPause.png:
+        * WebKit.vcproj/fsVideoPlay.png:
+        * WebKitDLL.cpp:
+        (loadResourceIntoBuffer):
+        * FullscreenVideoController.cpp: Added.
+        * FullscreenVideoController.h: Added.
+        * WebView.cpp:
+        (WebView::enterFullscreenForNode):
+        (WebView::exitFullscreen):
+        * WebView.h:
+
+2010-01-08  Brent Fulgham  <bfulgham@webkit.org>
+
+        Unreviewed correction. 
+
+        Accidentally left unnecessary modification to hdcFromContext
+        in when landing r52995.
+
+        * WebFrame.cpp:
+        (hdcFromContext): Back out unneeded modification.
+
+2010-01-08  Brent Fulgham  <bfulgham@webkit.org>
+
+        Reviewed by Adam Roben.
+
+        Use correct cairo surface data type for handling print operations.
+        https://bugs.webkit.org/show_bug.cgi?id=33022.
+
+        * WebFrame.cpp:
+        (scaleFactor): Handle 'scale = 0' case.
+        (WebFrame::spoolPage): Use scaleFactor helper function.  Account for
+         margin size in region passed to header/footer routines.
+        (WebFrame::spoolPages): Properly clean up Cairo surface.
+
+2010-01-07  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Remove COM code generation files.
+        https://bugs.webkit.org/show_bug.cgi?id=32854
+
+        * WebKit.vcproj/DerivedSources.make: Removed.
+        * WebKit.vcproj/build-generated-files.sh: Removed.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Make IWebView::close and destroying a WebView's HWND optional for
+        WebKit clients
+
+        WebView will now take care of these operations itself when its last
+        reference is released, if they haven't already been done.
+
+        IWebView::close now also destroys the WebView's HWND. All WebKit
+        clients were already performing these operations in succession anyway,
+        or were attempting to by calling IWebView::close then destroying the
+        WebView's host window (which actually resulted in the WebView's HWND
+        leaking, and the crash in the below bug).
+
+        Fixes <rdar://problem/7374218> <http://webkit.org/b/32827> Crash when
+        calling IWebView::close, then releasing the WebView, without calling
+        DestroyWindow
+
+        Fixes a few WebViewDestruction tests, too.
+
+        Reviewed by Steve Falkenburg.
+
+        * WebView.cpp:
+        (WebView::~WebView): Don't try to destroy m_viewWindow here. That
+        should already have happened. Assert that this is the case.
+        (WebView::close): If m_viewWindow isn't already being destroyed,
+        destroy it now. Moved the call to revokeDragDrop() here from our
+        WM_DESTROY handler because it needs to be done before m_viewWindow is
+        nulled out.
+        (WebView::WebViewWndProc): Removed call to revokeDragDrop() that
+        close() now performs.
+        (WebView::Release): If our last reference is being released, call
+        close() so that clients don't have to. (It's harmless to call close()
+        multiple times.) We do this here instead of in the destructor because
+        close() can cause AddRef() and Release() to be called, and calling
+        those from within the destructor leads to double-destruction.
+        (WebView::setHostWindow): Removed an unnecessary (and now harmful)
+        null-check.
+        (WebView::revokeDragDrop): Changed an assertion into a run-time check,
+        since this will now sometimes be called when m_viewWindow hasn't been
+        created yet. Changed the IsWindow call to a null-check because we
+        never hold onto a destroyed m_viewWindow.
+        (WebView::windowAncestryDidChange): If we don't have a view window,
+        stop tracking changes to our parent's active state.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Make it safe to call IWebView::close when IWebView::initWithFrame
+        hasn't been called
+
+        Part of <rdar://problem/7374218> <http://webkit.org/b/32827> Crash
+        when IWebView::close, then releasing the WebView, without calling
+        DestroyWindow
+
+        Reviewed by Steve Falkenburg.
+
+        * WebView.cpp:
+        (WebView::close): Null-check m_page and m_preferences before using
+        them. They will be null if initWithFrame was never called.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Add assertions to catch double-destruction of WebViews earlier
+
+        I basically copied the m_deletionHasBegun logic from WTF::RefCounted.
+
+        Fixes <http://webkit.org/b/33219>.
+
+        Reviewed by Darin Adler.
+
+        * WebView.cpp:
+        (WebView::WebView): Initialize m_deletionHasBegun
+        (WebView::AddRef): Assert that deletion hasn't already begun.
+        (WebView::Release): Assert that deletion hasn't already begun, then
+        record when deletion *does* begin.
+
+        * WebView.h: Added m_deletionHasBegun.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Remove dead code in WebViewWndProc
+
+        Fixes <http://webkit.org/b/33218>.
+
+        Reviewed by Darin Adler.
+
+        * WebView.cpp:
+        (WebView::WebViewWndProc): Removed a redundant isBeingDestroyed check.
+        We bail out much earlier in this function if isBeingDestroyed is true.
+
+2010-01-04  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of <select> elements is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=33192
+
+        Reviewed by Sam Weinig.
+
+        * AccessibleBase.cpp:
+        (MSAARole):
+        Map WebCore::PopUpButtonRole to MSAA's ROLE_SYSTEM_COMBOBOX.
+
+2010-01-04  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33181
+        The first letter is not removed properly from inline input hole
+
+        * WebView.cpp: (WebView::onIMEEndComposition): If composition is ended before it was
+        confirmed, cancel it.
+
+2010-01-04  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33161
+        Assertion failure in WebView when using Chinese Simplified IME
+
+        * WebView.cpp: (WebView::onIMERequestCharPosition): Changed the assertion into release mode
+        check. We can't make assertions about arguments passed from outside WebKit.
+
+2010-01-04  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33157
+        Implement TextInput logging channel on Windows
+
+        * WebKitLogging.cpp: (WebKitInitializeLoggingChannelsIfNecessary):
+        * WebKitLogging.h:
+        Added a TextInput channel in place of unused Network one.
+
+        * WebView.cpp:
+        (WebView::WebViewWndProc): Changed onIMERequest to return result directly. We never forward
+        it to DefWindowProc, so there is no need to return an unused boolean result for "handled".
+        (WebView::onIMEStartComposition): Added logging.
+        (imeCompositionArgumentNames): A helper function for detailed logging in onIMEComposition.
+        (imeNotificationName): A helper function for detailed logging in onIMENotify.
+        (imeRequestName): A helper function for detailed logging in onIMERequest.
+        (WebView::onIMEComposition): Added logging.
+        (WebView::onIMEEndComposition): Ditto.
+        (WebView::onIMEChar): Ditto.
+        (WebView::onIMENotify): Ditto.
+        (WebView::onIMERequestCharPosition): Changed to return result directly.
+        (WebView::onIMERequestReconvertString): Ditto.
+        (WebView::onIMERequest): Changed to return result directly. Added logging.
+        (WebView::onIMESelect): Added logging.
+        (WebView::onIMESetContext): Added logging.
+
+        * WebView.h: onIMERequest functions now return result directly.
+
+
+2010-01-04  Adam Roben  <aroben@apple.com>
+
+        Add WebKitAPITest
+
+        Fixes <http://webkit.org/b/33167>.
+
+        Reviewed by Sam Weinig.
+
+        * WebKit.vcproj/WebKit.sln: Added WebKitAPITest.vcproj. It builds just
+        after DumpRenderTree.vcproj.
+
+2010-01-04  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Ada Chan and Mark Rowe.
+
+        Updated copyright string
+
+        * WebKit.vcproj/WebKit.rc:
+
 2009-12-22  Darin Adler  <darin@apple.com>
 
         Another try at fixing Windows build.

@@ -89,7 +89,11 @@
 #include "BindingURI.h"
 #endif
 
+#if COMPILER(WINSCW)
+#define compareEqual(t, u)      ((t) == (u))
+#else
 template<typename T, typename U> inline bool compareEqual(const T& t, const U& u) { return t == static_cast<T>(u); }
+#endif
 
 #define SET_VAR(group, variable, value) \
     if (!compareEqual(group->variable, value)) \
@@ -1106,7 +1110,7 @@ public:
     static EEmptyCell initialEmptyCells() { return SHOW; }
     static EFloat initialFloating() { return FNONE; }
     static EListStylePosition initialListStylePosition() { return OUTSIDE; }
-    static EListStyleType initialListStyleType() { return DISC; }
+    static EListStyleType initialListStyleType() { return Disc; }
     static EOverflow initialOverflowX() { return OVISIBLE; }
     static EOverflow initialOverflowY() { return OVISIBLE; }
     static EPageBreak initialPageBreak() { return PBAUTO; }

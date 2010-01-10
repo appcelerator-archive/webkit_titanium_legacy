@@ -1,7 +1,7 @@
 /*
  * This file is part of the select element renderer in WebCore.
  *
- * Copyright (C) 2006, 2007 Apple Inc. All rights reserved.
+ * Copyright (C) 2006, 2007, 2008, 2009, 2010 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -49,6 +49,8 @@ public:
 
     void setOptionsChanged(bool changed) { m_optionsChanged = changed; }
 
+    void didSetSelectedIndex();
+
     String text() const;
 
 private:
@@ -82,7 +84,7 @@ private:
     virtual int clientPaddingRight() const;
     virtual int listSize() const;
     virtual int selectedIndex() const;
-    virtual void popupDidHide();
+    virtual void popupDidHide(bool acceptSuggestions);
     virtual bool itemIsSeparator(unsigned listIndex) const;
     virtual bool itemIsLabel(unsigned listIndex) const;
     virtual bool itemIsSelected(unsigned listIndex) const;
@@ -90,6 +92,7 @@ private:
     virtual bool valueShouldChangeOnHotTrack() const { return true; }
     virtual bool shouldPopOver() const { return !POPUP_MENU_PULLS_DOWN; }
     virtual void valueChanged(unsigned listIndex, bool fireOnChange = true);
+    virtual void selectionChanged(unsigned, bool) {}
     virtual FontSelector* fontSelector() const;
     virtual HostWindow* hostWindow() const;
     virtual PassRefPtr<Scrollbar> createScrollbar(ScrollbarClient*, ScrollbarOrientation, ScrollbarControlSize);
@@ -109,6 +112,8 @@ private:
 
     bool m_optionsChanged;
     int m_optionsWidth;
+
+    int m_lastSelectedIndex;
 
     RefPtr<PopupMenu> m_popup;
     bool m_popupIsVisible;

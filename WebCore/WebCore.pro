@@ -27,21 +27,15 @@ TARGET = QtWebKit
 
 contains(QT_CONFIG, embedded):CONFIG += embedded
 
-# Detect that we are building as a standalone package by the presence of
-# either the generated files directory or as part of the Qt package through
-# QTDIR_build
-CONFIG(QTDIR_build): CONFIG += standalone_package
-else:exists($$PWD/generated): CONFIG += standalone_package
-
 CONFIG(standalone_package) {
     GENERATED_SOURCES_DIR = $$PWD/generated
 
     CONFIG(QTDIR_build):include($$QT_SOURCE_TREE/src/qbase.pri)
+    else: VERSION = 4.7.0
 
     PRECOMPILED_HEADER = $$PWD/../WebKit/qt/WebKit_pch.h
     DEFINES *= NDEBUG
 } else {
-    !static: DEFINES += QT_MAKEDLL
 
     CONFIG(debug, debug|release) {
         isEmpty(GENERATED_SOURCES_DIR):GENERATED_SOURCES_DIR = generated$${QMAKE_DIR_SEP}debug
@@ -51,7 +45,11 @@ CONFIG(standalone_package) {
         OBJECTS_DIR = obj/release
     }
 
+}
+
+!CONFIG(QTDIR_build) {
     DESTDIR = $$OUTPUT_DIR/lib
+    !static: DEFINES += QT_MAKEDLL
 }
 
 GENERATED_SOURCES_DIR_SLASH = $$GENERATED_SOURCES_DIR${QMAKE_DIR_SEP}
@@ -146,7 +144,7 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 !contains(DEFINES, ENABLE_SHARED_WORKERS=.): DEFINES += ENABLE_SHARED_WORKERS=1
 !contains(DEFINES, ENABLE_WORKERS=.): DEFINES += ENABLE_WORKERS=1
 !contains(DEFINES, ENABLE_XHTMLMP=.): DEFINES += ENABLE_XHTMLMP=0
-!contains(DEFINES, ENABLE_DATAGRID=.): DEFINES += ENABLE_DATAGRID=1
+!contains(DEFINES, ENABLE_DATAGRID=.): DEFINES += ENABLE_DATAGRID=0
 
 # SVG support
 !contains(DEFINES, ENABLE_SVG=0) {
@@ -188,7 +186,7 @@ contains(DEFINES, ENABLE_SINGLE_THREADED=1) {
 }
 
 
-!contains(DEFINES, ENABLE_QT_BEARER=.) {
+!CONFIG(QTDIR_build):!contains(DEFINES, ENABLE_QT_BEARER=.) {
     symbian: {
         exists($${EPOCROOT}epoc32/release/winscw/udeb/QtBearer.lib)| \
         exists($${EPOCROOT}epoc32/release/armv5/lib/QtBearer.lib) {
@@ -1090,7 +1088,6 @@ SOURCES += \
     html/HTMLPreElement.cpp \
     html/HTMLQuoteElement.cpp \
     html/HTMLScriptElement.cpp \
-    html/HTMLNoScriptElement.cpp \
     html/HTMLSelectElement.cpp \
     html/HTMLStyleElement.cpp \
     html/HTMLTableCaptionElement.cpp \
@@ -1327,6 +1324,7 @@ SOURCES += \
     rendering/RenderButton.cpp \
     rendering/RenderCounter.cpp \
     rendering/RenderDataGrid.cpp \
+    rendering/RenderEmbeddedObject.cpp \
     rendering/RenderFieldset.cpp \
     rendering/RenderFileUploadControl.cpp \
     rendering/RenderFlexibleBox.cpp \
@@ -1985,7 +1983,6 @@ HEADERS += \
     platform/qt/ClipboardQt.h \
     platform/qt/QWebPageClient.h \
     platform/qt/QtAbstractWebPopup.h \
-    platform/qt/QtFallbackWebPopup.h \
     platform/qt/RenderThemeQt.h \
     platform/qt/ScrollbarThemeQt.h \
     platform/Scrollbar.h \
@@ -2052,6 +2049,7 @@ HEADERS += \
     rendering/RenderButton.h \
     rendering/RenderCounter.h \
     rendering/RenderDataGrid.h \
+    rendering/RenderEmbeddedObject.h \
     rendering/RenderFieldset.h \
     rendering/RenderFileUploadControl.h \
     rendering/RenderFlexibleBox.h \
@@ -2146,6 +2144,8 @@ HEADERS += \
     rendering/SVGCharacterLayoutInfo.h \
     rendering/SVGInlineFlowBox.h \
     rendering/SVGInlineTextBox.h \
+    rendering/SVGMarkerData.h \
+    rendering/SVGMarkerLayoutInfo.h \
     rendering/SVGRenderSupport.h \
     rendering/SVGRenderTreeAsText.h \
     rendering/SVGRootInlineBox.h \
@@ -2384,6 +2384,7 @@ HEADERS += \
     xml/XSLTProcessor.h \
     xml/XSLTUnicodeSort.h \
     $$PWD/../WebKit/qt/Api/qwebplugindatabase_p.h \
+    $$PWD/../WebKit/qt/WebCoreSupport/QtFallbackWebPopup.h \
     $$PWD/../WebKit/qt/WebCoreSupport/FrameLoaderClientQt.h \
     $$PWD/platform/network/qt/DnsPrefetchHelper.h
 
@@ -2445,7 +2446,6 @@ SOURCES += \
     platform/qt/PlatformTouchPointQt.cpp \
     platform/qt/PopupMenuQt.cpp \
     platform/qt/QtAbstractWebPopup.cpp \
-    platform/qt/QtFallbackWebPopup.cpp \
     platform/qt/RenderThemeQt.cpp \
     platform/qt/ScrollbarQt.cpp \
     platform/qt/ScrollbarThemeQt.cpp \
@@ -2462,6 +2462,7 @@ SOURCES += \
     platform/qt/WheelEventQt.cpp \
     platform/qt/WidgetQt.cpp \
     plugins/qt/PluginDataQt.cpp \
+    ../WebKit/qt/WebCoreSupport/QtFallbackWebPopup.cpp \
     ../WebKit/qt/WebCoreSupport/ChromeClientQt.cpp \
     ../WebKit/qt/WebCoreSupport/ContextMenuClientQt.cpp \
     ../WebKit/qt/WebCoreSupport/DragClientQt.cpp \
@@ -2907,6 +2908,9 @@ contains(DEFINES, ENABLE_WML=1) {
 
 contains(DEFINES, ENABLE_XHTMLMP=1) {
     FEATURE_DEFINES_JAVASCRIPT += ENABLE_XHTMLMP=1
+    
+    SOURCES += \
+        html/HTMLNoScriptElement.cpp
 }
 
 contains(DEFINES, ENABLE_QT_BEARER=1) {
@@ -2916,8 +2920,8 @@ contains(DEFINES, ENABLE_QT_BEARER=1) {
     SOURCES += \
         platform/network/qt/NetworkStateNotifierQt.cpp
 
-    LIBS += -lQtBearer
-
+    CONFIG += mobility
+    MOBILITY += bearer
 }
 
 contains(DEFINES, ENABLE_SVG=1) {
@@ -3122,6 +3126,7 @@ contains(DEFINES, ENABLE_SVG=1) {
         rendering/SVGCharacterLayoutInfo.cpp \
         rendering/SVGInlineFlowBox.cpp \
         rendering/SVGInlineTextBox.cpp \
+        rendering/SVGMarkerLayoutInfo.cpp \
         rendering/SVGRenderSupport.cpp \
         rendering/SVGRootInlineBox.cpp
 
@@ -3222,6 +3227,12 @@ SOURCES += \
     platform/network/qt/SocketStreamHandleSoup.cpp \
     bindings/js/JSWebSocketCustom.cpp \
     bindings/js/JSWebSocketConstructor.cpp
+
+contains(DEFINES, ENABLE_WORKERS=1) {
+SOURCES += \
+    websockets/ThreadableWebSocketChannel.cpp \
+    websockets/WorkerThreadableWebSocketChannel.cpp
+}
 }
 
 # GENERATOR 1: IDL compiler
@@ -3431,5 +3442,19 @@ CONFIG(standalone_package):isEqual(QT_MAJOR_VERSION, 4):greaterThan(QT_MINOR_VER
    if(win32-msvc2005|win32-msvc2008):equals(TEMPLATE_PREFIX, "vc") {
         SOURCES += \
             plugins/win/PaintHooks.asm
+    }
+}
+
+symbian {
+    shared {
+        contains(MMP_RULES, defBlock) {
+            MMP_RULES -= defBlock
+
+            MMP_RULES += "$${LITERAL_HASH}ifdef WINSCW" \
+                    "DEFFILE ../WebKit/qt/symbian/bwins/$${TARGET}.def" \
+                    "$${LITERAL_HASH}elif defined EABI" \
+                    "DEFFILE ../WebKit/qt/symbian/eabi/$${TARGET}.def" \
+                    "$${LITERAL_HASH}endif"
+        }
     }
 }

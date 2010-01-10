@@ -32,6 +32,7 @@
 #include "ImageBuffer.h"
 #include "ImageData.h"
 #include "MappedAttribute.h"
+#include "RenderObject.h"
 #include "RenderSVGContainer.h"
 #include "SVGLength.h"
 #include "SVGNames.h"
@@ -106,7 +107,7 @@ void SVGMaskElement::svgAttributeChanged(const QualifiedName& attrName)
 {
     SVGStyledElement::svgAttributeChanged(attrName);
 
-    if (!m_masker)
+    if (m_masker.isEmpty())
         return;
 
     if (attrName == SVGNames::maskUnitsAttr || attrName == SVGNames::maskContentUnitsAttr ||
@@ -117,32 +118,48 @@ void SVGMaskElement::svgAttributeChanged(const QualifiedName& attrName)
         SVGLangSpace::isKnownAttribute(attrName) ||
         SVGExternalResourcesRequired::isKnownAttribute(attrName) ||
         SVGStyledElement::isKnownAttribute(attrName))
-        m_masker->invalidate();
+        for (HashMap<const RenderObject*, RefPtr<SVGResourceMasker> >::iterator it = m_masker.begin(); it != m_masker.end(); ++it)
+            it->second->invalidate();
 }
 
 void SVGMaskElement::childrenChanged(bool changedByParser, Node* beforeChange, Node* afterChange, int childCountDelta)
 {
     SVGStyledElement::childrenChanged(changedByParser, beforeChange, afterChange, childCountDelta);
 
-    if (!m_masker)
+    if (m_masker.isEmpty())
         return;
 
-    m_masker->invalidate();
+    for (HashMap<const RenderObject*, RefPtr<SVGResourceMasker> >::iterator it = m_masker.begin(); it != m_masker.end(); ++it)
+        it->second->invalidate();
 }
 
-PassOwnPtr<ImageBuffer> SVGMaskElement::drawMaskerContent(const FloatRect& objectBoundingBox, FloatRect& maskDestRect) const
-{    
-    // Determine specified mask size
+FloatRect SVGMaskElement::maskBoundingBox(const FloatRect& objectBoundingBox) const
+{
+    FloatRect maskBBox;
     if (maskUnits() == SVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX)
-        maskDestRect = FloatRect(x().valueAsPercentage() * objectBoundingBox.width() + objectBoundingBox.x(),
-                                 y().valueAsPercentage() * objectBoundingBox.height() + objectBoundingBox.y(),
-                                 width().valueAsPercentage() * objectBoundingBox.width(),
-                                 height().valueAsPercentage() * objectBoundingBox.height());
+        maskBBox = FloatRect(x().valueAsPercentage() * objectBoundingBox.width() + objectBoundingBox.x(),
+                             y().valueAsPercentage() * objectBoundingBox.height() + objectBoundingBox.y(),
+                             width().valueAsPercentage() * objectBoundingBox.width(),
+                             height().valueAsPercentage() * objectBoundingBox.height());
     else
-        maskDestRect = FloatRect(x().value(this),
-                                 y().value(this),
-                                 width().value(this),
-                                 height().value(this));
+        maskBBox = FloatRect(x().value(this),
+                             y().value(this),
+                             width().value(this),
+                             height().value(this));
+
+    return maskBBox;
+}
+
+PassOwnPtr<ImageBuffer> SVGMaskElement::drawMaskerContent(const RenderObject* object, FloatRect& maskDestRect, bool& emptyMask) const
+{    
+    FloatRect objectBoundingBox = object->objectBoundingBox();
+
+    // Mask rect clipped with clippingBoundingBox and filterBoundingBox as long as they are present.
+    maskDestRect = object->repaintRectInLocalCoordinates();
+    if (maskDestRect.isEmpty()) {
+        emptyMask = true;
+        return 0;
+    }
 
     // Calculate the smallest rect for the mask ImageBuffer.
     FloatRect repaintRect;
@@ -150,11 +167,7 @@ PassOwnPtr<ImageBuffer> SVGMaskElement::drawMaskerContent(const FloatRect& objec
     for (Node* node = firstChild(); node; node = node->nextSibling()) {
         if (!node->isSVGElement() || !static_cast<SVGElement*>(node)->isStyled() || !node->renderer())
             continue;
-        // FIXME: repaintRectInLocalCoordinates() is not correctly implemented.
-        // The current implementation gives back the union rect of the
-        // the stroke and marker from every child. This is what we need here.
-        // We create the union of all direct childs to get the common drawing area.
-        // See also bug: https://bugs.webkit.org/show_bug.cgi?id=32815
+
         rendererList.append(node->renderer());
         repaintRect.unite(node->renderer()->repaintRectInLocalCoordinates());
     }
@@ -171,7 +184,14 @@ PassOwnPtr<ImageBuffer> SVGMaskElement::drawMaskerContent(const FloatRect& objec
     repaintRect.intersect(maskDestRect);
     maskDestRect = repaintRect;
     IntRect maskImageRect = enclosingIntRect(maskDestRect);
+
     maskImageRect.setLocation(IntPoint());
+
+    // Don't create ImageBuffers with image size of 0
+    if (!maskImageRect.width() || !maskImageRect.height()) {
+        emptyMask = true;
+        return 0;
+    }
 
     // FIXME: This changes color space to linearRGB, the default color space
     // for masking operations in SVG. We need a switch for the other color-space
@@ -196,9 +216,6 @@ PassOwnPtr<ImageBuffer> SVGMaskElement::drawMaskerContent(const FloatRect& objec
 
 
     maskImageContext->restore();
-
-    if (!maskImageRect.width() || !maskImageRect.height())
-        return maskImage.release();
 
     // create the luminance mask
     RefPtr<ImageData> imageData(maskImage->getUnmultipliedImageData(maskImageRect));
@@ -228,11 +245,18 @@ RenderObject* SVGMaskElement::createRenderer(RenderArena* arena, RenderStyle*)
     return maskContainer;
 }
 
-SVGResource* SVGMaskElement::canvasResource()
+SVGResource* SVGMaskElement::canvasResource(const RenderObject* object)
 {
-    if (!m_masker)
-        m_masker = SVGResourceMasker::create(this);
-    return m_masker.get();
+    ASSERT(object);
+
+    if (m_masker.contains(object))
+        return m_masker.get(object).get();
+
+    RefPtr<SVGResourceMasker> masker = SVGResourceMasker::create(this);
+    SVGResourceMasker* maskerPtr = masker.get();
+    m_masker.set(object, masker.release());
+
+    return maskerPtr;
 }
 
 }

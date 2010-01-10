@@ -58,11 +58,13 @@ public:
     InspectorController* inspectorController() { return m_inspectorController; }
     void disconnectController() { m_inspectorController = 0; }
 
+    void clearConsoleMessages();
+
     void copyText(const String& text);
     Node* nodeForId(long nodeId);
     ScriptValue wrapObject(const ScriptValue& object, const String& objectGroup);
     ScriptValue unwrapObject(const String& objectId);
-    long pushNodePathToFrontend(Node* node, bool selectInUI);
+    long pushNodePathToFrontend(Node* node, bool withChildren, bool selectInUI);
 
     void addNodesToSearchResult(const String& nodeIds);
     long pushNodeByPathToFrontend(const String& path);

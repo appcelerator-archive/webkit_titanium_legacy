@@ -52,6 +52,9 @@ class RenderLayer;
 class RenderTheme;
 class TransformState;
 class VisiblePosition;
+#if ENABLE(SVG)
+class SVGRenderBase;
+#endif
 
 /*
  *  The painting of a layer occurs in three distinct phases.  Each phase involves
@@ -260,6 +263,7 @@ public:
     virtual bool isBlockFlow() const { return false; }
     virtual bool isBoxModelObject() const { return false; }
     virtual bool isCounter() const { return false; }
+    virtual bool isEmbeddedObject() const { return false; }
     virtual bool isFieldset() const { return false; }
     virtual bool isFileUploadControl() const { return false; }
     virtual bool isFrame() const { return false; }
@@ -320,6 +324,8 @@ public:
     virtual bool isSVGText() const { return false; }
     virtual bool isSVGImage() const { return false; }
     virtual bool isSVGForeignObject() const { return false; }
+
+    virtual const SVGRenderBase* toSVGRenderBase() const;
 
     // Per SVG 1.1 objectBoundingBox ignores clipping, masking, filter effects, opacity and stroke-width.
     // This is used for all computation of objectBoundingBox relative units and by SVGLocateable::getBBox().
@@ -565,6 +571,8 @@ public:
     // Build an array of quads in absolute coords for line boxes
     virtual void absoluteQuads(Vector<FloatQuad>&) { }
 
+    void absoluteFocusRingQuads(Vector<FloatQuad>&);
+
     // the rect that will be painted if this object is passed as the paintingRoot
     IntRect paintingRootRect(IntRect& topLevelRect);
 
@@ -750,7 +758,7 @@ public:
     bool shouldUseTransformFromContainer(const RenderObject* container) const;
     void getTransformFromContainer(const RenderObject* container, const IntSize& offsetInContainer, TransformationMatrix&) const;
     
-    virtual void addFocusRingRects(GraphicsContext*, int /*tx*/, int /*ty*/) { };
+    virtual void addFocusRingRects(Vector<IntRect>&, int /*tx*/, int /*ty*/) { };
 
     IntRect absoluteOutlineBounds() const
     {

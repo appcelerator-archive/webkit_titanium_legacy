@@ -24,11 +24,12 @@
  */
 
 #include "config.h"
-#include "WebKitDLL.h"
+
 #include "WebView.h"
 
 #include "CFDictionaryPropertyBag.h"
 #include "DOMCoreClasses.h"
+#include "FullscreenVideoController.h"
 #include "MarshallingHelpers.h"
 #include "SoftLinking.h"
 #include "WebBackForwardList.h"
@@ -46,6 +47,8 @@
 #include "WebInspector.h"
 #include "WebInspectorClient.h"
 #include "WebKit.h"
+#include "WebKitDLL.h"
+#include "WebKitLogging.h"
 #include "WebKitStatisticsPrivate.h"
 #include "WebKitSystemBits.h"
 #include "WebMutableURLRequest.h"
@@ -57,17 +60,17 @@
 #include <JavaScriptCore/InitializeThreading.h>
 #include <JavaScriptCore/JSLock.h>
 #include <JavaScriptCore/JSValue.h>
-#include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/AXObjectCache.h>
+#include <WebCore/ApplicationCacheStorage.h>
+#include <WebCore/BString.h>
 #include <WebCore/BackForwardList.h>
 #include <WebCore/BitmapInfo.h>
-#include <WebCore/BString.h>
+#include <WebCore/CString.h>
 #include <WebCore/Cache.h>
 #include <WebCore/Chrome.h>
 #include <WebCore/ContextMenu.h>
 #include <WebCore/ContextMenuController.h>
 #include <WebCore/CookieStorageWin.h>
-#include <WebCore/CString.h>
 #include <WebCore/Cursor.h>
 #include <WebCore/Document.h>
 #include <WebCore/DragController.h>
@@ -76,14 +79,16 @@
 #include <WebCore/EventHandler.h>
 #include <WebCore/EventNames.h>
 #include <WebCore/FileSystem.h>
-#include <WebCore/FocusController.h>
 #include <WebCore/FloatQuad.h>
+#include <WebCore/FocusController.h>
 #include <WebCore/FrameLoader.h>
 #include <WebCore/FrameTree.h>
 #include <WebCore/FrameView.h>
 #include <WebCore/FrameWin.h>
 #include <WebCore/GDIObjectCounter.h>
 #include <WebCore/GraphicsContext.h>
+#include <WebCore/HTMLMediaElement.h>
+#include <WebCore/HTMLNames.h>
 #include <WebCore/HistoryItem.h>
 #include <WebCore/HitTestRequest.h>
 #include <WebCore/HitTestResult.h>
@@ -132,13 +137,13 @@
 #include <WebKitSystemInterface/WebKitSystemInterface.h> 
 #endif
 
-#include <wtf/HashSet.h>
+#include <ShlObj.h>
 #include <comutil.h>
 #include <dimm.h>
 #include <oleacc.h>
-#include <ShlObj.h>
 #include <tchar.h>
 #include <windowsx.h>
+#include <wtf/HashSet.h>
 
 // Soft link functions for gestures and panning feedback
 SOFT_LINK_LIBRARY(USER32);
@@ -295,6 +300,9 @@ bool WebView::s_allowSiteSpecificHacks = false;
 
 WebView::WebView()
     : m_refCount(0)
+#if !ASSERT_DISABLED
+    , m_deletionHasBegun(false)
+#endif
     , m_hostWindow(0)
     , m_viewWindow(0)
     , m_mainFrame(0)
@@ -350,18 +358,13 @@ WebView::~WebView()
 {
     deleteBackingStore();
 
-    // <rdar://4958382> m_viewWindow will be destroyed when m_hostWindow is destroyed, but if
-    // setHostWindow was never called we will leak our HWND. If we still have a valid HWND at
-    // this point, we should just destroy it ourselves.
-    if (!isBeingDestroyed() && ::IsWindow(m_viewWindow) && m_hostWindow)
-        ::DestroyWindow(m_viewWindow);
-
     // the tooltip window needs to be explicitly destroyed since it isn't a WS_CHILD
     if (::IsWindow(m_toolTipHwnd))
         ::DestroyWindow(m_toolTipHwnd);
 
     ASSERT(!m_page);
     ASSERT(!m_preferences);
+    ASSERT(!m_viewWindow);
 
     WebViewCount--;
     gClassCount--;
@@ -631,9 +634,10 @@ HRESULT STDMETHODCALLTYPE WebView::close()
 
     removeFromAllWebViewsSet();
 
-    Frame* frame = m_page->mainFrame();
-    if (frame)
-        frame->loader()->detachFromParent();
+    if (m_page) {
+        if (Frame* frame = m_page->mainFrame())
+            frame->loader()->detachFromParent();
+    }
 
     if (m_mouseOutTracker) {
         m_mouseOutTracker->dwFlags = TME_CANCEL;
@@ -641,6 +645,18 @@ HRESULT STDMETHODCALLTYPE WebView::close()
         m_mouseOutTracker.set(0);
     }
     
+    revokeDragDrop();
+
+    if (m_viewWindow) {
+        // We can't check IsWindow(m_viewWindow) here, because that will return true even while
+        // we're already handling WM_DESTROY. So we check !isBeingDestroyed() instead.
+        if (!isBeingDestroyed())
+            DestroyWindow(m_viewWindow);
+        // Either we just destroyed m_viewWindow, or it's in the process of being destroyed. Either
+        // way, we clear it out to make sure we don't try to use it later.
+        m_viewWindow = 0;
+    }
+
     setHostWindow(0);
 
     setDownloadDelegate(0);
@@ -664,17 +680,18 @@ HRESULT STDMETHODCALLTYPE WebView::close()
     IWebNotificationCenter* notifyCenter = WebNotificationCenter::defaultCenterInternal();
     notifyCenter->removeObserver(this, WebPreferences::webPreferencesChangedNotification(), static_cast<IWebPreferences*>(m_preferences.get()));
 
-    BSTR identifier = 0;
-    m_preferences->identifier(&identifier);
+    if (COMPtr<WebPreferences> preferences = m_preferences) {
+        BSTR identifier = 0;
+        preferences->identifier(&identifier);
 
-    COMPtr<WebPreferences> preferences = m_preferences;
-    m_preferences = 0;
-    preferences->didRemoveFromWebView();
-    // Make sure we release the reference, since WebPreferences::removeReferenceForIdentifier will check for last reference to WebPreferences
-    preferences = 0;
-    if (identifier) {
-        WebPreferences::removeReferenceForIdentifier(identifier);
-        SysFreeString(identifier);
+        m_preferences = 0;
+        preferences->didRemoveFromWebView();
+        // Make sure we release the reference, since WebPreferences::removeReferenceForIdentifier will check for last reference to WebPreferences
+        preferences = 0;
+        if (identifier) {
+            WebPreferences::removeReferenceForIdentifier(identifier);
+            SysFreeString(identifier);
+        }
     }
 
     deleteBackingStore();
@@ -1913,7 +1930,6 @@ LRESULT CALLBACK WebView::WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam,
         case WM_DESTROY:
             webView->setIsBeingDestroyed();
             webView->close();
-            webView->revokeDragDrop();
             break;
         case WM_GESTURENOTIFY:
             handled = webView->gestureNotify(wParam, lParam);
@@ -1962,10 +1978,6 @@ LRESULT CALLBACK WebView::WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam,
             break;
         // FIXME: We need to check WM_UNICHAR to support supplementary characters (that don't fit in 16 bits).
         case WM_SIZE:
-            if (webView->isBeingDestroyed())
-                // If someone has sent us this message while we're being destroyed, we should bail out so we don't crash.
-                break;
-
             if (lParam != 0) {
                 webView->deleteBackingStore();
 #if USE(ACCELERATED_COMPOSITING)
@@ -2109,7 +2121,7 @@ LRESULT CALLBACK WebView::WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam,
             handled = webView->onIMEStartComposition();
             break;
         case WM_IME_REQUEST:
-            webView->onIMERequest(wParam, lParam, &lResult);
+            lResult = webView->onIMERequest(wParam, lParam);
             break;
         case WM_IME_COMPOSITION:
             handled = webView->onIMEComposition(lParam);
@@ -2279,14 +2291,29 @@ HRESULT STDMETHODCALLTYPE WebView::QueryInterface(REFIID riid, void** ppvObject)
 
 ULONG STDMETHODCALLTYPE WebView::AddRef(void)
 {
+    ASSERT(!m_deletionHasBegun);
     return ++m_refCount;
 }
 
 ULONG STDMETHODCALLTYPE WebView::Release(void)
 {
+    ASSERT(!m_deletionHasBegun);
+
+    if (m_refCount == 1) {
+        // Call close() now so that clients don't have to. (It's harmless to call close() multiple
+        // times.) We do this here instead of in our destructor because close() can cause AddRef()
+        // and Release() to be called, and if that happened in our destructor we would be destroyed
+        // more than once.
+        close();
+    }
+
     ULONG newRef = --m_refCount;
-    if (!newRef)
+    if (!newRef) {
+#if !ASSERT_DISABLED
+        m_deletionHasBegun = true;
+#endif
         delete(this);
+    }
 
     return newRef;
 }
@@ -3080,8 +3107,7 @@ HRESULT STDMETHODCALLTYPE WebView::setHostWindow(
 
     m_hostWindow = window;
 
-    if (m_viewWindow)
-        windowAncestryDidChange();
+    windowAncestryDidChange();
 
     return S_OK;
 }
@@ -4964,7 +4990,9 @@ HRESULT WebView::registerDragDrop()
 
 HRESULT WebView::revokeDragDrop()
 {
-    ASSERT(::IsWindow(m_viewWindow));
+    if (!m_viewWindow)
+        return S_OK;
+
     return ::RevokeDragDrop(m_viewWindow);
 }
 
@@ -5104,6 +5132,7 @@ void WebView::selectionChanged()
 
 bool WebView::onIMEStartComposition()
 {
+    LOG(TextInput, "onIMEStartComposition");
     m_inIMEComposition++;
     Frame* targetFrame = m_page->focusController()->focusedOrMainFrame();
     if (!targetFrame)
@@ -5146,8 +5175,100 @@ static void compositionToUnderlines(const Vector<DWORD>& clauses, const Vector<B
     }
 }
 
+#if !LOG_DISABLED
+#define APPEND_ARGUMENT_NAME(name) \
+    if (lparam & name) { \
+        if (needsComma) \
+            result += ", "; \
+            result += #name; \
+        needsComma = true; \
+    }
+
+static String imeCompositionArgumentNames(LPARAM lparam)
+{
+    String result;
+    bool needsComma = false;
+    if (lparam & GCS_COMPATTR) {
+        result = "GCS_COMPATTR";
+        needsComma = true;
+    }
+    APPEND_ARGUMENT_NAME(GCS_COMPCLAUSE);
+    APPEND_ARGUMENT_NAME(GCS_COMPREADSTR);
+    APPEND_ARGUMENT_NAME(GCS_COMPREADATTR);
+    APPEND_ARGUMENT_NAME(GCS_COMPREADCLAUSE);
+    APPEND_ARGUMENT_NAME(GCS_COMPSTR);
+    APPEND_ARGUMENT_NAME(GCS_CURSORPOS);
+    APPEND_ARGUMENT_NAME(GCS_DELTASTART);
+    APPEND_ARGUMENT_NAME(GCS_RESULTCLAUSE);
+    APPEND_ARGUMENT_NAME(GCS_RESULTREADCLAUSE);
+    APPEND_ARGUMENT_NAME(GCS_RESULTREADSTR);
+    APPEND_ARGUMENT_NAME(GCS_RESULTSTR);
+    APPEND_ARGUMENT_NAME(CS_INSERTCHAR);
+    APPEND_ARGUMENT_NAME(CS_NOMOVECARET);
+
+    return result;
+}
+
+static String imeNotificationName(WPARAM wparam)
+{
+    switch (wparam) {
+    case IMN_CHANGECANDIDATE:
+        return "IMN_CHANGECANDIDATE";
+    case IMN_CLOSECANDIDATE:
+        return "IMN_CLOSECANDIDATE";
+    case IMN_CLOSESTATUSWINDOW:
+        return "IMN_CLOSESTATUSWINDOW";
+    case IMN_GUIDELINE:
+        return "IMN_GUIDELINE";
+    case IMN_OPENCANDIDATE:
+        return "IMN_OPENCANDIDATE";
+    case IMN_OPENSTATUSWINDOW:
+        return "IMN_OPENSTATUSWINDOW";
+    case IMN_SETCANDIDATEPOS:
+        return "IMN_SETCANDIDATEPOS";
+    case IMN_SETCOMPOSITIONFONT:
+        return "IMN_SETCOMPOSITIONFONT";
+    case IMN_SETCOMPOSITIONWINDOW:
+        return "IMN_SETCOMPOSITIONWINDOW";
+    case IMN_SETCONVERSIONMODE:
+        return "IMN_SETCONVERSIONMODE";
+    case IMN_SETOPENSTATUS:
+        return "IMN_SETOPENSTATUS";
+    case IMN_SETSENTENCEMODE:
+        return "IMN_SETSENTENCEMODE";
+    case IMN_SETSTATUSWINDOWPOS:
+        return "IMN_SETSTATUSWINDOWPOS";
+    default:
+        return "Unknown (" + String::number(wparam) + ")";
+    }
+}
+
+static String imeRequestName(WPARAM wparam)
+{
+    switch (wparam) {
+    case IMR_CANDIDATEWINDOW:
+        return "IMR_CANDIDATEWINDOW";
+    case IMR_COMPOSITIONFONT:
+        return "IMR_COMPOSITIONFONT";
+    case IMR_COMPOSITIONWINDOW:
+        return "IMR_COMPOSITIONWINDOW";
+    case IMR_CONFIRMRECONVERTSTRING:
+        return "IMR_CONFIRMRECONVERTSTRING";
+    case IMR_DOCUMENTFEED:
+        return "IMR_DOCUMENTFEED";
+    case IMR_QUERYCHARPOSITION:
+        return "IMR_QUERYCHARPOSITION";
+    case IMR_RECONVERTSTRING:
+        return "IMR_RECONVERTSTRING";
+    default:
+        return "Unknown (" + String::number(wparam) + ")";
+    }
+}
+#endif
+
 bool WebView::onIMEComposition(LPARAM lparam)
 {
+    LOG(TextInput, "onIMEComposition %s", imeCompositionArgumentNames(lparam).latin1().data());
     HIMC hInputContext = getIMMContext();
     if (!hInputContext)
         return true;
@@ -5192,25 +5313,39 @@ bool WebView::onIMEComposition(LPARAM lparam)
 
 bool WebView::onIMEEndComposition()
 {
-    if (m_inIMEComposition) 
+    LOG(TextInput, "onIMEEndComposition");
+    // If the composition hasn't been confirmed yet, it needs to be cancelled.
+    // This happens after deleting the last character from inline input hole.
+    Frame* targetFrame = m_page->focusController()->focusedOrMainFrame();
+    if (targetFrame && targetFrame->editor()->hasComposition())
+        targetFrame->editor()->confirmComposition(String());
+
+    if (m_inIMEComposition)
         m_inIMEComposition--;
+
     return true;
 }
 
-bool WebView::onIMEChar(WPARAM, LPARAM)
+bool WebView::onIMEChar(WPARAM wparam, LPARAM lparam)
 {
+    UNUSED_PARAM(wparam);
+    UNUSED_PARAM(lparam);
+    LOG(TextInput, "onIMEChar U+%04X %08X", wparam, lparam);
     return true;
 }
 
-bool WebView::onIMENotify(WPARAM, LPARAM, LRESULT*)
+bool WebView::onIMENotify(WPARAM wparam, LPARAM, LRESULT*)
 {
+    UNUSED_PARAM(wparam);
+    LOG(TextInput, "onIMENotify %s", imeNotificationName(wparam).latin1().data());
     return false;
 }
 
-bool WebView::onIMERequestCharPosition(Frame* targetFrame, IMECHARPOSITION* charPos, LRESULT* result)
+LRESULT WebView::onIMERequestCharPosition(Frame* targetFrame, IMECHARPOSITION* charPos)
 {
+    if (charPos->dwCharPos && !targetFrame->editor()->hasComposition())
+        return 0;
     IntRect caret;
-    ASSERT(charPos->dwCharPos == 0 || targetFrame->editor()->hasComposition());
     if (RefPtr<Range> range = targetFrame->editor()->hasComposition() ? targetFrame->editor()->compositionRange() : targetFrame->selection()->selection().toNormalizedRange()) {
         ExceptionCode ec = 0;
         RefPtr<Range> tempRange = range->cloneRange(ec);
@@ -5223,56 +5358,55 @@ bool WebView::onIMERequestCharPosition(Frame* targetFrame, IMECHARPOSITION* char
     ::ClientToScreen(m_viewWindow, &charPos->pt);
     charPos->cLineHeight = caret.height();
     ::GetWindowRect(m_viewWindow, &charPos->rcDocument);
-    *result = TRUE;
     return true;
 }
 
-bool WebView::onIMERequestReconvertString(Frame* targetFrame, RECONVERTSTRING* reconvertString, LRESULT* result)
+LRESULT WebView::onIMERequestReconvertString(Frame* targetFrame, RECONVERTSTRING* reconvertString)
 {
     RefPtr<Range> selectedRange = targetFrame->selection()->toNormalizedRange();
     String text = selectedRange->text();
-    if (!reconvertString) {
-        *result = sizeof(RECONVERTSTRING) + text.length() * sizeof(UChar);
-        return true;
-    }
+    if (!reconvertString)
+        return sizeof(RECONVERTSTRING) + text.length() * sizeof(UChar);
 
     unsigned totalSize = sizeof(RECONVERTSTRING) + text.length() * sizeof(UChar);
-    *result = totalSize;
-    if (totalSize > reconvertString->dwSize) {
-        *result = 0;
-        return false;
-    }
+    if (totalSize > reconvertString->dwSize)
+        return 0;
     reconvertString->dwCompStrLen = text.length();
     reconvertString->dwStrLen = text.length();
     reconvertString->dwTargetStrLen = text.length();
     reconvertString->dwStrOffset = sizeof(RECONVERTSTRING);
     memcpy(reconvertString + 1, text.characters(), text.length() * sizeof(UChar));
-    return true;
+    return totalSize;
 }
 
-bool WebView::onIMERequest(WPARAM request, LPARAM data, LRESULT* result)
+LRESULT WebView::onIMERequest(WPARAM request, LPARAM data)
 {
+    LOG(TextInput, "onIMERequest %s", imeRequestName(request).latin1().data());
     Frame* targetFrame = m_page->focusController()->focusedOrMainFrame();
     if (!targetFrame || !targetFrame->editor()->canEdit())
-        return true;
+        return 0;
 
     switch (request) {
         case IMR_RECONVERTSTRING:
-            return onIMERequestReconvertString(targetFrame, (RECONVERTSTRING*)data, result);
+            return onIMERequestReconvertString(targetFrame, (RECONVERTSTRING*)data);
 
         case IMR_QUERYCHARPOSITION:
-            return onIMERequestCharPosition(targetFrame, (IMECHARPOSITION*)data, result);
+            return onIMERequestCharPosition(targetFrame, (IMECHARPOSITION*)data);
     }
+    return 0;
+}
+
+bool WebView::onIMESelect(WPARAM wparam, LPARAM lparam)
+{
+    UNUSED_PARAM(wparam);
+    UNUSED_PARAM(lparam);
+    LOG(TextInput, "onIMESelect locale %ld %s", lparam, wparam ? "select" : "deselect");
     return false;
 }
 
-bool WebView::onIMESelect(WPARAM, LPARAM)
+bool WebView::onIMESetContext(WPARAM wparam, LPARAM)
 {
-    return false;
-}
-
-bool WebView::onIMESetContext(WPARAM, LPARAM)
-{
+    LOG(TextInput, "onIMESetContext %s", wparam ? "active" : "inactive");
     return false;
 }
 
@@ -5286,7 +5420,15 @@ HRESULT STDMETHODCALLTYPE WebView::inspector(IWebInspector** inspector)
 
 HRESULT STDMETHODCALLTYPE WebView::windowAncestryDidChange()
 {
-    HWND newParent = findTopLevelParent(m_hostWindow);
+    HWND newParent;
+    if (m_viewWindow)
+        newParent = findTopLevelParent(m_hostWindow);
+    else {
+        // There's no point in tracking active state changes of our parent window if we don't have
+        // a window ourselves.
+        newParent = 0;
+    }
+
     if (newParent == m_topLevelParent)
         return S_OK;
 
@@ -5548,6 +5690,44 @@ static String toString(BSTR bstr)
 static KURL toKURL(BSTR bstr)
 {
     return KURL(KURL(), toString(bstr));
+}
+
+void WebView::enterFullscreenForNode(Node* node)
+{
+    if (!node->hasTagName(HTMLNames::videoTag))
+        return;
+
+#if ENABLE(VIDEO)
+    HTMLMediaElement* videoElement = static_cast<HTMLMediaElement*>(node);
+
+    if (m_fullscreenController) {
+        if (m_fullscreenController->mediaElement() == videoElement) {
+            // The backend may just warn us that the underlaying plaftormMovie()
+            // has changed. Just force an update.
+            m_fullscreenController->setMediaElement(videoElement);
+            return; // No more to do.
+        }
+
+        // First exit Fullscreen for the old mediaElement.
+        m_fullscreenController->mediaElement()->exitFullscreen();
+        // This previous call has to trigger exitFullscreen,
+        // which has to clear m_fullscreenController.
+        ASSERT(!m_fullscreenController);
+    }
+
+    m_fullscreenController = new FullscreenVideoController;
+    m_fullscreenController->setMediaElement(videoElement);
+    m_fullscreenController->enterFullscreen();
+#endif
+}
+
+void WebView::exitFullscreen()
+{
+#if ENABLE(VIDEO)
+    if (m_fullscreenController)
+        m_fullscreenController->exitFullscreen();
+    m_fullscreenController = 0;
+#endif
 }
 
 static PassOwnPtr<Vector<String> > toStringVector(unsigned patternsCount, BSTR* patterns)

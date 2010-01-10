@@ -1111,8 +1111,6 @@ webcore_sources += \
 	WebCore/html/HTMLQuoteElement.h \
 	WebCore/html/HTMLScriptElement.cpp \
 	WebCore/html/HTMLScriptElement.h \
-	WebCore/html/HTMLNoScriptElement.cpp \
-	WebCore/html/HTMLNoScriptElement.h \
 	WebCore/html/HTMLSelectElement.cpp \
 	WebCore/html/HTMLSelectElement.h \
 	WebCore/html/HTMLStyleElement.cpp \
@@ -1758,6 +1756,8 @@ webcore_sources += \
 	WebCore/rendering/RenderCounter.h \
 	WebCore/rendering/RenderDataGrid.cpp \
 	WebCore/rendering/RenderDataGrid.h \
+	WebCore/rendering/RenderEmbeddedObject.cpp \
+	WebCore/rendering/RenderEmbeddedObject.h \
 	WebCore/rendering/RenderFieldset.cpp \
 	WebCore/rendering/RenderFieldset.h \
 	WebCore/rendering/RenderFileUploadControl.cpp \
@@ -2116,12 +2116,12 @@ webcoregtk_sources += \
 endif # END USE_PANGO
 
 # ----
-# HTML Data Grid - enable always.
+# HTML Data Grid - disable for now.
 # ----
-FEATURE_DEFINES_JAVASCRIPT += ENABLE_DATAGRID=1
+FEATURE_DEFINES_JAVASCRIPT += ENABLE_DATAGRID=0
 
 webcore_cppflags += \
-	-DENABLE_DATAGRID=1
+	-DENABLE_DATAGRID=0
 
 # ----
 # JavaScript Debugger/Profiler
@@ -2399,6 +2399,19 @@ webcore_libadd += \
 	-lgstpbutils-0.10
 
 endif # END ENABLE_VIDEO
+
+# ----
+# XHTML-MP Support
+# ----
+if ENABLE_XHTMLMP
+FEATURE_DEFINES_JAVASCRIPT += ENABLE_XHTMLMP=1
+
+webcore_cppflags += -DENABLE_XHTMLMP=1
+
+webcore_sources += \
+	WebCore/html/HTMLNoScriptElement.cpp \
+	WebCore/html/HTMLNoScriptElement.h
+endif # END ENABLE_XHTMLMP
 
 # ----
 # XPath Support
@@ -2955,6 +2968,9 @@ webcore_sources += \
 	WebCore/rendering/SVGInlineFlowBox.h \
 	WebCore/rendering/SVGInlineTextBox.cpp \
 	WebCore/rendering/SVGInlineTextBox.h \
+	WebCore/rendering/SVGMarkerData.h \
+	WebCore/rendering/SVGMarkerLayoutInfo.cpp \
+	WebCore/rendering/SVGMarkerLayoutInfo.h \
 	WebCore/rendering/SVGRenderSupport.cpp \
 	WebCore/rendering/SVGRenderSupport.h \
 	WebCore/rendering/SVGRenderTreeAsText.cpp \
@@ -3388,6 +3404,15 @@ webcore_sources += \
 	WebCore/websockets/WebSocketHandshake.cpp \
 	WebCore/websockets/WebSocketHandshake.h
 
+if ENABLE_WORKERS
+webcore_sources += \
+	WebCore/websockets/ThreadableWebSocketChannel.cpp \
+	WebCore/websockets/ThreadableWebSocketChannel.h \
+	WebCore/websockets/ThreadableWebSocketChannelClientWrapper.h \
+	WebCore/websockets/WorkerThreadableWebSocketChannel.cpp \
+	WebCore/websockets/WorkerThreadableWebSocketChannel.h
+endif
+
 webcoregtk_sources += \
 	WebCore/platform/network/soup/SocketStreamError.h \
 	WebCore/platform/network/soup/SocketStreamHandle.h \
@@ -3413,11 +3438,11 @@ DerivedSources/CSSValueKeywords.h : $(WEBCORE_CSS_VALUE_KEYWORDS) $(WebCore)/css
 
 # DOCTYPE strings
 DerivedSources/DocTypeStrings.cpp : $(WebCore)/html/DocTypeStrings.gperf
-	$(AM_V_GEN)$(GPERF) -CEot -L ANSI-C -k "*" -N findDoctypeEntry -F ,PubIDInfo::eAlmostStandards,PubIDInfo::eAlmostStandards $(WebCore)/html/DocTypeStrings.gperf > $@
+	$(AM_V_GEN)$(GPERF) -CEot -I -L ANSI-C -k "*" -N findDoctypeEntry -F ,PubIDInfo::eAlmostStandards,PubIDInfo::eAlmostStandards $(WebCore)/html/DocTypeStrings.gperf > $@
 
 # HTML entity names
 DerivedSources/HTMLEntityNames.c : $(WebCore)/html/HTMLEntityNames.gperf
-	$(AM_V_GEN)$(GPERF) -a -L ANSI-C -C -G -c -o -t -k '*' -N findEntity -D -s 2 \
+	$(AM_V_GEN)$(GPERF) -a -I -L ANSI-C -C -G -c -o -t -k '*' -N findEntity -D -s 2 \
 	$(WebCore)/html/HTMLEntityNames.gperf > $@
 
 # color names
@@ -3528,6 +3553,12 @@ webcore_built_nosources += $(patsubst %.idl,DerivedSources/JS%.h,$(notdir $(IDL_
 
 webcore_built_nosources += $(patsubst %.idl,DerivedSources/JS%.cpp,$(notdir $(IDL_BINDINGS_JS)))
 
+webcore_built_objects = := $(patsubst %.cpp,%.lo,$(webcore_built_nosources))
+
+$(webcore_built_objects): AM_CPPFLAGS+=$(corekit_cppflags)
+
+$(webcore_built_objects): AM_CXXFLAGS+=$(libwebkit_1_0_la_CXXFLAGS)
+
 libWebCoreJS_objects := $(patsubst %.idl,DerivedSources/JS%.lo,$(notdir $(IDL_BINDINGS_JS)))
 
 libWebCoreJS_depfiles := $(patsubst %.idl,DerivedSources/$(DEPDIR)/JS%.Plo,$(notdir $(IDL_BINDINGS_JS)))
@@ -3537,9 +3568,9 @@ libWebCoreJS_depfiles += $(patsubst %.lo,$(DEPDIR)/%.Plo,$(libWebCoreJS_objects)
 
 -include $(libWebCoreJS_depfiles)
 
-$(libWebCoreJS_objects): AM_CPPFLAGS+=$(libWebCore_la_CPPFLAGS)
+$(libWebCoreJS_objects): AM_CPPFLAGS+=$(corekit_cppflags)
 
-$(libWebCoreJS_objects): AM_CXXFLAGS+=$(libWebCore_la_CXXFLAGS)
+$(libWebCoreJS_objects): AM_CXXFLAGS+=$(libwebkit_1_0_la_CXXFLAGS)
 
 libWebCoreJS.la: $(libWebCoreJS_objects)
 	$(CXXLINK) $(libWebCoreJS_objects) $(LIBS)

@@ -46,8 +46,8 @@
 #include "HTMLNames.h"
 #include "InspectorTimelineAgent.h"
 #include "OverflowEvent.h"
+#include "RenderEmbeddedObject.h"
 #include "RenderPart.h"
-#include "RenderPartObject.h"
 #include "RenderScrollbar.h"
 #include "RenderScrollbarPart.h"
 #include "RenderTheme.h"
@@ -597,7 +597,8 @@ void FrameView::layout(bool allowSubtree)
     }
 
     if (!subtree) {
-        RenderObject* rootRenderer = document->documentElement() ? document->documentElement()->renderer() : 0;
+        Node* documentElement = document->documentElement();
+        RenderObject* rootRenderer = documentElement ? documentElement->renderer() : 0;
         Node* body = document->body();
         if (body && body->renderer()) {
             if (body->hasTagName(framesetTag)) {
@@ -612,8 +613,15 @@ void FrameView::layout(bool allowSubtree)
                 RenderObject* o = rootRenderer->style()->overflowX() == OVISIBLE && document->documentElement()->hasTagName(htmlTag) ? body->renderer() : rootRenderer;
                 applyOverflowToViewport(o, hMode, vMode);
             }
-        } else if (rootRenderer)
+        } else if (rootRenderer) {
+#if ENABLE(SVG)
+            if (documentElement->isSVGElement()) {
+                if (!m_firstLayout && (m_size.width() != layoutWidth() || m_size.height() != layoutHeight()))
+                    rootRenderer->setChildNeedsLayout(true);
+            }
+#endif
             applyOverflowToViewport(rootRenderer, hMode, vMode);
+        }
 #ifdef INSTRUMENT_LAYOUT_SCHEDULING
         if (m_firstLayout && !document->ownerElement())
             printf("Elapsed time before first layout: %d\n", document->elapsedTime());
@@ -658,8 +666,14 @@ void FrameView::layout(bool allowSubtree)
 
     pauseScheduledEvents();
 
-    if (subtree)
-        root->view()->pushLayoutState(root);
+    bool disableLayoutState = false;
+    if (subtree) {
+        RenderView* view = root->view();
+        disableLayoutState = view->shouldDisableLayoutStateForSubtree(root);
+        view->pushLayoutState(root);
+        if (disableLayoutState)
+            view->disableLayoutState();
+    }
         
     m_midLayout = true;
     beginDeferredRepaints();
@@ -667,8 +681,12 @@ void FrameView::layout(bool allowSubtree)
     endDeferredRepaints();
     m_midLayout = false;
 
-    if (subtree)
-        root->view()->popLayoutState();
+    if (subtree) {
+        RenderView* view = root->view();
+        view->popLayoutState();
+        if (disableLayoutState)
+            view->enableLayoutState();
+    }
     m_layoutRoot = 0;
 
     m_frame->selection()->setNeedsLayout();
@@ -734,15 +752,15 @@ void FrameView::layout(bool allowSubtree)
     m_nestedLayoutCount--;
 }
 
-void FrameView::addWidgetToUpdate(RenderPartObject* object)
+void FrameView::addWidgetToUpdate(RenderEmbeddedObject* object)
 {
     if (!m_widgetUpdateSet)
-        m_widgetUpdateSet.set(new HashSet<RenderPartObject*>);
+        m_widgetUpdateSet.set(new RenderEmbeddedObjectSet);
 
     m_widgetUpdateSet->add(object);
 }
 
-void FrameView::removeWidgetToUpdate(RenderPartObject* object)
+void FrameView::removeWidgetToUpdate(RenderEmbeddedObject* object)
 {
     if (!m_widgetUpdateSet)
         return;
@@ -1198,8 +1216,7 @@ bool FrameView::needsLayout() const
         || m_layoutRoot
         || (document && document->childNeedsStyleRecalc()) // can occur when using WebKit ObjC interface
         || m_frame->needsReapplyStyles()
-        || (m_deferSetNeedsLayouts && m_setNeedsLayoutWasDeferred)
-        || m_frame->selection()->needsDisplayUpdate();
+        || (m_deferSetNeedsLayouts && m_setNeedsLayoutWasDeferred);
 }
 
 void FrameView::setNeedsLayout()
@@ -1328,11 +1345,11 @@ bool FrameView::updateWidgets()
     if (m_nestedLayoutCount > 1 || !m_widgetUpdateSet || m_widgetUpdateSet->isEmpty())
         return true;
     
-    Vector<RenderPartObject*> objectVector;
+    Vector<RenderEmbeddedObject*> objectVector;
     copyToVector(*m_widgetUpdateSet, objectVector);
     size_t size = objectVector.size();
     for (size_t i = 0; i < size; ++i) {
-        RenderPartObject* object = objectVector[i];
+        RenderEmbeddedObject* object = objectVector[i];
         object->updateWidget(false);
         
         // updateWidget() can destroy the RenderPartObject, so we need to make sure it's

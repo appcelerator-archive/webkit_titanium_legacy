@@ -170,8 +170,10 @@ public:
     MainWindow(QString url = QString()): currentZoom(100)
     {
         setAttribute(Qt::WA_DeleteOnClose);
+#if QT_VERSION >= QT_VERSION_CHECK(4, 5, 0)
         if (qgetenv("QTLAUNCHER_USE_ARGB_VISUALS").toInt() == 1)
             setAttribute(Qt::WA_TranslucentBackground);
+#endif
 
         QSplitter* splitter = new QSplitter(Qt::Vertical, this);
         setCentralWidget(splitter);
@@ -216,7 +218,7 @@ public:
         if (qurl.scheme().isEmpty())
             qurl = QUrl("http://" + url + "/");
         if (qurl.isValid()) {
-            urlEdit->setText(qurl.toEncoded());
+            urlEdit->setText(qurl.toString());
             view->load(qurl);
         }
 
@@ -330,17 +332,29 @@ public:
 
 protected slots:
 
+    void openFile()
+    {
+        static const QString filter("HTML Files (*.htm *.html);;Text Files (*.txt);;Image Files (*.gif *.jpg *.png);;All Files (*)");
+
+        QFileDialog fileDialog(this, tr("Open"), QString(), filter);
+        fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+        fileDialog.setFileMode(QFileDialog::ExistingFile);
+        fileDialog.setOptions(QFileDialog::ReadOnly);
+
+        if (fileDialog.exec()) {
+            QString selectedFile = fileDialog.selectedFiles()[0];
+            if (!selectedFile.isEmpty())
+                loadURL(QUrl::fromLocalFile(selectedFile));
+        }
+    }
+
     void changeLocation()
     {
         QString string = urlEdit->text();
         QUrl url = urlFromUserInput(string);
         if (url.scheme().isEmpty())
             url = QUrl("http://" + string + "/");
-        if (url.isValid()) {
-            urlEdit->setText(url.toEncoded());
-            view->load(url);
-            view->setFocus(Qt::OtherFocusReason);
-        }
+        loadURL(url);
     }
 
     void loadFinished()
@@ -484,6 +498,16 @@ private:
     QVector<int> zoomLevels;
     int currentZoom;
 
+    void loadURL(const QUrl& url)
+    {
+        if (!url.isValid())
+            return;
+    
+        urlEdit->setText(url.toString());
+        view->load(url);
+        view->setFocus(Qt::OtherFocusReason);
+    }
+
     // create the status bar, tool bar & menu
     void setupUI()
     {
@@ -514,10 +538,14 @@ private:
         bar->addWidget(urlEdit);
 
         QMenu* fileMenu = menuBar()->addMenu("&File");
-        QAction* newWindow = fileMenu->addAction("New Window", this, SLOT(newWindow()));
-        fileMenu->addAction(tr("Print"), this, SLOT(print()), QKeySequence::Print);
-        QAction* screenshot = fileMenu->addAction("Screenshot", this, SLOT(screenshot()));
-        fileMenu->addAction("Close", this, SLOT(close()));
+        fileMenu->addAction("New Window", this, SLOT(newWindow()), QKeySequence::New);
+        fileMenu->addAction(tr("Open File..."), this, SLOT(openFile()), QKeySequence::Open);
+        fileMenu->addAction("Close Window", this, SLOT(close()), QKeySequence::Close);
+        fileMenu->addSeparator();
+        fileMenu->addAction("Take Screen Shot...", this, SLOT(screenshot()));
+        fileMenu->addAction(tr("Print..."), this, SLOT(print()), QKeySequence::Print);
+        fileMenu->addSeparator();
+        fileMenu->addAction("Quit", QApplication::instance(), SLOT(closeAllWindows()), QKeySequence(Qt::CTRL | Qt::Key_Q));
 
         QMenu* editMenu = menuBar()->addMenu("&Edit");
         editMenu->addAction(view->pageAction(QWebPage::Undo));
@@ -555,8 +583,6 @@ private:
         writingMenu->addAction(view->pageAction(QWebPage::SetTextDirectionLeftToRight));
         writingMenu->addAction(view->pageAction(QWebPage::SetTextDirectionRightToLeft));
 
-        newWindow->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
-        screenshot->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
         view->pageAction(QWebPage::Back)->setShortcut(QKeySequence::Back);
         view->pageAction(QWebPage::Stop)->setShortcut(Qt::Key_Escape);
         view->pageAction(QWebPage::Forward)->setShortcut(QKeySequence::Forward);
@@ -573,11 +599,10 @@ private:
         view->pageAction(QWebPage::ToggleItalic)->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_I));
         view->pageAction(QWebPage::ToggleUnderline)->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_U));
 
-        QMenu* toolsMenu = menuBar()->addMenu("&Tools");
-        toolsMenu->addAction("Select elements...", this, SLOT(selectElements()));
-        QAction* showInspectorAction = toolsMenu->addAction("Show inspector", inspector, SLOT(setVisible(bool)));
+        QMenu* toolsMenu = menuBar()->addMenu("&Develop");
+        toolsMenu->addAction("Select Elements...", this, SLOT(selectElements()));
+        QAction* showInspectorAction = toolsMenu->addAction("Show Web Inspector", inspector, SLOT(setVisible(bool)), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_I));
         showInspectorAction->setCheckable(true);
-        showInspectorAction->setShortcuts(QList<QKeySequence>() << QKeySequence(tr("F12")));
         showInspectorAction->connect(inspector, SIGNAL(visibleChanged(bool)), SLOT(setChecked(bool)));
 
 #if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)

@@ -1,3 +1,2155 @@
+2010-01-08  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        run-javascriptcore-tests needs a --quiet flag
+        https://bugs.webkit.org/show_bug.cgi?id=33399
+
+        Until run-javascriptcore-tests has a --quiet flag, lets just stiffle the output in webkit-patch.
+
+        * Scripts/webkitpy/steps/runtests.py:
+
+2010-01-08  Andras Becsi  <abecsi@inf.u-szeged.hu>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Only run http and websocket tests as last if no argument is given to be able to explicitly control the test order.
+
+        To be able to run multiple instances of run-webkit-tests besides each other on the same machine we need to minimize
+        the time when Apache and WebSocketServer is locked by tests.
+        Because closeHTTPD() and closeWebSocketServer() is only called at the end of the testing,
+        we need to run http and websocket tests after all other tests.
+        If one however explicitly specifies the tests to run in the argument list of run-webkit-tests
+        we need to preserve the given order.
+
+        * Scripts/run-webkit-tests:
+
+2010-01-08  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Don't post style-queue pass messages to bugs
+        https://bugs.webkit.org/show_bug.cgi?id=33404
+
+        These messages aren't needed any more now that we have the status
+        bubble reporting pass events passively.
+
+        * Scripts/webkitpy/commands/queues.py:
+
+2010-01-08  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Optimize the number of CPUs used for building Qt and Gtk
+        https://bugs.webkit.org/show_bug.cgi?id=33394
+
+        Instead of hardcoding the number 8, we should read the number of CPUs
+        from the environment.
+
+        * Scripts/webkitpy/executive.py:
+        * Scripts/webkitpy/webkitport.py:
+        * Scripts/webkitpy/webkitport_unittest.py:
+
+2010-01-08  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Eric Seidel.
+
+        REGRESSION(52819?): AXLoadComplete and AXLayoutComplete causes 4 tests fail on Snow Leopard Debug bot
+        https://bugs.webkit.org/show_bug.cgi?id=33300
+
+        * DumpRenderTree/AccessibilityUIElement.h:
+        * DumpRenderTree/mac/AccessibilityUIElementMac.mm:
+        (AccessibilityUIElement::AccessibilityUIElement):
+        (AccessibilityUIElement::~AccessibilityUIElement):
+        (_accessibilityNotificationCallback):
+        (AccessibilityUIElement::addNotificationListener):
+
+2010-01-08  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        commit-queue should run run-javascriptcore-tests
+        https://bugs.webkit.org/show_bug.cgi?id=33376
+
+        I also made it run the python and perl unit tests.
+
+        * Scripts/webkitpy/steps/runtests.py:
+        * Scripts/webkitpy/webkitport.py:
+
+2010-01-07  Andras Becsi  <abecsi@inf.u-szeged.hu>
+
+        Reviewed by Darin Adler.
+
+        Run the http and websocket tests after all other tests.
+        https://bugs.webkit.org/show_bug.cgi?id=33153
+
+        * Scripts/run-webkit-tests:
+
+2010-01-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Fix some test-webkitpy expectations
+        https://bugs.webkit.org/show_bug.cgi?id=33345
+
+        I forgot to change these when I added the CheckStyle step.
+
+        * Scripts/webkitpy/commands/upload_unittest.py:
+
+2010-01-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        webkit-patch edit-changelogs (or upload) will open blank files if run outside the root
+        https://bugs.webkit.org/show_bug.cgi?id=33341
+
+        Fix this by moving to the root directory before editing ChangeLogs.
+        There is a related bug with CheckStyle.
+
+        * Scripts/webkitpy/steps/checkstyle.py:
+        * Scripts/webkitpy/steps/editchangelog.py:
+
+2010-01-07  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        media/unsupported-tracks.html is failing on Snow Leopard Release bot
+        https://bugs.webkit.org/show_bug.cgi?id=32339
+
+        This is a speculative fix.  I do not have a Snow Leopard machine to test on
+        and I've not seen mention of someone being able to reproduce this locally.
+
+        Prevent watchdog timer from firing after a test completes but before
+        the next one starts, causing the error to appear in the next test.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (dump): Stop the watchdog before printing #EOF for the test content.
+        We only need to care about the JavaScript of the test running too long
+        or some hang in WebCore.  Any other failures will be covered by the calling
+        script's own watchdog timer.
+
+2010-01-07  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        commit-queue is stuck spinning due to exception
+        https://bugs.webkit.org/show_bug.cgi?id=33358
+
+        * Scripts/webkitpy/commands/queues.py:
+         - Don't try to stringify the exception.
+
+2010-01-07  Mark Rowe  <mrowe@apple.com>
+
+        Reviewed by Jon Honeycutt.
+
+        Don't leak a JSStringRef within _accessibilityNotificationCallback.
+
+        * DumpRenderTree/mac/AccessibilityUIElementMac.mm:
+        (_accessibilityNotificationCallback): Have a JSRetainPtr adopt the JSStringRef so that it will be cleaned up
+        when it goes out of scope.
+
+2010-01-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Add proposed rename of HTMLPlugInImageElement to HTMLEmbeddedObjectElement.
+
+        * Scripts/do-webcore-rename:
+
+2010-01-07  Kim Grönholm  <kim.gronholm@nomovok.com>
+
+        Reviewed by Antti Koivisto.
+
+        Wrong state and TouchLists in TouchEvents
+        https://bugs.webkit.org/show_bug.cgi?id=32878
+
+        * DumpRenderTree/qt/EventSenderQt.cpp:
+        (EventSender::touchStart):
+        (EventSender::touchEnd):
+        (EventSender::clearTouchPoints):
+        * DumpRenderTree/qt/EventSenderQt.h:
+
+2010-01-07  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Adam Barth.
+
+        Created a module that runs the style package unit tests.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32973
+
+        * Scripts/test-webkitpy:
+        * Scripts/webkitpy/style/unittests.py: Added.
+
+2010-01-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Don't print a redundant message when confirming a diff
+        https://bugs.webkit.org/show_bug.cgi?id=33315
+
+        Instead of saying "ERROR: User declined" we should just exit because
+        the use knows they just declined!
+
+        * Scripts/webkitpy/steps/confirmdiff.py:
+
+2010-01-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Check style before uploading a patch
+        https://bugs.webkit.org/show_bug.cgi?id=33314
+
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/steps/checkstyle.py:
+        * Scripts/webkitpy/steps/options.py:
+
+2010-01-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Add prepare and post to webkit-patch main help
+        https://bugs.webkit.org/show_bug.cgi?id=33313
+
+        * Scripts/webkitpy/commands/upload.py:
+
+2010-01-07  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Add Chromium bots to the list of "core builders" (builders which stop the commit-queue when they turn red)
+        https://bugs.webkit.org/show_bug.cgi?id=33290
+
+        Add the Chromium builders to our list of core builders and test that our regexps work.
+        I also updated our regexp testing to make sure we cover all known builders at build.webkit.org.
+
+        * Scripts/webkitpy/buildbot.py:
+        * Scripts/webkitpy/buildbot_unittest.py:
+
+2010-01-07  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        bugzilla-tool needs a new name
+        https://bugs.webkit.org/show_bug.cgi?id=28459
+
+        Rename bugzilla-tool to webkit-patch.  Also, rename some commands to
+        make more sense with the new name.
+
+        * Scripts/bugzilla-tool: Removed.
+        * Scripts/webkit-patch: Added.
+        * Scripts/webkit-tools-completion.sh:
+        * Scripts/webkitpy/bugzilla_unittest.py:
+        * Scripts/webkitpy/commands/download.py:
+        * Scripts/webkitpy/commands/download_unittest.py:
+        * Scripts/webkitpy/commands/early_warning_system.py:
+        * Scripts/webkitpy/commands/queries.py:
+        * Scripts/webkitpy/commands/queues.py:
+        * Scripts/webkitpy/commands/queues_unittest.py:
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/commands/upload_unittest.py:
+        * Scripts/webkitpy/queueengine.py:
+        * Scripts/webkitpy/steps/completerollout.py:
+
+2010-01-07  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        Moved style-related modules to webkitpy.style sub-package.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32971
+
+        * Scripts/check-webkit-style:
+          - Updated import statement.
+
+        * Scripts/test-webkitpy:
+          - Updated import statements.
+
+        * Scripts/webkitpy/cpp_style.py: Removed.
+          - Moved to webkitpy/style.
+
+        * Scripts/webkitpy/cpp_style_unittest.py: Removed.
+          - Moved to webkitpy/style.
+
+        * Scripts/webkitpy/style.py: Removed.
+          - Moved to webkitpy/style/checker.py.
+
+        * Scripts/webkitpy/style/__init__.py: Added.
+          - Added containing webkitpy directory to package search path.
+
+        * Scripts/webkitpy/style/checker.py: Copied from Scripts/webkitpy/style.py.
+        * Scripts/webkitpy/style/checker_unittest.py: Copied from Scripts/webkitpy/style_unittest.py.
+          - Updated import statement.
+
+        * Scripts/webkitpy/style/cpp_style.py: Copied from Scripts/webkitpy/cpp_style.py.
+        * Scripts/webkitpy/style/cpp_style_unittest.py: Copied from Scripts/webkitpy/cpp_style_unittest.py.
+          - Update import statement.
+
+        * Scripts/webkitpy/style/text_style.py: Copied from Scripts/webkitpy/text_style.py.
+        * Scripts/webkitpy/style/text_style_unittest.py: Copied from Scripts/webkitpy/text_style_unittest.py.
+        * Scripts/webkitpy/style_unittest.py: Removed.
+          - Moved to webkitpy/style/checker_unittest.py.
+
+        * Scripts/webkitpy/text_style.py: Removed.
+          - Moved to webkitpy/style.
+
+        * Scripts/webkitpy/text_style_unittest.py: Removed.
+          - Moved to webkitpy/style.
+
+2010-01-06  Kinuko Yasuda  <kinuko@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] Support the 3rd argument of EventSender.keyDown that
+        has been recently added to report keyLocation
+        (see also: https://bugs.webkit.org/show_bug.cgi?id=28247).
+        https://bugs.webkit.org/show_bug.cgi?id=33250
+
+        Test: fast/events/keydown-numpad-keys.html
+
+        * DumpRenderTree/qt/EventSenderQt.cpp:
+        (EventSender::keyDown):
+        * DumpRenderTree/qt/EventSenderQt.h:
+
+2010-01-06  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Add long_help for all common commands.
+        https://bugs.webkit.org/show_bug.cgi?id=33261
+
+        For now these long_helps are pretty basic.
+        These were all written to just explain the steps
+        that each command runs.  This style long_help could
+        be made easier by using:
+        https://bugs.webkit.org/show_bug.cgi?id=33257
+
+        * Scripts/webkitpy/commands/download.py:
+        * Scripts/webkitpy/commands/queries.py:
+
+2010-01-06  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Christiansen.
+
+        [Qt] Add page zooming support to Qt DumpRenderTree
+        https://bugs.webkit.org/show_bug.cgi?id=32898
+
+        Patch by Kim Grönholm  <kim.gronholm@nomovok.com>,
+                 Diego Gonzalez <diego.gonzalez@openbossa.org> and
+                 Afonso Costa <afonso.costa@openbossa.org>
+
+        * DumpRenderTree/qt/EventSenderQt.cpp:
+        (EventSender::zoomPageIn):
+        (EventSender::zoomPageOut):
+        * DumpRenderTree/qt/EventSenderQt.h:
+
+2010-01-06  Eric Seidel  <eric@webkit.org>
+
+        No review, just adding Mike Belshe's new bugzilla email at his request.
+
+        * Scripts/webkitpy/committers.py:
+
+2010-01-06  Eric Seidel  <eric@webkit.org>
+
+        Unreviewed.  Rolling out r52869 and r52853 due to bot
+        and local run-webkit-test failures
+
+        REGRESSION(52854?) fast/workers/shared-worker-constructor.html failed on Leopard Build Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33256
+
+        The original bug was https://bugs.webkit.org/show_bug.cgi?id=33153
+
+        * Scripts/run-webkit-tests:
+
+2010-01-06  Eric Seidel  <eric@webkit.org>
+
+        Unreviewed "build" fix.  Just adding missing include.
+
+        bugzilla-tool rollout --complete-rollout should make a nicer bug comment
+        https://bugs.webkit.org/show_bug.cgi?id=29212
+
+        * Scripts/webkitpy/steps/completerollout.py:
+
+2010-01-06  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool rollout --complete-rollout should make a nicer bug comment
+        https://bugs.webkit.org/show_bug.cgi?id=29212
+
+        * Scripts/webkitpy/bugzilla.py:
+         - Make reopen_bug robust against the bug already being open.
+        * Scripts/webkitpy/commands/download.py:
+         - Remove dead code from Rollout.
+        * Scripts/webkitpy/steps/completerollout.py:
+         - Improve the rollout comment.
+
+2010-01-06  Andras Becsi  <abecsi@inf.u-szeged.hu>
+
+        Reviewed by Darin Adler.
+
+        Set isHttpdOpen to 0 if pidfile does not exist for some reason.
+        Speculative fix for https://bugs.webkit.org/show_bug.cgi?id=33256.
+
+        * Scripts/run-webkit-tests:
+
+2010-01-06  Andras Becsi  <abecsi@inf.u-szeged.hu>
+
+        Reviewed by Darin Adler.
+
+        Change hardcoded /tmp in run-webkit-tests to File::Spec->tmpdir(),
+        and remove the httpd's pidfile directory if httpd terminated.
+
+        * Scripts/run-webkit-tests:
+
+2010-01-05  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by David Levin.
+
+        Refactored check-webkit-style's argument parser to not rely
+        on global state, and improved its error handling and unit
+        test coverage.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32966
+
+        * Scripts/check-webkit-style:
+          - Adjusted to use new argument parser.
+
+        * Scripts/webkitpy/cpp_style.py:
+          - Changed _CppStyleState to accept an array of filter rules
+            instead of a comma-delimited string.
+          - Eliminated cpp_style._DEFAULT_FILTER_RULES.
+          - Eliminated cpp_style._USAGE.
+
+        * Scripts/webkitpy/cpp_style_unittest.py:
+          - Updated test_filter() and test_default_filter().
+
+        * Scripts/webkitpy/style.py:
+          - Converted style._USAGE to create_usage().
+          - Corrected usage instructions by removing 0 as a valid
+            --verbose flag value.
+          - Removed use_webkit_styles().
+          - Added ProcessorOptions class.
+          - Added ArgumentDefaults class.
+          - Added ArgumentPrinter class.
+          - Removed parse_arguments and added ArgumentParser class.
+          - Moved exit_with_usage() and exit_with_categories() into
+            ArgumentParser.
+          - Refactored parse_arguments() as ArgumentParser.parse().
+          - Improved parser error handling.
+
+        * Scripts/webkitpy/style_unittest.py:
+          - Added DefaultArgumentsTest class.
+          - Addressed FIXME to check style.WEBKIT_FILTER_RULES
+            against style.STYLE_CATEGORIES.
+          - Added ArgumentPrinterTest class.
+          - Added ArgumentParserTest class and rewrote parser unit tests.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Test that it's safe to call IWebView::close when
+        IWebView::initWithFrame hasn't been called
+
+        Part of <http://webkit.org/b/32827> Crash when calling
+        IWebView::close, then releasing the WebView, without calling
+        DestroyWindow
+
+        Reviewed by Steve Falkenburg.
+
+        * WebKitAPITest/tests/WebViewDestruction.cpp:
+        (WebKitAPITest::CloseWithoutInitWithFrame): Calls IWebView::close
+        without ever calling IWebView::initWithFrame and tests that we don't
+        crash or leak.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Add more WebViewDestruction tests
+
+        Fixes <http://webkit.org/b/33216>.
+
+        Reviewed by Eric Seidel.
+
+        * WebKitAPITest/tests/WebViewDestruction.cpp:
+        (WebKitAPITest::NoInitWithFrame):
+        (WebKitAPITest::CloseThenDestroyViewWindow):
+        (WebKitAPITest::DestroyViewWindowThenClose):
+        (WebKitAPITest::DestroyHostWindow):
+        (WebKitAPITest::DestroyHostWindowThenClose):
+        (WebKitAPITest::CloseThenDestroyHostWindow):
+        Added these tests that exercise tearing down a WebView in various
+        ways, all of which we eventually want to have work. Some of them
+        currently crash or leak.
+
+2010-01-05  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] fix DRT link failures on --no-svg builds when only making changes to DRT
+        
+        If you're working from a --minimal or --no-svg build and make changes to the
+        DRT, then recompile, the build will fail.
+        
+        This is because the current behavior at build time is to assume that the
+        previous Qt build supported SVG and consequently delete libQtWebKit.so.
+        Unfortunately, just deleting libQtWebKit.so will not cause the library to
+        re-link. Instead the build will see libQtWebKit.so.4 and co., pass over the
+        linking phase, and attempt to link the DRT with libQtWebKit.so absent. This
+        results in a link failure on the DRT.
+        
+        Since re-linking libQtWebKit can take up to ten minutes and should be avoided
+        in cases where not actually required, remove the assumption that
+        the previous Qt build supported SVG, and amend the symbol detection to look for
+        a symbol name that is not present in SVG builds. Currently webkitdirs.pm looks
+        for 'SVGElement' but even non-SVG builds contain the symbol 'isSVGElement'.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32992
+
+        * Scripts/webkitdirs.pm:
+
+2010-01-05  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by David Kilzer.
+
+        Switched to generating list of Perl unit test files dynamically,
+        instead of explicitly.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33200
+
+        * Scripts/test-webkitperl:
+
+2010-01-05  Yael Aharon  <yael.aharon@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Reimplement EventSender::leapForward
+        https://bugs.webkit.org/show_bug.cgi?id=33114
+
+        Follow Windows implementation of leapForward. When leapForward is called, 
+        messages are queued and posted after the timeout. A new event loop is created to
+        handle those messages and the additional messages that are created as a result.
+
+        * DumpRenderTree/qt/DumpRenderTree.pro:
+        * DumpRenderTree/qt/EventSenderQt.cpp:
+        (EventSender::EventSender):
+        (EventSender::mouseDown):
+        (EventSender::mouseUp):
+        (EventSender::mouseMoveTo):
+        (EventSender::leapForward):
+        (EventSender::sendOrQueueEvent):
+        (EventSender::replaySavedEvents):
+        (EventSender::eventFilter):
+        * DumpRenderTree/qt/EventSenderQt.h:
+
+2010-01-05  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Fix obscure queue crash in queueengine
+        https://bugs.webkit.org/show_bug.cgi?id=33196
+
+        Sometimes we get an exception that can't be stringified.  For example:
+
+        AttributeError: 'ParseError' object has no attribute 'msg'
+
+        In these cases, the whole queue dies because we're in the global
+        exception handler.  Instead of dieing here, we should just print a less
+        informative message to the console.  We're already printing the whole
+        backtrace anyway, so there's not much point to stringifying the
+        exception anyway.
+
+        * Scripts/webkitpy/queueengine.py:
+
+2010-01-05  Dominic Mazzoni  <dmazzoni@google.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32571
+
+        For an object with an aria role of "checkbox" or "radiobutton",
+        use the "aria-checked" attribute to determine if it's checked.
+        These changes add an isChecked() method to AccessibilityUIElement
+        so that we can check for this property from a layout test.
+
+        * DumpRenderTree/AccessibilityUIElement.cpp:
+        (getIsCheckedCallback):
+        (AccessibilityUIElement::getJSClass):
+        * DumpRenderTree/AccessibilityUIElement.h:
+        * DumpRenderTree/gtk/AccessibilityUIElementGtk.cpp:
+        (AccessibilityUIElement::isChecked):
+        * DumpRenderTree/mac/AccessibilityUIElementMac.mm:
+        (AccessibilityUIElement::isChecked):
+        * DumpRenderTree/win/AccessibilityUIElementWin.cpp:
+        (AccessibilityUIElement::isChecked):
+
+2010-01-05  David Levin  <levin@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Having a comment for the #endif for a header guard is not required WebKit style.
+        https://bugs.webkit.org/show_bug.cgi?id=33214
+
+        * Scripts/webkitpy/cpp_style.py: removed the check and made the loop exit
+          early when it has all the needed information to continue.
+        * Scripts/webkitpy/cpp_style_unittest.py: removed the corresponding tests.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Share more code in the WebViewDestruction tests
+
+        Part of <http://webkit.org/b/33212> Small fixes/improvements to
+        WebKitAPITest
+
+        Reviewed by Sam Weinig.
+
+        * WebKitAPITest/tests/WebViewDestruction.cpp:
+        (WebKitAPITest::createAndInitializeWebView): Renamed from
+        createWebView. Now initializes the HostWindow and returns the
+        WebView's HWND via an out-parameter.
+        (WebKitAPITest::finishWebViewDestructionTest): Added. Code came from
+        the CloseWithoutDestroyWindow test.
+        (WebKitAPITest::CloseWithoutDestroyViewWindow): Renamed from
+        CloseWithoutDestroyWindow and changed to use the new functions.
+        (WebKitAPITest::MainFrameAfterClose): Changed to use the new
+        functions.
+        (WebKitAPITest::NoCloseOrDestroyViewWindow): Renamed from
+        NoCloseOrDestroyWindow and changed to use the new functions.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Don't show HostWindows by default
+
+        This was making WebKitAPITest very flashy as windows appeared and
+        disappeared.
+
+        Part of <http://webkit.org/b/33212> Small fixes/improvements to
+        WebKitAPITest
+
+        Reviewed by Sam Weinig.
+
+        * WebKitAPITest/HostWindow.cpp:
+        (WebKitAPITest::HostWindow::initialize): Removed the WS_VISIBLE style
+        from the window.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Don't hang in WebKitAPITest if no messages have been posted
+
+        Part of <http://webkit.org/b/33212> Small fixes/improvements to
+        WebKitAPITest
+
+        Reviewed by Sam Weinig.
+
+        * WebKitAPITest/tests/WebViewDestruction.cpp:
+        (WebKitAPITest::runMessagePump): Use PeekMessage instead of GetMessage
+        to avoid hanging if no messages have been posted.
+
+2010-01-05  Adam Roben  <aroben@apple.com>
+
+        Fix WebKitCreateInstance helper
+
+        Part of <http://webkit.org/b/33212> Small fixes/improvements to
+        WebKitAPITest
+
+        Reviewed by Sam Weinig.
+
+        * WebKitAPITest/tests/WebViewDestruction.cpp:
+        (WebKitAPITest::WebKitCreateInstance): Pass the pointer straight
+        through, instead of taking its address.
+
+2010-01-04  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Darin Fisher.
+
+        Reorganize, document and rename OS() platform macros.
+        https://bugs.webkit.org/show_bug.cgi?id=33198
+
+        Adapt to name changes.
+        
+        * DumpRenderTree/DumpRenderTree.h:
+        * DumpRenderTree/config.h:
+
+2010-01-05  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        Minor improvements to test-webkit-scripts, as suggested
+        by an earlier review.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33125
+
+        * Scripts/test-webkit-scripts:
+          - Used OptionParser class instead of getopt.getopt().
+          - Created main() method for __main__ block.
+          - Enclosed functions in a class.
+
+2010-01-05  Chris Fleizach  <cfleizach@apple.com>
+
+        No review. Fix DRT breakage on Tiger/Leopard.
+
+        Add ARIA "Live Region" support
+        https://bugs.webkit.org/show_bug.cgi?id=33117
+
+        * DumpRenderTree/mac/AccessibilityUIElementMac.mm:
+
+2010-01-04  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Add ARIA "Live Region" support
+        https://bugs.webkit.org/show_bug.cgi?id=33117
+
+        * DumpRenderTree/AccessibilityUIElement.cpp:
+        (indexOfChildCallback):
+        (boolAttributeValueCallback):
+        (stringAttributeValueCallback):
+        (addNotificationListenerCallback):
+        (AccessibilityUIElement::getJSClass):
+        * DumpRenderTree/AccessibilityUIElement.h:
+        * DumpRenderTree/gtk/AccessibilityUIElementGtk.cpp:
+        (AccessibilityUIElement::indexOfChild):
+        (AccessibilityUIElement::stringAttributeValue):
+        (AccessibilityUIElement::boolAttributeValue):
+        (AccessibilityUIElement::addNotificationListener):
+        * DumpRenderTree/mac/AccessibilityUIElementMac.mm:
+        (AccessibilityUIElement::indexOfChild):
+        (AccessibilityUIElement::stringAttributeValue):
+        (AccessibilityUIElement::boolAttributeValue):
+        (_accessibilityNotificationCallback):
+        (AccessibilityUIElement::addNotificationListener):
+        * DumpRenderTree/win/AccessibilityUIElementWin.cpp:
+        (AccessibilityUIElement::indexOfChild):
+        (AccessibilityUIElement::stringAttributeValue):
+        (AccessibilityUIElement::boolAttributeValue):
+        (AccessibilityUIElement::addNotificationListener):
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool rollout should require a reason
+        https://bugs.webkit.org/show_bug.cgi?id=30810
+
+        * Scripts/webkitpy/changelogs.py: Add support for a reason, add auto-wrapping logic.
+        * Scripts/webkitpy/changelogs_unittest.py: Test reason support.
+        * Scripts/webkitpy/commands/download.py: rollout now requires a reason, remove unused BUGID argument
+        * Scripts/webkitpy/commands/download_unittest.py: pass required reason
+        * Scripts/webkitpy/steps/preparechangelogforrevert.py: pass reason to update_for_revert
+
+2010-01-04  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: <select> elements should broadcast value change events
+
+        https://bugs.webkit.org/show_bug.cgi?id=33088
+
+        <rdar://problem/7332364>
+
+        Reviewed by Darin Adler.
+
+        * DumpRenderTree/AccessibilityController.cpp:
+        (logValueChangeEventsCallback):
+        Start logging value change events.
+        (AccessibilityController::getJSClass):
+        Add a "logValueChangeEvents" to the AccessibilityController's JS class
+        definition.
+        (AccessibilityController::resetToConsistentState):
+        Disable logging of value change events.
+
+        * DumpRenderTree/AccessibilityController.h:
+        Declare setLogValueChangeEvents(), and add a member variable for the
+        value change event hook.
+
+        * DumpRenderTree/gtk/AccessibilityControllerGtk.cpp:
+        (AccessibilityController::setLogValueChangeEvents):
+        Stubbed.
+
+        * DumpRenderTree/mac/AccessibilityControllerMac.mm:
+        (AccessibilityController::setLogValueChangeEvents):
+        Stubbed.
+
+        * DumpRenderTree/win/AccessibilityControllerWin.cpp:
+        (AccessibilityController::AccessibilityController):
+        Initialize new member var.
+        (AccessibilityController::~AccessibilityController):
+        Disable logging of value change events.
+        (logEventProc):
+        When we receive an EVENT_OBJECT_VALUECHANGE, log the name of the object
+        and its value.
+        (AccessibilityController::setLogValueChangeEvents):
+        If disabling logging, unhook the event, and clear the event hook
+        member var. Otherwise, query for the root element to enable
+        accessibility, and hook EVENT_OBJECT_VALUECHANGE.
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        long_help for submit-patch
+        https://bugs.webkit.org/show_bug.cgi?id=33184
+
+        * Scripts/webkitpy/commands/upload.py:
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        commit-queue can wrongly reject patches if the buildbots are behind
+        https://bugs.webkit.org/show_bug.cgi?id=30098
+
+        Check to make sure we can currently build and test before trying to
+        land a patch.
+
+        * Scripts/webkitpy/commands/queues.py:
+
+2010-01-04  Adam Roben  <aroben@apple.com>
+
+        Add a test harness for the Windows WebKit API, and a few tests
+
+        We currently only have tests for a handful of bugs regarding WebView
+        destruction, but more tests can easily be added later. Eventually
+        we'll run these tests as part of run-webkit-tests.
+
+        Fixes <http://webkit.org/b/33167>.
+
+        Reviewed by Sam Weinig.
+
+        * WebKitAPITest/HostWindow.cpp: Added.
+        (WebKitAPITest::HostWindow::HostWindow): Initialize m_window.
+        (WebKitAPITest::HostWindow::~HostWindow): Destroy our window if
+        needed.
+        (WebKitAPITest::HostWindow::initialize): Create our window.
+        (WebKitAPITest::HostWindow::clientRect): Return our window's client
+        rect.
+        (WebKitAPITest::HostWindow::registerWindowClass): Does what it says.
+        (WebKitAPITest::HostWindow::wndProc): Just call through to
+        DefWindowProcW.
+
+        * WebKitAPITest/HostWindow.h: Added.
+        (WebKitAPITest::HostWindow::window): Simple getter.
+
+        * WebKitAPITest/Test.h: Added. This file defines some macros useful
+        for writing tests.
+
+        * WebKitAPITest/TestsController.cpp: Added.
+        (WebKitAPITest::TestsController::TestsController): Initialize our
+        members.
+        (WebKitAPITest::TestsController::shared): Return the shared instance.
+        (WebKitAPITest::TestsController::runAllTests): Run a message pump
+        until a WM_QUIT message is received, then return whether all tests
+        succeeded.
+        (WebKitAPITest::TestsController::addTest): Add the test to m_tests and
+        start running tests soon.
+        (WebKitAPITest::TestsController::testFailed): Record the failure and
+        print a message about it to stdout.
+        (WebKitAPITest::TestsController::runNextTest): If we don't have any
+        tests to run, post a WM_QUIT message to stop the message pump.
+        Otherwise, run the test and print whether it passed, then schedule the
+        next test.
+        (WebKitAPITest::TestsController::runNextTestSoon): Set a 0-delay timer
+        to run the next test.
+        (WebKitAPITest::TestsController::registerWindowClass): Does what it
+        says.
+        (WebKitAPITest::TestsController::wndProc): If the runNextTestTimer
+        fired, call runNextTest(). Pass everything else through to
+        DefWindowProcW.
+
+        * WebKitAPITest/TestsController.h: Added.
+
+        * WebKitAPITest/WebKitAPITest.vcproj: Added.
+
+        * WebKitAPITest/WebKitAPITestCommon.vsprops: Added.
+
+        * WebKitAPITest/main.cpp: Added.
+        (main): (Mostly) just calls TestsController::runAllTests.
+
+        * WebKitAPITest/tests/WebViewDestruction.cpp: Added.
+        (WebKitAPITest::WebKitCreateInstance): Helper function template to
+        call through to the real WebKitCreateInstance.
+        (WebKitAPITest::webViewCount): Helper function to call through to
+        IWebKitStatistics::webViewCount.
+        (WebKitAPITest::createWebView): Helper function to create a WebView
+        and put it inside a HostWindow.
+        (WebKitAPITest::runMessagePump): Helper function to run a message pump
+        for a specified number of milliseconds, or until a WM_QUIT message is
+        received.
+        (WebKitAPITest::CloseWithoutDestroyWindow): Test for
+        <http://webkit.org/b/32827>.
+        (WebKitAPITest::MainFrameAfterClose): Test for
+        <http://webkit.org/b/32868>.
+        (WebKitAPITest::NoCloseOrDestroyWindow): Test for
+        <http://webkit.org/b/33162>.
+
+2010-01-04  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Reviewed by David Kilzer.
+
+        Add support for Git's "diff.mnemonicprefix" config option to WebKitTools
+
+        https://bugs.webkit.org/show_bug.cgi?id=32820
+
+        * Scripts/VCSUtils.pm:
+        * Scripts/svn-apply:
+        * Scripts/svn-unapply:
+        * Scripts/test-webkitperl: Run gitdiff2svndiff test
+        * Scripts/webkitperl/VCSUtils_unittest/gitdiff2svndiff.pl: Added.
+        * Scripts/webkitpy/diff_parser.py:
+        * Scripts/webkitpy/diff_parser_unittest.py:
+
+2010-01-04  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by David Kilzer.
+
+        Divided the Perl unit tests into separate files and put
+        them in a separate directory, and renamed test-webkit-perl
+        to test-webkitperl.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33124
+
+        * Scripts/VCSUtils.pm:
+          - Renamed generateRunPatchCommand() to generatePatchCommand().
+
+        * Scripts/VCSUtils_unittest.pl: Removed.
+          - Divided into three files in Scripts/webkitperl/VCSUtils_unittest.
+
+        * Scripts/test-webkit-perl: Removed.
+          - Renamed to test-webkitperl.
+
+        * Scripts/test-webkit-scripts:
+          - Updated paths to test-webkitpy and test-webkitperl.
+
+        * Scripts/test-webkitperl: Copied from Scripts/test-webkit-perl.
+          - Added paths to new test files.
+
+        * Scripts/webkitperl: Added.
+        * Scripts/webkitperl/VCSUtils_unittest: Added.
+        * Scripts/webkitperl/VCSUtils_unittest/fixChangeLogPatch.pl: Added.
+        * Scripts/webkitperl/VCSUtils_unittest/generatePatchCommand.pl: Added.
+        * Scripts/webkitperl/VCSUtils_unittest/runPatchCommand.pl: Copied from Scripts/VCSUtils_unittest.pl.
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Make bugzilla-tool rollout include a bug link in the ChangeLog entry
+        https://bugs.webkit.org/show_bug.cgi?id=33146
+
+        One more step towards better rollouts.
+
+        * Scripts/webkitpy/changelogs.py:
+        * Scripts/webkitpy/changelogs_unittest.py:
+        * Scripts/webkitpy/steps/preparechangelogforrevert.py:
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Sort the step options
+        https://bugs.webkit.org/show_bug.cgi?id=33144
+
+        * Scripts/webkitpy/steps/options.py:
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Need support for longer text in per-command help
+        https://bugs.webkit.org/show_bug.cgi?id=33143
+
+        Add some minimal additional help to land-diff and
+        pave the way for adding better help to all commands.
+
+        * Scripts/webkitpy/commands/download.py: Add small amount of additional help to land-diff
+        * Scripts/webkitpy/multicommandtool.py: support long_help
+        * Scripts/webkitpy/multicommandtool_unittest.py: test long_help
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Add unit test for MarkBugFixed
+        https://bugs.webkit.org/show_bug.cgi?id=33142
+
+        MarkBugFixed is way behind in command technology, but it still needs a
+        unit test, as the FIXME commands.
+
+        Also, remove mark-bug-fixed and create-bug from main help since we have
+        more modern commands to replace them.
+
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/commands/upload_unittest.py:
+        * Scripts/webkitpy/mock_bugzillatool.py:
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Add missing unit test for CommitMessageForCurrentDiff
+        https://bugs.webkit.org/show_bug.cgi?id=33141
+
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/commands/upload_unittest.py:
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Remove raw_input from queues in favor of user.prompt
+        https://bugs.webkit.org/show_bug.cgi?id=33140
+
+        This lets up properly mock out the user interaction instead of hacking
+        around it with the options.
+
+        * Scripts/webkitpy/commands/queues.py:
+        * Scripts/webkitpy/commands/queuestest.py:
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool should not require users to install mechanize
+        https://bugs.webkit.org/show_bug.cgi?id=32635
+
+        * Scripts/webkitpy/__init__.py: Add missing declaration for ClientForm (which mechanize requires).
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool should not require users to install mechanize
+        https://bugs.webkit.org/show_bug.cgi?id=32635
+
+        Use the nifty "autoinstall" module from Daniel Krech:
+        http://pypi.python.org/pypi/autoinstall/0.2
+        http://code.google.com/p/pyautoinstall/
+        It's available under a WebKit-compatible BSD license.
+
+        * Scripts/webkitpy/__init__.py:
+         - bind "mechanize" to an autoinstall importer which will
+           auto-download mechanize if necessary.
+        * Scripts/webkitpy/autoinstall.py: Added.
+        * Scripts/webkitpy/bugzilla.py: use "mechanize" instead of webkit_mechanize
+        * Scripts/webkitpy/statusbot.py: ditto.
+        * Scripts/webkitpy/webkit_mechanize.py: Removed.
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Move AbstractSequencedCommand to a more general location
+        https://bugs.webkit.org/show_bug.cgi?id=33137
+
+        I do what the FIXME tell me to do.
+
+        * Scripts/webkitpy/commands/abstractsequencedcommand.py: Added.
+        * Scripts/webkitpy/commands/download.py:
+        * Scripts/webkitpy/commands/upload.py:
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Rename StatusBot to StatusServer
+        https://bugs.webkit.org/show_bug.cgi?id=33139
+
+        It's not a bot.  It's a server.
+
+        * Scripts/bugzilla-tool:
+        * Scripts/webkitpy/bugzilla.py:
+        * Scripts/webkitpy/commands/early_warning_system.py:
+        * Scripts/webkitpy/commands/queues.py:
+        * Scripts/webkitpy/mock_bugzillatool.py:
+        * Scripts/webkitpy/queueengine.py:
+        * Scripts/webkitpy/statusbot.py: Removed.
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] submit-pach should have a -o/--open option to open the bug after submit
+        https://bugs.webkit.org/show_bug.cgi?id=33136
+
+        Python makes this very easy.
+
+        * Scripts/webkitpy/mock_bugzillatool.py:
+        * Scripts/webkitpy/steps/options.py:
+        * Scripts/webkitpy/steps/postdiff.py:
+        * Scripts/webkitpy/user.py:
+
+2010-01-04  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Move steps to a submodule
+        https://bugs.webkit.org/show_bug.cgi?id=33135
+
+        For great victory.  This will probably introduce some regressions
+        because our test coverage isn't perfect, but I've tried to be careful.
+
+        * Scripts/test-webkitpy:
+        * Scripts/webkitpy/buildsteps.py: Removed.
+        * Scripts/webkitpy/buildsteps_unittest.py: Removed.
+        * Scripts/webkitpy/commands/download.py:
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/steps/__init__.py: Added.
+        * Scripts/webkitpy/steps/abstractstep.py: Added.
+        * Scripts/webkitpy/steps/applypatch.py: Added.
+        * Scripts/webkitpy/steps/applypatchwithlocalcommit.py: Added.
+        * Scripts/webkitpy/steps/build.py: Added.
+        * Scripts/webkitpy/steps/checkstyle.py: Added.
+        * Scripts/webkitpy/steps/cleanworkingdirectory.py: Added.
+        * Scripts/webkitpy/steps/cleanworkingdirectorywithlocalcommits.py: Added.
+        * Scripts/webkitpy/steps/closebug.py: Added.
+        * Scripts/webkitpy/steps/closebugforlanddiff.py: Added.
+        * Scripts/webkitpy/steps/closepatch.py: Added.
+        * Scripts/webkitpy/steps/commit.py: Added.
+        * Scripts/webkitpy/steps/completerollout.py: Added.
+        * Scripts/webkitpy/steps/confirmdiff.py: Added.
+        * Scripts/webkitpy/steps/createbug.py: Added.
+        * Scripts/webkitpy/steps/editchangelog.py: Added.
+        * Scripts/webkitpy/steps/ensurebuildersaregreen.py: Added.
+        * Scripts/webkitpy/steps/ensurelocalcommitifneeded.py: Added.
+        * Scripts/webkitpy/steps/metastep.py: Added.
+        * Scripts/webkitpy/steps/obsoletepatches.py: Added.
+        * Scripts/webkitpy/steps/options.py: Added.
+        * Scripts/webkitpy/steps/postdiff.py: Added.
+        * Scripts/webkitpy/steps/preparechangelog.py: Added.
+        * Scripts/webkitpy/steps/preparechangelogforrevert.py: Added.
+        * Scripts/webkitpy/steps/promptforbugortitle.py: Added.
+        * Scripts/webkitpy/steps/revertrevision.py: Added.
+        * Scripts/webkitpy/steps/runtests.py: Added.
+        * Scripts/webkitpy/steps/steps_unittest.py: Added.
+        * Scripts/webkitpy/steps/update.py: Added.
+        * Scripts/webkitpy/steps/updatechangelogswithreview_unittests.py: Added.
+        * Scripts/webkitpy/steps/updatechangelogswithreviewer.py: Added.
+        * Scripts/webkitpy/stepsequence.py:
+
+2010-01-04  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33097
+
+        Cleans up the File menu to better conform to the File menu in Safari
+        both in terms of options and keyboard shortcuts. Adds a "Quit" menu
+        options to close all open windows. Also, renames the Tools menu to
+        Develop.
+
+        * QtLauncher/main.cpp:
+        (MainWindow::setupUI):
+
+2010-01-04  Daniel Bates  <dbates@webkit.org>
+
+        https://bugs.webkit.org/show_bug.cgi?id=33039
+        
+        Unreviewed fix.
+
+        * Scripts/webkitpy/credentials.py:
+        * Scripts/webkitpy/credentials_unittest.py:
+
+2010-01-04  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33039
+
+        [bzt] Second attempt to fix an issue where bugzilla-tool dies
+        when the keychain lookup fails to find an entry for bugs.webkit.org.
+
+        * Scripts/webkitpy/credentials.py:
+        * Scripts/webkitpy/credentials_unittest.py:
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Make Rollout an AbstractSequencedCommmand
+        https://bugs.webkit.org/show_bug.cgi?id=33133
+
+        As suggested by Adam in:
+        https://bugs.webkit.org/show_bug.cgi?id=33131#c2
+
+        * Scripts/webkitpy/commands/download.py:
+
+2010-01-04  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Make all commands AbstractDeclarativeCommmands instead of direct Command subclasses
+        https://bugs.webkit.org/show_bug.cgi?id=33131
+
+        Evenetually we'll probably roll AbstractDeclarativeCommmand directly into Command
+        but for now we just deploy it everywhere and don't try to fix up the few valid uses
+        of Command.
+
+        * Scripts/webkitpy/commands/download.py:
+        * Scripts/webkitpy/commands/queries.py:
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/multicommandtool.py:
+
+2010-01-03  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed "build" fix.  Need to import ScriptError.
+
+        * Scripts/webkitpy/buildsteps.py:
+
+2010-01-03  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Make it easier to run submit-patch when previous run cancelled
+        https://bugs.webkit.org/show_bug.cgi?id=33070
+
+        This patch renames create-review to submit-patch (as requested by
+        Maciej).
+
+        This patch makes it easier to run submit-patch after the user has
+        already cancelled a previous run of submit-patch by detecting when we
+        already have ChangeLogs and reading the bug number from them (and not
+        attempting to recreate them).  Aside from performance and the extra
+        edit step, this command should not subsume post-dif.
+
+        Also, added a --email command line argument so that the output of
+        prepare-ChangeLog makes sense when it can't find the user's email
+        address.
+
+        * Scripts/webkitpy/bugzilla.py:
+        * Scripts/webkitpy/buildsteps.py:
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/commands/upload_unittest.py:
+        * Scripts/webkitpy/mock_bugzillatool.py:
+        * Scripts/webkitpy/user.py:
+
+2010-01-03  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Rename Scripts/modules to Scripts/webkitpy
+        https://bugs.webkit.org/show_bug.cgi?id=33128
+
+        Just search-replace and svn mv commands.
+
+        * Scripts/bugzilla-tool:
+        * Scripts/check-webkit-style:
+        * Scripts/modules: Removed.
+        * Scripts/modules/BeautifulSoup.py: Removed.
+        * Scripts/modules/__init__.py: Removed.
+        * Scripts/modules/bugzilla.py: Removed.
+        * Scripts/modules/bugzilla_unittest.py: Removed.
+        * Scripts/modules/buildbot.py: Removed.
+        * Scripts/modules/buildbot_unittest.py: Removed.
+        * Scripts/modules/buildsteps.py: Removed.
+        * Scripts/modules/buildsteps_unittest.py: Removed.
+        * Scripts/modules/changelogs.py: Removed.
+        * Scripts/modules/changelogs_unittest.py: Removed.
+        * Scripts/modules/commands: Removed.
+        * Scripts/modules/commands/__init__.py: Removed.
+        * Scripts/modules/commands/commandtest.py: Removed.
+        * Scripts/modules/commands/download.py: Removed.
+        * Scripts/modules/commands/download_unittest.py: Removed.
+        * Scripts/modules/commands/early_warning_system.py: Removed.
+        * Scripts/modules/commands/early_warning_system_unittest.py: Removed.
+        * Scripts/modules/commands/queries.py: Removed.
+        * Scripts/modules/commands/queries_unittest.py: Removed.
+        * Scripts/modules/commands/queues.py: Removed.
+        * Scripts/modules/commands/queues_unittest.py: Removed.
+        * Scripts/modules/commands/queuestest.py: Removed.
+        * Scripts/modules/commands/upload.py: Removed.
+        * Scripts/modules/commands/upload_unittest.py: Removed.
+        * Scripts/modules/comments.py: Removed.
+        * Scripts/modules/committers.py: Removed.
+        * Scripts/modules/committers_unittest.py: Removed.
+        * Scripts/modules/cpp_style.py: Removed.
+        * Scripts/modules/cpp_style_unittest.py: Removed.
+        * Scripts/modules/credentials.py: Removed.
+        * Scripts/modules/credentials_unittest.py: Removed.
+        * Scripts/modules/diff_parser.py: Removed.
+        * Scripts/modules/diff_parser_unittest.py: Removed.
+        * Scripts/modules/executive.py: Removed.
+        * Scripts/modules/executive_unittest.py: Removed.
+        * Scripts/modules/grammar.py: Removed.
+        * Scripts/modules/mock.py: Removed.
+        * Scripts/modules/mock_bugzillatool.py: Removed.
+        * Scripts/modules/multicommandtool.py: Removed.
+        * Scripts/modules/multicommandtool_unittest.py: Removed.
+        * Scripts/modules/outputcapture.py: Removed.
+        * Scripts/modules/patchcollection.py: Removed.
+        * Scripts/modules/queueengine.py: Removed.
+        * Scripts/modules/queueengine_unittest.py: Removed.
+        * Scripts/modules/scm.py: Removed.
+        * Scripts/modules/scm_unittest.py: Removed.
+        * Scripts/modules/statusbot.py: Removed.
+        * Scripts/modules/stepsequence.py: Removed.
+        * Scripts/modules/style: Removed.
+        * Scripts/modules/style.py: Removed.
+        * Scripts/modules/style_unittest.py: Removed.
+        * Scripts/modules/text_style.py: Removed.
+        * Scripts/modules/text_style_unittest.py: Removed.
+        * Scripts/modules/user.py: Removed.
+        * Scripts/modules/webkit_logging.py: Removed.
+        * Scripts/modules/webkit_logging_unittest.py: Removed.
+        * Scripts/modules/webkit_mechanize.py: Removed.
+        * Scripts/modules/webkitport.py: Removed.
+        * Scripts/modules/webkitport_unittest.py: Removed.
+        * Scripts/test-webkit-python: Removed.
+        * Scripts/test-webkitpy: Copied from WebKitTools/Scripts/test-webkit-python.
+        * Scripts/validate-committer-lists:
+        * Scripts/webkitpy: Copied from WebKitTools/Scripts/modules.
+        * Scripts/webkitpy/bugzilla.py:
+        * Scripts/webkitpy/bugzilla_unittest.py:
+        * Scripts/webkitpy/buildbot.py:
+        * Scripts/webkitpy/buildbot_unittest.py:
+        * Scripts/webkitpy/buildsteps.py:
+        * Scripts/webkitpy/buildsteps_unittest.py:
+        * Scripts/webkitpy/commands/commandtest.py:
+        * Scripts/webkitpy/commands/download.py:
+        * Scripts/webkitpy/commands/download_unittest.py:
+        * Scripts/webkitpy/commands/early_warning_system.py:
+        * Scripts/webkitpy/commands/early_warning_system_unittest.py:
+        * Scripts/webkitpy/commands/queries.py:
+        * Scripts/webkitpy/commands/queries_unittest.py:
+        * Scripts/webkitpy/commands/queues.py:
+        * Scripts/webkitpy/commands/queues_unittest.py:
+        * Scripts/webkitpy/commands/queuestest.py:
+        * Scripts/webkitpy/commands/upload.py:
+        * Scripts/webkitpy/commands/upload_unittest.py:
+        * Scripts/webkitpy/comments.py:
+        * Scripts/webkitpy/credentials.py:
+        * Scripts/webkitpy/credentials_unittest.py:
+        * Scripts/webkitpy/executive.py:
+        * Scripts/webkitpy/executive_unittest.py:
+        * Scripts/webkitpy/mock_bugzillatool.py:
+        * Scripts/webkitpy/multicommandtool.py:
+        * Scripts/webkitpy/multicommandtool_unittest.py:
+        * Scripts/webkitpy/queueengine.py:
+        * Scripts/webkitpy/queueengine_unittest.py:
+        * Scripts/webkitpy/scm.py:
+        * Scripts/webkitpy/scm_unittest.py:
+        * Scripts/webkitpy/statusbot.py:
+        * Scripts/webkitpy/stepsequence.py:
+        * Scripts/webkitpy/webkit_logging_unittest.py:
+        * Scripts/webkitpy/webkitport_unittest.py:
+
+2010-01-03  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        Added script to test both Perl and Python, and renamed
+        run-webkit-unittests to test-webkit-python.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33045
+
+        * Scripts/VCSUtils_unittest.pl:
+          - Tweaked so it can be run from outside Scripts directory.
+
+        * Scripts/run-webkit-unittests: Removed.
+          - Renamed to test-webkit-python.
+
+        * Scripts/test-webkit-perl:
+          - Tweaked so it can be run from outside Scripts directory.
+
+        * Scripts/test-webkit-python: Copied from Scripts/run-webkit-unittests.
+
+        * Scripts/test-webkit-scripts: Added.
+          - Runs both test-webkit-perl and test-webkit-python.
+
+2010-01-03  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        commit-queue/bugzilla-tool should build both Debug and Release
+        https://bugs.webkit.org/show_bug.cgi?id=28450
+
+        Add a --build-style command that lets the master process tell the child
+        process to build both debug and release.  Eventually we want to teach
+        the test step to understand this option too, but that's a patch for
+        another day.
+
+        * Scripts/modules/buildsteps.py:
+        * Scripts/modules/commands/queues.py:
+        * Scripts/modules/webkitport.py:
+        * Scripts/modules/webkitport_unittest.py:
+
+2010-01-03  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] EventSender: add support for Enter key events
+        https://bugs.webkit.org/show_bug.cgi?id=33064
+
+        Unskip 5 tests that are fixed now.
+
+        * DumpRenderTree/qt/EventSenderQt.cpp:
+        (EventSender::keyDown):
+
+2010-01-03  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Add test for previous typo fix
+        https://bugs.webkit.org/show_bug.cgi?id=33083
+
+        A trivial test for a trivial fix, as requested by Eric.
+
+        * Scripts/modules/bugzilla_unittest.py:
+
+2010-01-03  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Implement mac-ews
+        https://bugs.webkit.org/show_bug.cgi?id=33072
+
+        The mac-ews is slightly different than the other early warning systems
+        because we can't run Mac OS X inside a VM.  For that reason, we only
+        process patches that were uploaded by committers.  This isn't as much
+        coverage as the other EWS bots, but it's better than nothing.
+
+        * Scripts/modules/commands/early_warning_system.py:
+        * Scripts/modules/commands/early_warning_system_unittest.py:
+        * Scripts/modules/commands/queues.py:
+        * Scripts/modules/commands/queuestest.py:
+        * Scripts/modules/mock_bugzillatool.py:
+
+2010-01-03  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by David Kilzer.
+
+        Refactored svn-apply and svn-unapply to use a common "patch"
+        command method, and added unit tests for this new method.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33098
+
+        * Scripts/VCSUtils.pm:
+          - Added generateRunPatchCommand().
+          - Added runPatchCommand().
+          - Added exitStatus() from webkitdirs.pm to address FIXME.
+
+        * Scripts/VCSUtils_unittest.pl:
+          - Added 10 unit tests for generateRunPatchCommand().
+          - Added 4 unit tests for runPatchCommand().
+          - Added callSilently() method.
+
+        * Scripts/svn-apply:
+          - Refactored applyPatch().
+          - Removed $pathScriptWasRunFrom global variable.
+          - Addressed issue where "--force" option was getting added twice.
+
+        * Scripts/svn-unapply:
+          - Refactored applyPatch().
+          - Removed $pathScriptWasRunFrom global variable.
+          - Added support for --force option.
+          - Enhanced to return meaningful exit status.
+
+        * Scripts/webkitdirs.pm:
+          - Moved exitStatus() implementation to VCSUtils.pm.
+
+2009-12-31  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Implement build-and-test
+        https://bugs.webkit.org/show_bug.cgi?id=33073
+
+        Some of the early warning system bots want to use build-and-test so
+        they can cover LayoutTests in addition to just compilation.
+
+        * Scripts/modules/commands/download.py:
+        * Scripts/modules/commands/download_unittest.py:
+
+2009-12-31  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Show mac-ews status on QueueStatusServer
+        https://bugs.webkit.org/show_bug.cgi?id=33076
+
+        Also make error status purple.
+
+        * QueueStatusServer/model/attachment.py:
+        * QueueStatusServer/model/queues.py:
+        * QueueStatusServer/templates/dashboard.html:
+        * QueueStatusServer/templates/statusbubble.html:
+
+2009-12-31  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed.
+
+        [bzt] REGRESSION: Bugzila is a typo
+        https://bugs.webkit.org/show_bug.cgi?id=33074
+
+        Eric should test his code before landing!  :)
+
+        * Scripts/modules/bugzilla.py:
+
+2009-12-31  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed.  Fix the unit tests!
+
+        * Scripts/run-webkit-unittests:
+
+2009-12-30  Kevin Watters  <kevinwatters@gmail.com>
+
+        Reviewed by Kevin Ollivier.
+
+        [wx] Alter a couple of default settings in the test app.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32956
+
+        * wx/browser/browser.cpp:
+        (MyApp::OnInit):
+
+2009-12-30  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        logging.py should be renamed to webkit_logging.py and eventually die
+        https://bugs.webkit.org/show_bug.cgi?id=33058
+
+        Change all imports of "logging" to webkit_logging,
+        except the ones which came from Google's cpp_lint.py and diff_parser.py
+        which clearly are assuming python's logging.py.
+
+        * Scripts/modules/bugzilla.py:
+        * Scripts/modules/buildbot.py:
+        * Scripts/modules/buildsteps.py:
+        * Scripts/modules/commands/download.py:
+        * Scripts/modules/commands/queries.py:
+        * Scripts/modules/commands/queues.py:
+        * Scripts/modules/commands/upload.py:
+        * Scripts/modules/credentials.py:
+        * Scripts/modules/executive.py:
+        * Scripts/modules/multicommandtool.py:
+        * Scripts/modules/queueengine.py:
+        * Scripts/modules/scm.py:
+        * Scripts/modules/statusbot.py:
+        * Scripts/modules/stepsequence.py:
+        * Scripts/modules/webkit_logging.py: Renamed from WebKitTools/Scripts/modules/logging.py.
+        * Scripts/modules/webkit_logging_unittest.py: Renamed from WebKitTools/Scripts/modules/logging_unittest.py.
+
+2009-12-30  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] layoutTestController.pathToLocalResource() should return a path, not an URL
+        https://bugs.webkit.org/show_bug.cgi?id=33051
+
+        Moreover, its primary function is to normalize the path in regard of platform
+        specific directory separators. Therefore, it can simply make use of the
+        QDir::toNativeSeparators function.
+
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::pathToLocalResource):
+
+2009-12-30  David D. Kilzer  <ddkilzer@webkit.org>
+
+        Fix executable bits for r52646
+
+        * Scripts/VCSUtils_unittest.pl: Added property svn:executable.
+        * Scripts/test-webkit-perl: Ditto.
+
+2009-12-29  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by David Kilzer.
+
+        Fixed a bug in fixChangeLogPatch, made it work correctly in
+        more circumstances, and added unit tests.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32919
+
+        * Scripts/VCSUtils.pm:
+          Rewrote fixChangeLogPatch.
+          
+        * Scripts/VCSUtils_unittest.pl: Added.
+          Added 7 unit tests for fixChangeLogPatch.
+
+        * Scripts/test-webkit-perl: Added.
+          Added test harness for unit tests of Perl code.
+
+2009-12-29  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Split out BugzillaQueries class from Bugzilla
+        https://bugs.webkit.org/show_bug.cgi?id=33042
+
+        * Scripts/modules/bugzilla.py:
+         - Split out BugzillaQueries from Bugzilla.
+         - Try to isolate self.bugzilla usage into helper functions whenever possible.
+         - Add a bunch of FIXMEs.
+         - Rename fetch_bug_ids_from_needs_commit_list to fetch_bug_ids_from_pending_commit_list
+        * Scripts/modules/bugzilla_unittest.py:
+         - Create a new BugzillaQueriesTest testcase and move logic there.
+        * Scripts/modules/buildsteps_unittest.py:
+         - Use Bug 75 instead of 1 since bug 1 doesn't actually exist.
+        * Scripts/modules/commands/queries.py:
+         - Update to use bugzilla.queries
+        * Scripts/modules/commands/queues.py:
+         - Ditto.
+        * Scripts/modules/commands/upload.py:
+         - Ditto.
+        * Scripts/modules/mock_bugzillatool.py:
+         - Add a MockBugzillaQueries.
+         - Make patches and bugs global privates.
+         - Let _id_to_object_dictionary take a variable argument list instead of an array.
+
+2009-12-29  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33041
+
+        Speed up the test method test_read_credentials_with_SVN by not actually
+        creating an SVN repository to test against (by default). Instead, it is
+        sufficient to create a temporary directory that does not contain a Git
+        repository.
+
+        Also, renamed method test_read_credentials_with_SVN to
+        test_read_credentials_without_git_repo, to better reflect what it is
+        testing.
+
+        * Scripts/modules/credentials_unittest.py:
+
+2009-12-29  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33039
+
+        [bzt] Fixes an issue where bugzilla-tool dies when the keychain lookup
+        fails to find an entry for bugs.webkit.org.
+        
+        Under Mac OS X, bugzilla-tool tries to query the keychain and Security
+        framework (via /usr/sbin/security) for an internet-password entry for
+        bugs.webkit.org so that it can use it to login to bugs.webkit.org.
+        However, if no such entry exists then bugzilla-tool dies with an error.
+
+        * Scripts/modules/credentials.py: Modified method _parse_security_tool_output to return
+        [None, None] if /usr/sbin/security cannot find keychain entry for bugs.webkit.org.
+        * Scripts/modules/credentials_unittest.py: Added method test_security_output_parse_entry_not_found.
+
+2009-12-29  Eric Seidel  <eric@webkit.org>
+
+        Rubber-stamped by Adam Barth.
+
+        Remove unused BugzillaException.
+
+        * Scripts/modules/bugzilla.py:
+
+2009-12-29  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Need a script to assign bugs with r+ patches to committers for landing
+        https://bugs.webkit.org/show_bug.cgi?id=33009
+
+        This is just one more small tool to help in the fight against our
+        ever-growing list of to-be-committed patches.
+
+        * Scripts/modules/bugzilla.py:
+         - Rename assign_to_email to assigned_to_email (typo).
+         - Add assigned_to_email() method on Bug.
+         - Add reassign_bug method.
+         - Add Bugzilla.unassigned_email, eventually should move to some webkit_config.py module.
+        * Scripts/modules/bugzilla_unittest.py:
+         - Update test after assigned_to_email rename.
+        * Scripts/modules/commands/commandtest.py:
+         - Call bind_to_tool to that self.tool works in Command testing.
+        * Scripts/modules/commands/download.py:
+         - Move AbstractDeclarativeCommmand multicommandtool.py, it should be part of Command.
+        * Scripts/modules/commands/queries_unittest.py:
+         - One of the test patches is now posted by "eric@webkit.org" which is a committer.
+         - Eventually we'll mock out CommitterList and be able to better control what's a committer and what's not.
+        * Scripts/modules/commands/upload.py:
+         - Add new assign-to-committer command.
+        * Scripts/modules/commands/upload_unittest.py:
+         - Add basic assign-to-committer test.
+        * Scripts/modules/committers.py:
+         - Add bugzilla_email() accessor.
+        * Scripts/modules/committers_unittest.py:
+         - Test our assumption that bugzilla_email is the first email.
+        * Scripts/modules/mock_bugzillatool.py:
+         - Add _id_to_object_dictionary for generating bug_cache from list of bugs.
+         - Remove unused fetch_attachments_from_bug.
+         - Add fetch_bug support and a bug_cache.
+        * Scripts/modules/multicommandtool.py:
+         - Move AbstractDeclarativeCommmand here from download.py
+
+2009-12-29  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Don't crash if user types a number during PromptForBugOrTitleStep
+        https://bugs.webkit.org/show_bug.cgi?id=33038
+
+        Simple fix with test.
+
+        * Scripts/modules/buildsteps.py:
+        * Scripts/modules/buildsteps_unittest.py:
+
+2009-12-29  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] post-diff requires reading to the end
+        https://bugs.webkit.org/show_bug.cgi?id=33036
+
+        Catch the IOError caused by not reading to the end of the diff.  We
+        don't have a good way to test this currently.
+
+        * Scripts/modules/user.py:
+
+2009-12-29  Chang Shu  <Chang.Shu@nokia.com>
+
+        Reviewed by Adam Barth.
+
+        [Qt] Move logic that handles Qt headers before primary headers
+        so that Qt headers won't be treated as primary headers by mistake.
+        https://bugs.webkit.org/show_bug.cgi?id=32991
+
+        * Scripts/modules/cpp_style.py:
+        * Scripts/modules/cpp_style_unittest.py:
+
+2009-12-29  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Add the start of a Bug object for bugzilla.py
+        https://bugs.webkit.org/show_bug.cgi?id=32995
+
+        This allowed us to get rid of some duplicated "is_obsolete" checks.
+
+        * Scripts/modules/bugzilla.py:
+         - Add a new Bug class, and move patches/unreviewed_patches filtering logic there.
+         - Add _fetch_bug_page for possible future mocking.
+           (I did not try to test fetch_*_from_bug now due to difficulties with our current validate_reviewer logic.)
+         - Rename fetch_bug to fetch_bug_dictionary and add a new fetch_bug which returns a Bug object.
+         - Use fetch_bug and attachments(), patches(), etc. instead of custom fetch_*_from_bug methods.
+         - Reduce code in fetch_patches_from_pending_commit_list and fetch_patches_from_review_queue
+           using list comprehensions. Use a sum(list, []) trick to flatten a list of lists into a single list.
+        * Scripts/modules/bugzilla_unittest.py:
+         - Remove an unneeded unicode string marker.
+        * Scripts/modules/buildsteps.py:
+         - define __all__ to include just the BuildSteps
+        * Scripts/modules/commands/download.py:
+         - import * now that we have an __all__ defined.
+        * Scripts/modules/commands/upload.py:
+         - Use fetch_bug_dictionary instead of fetch_bug.
+
+2009-12-29  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32925
+
+        Adds an Open File dialog to make it convenient to open a file
+        to view in the browser.
+
+        Currently a person must either specify the path to a file as a
+        command-line argument or type a file URL. Instead, we should
+        have a file dialog to allow a person to open a file without
+        memorizing its path.
+
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow): Changed urlEdit->setText(qurl.toEncoded())
+        to urlEdit->setText(qurl.toString()). 
+        (MainWindow::openFile): Added.
+        (MainWindow::changeLocation): Moved code to load URL into method
+        MainWindow::loadURL.
+        (MainWindow::loadURL): Added.
+        (MainWindow::setupUI): Added menu item Open File.
+
+2009-12-29  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Holger Freyther.
+
+        [GTK] fails fast/harness/use-page-cache.html
+        https://bugs.webkit.org/show_bug.cgi?id=33013
+
+        Make sure settings are forwarded to child WebViews.
+
+        * DumpRenderTree/gtk/DumpRenderTree.cpp:
+        (createWebView):
+
+2009-12-29  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32778
+
+        Changes $diffPercentage to be a number to resolve Perl
+        warning about comparing a string to a number.
+
+        * Scripts/run-webkit-tests:
+
+2009-12-29  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] DRT: Frame loader callbacks differ from the Mac port
+        https://bugs.webkit.org/show_bug.cgi?id=32989
+
+        Remove messages from the callbacks that should not dump them to match
+        the expected results for the http/loading tests.
+
+        Unskip some http/loading tests which succeed now.
+
+        * DumpRenderTree/qt/DumpRenderTreeQt.cpp:
+        (WebCore::DumpRenderTree::dump):
+
+2009-12-29  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Eric Seidel.
+
+        [Qt] fix fast/dom/Window/window-onFocus.html
+        
+        Add support for layouttestcontroller.windowIsKey to Qt DRT and fix issue where
+        window.onblur was getting dispatched twice from QtWebKit.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32990
+
+        * DumpRenderTree/qt/DumpRenderTreeQt.cpp:
+        (WebCore::DumpRenderTree::DumpRenderTree):
+        (WebCore::DumpRenderTree::switchFocus):
+        * DumpRenderTree/qt/DumpRenderTreeQt.h:
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::setWindowIsKey):
+        (LayoutTestController::setMainFrameIsFirstResponder):
+        * DumpRenderTree/qt/LayoutTestControllerQt.h:
+
+2009-12-28  Kinuko Yasuda  <kinuko@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Extended EventSender.keyDown method to take another (3rd) argument
+        for indicating the keyLocation to make numeric pad key events testable.
+        Expected values for the argument is one of the KeyLocationCode
+        specified in DOM Level 3
+        (http://www.w3.org/TR/DOM-Level-3-Events/#events-keyboardevents).
+        https://bugs.webkit.org/show_bug.cgi?id=28247
+
+        Test: fast/events/keydown-numpad-keys.html
+
+        * DumpRenderTree/mac/EventSendingController.mm:
+        (+[EventSendingController isSelectorExcludedFromWebScript:]):
+        (+[EventSendingController webScriptNameForSelector:]):
+        (-[EventSendingController keyDown:withModifiers:withLocation:]):
+
+2009-12-28  Ariya Hidayat  <ariya.hidayat@gmail.com>
+
+        Unreviewed, update my email address.
+
+        * Scripts/modules/committers.py:
+
+2009-12-28  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Reviewed by Adam Barth.
+
+        [Qt] Fix build break for Qt 4.4
+        https://bugs.webkit.org/show_bug.cgi?id=30327
+
+        * DumpRenderTree/qt/DumpRenderTreeQt.cpp: Include QLocale
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp: Ditto.
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow): Qt::WA_TranslucentBackground was
+        introduced in Qt version 4.5
+
+2009-12-28  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Add an edit-changelog command
+        https://bugs.webkit.org/show_bug.cgi?id=32986
+
+        This command makes it easier to edit ChangeLogs.  It's similar to
+        prepare-ChangeLog -o, except it works with already existing ChangeLogs.
+
+        * Scripts/modules/commands/upload.py:
+        * Scripts/modules/commands/upload_unittest.py:
+
+2009-12-28  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Create an ASAD command for uploading a patch
+        https://bugs.webkit.org/show_bug.cgi?id=32979
+
+        The create-review command goes through the whole process of preparing a
+        code review, including creating a bug, editing the ChangeLogs, and
+        uploading the patch.  It is indeed the All Sing, All Dance upload
+        command.
+
+        * Scripts/modules/buildsteps.py:
+        * Scripts/modules/commands/upload.py:
+        * Scripts/modules/commands/upload_unittest.py:
+        * Scripts/modules/mock_bugzillatool.py:
+        * Scripts/modules/user.py:
+
+2009-12-28  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed "build" fix (with test!).
+
+        * Scripts/modules/bugzilla.py:
+        * Scripts/modules/bugzilla_unittest.py:
+
+2009-12-27  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        Add more awesome bug-parsing logic to bugzilla.py in preparation for assign-to-committer command
+        https://bugs.webkit.org/show_bug.cgi?id=32980
+
+        * Scripts/modules/bugzilla.py:
+         - Add a new _parse_bug_page function and use it in fetch_attachments_from_bug
+         - Replace fetch_title_from_bug with a new fetch_bug call instead.
+         - Use list comprehensions where possible to reduce code duplication.
+        * Scripts/modules/bugzilla_unittest.py:
+         - Add a minimal bug parsing test.
+         - Share code between bug parsing and attachment parsing tests with _assert_dictionaries_equal
+        * Scripts/modules/commands/upload.py:
+         - Use fetch_bug(bug_id)["title"] instead of fetch_title_from_bug
+
+2009-12-27  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Status bubble shouldn't be transparent for bots that haven't run yet
+        https://bugs.webkit.org/show_bug.cgi?id=32977
+
+        * QueueStatusServer/templates/statusbubble.html:
+
+2009-12-27  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [QueueStatusServer] Run gc cron job less often
+        https://bugs.webkit.org/show_bug.cgi?id=32958
+
+        Now that we've cleaned out the backlog of idle messages, we don't need
+        to run the gc job every half hour.  We could also stop logging the idle
+        messages, but this seems easier for the time being.
+
+        * QueueStatusServer/cron.yaml:
+
+2009-12-27  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32896
+
+        Fixes an issue where bugzilla-tool tries to read the username and password from
+        Git regardless of whether Git is installed. In particular, if Git is not
+        installed then bugzilla-tool dies (with a trace) when it attempts to query Git
+        for the authentication credentials to log into bugs.webkit.org.
+
+        Moreover, modifies Executive.run_command to catch and pass OSError exceptions to
+        the specified error handler. For instance, the specified error handler will now
+        be called when the command does not exist (i.e. OSError errno 2).
+
+        * Scripts/modules/credentials.py: Added check for Git.
+        * Scripts/modules/credentials_unittest.py: Added test method
+        test_read_credentials_with_SVN.
+        * Scripts/modules/executive.py: Modified method run_command to catch
+        OSError exceptions (i.e [Errno 2] No such file or directory) and call
+        the specified error handler.
+        * Scripts/modules/executive_unittest.py: Added.
+        * Scripts/run-webkit-unittests: Added import executive_unittest.py.
+
+2009-12-27  Daniel Bates  <dbates@webkit.org>
+
+        Unreviewed. Added missing file style_unittest.py that wasn't committed
+        in change set 52541 (http://trac.webkit.org/changeset/52541) as part of
+        the patch for bug #32592.
+
+        * Scripts/modules/style_unittest.py: Added.
+
+2009-12-27  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32964
+
+        [bzt] Updated the unit test based on the change made in bug #32951.
+
+        The change made in bug #32951 added the command-line argument:
+        --makeargs="-j8" to the build-webkit command. However, the associated
+        unit test was not updated.
+
+        * Scripts/modules/webkitport_unittest.py:
+
+2009-12-27  Yael Aharon  <yael.aharon@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        check-webkit-style should not mark moc files inclusion as errors
+        https://bugs.webkit.org/show_bug.cgi?id=32669
+
+        Add a new header type for moc files, and skip them when checking the order of header files.
+
+        * Scripts/modules/cpp_style.py:
+
+2009-12-26  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Make the qt build go fast
+        https://bugs.webkit.org/show_bug.cgi?id=32951
+
+        Make use of multiple cores, if available.
+
+        * Scripts/modules/webkitport.py:
+
+2009-12-25  Daniel Bates  <dbates@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32682
+
+        Fixes an issue where checkFrameworks always dies with an error under Windows
+        since the clause "unless (-x $path)" is always satisfied because files under
+        Windows do not have an explict executable bit.
+
+        * Scripts/webkitdirs.pm:
+
+2009-12-23  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        bugzilla-tool should accept global options anywhere
+        https://bugs.webkit.org/show_bug.cgi?id=26912
+
+        * Scripts/bugzilla-tool:
+         - Use the new global_options class property.
+         - Add a handle_global_options callback to avoid needing callbacks for each global option.
+        * Scripts/modules/multicommandtool.py:
+         - Make the code use one combined option parser.
+           This allows us to accept global options anywhere and
+           individual command options before commands.
+         - Add a handle_global_options callback to avoid needing callbacks for each global option.
+         - Make the Command hold the option parser, but allow the tool to override it.
+         - The default option parser is used for help printing and when Commands are run stand alone,
+           but are otherwise not used.
+         - Add Command.main to codify the idea that Commands should support being run stand-alone.
+         - Change _split_args to _split_command_name_from_args now that args are unified.
+        * Scripts/modules/multicommandtool_unittest.py:
+         - Test that "tool" and "tool help" show the same help.
+         - Test that args are accepted before commands
+
+2009-12-20  Chris Jerdonek  <chris.jerdonek@gmail.com>
+
+        Reviewed by David Levin.
+
+        Moved some sections of code in preparation to refactor
+        check-webkit-style's argument parser to avoid setting
+        global variables.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32592
+
+        * Scripts/check-webkit-style:
+          - Moved _USAGE string to style.py.
+          - Addressed FIXME by eliminating dependencies on cpp_style.py.
+
+        * Scripts/modules/cpp_style.py:
+          - Moved default arguments and style categories to style.py.
+          - Moved exit_with_usage(), exit_with_categories(), and
+            parse_arguments() to style.py.
+          - Removed references in _CppStyleState to the global
+            variables now in style.py.
+
+        * Scripts/modules/cpp_style_unittest.py:
+          - Moved parse_arguments() unit tests to style_unittest.py.
+
+        * Scripts/modules/style.py:
+          - Added _USAGE string from check-webkit-style.
+          - Added default arguments and style categories from cpp_style.py.
+          - Added exit_with_usage(), exit_with_categories(), and
+            parse_arguments() from cpp_sstyle.py.
+
+        * Scripts/modules/style_unittest.py: Added.
+          - Added parse_arguments() unit tests from cpp_style_unittest.py.
+
+        * Scripts/run-webkit-unittests:
+          - Added unit tests from style_unittest.py.
+
+2009-12-23  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        commit-queue should mention bug 30084 when rejecting patches until it can be fixed
+        https://bugs.webkit.org/show_bug.cgi?id=32911
+
+        * Scripts/modules/bugzilla.py: Make the message even more fancy.
+        * Scripts/modules/bugzilla_unittest.py: Test our new fancy message.
+
+2009-12-23  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
+
+        Not reviewed, adding myself to the reviewers list.
+
+        * Scripts/modules/committers.py:
+
+2009-12-23  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [bzt] Create a prepare-diff command that creates a bug and a ChangeLog
+        https://bugs.webkit.org/show_bug.cgi?id=32895
+
+        The workflow Maciej and I discussed is as follows:
+
+        1) Write code.
+        2) bugzilla-tool prepare-diff
+        3) Edit ChangeLogs
+        4) bugzilla-tool post-diff
+
+        We might want to experimenting with combining 2-4 into a single
+        command, but that might be stressful to edit the ChangeLogs modally.
+
+        Removed submit-patch since it has the modal ChangeLog editing but none
+        oof the bug creating fun.
+
+        * Scripts/modules/bugzilla.py:
+        * Scripts/modules/buildsteps.py:
+        * Scripts/modules/commands/upload.py:
+        * Scripts/modules/commands/upload_unittest.py:
+
+2009-12-23  Gabor Loki  <loki@webkit.org>
+
+        Unreviewed; added myself to the committers list.
+
+        * Scripts/modules/committers.py:
+
+2009-12-22  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        [bzt] Don't call create-patch twice during post-diff
+        https://bugs.webkit.org/show_bug.cgi?id=32893
+
+        If we call create-patch to get the bug number, cache the diff in the
+        state so we don't need to call it again.
+
+        * Scripts/modules/buildsteps.py:
+        * Scripts/modules/commands/upload.py:
+
+2009-12-22  Daniel Bates  <dbates@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32680
+
+        Fixes an issue in builtDylibPathForName so that it returns the correct
+        path to the built QtWebKit library on the Qt Windows port. Currently,
+        it returns the path to the file named QtWebKit.dll but this file does
+        not exist on the Qt Windows build. Instead, the file is named
+        QtWebKit4.dll.
+
+        * Scripts/webkitdirs.pm:
+
+2009-12-22  Marc-Antoine Ruel  <maruel@chromium.org>
+
+        Reviewed by Adam Roben.
+
+        Remove the only dependency on perl-libwin32 in cygwin
+
+        * Scripts/num-cpus:
+
 2009-12-22  Darin Adler  <darin@apple.com>
 
         * pywebsocket/mod_pywebsocket: Added property svn:ignore to ignore

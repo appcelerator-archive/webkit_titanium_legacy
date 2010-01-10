@@ -47,7 +47,7 @@
 
 namespace WebCore {
 
-NAMED_PROPERTY_DELETER(HTMLDocument)
+v8::Handle<v8::Boolean> V8HTMLDocument::namedPropertyDeleter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     // Only handle document.all.  Insert the marker object into the
     // shadow internal field to signal that document.all is no longer
@@ -57,13 +57,13 @@ NAMED_PROPERTY_DELETER(HTMLDocument)
     if (key != all)
         return deletionNotHandledByInterceptor();
 
-    ASSERT(info.Holder()->InternalFieldCount() == kHTMLDocumentInternalFieldCount);
-    v8::Local<v8::Value> marker = info.Holder()->GetInternalField(kHTMLDocumentMarkerIndex);
-    info.Holder()->SetInternalField(kHTMLDocumentShadowIndex, marker);
+    ASSERT(info.Holder()->InternalFieldCount() == V8Custom::kHTMLDocumentInternalFieldCount);
+    v8::Local<v8::Value> marker = info.Holder()->GetInternalField(V8Custom::kHTMLDocumentMarkerIndex);
+    info.Holder()->SetInternalField(V8Custom::kHTMLDocumentShadowIndex, marker);
     return v8::True();
 }
 
-NAMED_PROPERTY_GETTER(HTMLDocument)
+v8::Handle<v8::Value> V8HTMLDocument::namedPropertyGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     INC_STATS("DOM.HTMLDocument.NamedPropertyGetter");
     AtomicString key = v8StringToAtomicWebCoreString(name);
@@ -73,9 +73,9 @@ NAMED_PROPERTY_GETTER(HTMLDocument)
     // been temporarily shadowed and we return the value.
     DEFINE_STATIC_LOCAL(const AtomicString, all, ("all"));
     if (key == all) {
-        ASSERT(info.Holder()->InternalFieldCount() == kHTMLDocumentInternalFieldCount);
-        v8::Local<v8::Value> marker = info.Holder()->GetInternalField(kHTMLDocumentMarkerIndex);
-        v8::Local<v8::Value> value = info.Holder()->GetInternalField(kHTMLDocumentShadowIndex);
+        ASSERT(info.Holder()->InternalFieldCount() == V8Custom::kHTMLDocumentInternalFieldCount);
+        v8::Local<v8::Value> marker = info.Holder()->GetInternalField(V8Custom::kHTMLDocumentMarkerIndex);
+        v8::Local<v8::Value> value = info.Holder()->GetInternalField(V8Custom::kHTMLDocumentShadowIndex);
         if (marker != value)
             return value;
     }
@@ -174,7 +174,7 @@ v8::Handle<v8::Value> V8HTMLDocument::openCallback(const v8::Arguments& args)
     return args.Holder();
 }
 
-ACCESSOR_GETTER(HTMLDocumentAll)
+v8::Handle<v8::Value> V8HTMLDocument::allAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     INC_STATS("DOM.HTMLDocument.all._get");
     v8::HandleScope scope;
@@ -183,12 +183,12 @@ ACCESSOR_GETTER(HTMLDocumentAll)
     return V8DOMWrapper::convertToV8Object(V8ClassIndex::HTMLCOLLECTION, htmlDocument->all());
 }
 
-ACCESSOR_SETTER(HTMLDocumentAll)
+void V8HTMLDocument::allAccessorSetter(v8::Local<v8::String> name, v8::Local<v8::Value> value, const v8::AccessorInfo& info)
 {
     INC_STATS("DOM.HTMLDocument.all._set");
     v8::Handle<v8::Object> holder = info.Holder();
-    ASSERT(info.Holder()->InternalFieldCount() == kHTMLDocumentInternalFieldCount);
-    info.Holder()->SetInternalField(kHTMLDocumentShadowIndex, value);
+    ASSERT(info.Holder()->InternalFieldCount() == V8Custom::kHTMLDocumentInternalFieldCount);
+    info.Holder()->SetInternalField(V8Custom::kHTMLDocumentShadowIndex, value);
 }
 
 } // namespace WebCore

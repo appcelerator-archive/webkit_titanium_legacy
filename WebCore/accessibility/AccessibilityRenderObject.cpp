@@ -53,6 +53,7 @@
 #include "HitTestResult.h"
 #include "LocalizedStrings.h"
 #include "NodeList.h"
+#include "ProgressTracker.h"
 #include "RenderButton.h"
 #include "RenderFieldset.h"
 #include "RenderFileUploadControl.h"
@@ -64,6 +65,7 @@
 #include "RenderMenuList.h"
 #include "RenderText.h"
 #include "RenderTextControl.h"
+#include "RenderTextFragment.h"
 #include "RenderTheme.h"
 #include "RenderView.h"
 #include "RenderWidget.h"
@@ -363,11 +365,21 @@ bool AccessibilityRenderObject::isChecked() const
     if (!m_renderer->node() || !m_renderer->node()->isElementNode())
         return false;
 
+    // First test for native checkedness semantics
     InputElement* inputElement = toInputElement(static_cast<Element*>(m_renderer->node()));
-    if (!inputElement)
-        return false;
+    if (inputElement)
+        return inputElement->isChecked();
 
-    return inputElement->isChecked();
+    // Else, if this is an ARIA checkbox or radio, respect the aria-checked attribute
+    AccessibilityRole ariaRole = ariaRoleAttribute();
+    if (ariaRole == RadioButtonRole || ariaRole == CheckBoxRole) {
+        if (equalIgnoringCase(getAttribute(aria_checkedAttr), "true"))
+            return true;
+        return false;
+    }
+
+    // Otherwise it's not checked
+    return false;
 }
 
 bool AccessibilityRenderObject::isHovered() const
@@ -791,6 +803,14 @@ String AccessibilityRenderObject::textUnderElement() const
         }
     }
     
+    // Sometimes text fragments don't have Node's associated with them (like when
+    // CSS content is used to insert text).
+    if (m_renderer->isText()) {
+        RenderText* renderTextObject = toRenderText(m_renderer);
+        if (renderTextObject->isTextFragment())
+            return String(static_cast<RenderTextFragment*>(m_renderer)->contentString());
+    }
+    
     // return the null string for anonymous text because it is non-trivial to get
     // the actual text and, so far, that is not needed
     return String();
@@ -1139,7 +1159,10 @@ IntRect AccessibilityRenderObject::boundingBoxRect() const
         obj = obj->node()->renderer();
     
     Vector<FloatQuad> quads;
-    obj->absoluteQuads(quads);
+    if (obj->isText())
+        obj->absoluteQuads(quads);
+    else
+        obj->absoluteFocusRingQuads(quads);
     const size_t n = quads.size();
     if (!n)
         return IntRect();
@@ -1502,10 +1525,23 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
     if (isControl())
         return false;
     
+    if (ariaRole != UnknownRole)
+        return false;
+    
     // don't ignore labels, because they serve as TitleUIElements
     Node* node = m_renderer->node();
     if (node && node->hasTagName(labelTag))
         return false;
+    
+    // Anything that is content editable should not be ignored.
+    // However, one cannot just call node->isContentEditable() since that will ask if its parents
+    // are also editable. Only the top level content editable region should be exposed.
+    if (node && node->isElementNode()) {
+        Element* element = static_cast<Element*>(node);
+        const AtomicString& contentEditable = element->getAttribute(contenteditableAttr);
+        if (equalIgnoringCase(contentEditable, "true"))
+            return false;
+    }
     
     if (m_renderer->isBlockFlow() && m_renderer->childrenInline())
         return !toRenderBlock(m_renderer)->firstLineBox() && !mouseButtonListener();
@@ -1545,9 +1581,6 @@ bool AccessibilityRenderObject::accessibilityIsIgnored() const
         return false;
     }
     
-    if (ariaRole != UnknownRole)
-        return false;
-    
     // make a platform-specific decision
     if (isAttachment())
         return accessibilityIgnoreAttachment();
@@ -1560,6 +1593,21 @@ bool AccessibilityRenderObject::isLoaded() const
     return !m_renderer->document()->tokenizer();
 }
 
+double AccessibilityRenderObject::estimatedLoadingProgress() const
+{
+    if (!m_renderer)
+        return 0;
+    
+    if (isLoaded())
+        return 1.0;
+    
+    Page* page = m_renderer->document()->page();
+    if (!page)
+        return 0;
+    
+    return page->progress()->estimatedProgress();
+}
+    
 int AccessibilityRenderObject::layoutCount() const
 {
     if (!m_renderer->isRenderView())
@@ -1751,12 +1799,12 @@ void AccessibilityRenderObject::setElementAttributeValue(const QualifiedName& at
     element->setAttribute(attributeName, (value) ? "true" : "false");        
 }
     
-bool AccessibilityRenderObject::elementAttributeValue(const QualifiedName& attributeName)
+bool AccessibilityRenderObject::elementAttributeValue(const QualifiedName& attributeName) const
 {
     if (!m_renderer)
         return false;
     
-    return equalIgnoringCase(getAttribute(attributeName).string(), "true");
+    return equalIgnoringCase(getAttribute(attributeName), "true");
 }
     
 void AccessibilityRenderObject::setIsExpanded(bool isExpanded)
@@ -2762,10 +2810,9 @@ bool AccessibilityRenderObject::canSetValueAttribute() const
     if (equalIgnoringCase(getAttribute(aria_readonlyAttr).string(), "true"))
         return false;
 
-    if (isWebArea() || isTextControl()) 
-        return !isReadOnly();
-
-    return isProgressIndicator() || isSlider();
+    // Any node could be contenteditable, so isReadOnly should be relied upon
+    // for this information for all elements.
+    return isProgressIndicator() || isSlider() || !isReadOnly();
 }
 
 bool AccessibilityRenderObject::canSetTextRangeAttributes() const
@@ -2773,22 +2820,50 @@ bool AccessibilityRenderObject::canSetTextRangeAttributes() const
     return isTextControl();
 }
 
+void AccessibilityRenderObject::contentChanged()
+{
+    // If this element supports ARIA live regions, then notify the AT of changes.
+    for (RenderObject* renderParent = m_renderer->parent(); renderParent; renderParent = renderParent->parent()) {
+        AccessibilityObject* parent = m_renderer->document()->axObjectCache()->get(renderParent);
+        if (!parent)
+            continue;
+        
+        // If we find a parent that has ARIA live region on, send the notification and stop processing.
+        // The spec does not talk about nested live regions.
+        if (parent->supportsARIALiveRegion()) {
+            axObjectCache()->postNotification(renderParent, AXObjectCache::AXLiveRegionChanged, true);
+            break;
+        }
+    }
+}
+    
 void AccessibilityRenderObject::childrenChanged()
 {
     // this method is meant as a quick way of marking dirty
     // a portion of the accessibility tree
-    
-    markChildrenDirty();
     
     if (!m_renderer)
         return;
     
     // Go up the render parent chain, marking children as dirty.
     // We can't rely on the accessibilityParent() because it may not exist and we must not create an AX object here either
-    for (RenderObject* renderParent = m_renderer->parent(); renderParent; renderParent = renderParent->parent()) {
+    // At the same time, process ARIA live region changes.
+    for (RenderObject* renderParent = m_renderer; renderParent; renderParent = renderParent->parent()) {
         AccessibilityObject* parent = m_renderer->document()->axObjectCache()->get(renderParent);
-        if (parent && parent->isAccessibilityRenderObject())
-            static_cast<AccessibilityRenderObject *>(parent)->markChildrenDirty();
+        if (!parent || !parent->isAccessibilityRenderObject())
+            continue;
+        
+        AccessibilityRenderObject* axParent = static_cast<AccessibilityRenderObject*>(parent);
+        // Only do work if the children haven't been marked dirty. This has the effect of blocking
+        // future live region change notifications until the AX tree has been accessed again. This
+        // is a good performance win for all parties.
+        if (!axParent->needsToUpdateChildren()) {
+            axParent->setNeedsToUpdateChildren();
+            
+            // If this element supports ARIA live regions, then notify the AT of changes.
+            if (axParent->supportsARIALiveRegion())
+                axObjectCache()->postNotification(renderParent, AXObjectCache::AXLiveRegionChanged, true);
+        }
     }
 }
     
@@ -2873,7 +2948,55 @@ void AccessibilityRenderObject::addChildren()
         }
     }
 }
+        
+const AtomicString& AccessibilityRenderObject::ariaLiveRegionStatus() const
+{
+    DEFINE_STATIC_LOCAL(const AtomicString, liveRegionStatusAssertive, ("assertive"));
+    DEFINE_STATIC_LOCAL(const AtomicString, liveRegionStatusPolite, ("polite"));
+    DEFINE_STATIC_LOCAL(const AtomicString, liveRegionStatusOff, ("off"));
+    
+    const AtomicString& liveRegionStatus = getAttribute(aria_liveAttr);
+    // These roles have implicit live region status.
+    if (liveRegionStatus.isEmpty()) {
+        switch (roleValue()) {
+        case ApplicationAlertDialogRole:
+        case ApplicationAlertRole:
+            return liveRegionStatusAssertive;
+        case ApplicationLogRole:
+        case ApplicationStatusRole:
+            return liveRegionStatusPolite;
+        case ApplicationTimerRole:
+            return liveRegionStatusOff;
+        default:
+            break;
+        }
+    }
 
+    return liveRegionStatus;
+}
+
+const AtomicString& AccessibilityRenderObject::ariaLiveRegionRelevant() const
+{
+    DEFINE_STATIC_LOCAL(const AtomicString, defaultLiveRegionRelevant, ("additions text"));
+    const AtomicString& relevant = getAttribute(aria_relevantAttr);
+
+    // Default aria-relevant = "additions text".
+    if (relevant.isEmpty())
+        return defaultLiveRegionRelevant;
+    
+    return relevant;
+}
+
+bool AccessibilityRenderObject::ariaLiveRegionAtomic() const
+{
+    return elementAttributeValue(aria_atomicAttr);    
+}
+
+bool AccessibilityRenderObject::ariaLiveRegionBusy() const
+{
+    return elementAttributeValue(aria_busyAttr);    
+}
+    
 void AccessibilityRenderObject::ariaSelectedRows(AccessibilityChildrenVector& result)
 {
     // Get all the rows. 

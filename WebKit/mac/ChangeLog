@@ -1,3 +1,131 @@
+2010-01-07  Daniel Bates  <dbates@rim.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32987
+
+        Added ENABLE_XHTMLMP flag. Disabled by default.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2010-01-07  Alexey Proskuryakov  <ap@apple.com>
+
+        More build fix.
+
+        * WebKitPrefix.h: Define JS_EXPORTCLASS here, as well (as empty).
+
+2010-01-07  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        REGRESSION (r48075): Clicking and dragging in a widget's text field doesn't create a selection; drags widget instead ( Translation, Weather, Ski Report )
+        https://bugs.webkit.org/show_bug.cgi?id=33348
+        <rdar://problem/7310616>
+        
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChangedNotification:]): We only want to
+        handle file: URLs for the user stylesheet now, so special-case the
+        DashboardClient's funky user stylesheet URL by mapping it to the
+        equivalent file URL.
+
+2010-01-07  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33331   
+        (WebHostedNetscapePluginView should pass acceleratedCompositingEnabled bool to NetscapePluginHostManager when instantiating plug-ins)
+        
+        * Plugins/Hosted/NetscapePluginHostManager.h: Modify method signature for instantiatePlugin to include acceleratedCompositingEnabled bool.
+        * Plugins/Hosted/NetscapePluginHostManager.mm:
+        (WebKit::NetscapePluginHostManager::instantiatePlugin):
+        * Plugins/Hosted/WebHostedNetscapePluginView.mm:
+        (-[WebHostedNetscapePluginView createPlugin]): Pass accelerated compositing status to NetscapePluginHostManage
+
+2010-01-06  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        Third step of:
+        <rdar://problem/6398111> Integrate hardware layers with out-of-process plug-ins layer hosting mechanism
+
+        * Plugins/WebNetscapePluginView.mm:
+        (-[WebNetscapePluginView getVariable:value:]): Add case for WKNVSupportsCompositingCoreAnimationPluginsBool.
+
+2010-01-06  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        Second step of:
+        <rdar://problem/6398111> Integrate hardware layers with out-of-process plug-ins layer hosting mechanism
+
+        * Plugins/Hosted/WebHostedNetscapePluginView.h: Expose the CALayer of the plugin by adding -pluginLayer method.
+        * Plugins/Hosted/WebHostedNetscapePluginView.mm:
+        (-[WebHostedNetscapePluginView pluginLayer]): Added.
+        * Plugins/WebNetscapePluginView.h: Expose the CALayer of the plugin by adding -pluginLayer method.
+        * Plugins/WebNetscapePluginView.mm:
+        (-[WebNetscapePluginView pluginLayer]): Added.
+
+2010-01-06  Kevin Decker  <kdecker@apple.com>
+
+        Reviewed by Eric Carlson.
+
+        First step toward:
+        <rdar://problem/6398111> Integrate hardware layers with out-of-process plug-ins layer hosting mechanism
+        
+        Small refactoring moving the PluginWidget class from WebKit to WebCore.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm: Use the WebCore version of PluginWidget.
+
+2010-01-05  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Mark Rowe.
+
+        Re-enable plug-in halting on Mac after r51953
+
+        * WebCoreSupport/WebPluginHalterClient.mm:
+        (WebPluginHalterClient::enabled): Test for the correct selector.
+
+2010-01-04  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Ada Chan and Mark Rowe.
+
+        Updated copyright string
+
+        * Info.plist:
+
+2009-12-27  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        plugins/get-url-with-iframe-target.html fails on SnowLeopard (64-bit)
+        https://bugs.webkit.org/show_bug.cgi?id=32982
+        
+        This test has been failing on SnowLeopard since it was landed.
+        
+        The problem is that we never delivered the notification for
+        NPN_GetURLNotify, in the frame-targeting case, for out-of-process
+        plugins on Mac.
+        
+        I implemented support for this based on how in-process Mac plugins
+        do it.
+
+        * Plugins/Hosted/HostedNetscapePluginStream.h:
+        * Plugins/Hosted/HostedNetscapePluginStream.mm:
+        (WebKit::HostedNetscapePluginStream::reasonForError):
+        * Plugins/Hosted/NetscapePluginInstanceProxy.h:
+        * Plugins/Hosted/NetscapePluginInstanceProxy.mm:
+        (WebKit::NetscapePluginInstanceProxy::PluginRequest::create):
+        (WebKit::NetscapePluginInstanceProxy::PluginRequest::PluginRequest):
+        (WebKit::NetscapePluginInstanceProxy::destroy):
+        (WebKit::NetscapePluginInstanceProxy::performRequest):
+        (WebKit::NetscapePluginInstanceProxy::webFrameDidFinishLoadWithReason):
+        (WebKit::NetscapePluginInstanceProxy::requestTimerFired):
+        (WebKit::NetscapePluginInstanceProxy::loadRequest):
+        * Plugins/Hosted/WebHostedNetscapePluginView.h:
+        * Plugins/Hosted/WebHostedNetscapePluginView.mm:
+        (-[WebHostedNetscapePluginView webFrame:didFinishLoadWithReason:]):
+        (-[WebHostedNetscapePluginView webFrame:didFinishLoadWithError:]):
+
 2009-12-22  Darin Adler  <darin@apple.com>
 
         Reviewed by Mark Rowe.

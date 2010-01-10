@@ -2,7 +2,8 @@
  * Copyright (C) 2007, 2008 Rob Buis <buis@kde.org>
  *           (C) 2007 Nikolas Zimmermann <zimmermann@kde.org>
  *           (C) 2007 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2009 Google, Inc.  All rights reserved.
+ *           (C) 2009 Google, Inc.  All rights reserved.
+ *           (C) 2009 Dirk Schulze <krit@webkit.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -39,7 +40,13 @@
 #include "TransformationMatrix.h"
 #include <wtf/UnusedParam.h>
 
+using namespace std;
+
 namespace WebCore {
+
+SVGRenderBase::~SVGRenderBase()
+{
+}
 
 IntRect SVGRenderBase::clippedOverflowRectForRepaint(RenderObject* object, RenderBoxModelObject* repaintContainer)
 {
@@ -52,6 +59,48 @@ IntRect SVGRenderBase::clippedOverflowRectForRepaint(RenderObject* object, Rende
     IntRect repaintRect = enclosingIntRect(object->repaintRectInLocalCoordinates());
     object->computeRectForRepaint(repaintContainer, repaintRect);
     return repaintRect;
+}
+
+static void getSVGShadowExtent(ShadowData* shadow, int& top, int& right, int& bottom, int& left)
+{
+    top = 0;
+    right = 0;
+    bottom = 0;
+    left = 0;
+
+    int blurAndSpread = shadow->blur + shadow->spread;
+
+    top = min(top, shadow->y - blurAndSpread);
+    right = max(right, shadow->x + blurAndSpread);
+    bottom = max(bottom, shadow->y + blurAndSpread);
+    left = min(left, shadow->x - blurAndSpread);
+}
+
+void SVGRenderBase::inflateForShadow(RenderStyle* style, IntRect& repaintRect) const
+{
+    ASSERT(style);
+    if (!style)
+        return;
+
+    ShadowData* shadow = style->svgStyle()->shadow();
+    if (!shadow)
+        return;
+
+    int shadowTop;
+    int shadowRight;
+    int shadowBottom;
+    int shadowLeft;
+    getSVGShadowExtent(shadow, shadowTop, shadowRight, shadowBottom, shadowLeft);
+
+    int overflowLeft = repaintRect.x() + shadowLeft;
+    int overflowRight = repaintRect.right() + shadowRight;
+    int overflowTop = repaintRect.y() + shadowTop;
+    int overflowBottom = repaintRect.bottom() + shadowBottom;
+
+    repaintRect.setX(overflowLeft);
+    repaintRect.setY(overflowTop);
+    repaintRect.setWidth(overflowRight - overflowLeft);
+    repaintRect.setHeight(overflowBottom - overflowTop);
 }
 
 void SVGRenderBase::computeRectForRepaint(RenderObject* object, RenderBoxModelObject* repaintContainer, IntRect& repaintRect, bool fixed)
@@ -69,7 +118,7 @@ void SVGRenderBase::mapLocalToContainer(const RenderObject* object, RenderBoxMod
     object->parent()->mapLocalToContainer(repaintContainer, fixed, useTransforms, transformState);
 }
 
-void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject::PaintInfo& paintInfo, const FloatRect& boundingBox, SVGResourceFilter*& filter, SVGResourceFilter* rootFilter)
+bool SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject::PaintInfo& paintInfo, const FloatRect& repaintRect, SVGResourceFilter*& filter, SVGResourceFilter* rootFilter)
 {
 #if !ENABLE(FILTERS)
     UNUSED_PARAM(filter);
@@ -90,7 +139,7 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
     // Setup transparency layers before setting up filters!
     float opacity = style->opacity(); 
     if (opacity < 1.0f) {
-        paintInfo.context->clip(enclosingIntRect(boundingBox));
+        paintInfo.context->clip(enclosingIntRect(repaintRect));
         paintInfo.context->beginTransparencyLayer(opacity);
     }
 
@@ -99,8 +148,8 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
         int yShift = shadow->y < 0 ? shadow->y :0;
         int widthShift = shadow->x < 0 ? 0 : shadow->x;
         int heightShift = shadow->y < 0 ? 0 : shadow->y;
-        FloatRect shadowRect = FloatRect(boundingBox.x() + xShift, boundingBox.y() + yShift,
-            boundingBox.width() + widthShift, boundingBox.height() + heightShift);
+        FloatRect shadowRect = FloatRect(repaintRect.x() + xShift, repaintRect.y() + yShift,
+            repaintRect.width() + widthShift, repaintRect.height() + heightShift);
         paintInfo.context->clip(enclosingIntRect(shadowRect));
         paintInfo.context->setShadow(IntSize(shadow->x, shadow->y), shadow->blur, shadow->color, style->colorSpace());
         paintInfo.context->beginTransparencyLayer(1.0f);
@@ -116,7 +165,7 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
     Document* document = object->document();
 
 #if ENABLE(FILTERS)
-    SVGResourceFilter* newFilter = getFilterById(document, filterId);
+    SVGResourceFilter* newFilter = getFilterById(document, filterId, object);
     if (newFilter == rootFilter) {
         // Catch <text filter="url(#foo)">Test<tspan filter="url(#foo)">123</tspan></text>.
         // The filter is NOT meant to be applied twice in that case!
@@ -126,28 +175,32 @@ void SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
         filter = newFilter;
 #endif
 
-    SVGResourceClipper* clipper = getClipperById(document, clipperId);
-    SVGResourceMasker* masker = getMaskerById(document, maskerId);
+    SVGResourceClipper* clipper = getClipperById(document, clipperId, object);
+    SVGResourceMasker* masker = getMaskerById(document, maskerId, object);
 
     if (masker) {
         masker->addClient(styledElement);
-        masker->applyMask(paintInfo.context, boundingBox);
+        if (!masker->applyMask(paintInfo.context, object))
+            return false;
     } else if (!maskerId.isEmpty())
         svgElement->document()->accessSVGExtensions()->addPendingResource(maskerId, styledElement);
 
     if (clipper) {
         clipper->addClient(styledElement);
-        clipper->applyClip(paintInfo.context, boundingBox);
+        clipper->applyClip(paintInfo.context, object->objectBoundingBox());
     } else if (!clipperId.isEmpty())
         svgElement->document()->accessSVGExtensions()->addPendingResource(clipperId, styledElement);
 
 #if ENABLE(FILTERS)
     if (filter) {
         filter->addClient(styledElement);
-        filter->prepareFilter(paintInfo.context, object);
+        if (!filter->prepareFilter(paintInfo.context, object))
+            return false;
     } else if (!filterId.isEmpty())
         svgElement->document()->accessSVGExtensions()->addPendingResource(filterId, styledElement);
 #endif
+
+    return true;
 }
 
 void SVGRenderBase::finishRenderSVGContent(RenderObject* object, RenderObject::PaintInfo& paintInfo, SVGResourceFilter*& filter, GraphicsContext* savedContext)
@@ -232,15 +285,33 @@ FloatRect SVGRenderBase::computeContainerBoundingBox(const RenderObject* contain
     return boundingBox;
 }
 
-FloatRect SVGRenderBase::filterBoundingBoxForRenderer(const RenderObject* object)
+FloatRect SVGRenderBase::filterBoundingBoxForRenderer(const RenderObject* object) const
 {
 #if ENABLE(FILTERS)
-    SVGResourceFilter* filter = getFilterById(object->document(), object->style()->svgStyle()->filter());
+    SVGResourceFilter* filter = getFilterById(object->document(), object->style()->svgStyle()->filter(), object);
     if (filter)
-        return filter->filterBoundingBox();
+        return filter->filterBoundingBox(object->objectBoundingBox());
 #else
     UNUSED_PARAM(object);
 #endif
+    return FloatRect();
+}
+
+FloatRect SVGRenderBase::clipperBoundingBoxForRenderer(const RenderObject* object) const
+{
+    SVGResourceClipper* clipper = getClipperById(object->document(), object->style()->svgStyle()->clipPath(), object);
+    if (clipper)
+        return clipper->clipperBoundingBox(object->objectBoundingBox());
+
+    return FloatRect();
+}
+
+FloatRect SVGRenderBase::maskerBoundingBoxForRenderer(const RenderObject* object) const
+{
+    SVGResourceMasker* masker = getMaskerById(object->document(), object->style()->svgStyle()->maskElement(), object);
+    if (masker)
+        return masker->maskerBoundingBox(object->objectBoundingBox());
+
     return FloatRect();
 }
 

@@ -708,7 +708,7 @@ for my $test (@tests) {
 
     my $actualPNG = "";
     my $diffPNG = "";
-    my $diffPercentage = "";
+    my $diffPercentage = 0;
     my $diffResult = "passed";
 
     my $actualHash = "";
@@ -762,12 +762,12 @@ for my $test (@tests) {
                 }
 
                 if (/^diff: (.+)% (passed|failed)/) {
-                    $diffPercentage = $1;
+                    $diffPercentage = $1 + 0;
                     $imageDifferences{$base} = $diffPercentage;
                     $diffResult = $2;
                 }
                 
-                if ($diffPercentage == 0) {
+                if (!$diffPercentage) {
                     printFailureMessageForTest($test, "pixel hash failed (but pixel test still passes)");
                 }
             } elsif ($verbose) {
@@ -2220,6 +2220,24 @@ sub findTestsToRun
     @testsToRun = keys %{{ map { $_ => 1 } @testsToRun }};
 
     @testsToRun = sort pathcmp @testsToRun;
+
+    # We need to minimize the time when Apache and WebSocketServer is locked by tests
+    # so run them last if no explicit order was specified in the argument list.
+    if (!scalar @ARGV) {
+        my @httpTests;
+        my @websocketTests;
+        my @otherTests;
+        foreach my $test (@testsToRun) {
+            if ($test =~ /^http\//) {
+                push(@httpTests, $test);
+            } elsif ($test =~ /^websocket\//) {
+                push(@websocketTests, $test);
+            } else {
+                push(@otherTests, $test);
+            }
+        }
+        @testsToRun = (@otherTests, @httpTests, @websocketTests);
+    }
 
     # Reverse the tests
     @testsToRun = reverse @testsToRun if $reverseTests;

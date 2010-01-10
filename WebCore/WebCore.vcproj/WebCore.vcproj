@@ -27150,6 +27150,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\rendering\RenderEmbeddedObject.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\rendering\RenderEmbeddedObject.h"
+				>
+			</File>
+			<File
 				RelativePath="..\rendering\RenderFieldset.cpp"
 				>
 			</File>
@@ -27837,6 +27845,18 @@
 			</File>
 			<File
 				RelativePath="..\rendering\SVGInlineTextBox.h"
+				>
+			</File>
+			<File
+				RelativePath="..\rendering\SVGMarkerData.h"
+				>
+			</File>
+			<File
+				RelativePath="..\rendering\SVGMarkerLayoutInfo.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\rendering\SVGMarkerLayoutInfo.h"
 				>
 			</File>
 			<File
@@ -42749,6 +42769,22 @@
 					>
 				</File>
 				<File
+					RelativePath="..\inspector\front-end\AuditLauncherView.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\AuditResultView.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\audits.css"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\AuditsPanel.js"
+					>
+				</File>
+				<File
 					RelativePath="..\inspector\front-end\BottomUpProfileDataGridTree.js"
 					>
 				</File>
@@ -42865,15 +42901,15 @@
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\InspectorControllerStub.js"
-					>
-				</File>
-				<File
 					RelativePath="..\inspector\front-end\inspectorSyntaxHighlight.css"
 					>
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\JavaScriptSourceSyntaxHighlighter.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\JavaScriptTokenizer.js"
 					>
 				</File>
 				<File
@@ -42965,6 +43001,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\inspector\front-end\Settings.js"
+					>
+				</File>
+				<File
 					RelativePath="..\inspector\front-end\SidebarPane.js"
 					>
 				</File>
@@ -43002,6 +43042,18 @@
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\TestController.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\TextEditor.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\TextEditorHighlighter.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\TextEditorModel.js"
 					>
 				</File>
 				<File
@@ -43390,6 +43442,18 @@
 			Name="websockets"
 			>
 			<File
+				RelativePath="..\websockets\ThreadableWebSocketChannel.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\websockets\ThreadableWebSocketChannel.h"
+				>
+			</File>
+			<File
+				RelativePath="..\websockets\ThreadableWebSocketChannelClientWrapper.h"
+				>
+			</File>
+			<File
 				RelativePath="..\websockets\WebSocket.cpp"
 				>
 			</File>
@@ -43415,6 +43479,14 @@
 			</File>
 			<File
 				RelativePath="..\websockets\WebSocketHandshake.h"
+				>
+			</File>
+			<File
+				RelativePath="..\websockets\WorkerThreadableWebSocketChannel.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\websockets\WorkerThreadableWebSocketChannel.h"
 				>
 			</File>
 		</Filter>

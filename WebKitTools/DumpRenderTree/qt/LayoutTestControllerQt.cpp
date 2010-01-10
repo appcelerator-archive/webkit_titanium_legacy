@@ -33,6 +33,7 @@
 #include "WorkQueue.h"
 #include "WorkQueueItemQt.h"
 #include <QDir>
+#include <QLocale>
 
 extern void qt_dump_editing_callbacks(bool b);
 extern void qt_dump_resource_load_callbacks(bool b);
@@ -159,7 +160,7 @@ void LayoutTestController::clearBackForwardList()
 QString LayoutTestController::pathToLocalResource(const QString& url)
 {
     // Function introduced in r28690.
-    return QLatin1String("file://") + QUrl(url).toLocalFile();
+    return QDir::toNativeSeparators(url);
 }
 
 void LayoutTestController::dumpEditingCallbacks()
@@ -285,6 +286,16 @@ void LayoutTestController::setPOSIXLocale(const QString& locale)
     QLocale qlocale(locale);
     QLocale::setDefault(qlocale);
 } 
+
+void LayoutTestController::setWindowIsKey(bool isKey)
+{
+    m_drt->switchFocus(isKey);
+}
+
+void LayoutTestController::setMainFrameIsFirstResponder(bool isFirst)
+{
+    //FIXME: only need this for the moment: https://bugs.webkit.org/show_bug.cgi?id=32990
+}
 
 bool LayoutTestController::pauseAnimationAtTimeOnElementWithId(const QString& animationName,
                                                                double time,

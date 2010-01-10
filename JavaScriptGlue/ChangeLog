@@ -1,3 +1,60 @@
+2010-01-07  Alexey Proskuryakov  <ap@apple.com>
+
+        Mac build fix.
+
+        * config.h: Define JS_EXPORTCLASS for JavaScriptGlue.
+
+2010-01-05  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33236
+        Remove m_identifierTable pointer from UString
+
+        Add API shims similar to those used in the JSC API to track the current identifierTable.
+
+        * JSBase.cpp:
+        (JSBase::Release):
+        * JSUtils.cpp:
+        (JSObjectKJSValue):
+        (KJSValueToCFTypeInternal):
+        (unprotectGlobalObject):
+        (JSGlueAPIEntry::JSGlueAPIEntry):
+        (JSGlueAPIEntry::~JSGlueAPIEntry):
+        (JSGlueAPICallback::JSGlueAPICallback):
+        (JSGlueAPICallback::~JSGlueAPICallback):
+        * JSUtils.h:
+        * JSValueWrapper.cpp:
+        (JSValueWrapper::JSObjectCopyPropertyNames):
+        (JSValueWrapper::JSObjectCopyProperty):
+        (JSValueWrapper::JSObjectSetProperty):
+        (JSValueWrapper::JSObjectCallFunction):
+        (JSValueWrapper::JSObjectCopyCFValue):
+        * JavaScriptGlue.cpp:
+        (JSRunCreate):
+        (JSRunEvaluate):
+        (JSRunCheckSyntax):
+        (JSCollect):
+        * JavaScriptGlue.xcodeproj/project.pbxproj:
+        * UserObjectImp.cpp:
+        (UserObjectImp::callAsFunction):
+
+2010-01-04  Gavin Barraclough <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Add a forwarding header so that StringHashFunctions.h can be found.
+
+        * ForwardingHeaders/wtf/StringHashFunctions.h: Added.
+
+2010-01-04  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Ada Chan and Mark Rowe.
+
+        Updated copyright string
+
+        * Info.plist:
+
 2009-12-21  Gavin Barraclough  <barraclough@apple.com>
 
         Reviewed by Darin Adler.

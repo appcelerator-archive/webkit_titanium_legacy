@@ -42,24 +42,25 @@
 #include "V8Proxy.h"
 #include "V8Utilities.h"
 #include "V8WorkerContextEventListener.h"
+#include "WebSocket.h"
 #include "WorkerContext.h"
 #include "WorkerContextExecutionProxy.h"
 
 namespace WebCore {
 
 #if ENABLE(NOTIFICATIONS)
-ACCESSOR_RUNTIME_ENABLER(WorkerContextWebkitNotifications)
+bool V8WorkerContext::WebkitNotificationsEnabled()
 {
     return RuntimeEnabledFeatures::notificationsEnabled();
 }
 #endif
 
-ACCESSOR_GETTER(WorkerContextSelf)
+#if ENABLE(WEB_SOCKETS)
+bool V8WorkerContext::WebSocketEnabled()
 {
-    INC_STATS(L"DOM.WorkerContext.self._get");
-    WorkerContext* workerContext = V8DOMWrapper::convertDOMWrapperToNative<WorkerContext>(info.Holder());
-    return WorkerContextExecutionProxy::convertWorkerContextToV8Object(workerContext);
+    return WebSocket::isAvailable();
 }
+#endif
 
 v8::Handle<v8::Value> SetTimeoutOrInterval(const v8::Arguments& args, bool singleShot)
 {

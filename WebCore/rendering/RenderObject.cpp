@@ -65,6 +65,10 @@
 #include "WMLNames.h"
 #endif
 
+#if ENABLE(SVG)
+#include "SVGRenderSupport.h"
+#endif
+
 using namespace std;
 
 namespace WebCore {
@@ -1009,13 +1013,12 @@ void RenderObject::paintOutline(GraphicsContext* graphicsContext, int tx, int ty
     if (style->outlineStyleIsAuto() || hasOutlineAnnotation()) {
         if (!theme()->supportsFocusRing(style)) {
             // Only paint the focus ring by hand if the theme isn't able to draw the focus ring.
-            graphicsContext->initFocusRing(ow, offset);
-            addFocusRingRects(graphicsContext, tx, ty);
+            Vector<IntRect> focusRingRects;
+            addFocusRingRects(focusRingRects, tx, ty);
             if (style->outlineStyleIsAuto())
-                graphicsContext->drawFocusRing(oc);
+                graphicsContext->drawFocusRing(focusRingRects, ow, offset, oc);
             else
-                addPDFURLRect(graphicsContext, graphicsContext->focusRingBoundingRect());
-            graphicsContext->clearFocusRing();
+                addPDFURLRect(graphicsContext, unionRect(focusRingRects));
         }
     }
 
@@ -1071,6 +1074,23 @@ IntRect RenderObject::absoluteBoundingBoxRect(bool useTransforms)
     for (size_t i = 1; i < n; ++i)
         result.unite(rects[i]);
     return result;
+}
+
+void RenderObject::absoluteFocusRingQuads(Vector<FloatQuad>& quads)
+{
+    Vector<IntRect> rects;
+    // FIXME: addFocusRingRects() needs to be passed this transform-unaware
+    // localToAbsolute() offset here because RenderInline::addFocusRingRects()
+    // implicitly assumes that. This doesn't work correctly with transformed
+    // descendants.
+    FloatPoint absolutePoint = localToAbsolute();
+    addFocusRingRects(rects, absolutePoint.x(), absolutePoint.y());
+    size_t count = rects.size();
+    for (size_t i = 0; i < count; ++i) {
+        IntRect rect = rects[i];
+        rect.move(-absolutePoint.x(), -absolutePoint.y());
+        quads.append(localToAbsoluteQuad(FloatQuad(rect)));
+    }
 }
 
 void RenderObject::addAbsoluteRectForLayer(IntRect& result)
@@ -2472,6 +2492,11 @@ VisiblePosition RenderObject::createVisiblePosition(const Position& position)
 }
 
 #if ENABLE(SVG)
+const SVGRenderBase* RenderObject::toSVGRenderBase() const
+{
+    ASSERT_NOT_REACHED();
+    return 0;
+}
 
 FloatRect RenderObject::objectBoundingBox() const
 {

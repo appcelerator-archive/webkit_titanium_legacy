@@ -102,6 +102,12 @@ AccessibilityUIElement AccessibilityUIElement::getChildAtIndex(unsigned index)
     return 0;
 }
 
+unsigned AccessibilityUIElement::indexOfChild(AccessibilityUIElement* element)
+{ 
+    // FIXME: implement
+    return 0;
+}
+
 JSStringRef AccessibilityUIElement::allAttributes()
 {
     // FIXME: implement
@@ -249,7 +255,7 @@ JSStringRef AccessibilityUIElement::orientation() const
     return 0;
 }
 
-double AccessibilityUIElement::intValue()
+double AccessibilityUIElement::intValue() const
 {
     GValue value = { 0, { { 0 } } };
 
@@ -359,6 +365,11 @@ bool AccessibilityUIElement::isExpanded() const
     return false;
 }
 
+bool AccessibilityUIElement::isChecked() const
+{
+    return intValue();
+}
+
 JSStringRef AccessibilityUIElement::attributesOfColumnHeaders()
 {
     // FIXME: implement
@@ -448,10 +459,16 @@ void AccessibilityUIElement::setSelectedTextRange(unsigned location, unsigned le
     // FIXME: implement
 }
 
-JSStringRef AccessibilityUIElement::attributeValue(JSStringRef attribute)
+JSStringRef AccessibilityUIElement::stringAttributeValue(JSStringRef attribute)
 {
     // FIXME: implement
     return JSStringCreateWithCharacters(0, 0);
+}
+
+bool AccessibilityUIElement::boolAttributeValue(JSStringRef attribute)
+{
+    // FIXME: implement
+    return false;
 }
 
 bool AccessibilityUIElement::isAttributeSettable(JSStringRef attribute)
@@ -534,3 +551,10 @@ JSStringRef AccessibilityUIElement::url()
     // FIXME: implement
     return JSStringCreateWithCharacters(0, 0);
 }
+
+bool AccessibilityUIElement::addNotificationListener(JSObjectRef functionCallback)
+{
+    // FIXME: implement
+    return false;
+}
+

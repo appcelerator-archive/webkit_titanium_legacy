@@ -33,32 +33,22 @@
         'features.gypi',
     ],
     'variables': {
+        'webkit_target_type': 'static_library',
         'conditions': [
             # Location of the chromium src directory and target type is different
             # if webkit is built inside chromium or as standalone project.
             ['inside_chromium_build==0', {
                 # Webkit is being built outside of the full chromium project.
                 # e.g. via build-webkit --chromium
-                'chromium_src_dir': '.',
-                # FIXME: To enable shared_library in linux all code (including
-                # dependencies) must be complied with -fPIC flag. That is
-                # pending on changes in gyp.
-                'webkit_target_type': 'shared_library',
+                'chromium_src_dir': '../../WebKit/chromium',
             },{
                 # WebKit is checked out in src/chromium/third_party/WebKit
                 'chromium_src_dir': '../../../..',
-                'webkit_target_type': 'static_library',
             }],
             # We can't turn on warnings on Windows and Linux until we upstream the
             # WebKit API.
             ['OS=="mac"', {
                 'chromium_code': 1,
-            }],
-            # FIXME: To enable shared_library in linux all code (including
-            # dependencies) must be complied with -fPIC flag. That is
-            # pending on changes in gyp.
-            ['OS=="linux" or OS=="freebsd"', {
-              'webkit_target_type': 'static_library',
             }],
         ],
     },
@@ -86,6 +76,7 @@
                 'public/WebAccessibilityCache.h',
                 'public/WebAccessibilityObject.h',
                 'public/WebAccessibilityRole.h',
+                'public/WebAnimationController.h',
                 'public/WebApplicationCacheHost.h',
                 'public/WebApplicationCacheHostClient.h',
                 'public/WebBindings.h',
@@ -122,6 +113,7 @@
                 'public/WebFrameClient.h',
                 'public/WebFontCache.h',
                 'public/WebFormElement.h',
+                'public/WebGlyphCache.h',
                 'public/WebHistoryItem.h',
                 'public/WebHTTPBody.h',
                 'public/WebImage.h',
@@ -248,6 +240,8 @@
                 'src/WebAccessibilityCacheImpl.cpp',
                 'src/WebAccessibilityCacheImpl.h',
                 'src/WebAccessibilityObject.cpp',
+                'src/WebAnimationControllerImpl.cpp',
+                'src/WebAnimationControllerImpl.h',
                 'src/WebBindings.cpp',
                 'src/WebCache.cpp',
                 'src/WebColor.cpp',
@@ -269,6 +263,7 @@
                 'src/WebFormElement.cpp',
                 'src/WebFrameImpl.cpp',
                 'src/WebFrameImpl.h',
+                'src/WebGlyphCache.cpp',
                 'src/WebHistoryItem.cpp',
                 'src/WebHTTPBody.cpp',
                 'src/WebImageCG.cpp',
@@ -404,6 +399,26 @@
                         }],
                     ],
                 }],
+            ],
+        },
+        {
+            'target_name': 'webkit_unit_tests',
+            'type': 'executable',
+            'msvs_guid': '7CEFE800-8403-418A-AD6A-2D52C6FC3EAD',
+            'dependencies': [
+                'webkit',
+                '../../WebCore/WebCore.gyp/WebCore.gyp:webcore',
+                '<(chromium_src_dir)/testing/gtest.gyp:gtest',
+                '<(chromium_src_dir)/base/base.gyp:base',
+                '<(chromium_src_dir)/base/base.gyp:base_i18n',
+            ],
+            'include_dirs': [
+                'public',
+            ],
+            'sources': [
+                'tests/KURLTest.cpp',
+                'tests/WebKitTest.h',
+                '<(chromium_src_dir)/base/test/run_all_unittests.cc',
             ],
         },
     ], # targets

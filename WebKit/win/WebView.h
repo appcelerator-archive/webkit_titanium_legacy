@@ -39,8 +39,9 @@
 #include <wtf/HashSet.h>
 #include <wtf/OwnPtr.h>
 
-class WebFrame;
+class FullscreenVideoController;
 class WebBackForwardList;
+class WebFrame;
 class WebInspector;
 class WebInspectorClient;
 
@@ -819,7 +820,7 @@ public:
     bool onIMEEndComposition();
     bool onIMEChar(WPARAM, LPARAM);
     bool onIMENotify(WPARAM, LPARAM, LRESULT*);
-    bool onIMERequest(WPARAM, LPARAM, LRESULT*);
+    LRESULT onIMERequest(WPARAM, LPARAM);
     bool onIMESelect(WPARAM, LPARAM);
     bool onIMESetContext(WPARAM, LPARAM);
     void selectionChanged();
@@ -876,6 +877,9 @@ public:
     void setRootChildLayer(WebCore::PlatformLayer* layer);
 #endif
 
+    void enterFullscreenForNode(WebCore::Node*);
+    void exitFullscreen();
+
 private:
     void setZoomMultiplier(float multiplier, bool isTextOnly);
     float zoomMultiplier(bool isTextOnly);
@@ -912,8 +916,8 @@ protected:
     void closeWindowTimerFired(WebCore::Timer<WebView>*);
     void prepareCandidateWindow(WebCore::Frame*, HIMC);
     void updateSelectionForIME();
-    bool onIMERequestCharPosition(WebCore::Frame*, IMECHARPOSITION*, LRESULT*);
-    bool onIMERequestReconvertString(WebCore::Frame*, RECONVERTSTRING*, LRESULT*);
+    LRESULT onIMERequestCharPosition(WebCore::Frame*, IMECHARPOSITION*);
+    LRESULT onIMERequestReconvertString(WebCore::Frame*, RECONVERTSTRING*);
     bool developerExtrasEnabled() const;
 
     // AllWebViewSet functions
@@ -923,6 +927,9 @@ protected:
     virtual void windowReceivedMessage(HWND, UINT message, WPARAM, LPARAM);
 
     ULONG m_refCount;
+#if !ASSERT_DISABLED
+    bool m_deletionHasBegun;
+#endif
     HWND m_hostWindow;
     HWND m_viewWindow;
     WebFrame* m_mainFrame;
@@ -989,6 +996,10 @@ protected:
     long m_lastPanY;
     long m_xOverpan;
     long m_yOverpan;
+
+#if ENABLE(VIDEO)
+    OwnPtr<FullscreenVideoController> m_fullscreenController;
+#endif
 
 #if USE(ACCELERATED_COMPOSITING)
     bool isAcceleratedCompositing() const { return m_isAcceleratedCompositing; }

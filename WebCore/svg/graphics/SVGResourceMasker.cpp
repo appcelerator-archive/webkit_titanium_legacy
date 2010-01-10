@@ -34,6 +34,7 @@
 #include "ImageBuffer.h"
 #include "ImageData.h"
 #include "GraphicsContext.h"
+#include "RenderObject.h"
 #include "SVGMaskElement.h"
 #include "SVGRenderSupport.h"
 #include "SVGRenderStyle.h"
@@ -46,6 +47,7 @@ namespace WebCore {
 SVGResourceMasker::SVGResourceMasker(const SVGMaskElement* ownerElement)
     : SVGResource()
     , m_ownerElement(ownerElement)
+    , m_emptyMask(false)
 {
 }
 
@@ -57,17 +59,24 @@ void SVGResourceMasker::invalidate()
 {
     SVGResource::invalidate();
     m_mask.clear();
+    m_emptyMask = false;
 }
 
-void SVGResourceMasker::applyMask(GraphicsContext* context, const FloatRect& boundingBox)
+FloatRect SVGResourceMasker::maskerBoundingBox(const FloatRect& objectBoundingBox) const
 {
-    if (!m_mask)
-        m_mask = m_ownerElement->drawMaskerContent(boundingBox, m_maskRect);
+    return m_ownerElement->maskBoundingBox(objectBoundingBox);
+}
+
+bool SVGResourceMasker::applyMask(GraphicsContext* context, const RenderObject* object)
+{
+    if (!m_mask && !m_emptyMask)
+        m_mask = m_ownerElement->drawMaskerContent(object, m_maskRect, m_emptyMask);
 
     if (!m_mask)
-        return;
+        return false;
 
     context->clipToImageBuffer(m_maskRect, m_mask.get());
+    return true;
 }
 
 TextStream& SVGResourceMasker::externalRepresentation(TextStream& ts) const
@@ -76,9 +85,9 @@ TextStream& SVGResourceMasker::externalRepresentation(TextStream& ts) const
     return ts;
 }
 
-SVGResourceMasker* getMaskerById(Document* document, const AtomicString& id)
+SVGResourceMasker* getMaskerById(Document* document, const AtomicString& id, const RenderObject* object)
 {
-    SVGResource* resource = getResourceById(document, id);
+    SVGResource* resource = getResourceById(document, id, object);
     if (resource && resource->isMasker())
         return static_cast<SVGResourceMasker*>(resource);
 

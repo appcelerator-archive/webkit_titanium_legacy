@@ -556,6 +556,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	rendering/RenderBoxModelObject.cpp \
 	rendering/RenderButton.cpp \
 	rendering/RenderCounter.cpp \
+	rendering/RenderEmbeddedObject.cpp \
 	rendering/RenderFieldset.cpp \
 	rendering/RenderFileUploadControl.cpp \
 	rendering/RenderFlexibleBox.cpp \
@@ -630,6 +631,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	rendering/SVGCharacterLayoutInfo.cpp \
 	rendering/SVGInlineFlowBox.cpp \
 	rendering/SVGInlineTextBox.cpp \
+	rendering/SVGMarkerLayoutInfo.cpp \
 	rendering/SVGRenderSupport.cpp \
 	rendering/SVGRenderTreeAsText.cpp \
 	rendering/SVGRootInlineBox.cpp

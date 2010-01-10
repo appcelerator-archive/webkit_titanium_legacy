@@ -187,6 +187,7 @@
 		5D53726F0E1C54880021E549 /* Tracing.h in Headers */ = {isa = PBXBuildFile; fileRef = 5D53726E0E1C54880021E549 /* Tracing.h */; };
 		5D5D8AB60E0D0A7200F9C692 /* jsc in Copy Into Framework */ = {isa = PBXBuildFile; fileRef = 932F5BE10822A1C700736975 /* jsc */; };
 		5D5D8AD10E0D0EBE00F9C692 /* libedit.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5D5D8AD00E0D0EBE00F9C692 /* libedit.dylib */; };
+		5D63E9AD10F2BD6E00FC8AE9 /* StringHashFunctions.h in Headers */ = {isa = PBXBuildFile; fileRef = 5D63E9AC10F2BD6E00FC8AE9 /* StringHashFunctions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5D6A566B0F05995500266145 /* Threading.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5D6A566A0F05995500266145 /* Threading.cpp */; };
 		5DE6E5B30E1728EC00180407 /* create_hash_table in Headers */ = {isa = PBXBuildFile; fileRef = F692A8540255597D01FF60F7 /* create_hash_table */; settings = {ATTRIBUTES = (); }; };
 		6507D29E0E871E5E00D7D896 /* JSTypeInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 6507D2970E871E4A00D7D896 /* JSTypeInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -204,6 +205,7 @@
 		860161E50F3A83C100F84710 /* MacroAssemblerX86_64.h in Headers */ = {isa = PBXBuildFile; fileRef = 860161E10F3A83C100F84710 /* MacroAssemblerX86_64.h */; };
 		860161E60F3A83C100F84710 /* MacroAssemblerX86Common.h in Headers */ = {isa = PBXBuildFile; fileRef = 860161E20F3A83C100F84710 /* MacroAssemblerX86Common.h */; };
 		863B23E00FC6118900703AA4 /* MacroAssemblerCodeRef.h in Headers */ = {isa = PBXBuildFile; fileRef = 863B23DF0FC60E6200703AA4 /* MacroAssemblerCodeRef.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		865F408810E7D56300947361 /* APIShims.h in Headers */ = {isa = PBXBuildFile; fileRef = 865F408710E7D56300947361 /* APIShims.h */; };
 		869083150E6518D7000D36ED /* WREC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 869083130E6518D7000D36ED /* WREC.cpp */; };
 		869083160E6518D7000D36ED /* WREC.h in Headers */ = {isa = PBXBuildFile; fileRef = 869083140E6518D7000D36ED /* WREC.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		8698B86910D44D9400D8D01B /* StringBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = 8698B86810D44D9400D8D01B /* StringBuilder.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -674,6 +676,7 @@
 		5D53726E0E1C54880021E549 /* Tracing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tracing.h; sourceTree = "<group>"; };
 		5D53727D0E1C55EC0021E549 /* TracingDtrace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TracingDtrace.h; sourceTree = "<group>"; };
 		5D5D8AD00E0D0EBE00F9C692 /* libedit.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libedit.dylib; path = /usr/lib/libedit.dylib; sourceTree = "<absolute>"; };
+		5D63E9AC10F2BD6E00FC8AE9 /* StringHashFunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringHashFunctions.h; sourceTree = "<group>"; };
 		5D6A566A0F05995500266145 /* Threading.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Threading.cpp; sourceTree = "<group>"; };
 		5DA479650CFBCF56009328A0 /* TCPackedCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TCPackedCache.h; sourceTree = "<group>"; };
 		5DBD18AF0C5401A700C15EAE /* MallocZoneSupport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MallocZoneSupport.h; sourceTree = "<group>"; };
@@ -733,6 +736,7 @@
 		860161E10F3A83C100F84710 /* MacroAssemblerX86_64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacroAssemblerX86_64.h; sourceTree = "<group>"; };
 		860161E20F3A83C100F84710 /* MacroAssemblerX86Common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacroAssemblerX86Common.h; sourceTree = "<group>"; };
 		863B23DF0FC60E6200703AA4 /* MacroAssemblerCodeRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacroAssemblerCodeRef.h; sourceTree = "<group>"; };
+		865F408710E7D56300947361 /* APIShims.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = APIShims.h; sourceTree = "<group>"; };
 		869083130E6518D7000D36ED /* WREC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WREC.cpp; sourceTree = "<group>"; };
 		869083140E6518D7000D36ED /* WREC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WREC.h; sourceTree = "<group>"; };
 		8698B86810D44D9400D8D01B /* StringBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringBuilder.h; sourceTree = "<group>"; };
@@ -1188,6 +1192,7 @@
 			isa = PBXGroup;
 			children = (
 				1482B78A0A4305AB00517CFC /* APICast.h */,
+				865F408710E7D56300947361 /* APIShims.h */,
 				1CAA8B4A0D32C39A0041BCFF /* JavaScript.h */,
 				1CAA8B4B0D32C39A0041BCFF /* JavaScriptCore.h */,
 				BC0894D50FAFBA2D00001865 /* JSAPIValueWrapper.cpp */,
@@ -1360,6 +1365,7 @@
 				969A07290ED1CE6900F1F681 /* SegmentedVector.h */,
 				FE1B44790ECCD73B004F4DD1 /* StdLibExtras.h */,
 				E11D51750B2E798D0056C188 /* StringExtras.h */,
+				5D63E9AC10F2BD6E00FC8AE9 /* StringHashFunctions.h */,
 				5DA479650CFBCF56009328A0 /* TCPackedCache.h */,
 				6541BD6E08E80A17002CBEE7 /* TCPageMap.h */,
 				6541BD6F08E80A17002CBEE7 /* TCSpinLock.h */,
@@ -2035,6 +2041,8 @@
 				8698B86910D44D9400D8D01B /* StringBuilder.h in Headers */,
 				8698BB3910D86BAF00D8D01B /* UStringImpl.h in Headers */,
 				14035DB110DBFB2A00FFFFE7 /* WeakGCPtr.h in Headers */,
+				865F408810E7D56300947361 /* APIShims.h in Headers */,
+				5D63E9AD10F2BD6E00FC8AE9 /* StringHashFunctions.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -61,7 +61,6 @@ EXPORTS
     ?collate@Collator@WTF@@QBE?AW4Result@12@PB_WI0I@Z
     ?collectAllGarbage@Heap@JSC@@QAEXXZ
     ?computeHash@UStringImpl@JSC@@SAIPB_WH@Z
-    ?computeHash@UStringImpl@JSC@@SAIPBDH@Z
     ?configurable@PropertyDescriptor@JSC@@QBE_NXZ
     ?construct@JSC@@YAPAVJSObject@1@PAVExecState@1@VJSValue@1@W4ConstructType@1@ABTConstructData@1@ABVArgList@1@@Z
     ?constructArray@JSC@@YAPAVJSArray@1@PAVExecState@1@ABVArgList@1@@Z
@@ -70,7 +69,7 @@ EXPORTS
     ?constructFunction@JSC@@YAPAVJSObject@1@PAVExecState@1@ABVArgList@1@ABVIdentifier@1@ABVUString@1@H@Z
     ?convertUTF16ToUTF8@Unicode@WTF@@YA?AW4ConversionResult@12@PAPB_WPB_WPAPADPAD_N@Z
     ?create@ByteArray@WTF@@SA?AV?$PassRefPtr@VByteArray@WTF@@@2@I@Z
-    ?create@JSGlobalData@JSC@@SA?AV?$PassRefPtr@VJSGlobalData@JSC@@@WTF@@_N@Z
+    ?create@JSGlobalData@JSC@@SA?AV?$PassRefPtr@VJSGlobalData@JSC@@@WTF@@XZ
     ?create@OpaqueJSString@@SA?AV?$PassRefPtr@UOpaqueJSString@@@WTF@@ABVUString@JSC@@@Z
     ?createEmptyString@SmallStrings@JSC@@AAEXPAVJSGlobalData@2@@Z
     ?createInheritorID@JSObject@JSC@@AAEPAVStructure@2@XZ
@@ -86,6 +85,7 @@ EXPORTS
     ?createTypeError@JSC@@YA?AVJSValue@1@PAVExecState@1@PBD@Z
     ?currentThread@WTF@@YAIXZ
     ?currentTime@WTF@@YANXZ
+    ?dateToDaysFrom1970@WTF@@YANHHH@Z
     ?decrement@RefCountedLeakCounter@WTF@@QAEXXZ
     ?defaultAttributes@PropertyDescriptor@JSC@@0IA
     ?defaultValue@JSObject@JSC@@UBE?AVJSValue@2@PAVExecState@2@W4PreferredPrimitiveType@2@@Z
@@ -180,12 +180,14 @@ EXPORTS
     ?isHostFunctionNonInline@JSFunction@JSC@@ABE_NXZ
     ?isMainThread@WTF@@YA_NXZ
     ?isVariableObject@JSVariableObject@JSC@@UBE_NXZ
+    ?jsArrayVPtr@JSGlobalData@JSC@@2PAXA
     ?jsNumberCell@JSC@@YA?AVJSValue@1@PAVExecState@1@N@Z
     ?jsOwnedString@JSC@@YAPAVJSString@1@PAVJSGlobalData@1@ABVUString@1@@Z
     ?jsRegExpCompile@@YAPAUJSRegExp@@PB_WHW4JSRegExpIgnoreCaseOption@@W4JSRegExpMultilineOption@@PAIPAPBD@Z
     ?jsRegExpExecute@@YAHPBUJSRegExp@@PB_WHHPAHH@Z
     ?jsRegExpFree@@YAXPAUJSRegExp@@@Z
     ?jsString@JSC@@YAPAVJSString@1@PAVJSGlobalData@1@ABVUString@1@@Z
+    ?jsStringVPtr@JSGlobalData@JSC@@2PAXA
     ?lock@JSLock@JSC@@SAXW4JSLockBehavior@2@@Z
     ?lock@Mutex@WTF@@QAEXXZ
     ?lockAtomicallyInitializedStaticMutex@WTF@@YAXXZ

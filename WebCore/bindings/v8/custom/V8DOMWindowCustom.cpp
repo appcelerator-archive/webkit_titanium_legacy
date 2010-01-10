@@ -31,19 +31,11 @@
 #include "config.h"
 #include "V8DOMWindow.h"
 
-#include "V8Binding.h"
-#include "V8BindingState.h"
-#include "V8CustomBinding.h"
-#include "V8CustomEventListener.h"
-#include "V8MessagePortCustom.h"
-#include "V8Proxy.h"
-#include "V8Utilities.h"
-
 #include "Base64.h"
 #include "Chrome.h"
-#include "ExceptionCode.h"
 #include "DOMTimer.h"
 #include "DOMWindow.h"
+#include "ExceptionCode.h"
 #include "Frame.h"
 #include "FrameLoadRequest.h"
 #include "FrameView.h"
@@ -58,6 +50,14 @@
 #include "Settings.h"
 #include "SharedWorkerRepository.h"
 #include "Storage.h"
+#include "V8Binding.h"
+#include "V8BindingDOMWindow.h"
+#include "V8BindingState.h"
+#include "V8CustomBinding.h"
+#include "V8CustomEventListener.h"
+#include "V8MessagePortCustom.h"
+#include "V8Proxy.h"
+#include "V8Utilities.h"
 #if ENABLE(WEB_SOCKETS)
 #include "WebSocket.h"
 #endif
@@ -167,7 +167,7 @@ static v8::Handle<v8::Value> convertBase64(const String& str, bool encode)
     return v8String(String(outputCharacters.data(), outputCharacters.size()));
 }
 
-ACCESSOR_GETTER(DOMWindowEvent)
+v8::Handle<v8::Value> V8DOMWindow::eventAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
     if (holder.IsEmpty())
@@ -188,7 +188,7 @@ ACCESSOR_GETTER(DOMWindowEvent)
     return jsEvent;
 }
 
-ACCESSOR_SETTER(DOMWindowEvent)
+void V8DOMWindow::eventAccessorSetter(v8::Local<v8::String> name, v8::Local<v8::Value> value, const v8::AccessorInfo& info)
 {
     v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
     if (holder.IsEmpty())
@@ -206,20 +206,20 @@ ACCESSOR_SETTER(DOMWindowEvent)
     context->Global()->SetHiddenValue(eventSymbol, value);
 }
 
-ACCESSOR_GETTER(DOMWindowCrypto)
+v8::Handle<v8::Value> V8DOMWindow::cryptoAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     // FIXME: Implement me.
     return v8::Undefined();
 }
 
-ACCESSOR_SETTER(DOMWindowLocation)
+void V8DOMWindow::locationAccessorSetter(v8::Local<v8::String> name, v8::Local<v8::Value> value, const v8::AccessorInfo& info)
 {
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
-    V8Custom::WindowSetLocation(imp, toWebCoreString(value));
+    V8DOMWindowShell::setLocation(imp, toWebCoreString(value));
 }
 
 
-ACCESSOR_SETTER(DOMWindowOpener)
+void V8DOMWindow::openerAccessorSetter(v8::Local<v8::String> name, v8::Local<v8::Value> value, const v8::AccessorInfo& info)
 {
     DOMWindow* imp = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
 
@@ -245,33 +245,33 @@ ACCESSOR_SETTER(DOMWindowOpener)
 
 #if ENABLE(VIDEO)
 
-ACCESSOR_GETTER(DOMWindowAudio)
+v8::Handle<v8::Value> V8DOMWindow::AudioAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     return V8DOMWrapper::getConstructor(V8ClassIndex::AUDIO, window);
 }
 
-ACCESSOR_RUNTIME_ENABLER(DOMWindowAudio)
+bool V8DOMWindow::AudioEnabled()
 {
     return MediaPlayer::isAvailable();
 }
 
-ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLMediaElement)
+bool V8DOMWindow::HTMLMediaElementEnabled()
 {
     return MediaPlayer::isAvailable();
 }
 
-ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLAudioElement)
+bool V8DOMWindow::HTMLAudioElementEnabled()
 {
     return MediaPlayer::isAvailable();
 }
 
-ACCESSOR_RUNTIME_ENABLER(DOMWindowHTMLVideoElement)
+bool V8DOMWindow::HTMLVideoElementEnabled()
 {
     return MediaPlayer::isAvailable();
 }
 
-ACCESSOR_RUNTIME_ENABLER(DOMWindowMediaError)
+bool V8DOMWindow::MediaErrorEnabled()
 {
     return MediaPlayer::isAvailable();
 }
@@ -279,59 +279,59 @@ ACCESSOR_RUNTIME_ENABLER(DOMWindowMediaError)
 #endif
 
 #if ENABLE(SHARED_WORKERS)
-ACCESSOR_RUNTIME_ENABLER(DOMWindowSharedWorker)
+bool V8DOMWindow::SharedWorkerEnabled()
 {
     return SharedWorkerRepository::isAvailable();
 }
 #endif
 
 #if ENABLE(WEB_SOCKETS)
-ACCESSOR_RUNTIME_ENABLER(DOMWindowWebSocket)
+bool V8DOMWindow::WebSocketEnabled()
 {
     return WebSocket::isAvailable();
 }
 #endif
 
 #if ENABLE(DATABASE)
-ACCESSOR_RUNTIME_ENABLER(DOMWindowOpenDatabase)
+bool V8DOMWindow::OpenDatabaseEnabled()
 {
     return WebCore::RuntimeEnabledFeatures::databaseEnabled();
 }
 #endif
 
 #if ENABLE(DOM_STORAGE)
-ACCESSOR_RUNTIME_ENABLER(DOMWindowLocalStorage)
+bool V8DOMWindow::LocalStorageEnabled()
 {
     return RuntimeEnabledFeatures::localStorageEnabled();
 }
 
-ACCESSOR_RUNTIME_ENABLER(DOMWindowSessionStorage)
+bool V8DOMWindow::SessionStorageEnabled()
 {
     return RuntimeEnabledFeatures::sessionStorageEnabled();
 }
 #endif
 
 #if ENABLE(NOTIFICATIONS)
-ACCESSOR_RUNTIME_ENABLER(DOMWindowWebkitNotifications)
+bool V8DOMWindow::WebkitNotificationsEnabled()
 {
     return RuntimeEnabledFeatures::notificationsEnabled();
 }
 #endif
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
-ACCESSOR_RUNTIME_ENABLER(DOMWindowApplicationCache)
+bool V8DOMWindow::ApplicationCacheEnabled()
 {
     return RuntimeEnabledFeatures::applicationCacheEnabled();
 }
 #endif
 
-ACCESSOR_GETTER(DOMWindowImage)
+v8::Handle<v8::Value> V8DOMWindow::ImageAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     return V8DOMWrapper::getConstructor(V8ClassIndex::IMAGE, window);
 }
 
-ACCESSOR_GETTER(DOMWindowOption)
+v8::Handle<v8::Value> V8DOMWindow::OptionAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     DOMWindow* window = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, info.Holder());
     return V8DOMWrapper::getConstructor(V8ClassIndex::OPTION, window);
@@ -547,77 +547,6 @@ static HashMap<String, String> parseModalDialogFeatures(const String& featuresAr
     return map;
 }
 
-
-static Frame* createWindow(Frame* callingFrame,
-                           Frame* enteredFrame,
-                           Frame* openerFrame,
-                           const String& url,
-                           const String& frameName,
-                           const WindowFeatures& windowFeatures,
-                           v8::Local<v8::Value> dialogArgs)
-{
-    ASSERT(callingFrame);
-    ASSERT(enteredFrame);
-
-    // Sandboxed iframes cannot open new auxiliary browsing contexts.
-    if (callingFrame && callingFrame->loader()->isSandboxed(SandboxNavigation))
-        return 0;
-
-    ResourceRequest request;
-
-    // For whatever reason, Firefox uses the entered frame to determine
-    // the outgoingReferrer.  We replicate that behavior here.
-    String referrer = enteredFrame->loader()->outgoingReferrer();
-    request.setHTTPReferrer(referrer);
-    FrameLoader::addHTTPOriginIfNeeded(request, enteredFrame->loader()->outgoingOrigin());
-    FrameLoadRequest frameRequest(request, frameName);
-
-    // FIXME: It's much better for client API if a new window starts with a URL,
-    // here where we know what URL we are going to open. Unfortunately, this
-    // code passes the empty string for the URL, but there's a reason for that.
-    // Before loading we have to set up the opener, openedByDOM,
-    // and dialogArguments values. Also, to decide whether to use the URL
-    // we currently do an allowsAccessFrom call using the window we create,
-    // which can't be done before creating it. We'd have to resolve all those
-    // issues to pass the URL instead of "".
-
-    bool created;
-    // We pass in the opener frame here so it can be used for looking up the
-    // frame name, in case the active frame is different from the opener frame,
-    // and the name references a frame relative to the opener frame, for example
-    // "_self" or "_parent".
-    Frame* newFrame = callingFrame->loader()->createWindow(openerFrame->loader(), frameRequest, windowFeatures, created);
-    if (!newFrame)
-        return 0;
-
-    newFrame->loader()->setOpener(openerFrame);
-    newFrame->page()->setOpenedByDOM();
-
-    // Set dialog arguments on the global object of the new frame.
-    if (!dialogArgs.IsEmpty()) {
-        v8::Local<v8::Context> context = V8Proxy::context(newFrame);
-        if (!context.IsEmpty()) {
-            v8::Context::Scope scope(context);
-            context->Global()->Set(v8::String::New("dialogArguments"), dialogArgs);
-        }
-    }
-
-    if (!protocolIsJavaScript(url) || ScriptController::isSafeScript(newFrame)) {
-        KURL completedUrl =
-            url.isEmpty() ? KURL(ParsedURLString, "") : completeURL(url);
-        bool userGesture = processingUserGesture();
-
-        if (created)
-            newFrame->loader()->changeLocation(completedUrl, referrer, false, false, userGesture);
-        else if (!url.isEmpty())
-            newFrame->redirectScheduler()->scheduleLocationChange(completedUrl.string(), referrer, false, userGesture);
-    }
-
-    return newFrame;
-}
-
-
-
 v8::Handle<v8::Value> V8DOMWindow::showModalDialogCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.DOMWindow.showModalDialog()");
@@ -683,7 +612,7 @@ v8::Handle<v8::Value> V8DOMWindow::showModalDialogCallback(const v8::Arguments& 
     windowFeatures.locationBarVisible = false;
     windowFeatures.fullscreen = false;
 
-    Frame* dialogFrame = createWindow(callingFrame, enteredFrame, frame, url, "", windowFeatures, dialogArgs);
+    Frame* dialogFrame = V8BindingDOMWindow::createWindow(V8BindingState::Only(), callingFrame, enteredFrame, frame, url, "", windowFeatures, dialogArgs);
     if (!dialogFrame)
         return v8::Undefined();
 
@@ -826,7 +755,7 @@ v8::Handle<v8::Value> V8DOMWindow::openCallback(const v8::Arguments& args)
         windowFeatures.ySet = false;
     }
 
-    frame = createWindow(callingFrame, enteredFrame, frame, urlString, frameName, windowFeatures, v8::Local<v8::Value>());
+    frame = V8BindingDOMWindow::createWindow(V8BindingState::Only(), callingFrame, enteredFrame, frame, urlString, frameName, windowFeatures, v8::Local<v8::Value>());
 
     if (!frame)
         return v8::Undefined();
@@ -835,7 +764,7 @@ v8::Handle<v8::Value> V8DOMWindow::openCallback(const v8::Arguments& args)
 }
 
 
-INDEXED_PROPERTY_GETTER(DOMWindow)
+v8::Handle<v8::Value> V8DOMWindow::indexedPropertyGetter(uint32_t index, const v8::AccessorInfo& info)
 {
     INC_STATS("DOM.DOMWindow.IndexedPropertyGetter");
 
@@ -855,7 +784,7 @@ INDEXED_PROPERTY_GETTER(DOMWindow)
 }
 
 
-NAMED_PROPERTY_GETTER(DOMWindow)
+v8::Handle<v8::Value> V8DOMWindow::namedPropertyGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
     INC_STATS("DOM.DOMWindow.NamedPropertyGetter");
 
@@ -894,23 +823,6 @@ NAMED_PROPERTY_GETTER(DOMWindow)
     }
 
     return notHandledByInterceptor();
-}
-
-
-void V8Custom::WindowSetLocation(DOMWindow* window, const String& relativeURL)
-{
-    Frame* frame = window->frame();
-    if (!frame)
-        return;
-
-    KURL url = completeURL(relativeURL);
-    if (url.isNull())
-        return;
-
-    if (!shouldAllowNavigation(frame))
-        return;
-
-    navigateIfAllowed(frame, url, false, false);
 }
 
 
@@ -957,7 +869,7 @@ v8::Handle<v8::Value> V8DOMWindow::clearIntervalCallback(const v8::Arguments& ar
     return v8::Undefined();
 }
 
-NAMED_ACCESS_CHECK(DOMWindow)
+bool V8DOMWindow::namedSecurityCheck(v8::Local<v8::Object> host, v8::Local<v8::Value> key, v8::AccessType type, v8::Local<v8::Value> data)
 {
     ASSERT(V8ClassIndex::FromInt(data->Int32Value()) == V8ClassIndex::DOMWINDOW);
     v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, host);
@@ -983,7 +895,7 @@ NAMED_ACCESS_CHECK(DOMWindow)
     return V8BindingSecurity::canAccessFrame(V8BindingState::Only(), target, false);
 }
 
-INDEXED_ACCESS_CHECK(DOMWindow)
+bool V8DOMWindow::indexedSecurityCheck(v8::Local<v8::Object> host, uint32_t index, v8::AccessType type, v8::Local<v8::Value> data)
 {
     ASSERT(V8ClassIndex::FromInt(data->Int32Value()) == V8ClassIndex::DOMWINDOW);
     v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, host);

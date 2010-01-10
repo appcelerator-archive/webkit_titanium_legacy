@@ -431,7 +431,7 @@ void GraphicsContext::clipToImageBuffer(const FloatRect& rect,
     if (paintingDisabled())
         return;
 
-#if defined(__linux__) || PLATFORM(WIN_OS)
+#if OS(LINUX) || OS(WINDOWS)
     platformContext()->beginLayerClippedToImage(rect, imageBuffer);
 #endif
 }
@@ -498,12 +498,11 @@ void GraphicsContext::drawEllipse(const IntRect& elipseRect)
     }
 }
 
-void GraphicsContext::drawFocusRing(const Color& color)
+void GraphicsContext::drawFocusRing(const Vector<IntRect>& rects, int /* width */, int /* offset */, const Color& color)
 {
     if (paintingDisabled())
         return;
 
-    const Vector<IntRect>& rects = focusRingRects();
     unsigned rectCount = rects.size();
     if (!rectCount)
         return;

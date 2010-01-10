@@ -1,7 +1,7 @@
 /*
  * This file is part of the select element renderer in WebCore.
  *
- * Copyright (C) 2006, 2007 Apple Inc. All rights reserved.
+ * Copyright (C) 2006, 2007, 2008, 2009, 2010 Apple Inc. All rights reserved.
  *               2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  *
  * This library is free software; you can redistribute it and/or
@@ -24,6 +24,7 @@
 #include "config.h"
 #include "RenderMenuList.h"
 
+#include "AXObjectCache.h"
 #include "CSSStyleSelector.h"
 #include "Frame.h"
 #include "FrameView.h"
@@ -50,6 +51,7 @@ RenderMenuList::RenderMenuList(Element* element)
     , m_innerBlock(0)
     , m_optionsChanged(true)
     , m_optionsWidth(0)
+    , m_lastSelectedIndex(-1)
     , m_popup(0)
     , m_popupIsVisible(false)
 {
@@ -306,6 +308,18 @@ void RenderMenuList::valueChanged(unsigned listIndex, bool fireOnChange)
     select->setSelectedIndexByUser(select->listToOptionIndex(listIndex), true, fireOnChange);
 }
 
+void RenderMenuList::didSetSelectedIndex()
+{
+    int index = selectedIndex();
+    if (m_lastSelectedIndex == index)
+        return;
+
+    m_lastSelectedIndex = index;
+
+    if (AXObjectCache::accessibilityEnabled())
+        document()->axObjectCache()->postNotification(this, AXObjectCache::AXMenuListValueChanged, true, PostSynchronously);
+}
+
 String RenderMenuList::itemText(unsigned listIndex) const
 {
     SelectElement* select = toSelectElement(static_cast<Element*>(node()));
@@ -374,7 +388,6 @@ Color RenderMenuList::itemBackgroundColor(unsigned listIndex) const
 
 PopupMenuStyle RenderMenuList::menuStyle() const
 {
-
     RenderStyle* s = m_innerBlock ? m_innerBlock->style() : style();
     return PopupMenuStyle(s->color(), s->backgroundColor(), s->font(), s->visibility() == VISIBLE, s->textIndent(), s->direction());
 }
@@ -410,8 +423,19 @@ int RenderMenuList::clientPaddingLeft() const
     return paddingLeft();
 }
 
+const int endOfLinePadding = 2;
 int RenderMenuList::clientPaddingRight() const
 {
+    if (style()->appearance() == MenulistPart || style()->appearance() == MenulistButtonPart) {
+        // For these appearance values, the theme applies padding to leave room for the
+        // drop-down button. But leaving room for the button inside the popup menu itself
+        // looks strange, so we return a small default padding to avoid having a large empty
+        // space appear on the side of the popup menu.
+        return endOfLinePadding;
+    }
+
+    // If the appearance isn't MenulistPart, then the select is styled (non-native), so
+    // we want to return the user specified padding.
     return paddingRight();
 }
 
@@ -427,7 +451,7 @@ int RenderMenuList::selectedIndex() const
     return select->optionToListIndex(select->selectedIndex());
 }
 
-void RenderMenuList::popupDidHide()
+void RenderMenuList::popupDidHide(bool)
 {
     m_popupIsVisible = false;
 }

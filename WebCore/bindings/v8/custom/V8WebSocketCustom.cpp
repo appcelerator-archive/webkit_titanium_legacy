@@ -93,14 +93,9 @@ v8::Handle<v8::Value> V8Custom::v8WebSocketConstructorCallback(const v8::Argumen
         return throwError("Empty URL", V8Proxy::SyntaxError);
 
     // Get the script execution context.
-    ScriptExecutionContext* context = 0;
-    // TODO: Workers
-    if (!context) {
-        Frame* frame = V8Proxy::retrieveFrameForCurrentContext();
-        if (!frame)
-            return throwError("WebSocket constructor's associated frame is not available", V8Proxy::ReferenceError);
-        context = frame->document();
-    }
+    ScriptExecutionContext* context = getScriptExecutionContext();
+    if (!context)
+        return throwError("WebSocket constructor's associated frame is not available", V8Proxy::ReferenceError);
 
     const KURL& url = context->completeURL(toWebCoreString(urlstring));
 
@@ -145,15 +140,6 @@ v8::Handle<v8::Value> V8WebSocket::sendCallback(const v8::Arguments& args)
     if (ec)
         return throwError(ec);
     return v8Boolean(ret);
-}
-
-v8::Handle<v8::Value> V8WebSocket::closeCallback(const v8::Arguments& args)
-{
-    INC_STATS("DOM.WebSocket.close()");
-    WebSocket* webSocket = V8DOMWrapper::convertToNativeObject<WebSocket>(V8ClassIndex::WEBSOCKET, args.Holder());
-
-    webSocket->close();
-    return v8::Undefined();
 }
 
 }  // namespace WebCore

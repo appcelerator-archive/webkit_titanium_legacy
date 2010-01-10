@@ -102,9 +102,13 @@ extern "C" {
     ASSERT(!_proxy);
 
     NSString *userAgent = [[self webView] userAgentForURL:_baseURL.get()];
-
+    BOOL accleratedCompositingEnabled = false;
+#if USE(ACCELERATED_COMPOSITING)
+    accleratedCompositingEnabled = [[[self webView] preferences] acceleratedCompositingEnabled];
+#endif
+    
     _proxy = NetscapePluginHostManager::shared().instantiatePlugin(_pluginPackage.get(), self, _MIMEType.get(), _attributeKeys.get(), _attributeValues.get(), userAgent, _sourceURL.get(), 
-                                                                   _mode == NP_FULL, _isPrivateBrowsingEnabled);
+                                                                   _mode == NP_FULL, _isPrivateBrowsingEnabled, accleratedCompositingEnabled);
     if (!_proxy) 
         return NO;
 
@@ -119,6 +123,12 @@ extern "C" {
     _proxy->windowFrameChanged([[self window] frame]);
     
     return YES;
+}
+
+// FIXME: This method is an ideal candidate to move up to the base class
+- (CALayer *)pluginLayer
+{
+    return _pluginLayer.get();
 }
 
 - (void)setLayer:(CALayer *)newLayer
@@ -439,6 +449,20 @@ extern "C" {
 
     uint32_t checkID = [(NSNumber *)contextInfo unsignedIntValue];
     _proxy->checkIfAllowedToLoadURLResult(checkID, (policy == PolicyUse));
+}
+
+- (void)webFrame:(WebFrame *)webFrame didFinishLoadWithReason:(NPReason)reason
+{
+    if (_isStarted && _proxy)
+        _proxy->webFrameDidFinishLoadWithReason(webFrame, reason);
+}
+
+- (void)webFrame:(WebFrame *)webFrame didFinishLoadWithError:(NSError *)error
+{
+    NPReason reason = NPRES_DONE;
+    if (error)
+        reason = HostedNetscapePluginStream::reasonForError(error);
+    [self webFrame:webFrame didFinishLoadWithReason:reason];
 }
 
 @end

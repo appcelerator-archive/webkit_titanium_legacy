@@ -46,7 +46,7 @@ http/tests/security/cross-frame-access-protocol.html
 media/video-seek-past-end-paused.html
 
 # <rdar://problem/6710625> Test media/video-error-abort.html doesn't work
-media/video-error-abort.html
+http/tests/media/video-error-abort.html
 
 # This test requires media controls has a volume slider.
 media/video-volume-slider.html
@@ -117,6 +117,9 @@ fast/events/attempt-scroll-with-no-scrollbars.html
 
 # Emacs bindings are used in LayoutTests which fail on boomer. <rdar://problem/5137352>
 fast/events/keydown-1.html
+
+# No support for key event location in EventSender.
+fast/events/keydown-numpad-keys.html
 
 # The eqqivalent of option-tab doesn not exist in Boomer <rdar://problem/5137230>
 fast/events/frame-tab-focus.html
@@ -674,10 +677,6 @@ http/tests/globalhistory/history-delegate-basic-visited-links.html
 # This test has never passed on Windows (https://bugs.webkit.org/show_bug.cgi?id=30234)
 platform/win/editing/selection/doubleclick-should-not-expand-across-lines.html
 
-# Windows Release bots are having problems in xmlhttprequest tests, Skipping them temporarily
-# to see if this eliminates the problem, and it is a test causing httpd problems.
-http/tests/xmlhttprequest
-
 # Ruby tests aren't passing on Windows, do they just need platform results - or should they match Mac?
 fast/ruby
 
@@ -733,3 +732,13 @@ svg/custom/use-instanceRoot-as-event-target.xhtml
 # http://webkit.org/b/32532 - Time out
 http/tests/navigation/dynamic-iframe-dynamic-form-back-entry.html
 http/tests/navigation/parsed-iframe-dynamic-form-back-entry.html
+
+# Shows subtle 0.0 vs -0.0 difference in path debug string, see https://bugs.webkit.org/show_bug.cgi?id=17393
+svg/custom/use-on-symbol-inside-pattern.svg
+
+# Crashes debug slave, see https://bugs.webkit.org/show_bug.cgi?id=33155
+fast/frames/iframe-onload-remove-self-no-crash.html
+
+# FIXME: This is the wrong test to skip.  It is believed some other test is affecting this test results.
+# See https://bugs.webkit.org/show_bug.cgi?id=33374
+svg/W3C-SVG-1.1/filters-conv-01-f.svg

@@ -3,6 +3,7 @@
                   2004, 2005, 2007, 2008 Rob Buis <buis@kde.org>
                   2007 Eric Seidel <eric@webkit.org>
     Copyright (C) 2009 Google, Inc.  All rights reserved.
+                  2009 Dirk Schulze <krit@webkit.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -82,7 +83,7 @@ bool RenderSVGContainer::selfWillPaint() const
 {
 #if ENABLE(FILTERS)
     const SVGRenderStyle* svgStyle = style()->svgStyle();
-    SVGResourceFilter* filter = getFilterById(document(), svgStyle->filter());
+    SVGResourceFilter* filter = getFilterById(document(), svgStyle->filter(), this);
     if (filter)
         return true;
 #endif
@@ -109,12 +110,16 @@ void RenderSVGContainer::paint(PaintInfo& paintInfo, int, int)
 
     SVGResourceFilter* filter = 0;
     FloatRect boundingBox = repaintRectInLocalCoordinates();
-    if (childPaintInfo.phase == PaintPhaseForeground)
-        prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter);
 
-    childPaintInfo.paintingRoot = paintingRootForChildren(childPaintInfo);
-    for (RenderObject* child = firstChild(); child; child = child->nextSibling())
-        child->paint(childPaintInfo, 0, 0);
+    bool continueRendering = true;
+    if (childPaintInfo.phase == PaintPhaseForeground)
+        continueRendering = prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter);
+
+    if (continueRendering) {
+        childPaintInfo.paintingRoot = paintingRootForChildren(childPaintInfo);
+        for (RenderObject* child = firstChild(); child; child = child->nextSibling())
+            child->paint(childPaintInfo, 0, 0);
+    }
 
     if (paintInfo.phase == PaintPhaseForeground)
         finishRenderSVGContent(this, childPaintInfo, filter, paintInfo.context);
@@ -132,15 +137,21 @@ void RenderSVGContainer::paint(PaintInfo& paintInfo, int, int)
 }
 
 // addFocusRingRects is called from paintOutline and needs to be in the same coordinates as the paintOuline call
-void RenderSVGContainer::addFocusRingRects(GraphicsContext* graphicsContext, int, int)
+void RenderSVGContainer::addFocusRingRects(Vector<IntRect>& rects, int, int)
 {
     IntRect paintRectInParent = enclosingIntRect(localToParentTransform().mapRect(repaintRectInLocalCoordinates()));
-    graphicsContext->addFocusRingRect(paintRectInParent);
+    if (!paintRectInParent.isEmpty())
+        rects.append(paintRectInParent);
 }
 
 FloatRect RenderSVGContainer::objectBoundingBox() const
 {
     return computeContainerBoundingBox(this, false);
+}
+
+FloatRect RenderSVGContainer::strokeBoundingBox() const
+{
+    return computeContainerBoundingBox(this, true);
 }
 
 // RenderSVGContainer is used for <g> elements which do not themselves have a
@@ -149,8 +160,17 @@ FloatRect RenderSVGContainer::repaintRectInLocalCoordinates() const
 {
     FloatRect repaintRect = computeContainerBoundingBox(this, true);
 
-    // A filter on this container can paint outside of the union of the child repaint rects
-    repaintRect.unite(filterBoundingBoxForRenderer(this));
+    FloatRect rect = filterBoundingBoxForRenderer(this);
+    if (!rect.isEmpty())
+        repaintRect = rect;
+
+    rect = clipperBoundingBoxForRenderer(this);
+    if (!rect.isEmpty())
+        repaintRect.intersect(rect);
+
+    rect = maskerBoundingBoxForRenderer(this);
+    if (!rect.isEmpty())
+        repaintRect.intersect(rect);
 
     return repaintRect;
 }

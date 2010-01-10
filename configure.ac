@@ -35,7 +35,7 @@ AC_CONFIG_SRCDIR([WebCore/config.h])
 
 dnl # Libtool library version, not to confuse with API version
 dnl # see http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html#Libtool-versioning
-LIBWEBKITGTK_VERSION=15:0:13
+LIBWEBKITGTK_VERSION=16:0:14
 AC_SUBST([LIBWEBKITGTK_VERSION])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects tar-ustar])
@@ -370,6 +370,14 @@ AC_ARG_ENABLE(video,
                              [enable HTML5 video support [default=yes]]),
               [],[enable_video="yes"])
 AC_MSG_RESULT([$enable_video])
+
+# check whether to enable XHTML-MP support
+AC_MSG_CHECKING([whether to enable XHTML-MP support])
+AC_ARG_ENABLE(xhtmlmp,
+              AC_HELP_STRING([--enable-xhtmlmp],
+                             [enable support for XHTML-MP [default=no]]),
+              [],[enable_xhtmlmp="no"])
+AC_MSG_RESULT([$enable_xhtmlmp])
 
 # check whether to enable XPath support
 AC_MSG_CHECKING([whether to enable XPath support])
@@ -743,6 +751,7 @@ AM_CONDITIONAL([ENABLE_DATABASE],[test "$enable_database" = "yes"])
 AM_CONDITIONAL([ENABLE_DATALIST],[test "$enable_datalist" = "yes"])
 AM_CONDITIONAL([ENABLE_EVENTSOURCE],[test "$enable_eventsource" = "yes"])
 AM_CONDITIONAL([ENABLE_ICONDATABASE],[test "$enable_icon_database" = "yes"])
+AM_CONDITIONAL([ENABLE_XHTMLMP],[test "$enable_xhtmlmp" = "yes"])
 AM_CONDITIONAL([ENABLE_XPATH],[test "$enable_xpath" = "yes"])
 AM_CONDITIONAL([ENABLE_XSLT],[test "$enable_xslt" = "yes"])
 AM_CONDITIONAL([ENABLE_FILTERS],[test "$enable_filters" = "yes"])
@@ -815,6 +824,7 @@ Features:
  WML support                                              : $enable_wml
  Web Sockets support                                      : $enable_web_sockets
  Web Workers support                                      : $enable_workers
+ XHTML-MP support                                         : $enable_xhtmlmp
  XPATH support                                            : $enable_xpath
  XSLT support                                             : $enable_xslt
 GTK+ configuration:

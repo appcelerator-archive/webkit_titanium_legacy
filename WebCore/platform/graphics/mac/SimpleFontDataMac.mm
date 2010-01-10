@@ -55,8 +55,7 @@ using namespace std;
 namespace WebCore {
   
 const float smallCapsFontSizeMultiplier = 0.7f;
-const float contextDPI = 72.0f;
-static inline float scaleEmToUnits(float x, unsigned unitsPerEm) { return x * (contextDPI / (contextDPI * unitsPerEm)); }
+static inline float scaleEmToUnits(float x, unsigned unitsPerEm) { return x / unitsPerEm; }
 
 static bool initFontData(SimpleFontData* fontData)
 {
@@ -445,13 +444,12 @@ CTFontRef SimpleFontData::getCTFont() const
     return m_CTFont.get();
 }
 
-CFDictionaryRef SimpleFontData::getCFStringAttributes(TextRenderingMode textMode) const
+CFDictionaryRef SimpleFontData::getCFStringAttributes(TypesettingFeatures typesettingFeatures) const
 {
     if (m_CFStringAttributes)
         return m_CFStringAttributes.get();
 
-    bool allowKerning = textMode == OptimizeLegibility || textMode == GeometricPrecision;
-    bool allowLigatures = platformData().allowsLigatures() || allowKerning;
+    bool allowLigatures = platformData().allowsLigatures() || (typesettingFeatures & Ligatures);
 
     static const int ligaturesNotAllowedValue = 0;
     static CFNumberRef ligaturesNotAllowed = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &ligaturesNotAllowedValue);
@@ -459,7 +457,7 @@ CFDictionaryRef SimpleFontData::getCFStringAttributes(TextRenderingMode textMode
     static const int ligaturesAllowedValue = 1;
     static CFNumberRef ligaturesAllowed = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &ligaturesAllowedValue);
 
-    if (!allowKerning) {
+    if (!(typesettingFeatures & Kerning)) {
         static const float kerningAdjustmentValue = 0;
         static CFNumberRef kerningAdjustment = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &kerningAdjustmentValue);
         static const void* keysWithKerningDisabled[] = { kCTFontAttributeName, kCTKernAttributeName, kCTLigatureAttributeName };
