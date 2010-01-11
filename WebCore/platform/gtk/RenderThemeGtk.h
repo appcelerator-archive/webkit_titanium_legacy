@@ -25,10 +25,11 @@
  *
  */
 
-#ifndef RenderThemeGdk_h
-#define RenderThemeGdk_h
+#ifndef RenderThemeGtk_h
+#define RenderThemeGtk_h
 
 #include "RenderTheme.h"
+#include "gtkdrawing.h"
 
 typedef struct _GtkWidget GtkWidget;
 typedef struct _GtkStyle GtkStyle;
@@ -41,11 +42,11 @@ namespace WebCore {
 
 class RenderThemeGtk : public RenderTheme {
 private:
-    RenderThemeGtk();
+    RenderThemeGtk(Page* page);
     virtual ~RenderThemeGtk();
 
 public:
-    static PassRefPtr<RenderTheme> create();
+    static PassRefPtr<RenderTheme> create(Page*);
 
     // A method asking if the theme's controls actually care about redrawing when hovered.
     virtual bool supportsHover(const RenderStyle* style) const { return true; }
@@ -86,6 +87,8 @@ public:
 #if ENABLE(VIDEO)
     virtual String extraMediaControlsStyleSheet();
 #endif
+
+    GdkDrawable* drawable() const;
 
 protected:
     virtual bool paintCheckbox(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r);
@@ -165,9 +168,10 @@ private:
     RefPtr<Image> m_pauseButton;
     RefPtr<Image> m_seekBackButton;
     RefPtr<Image> m_seekForwardButton;
+    Page* m_page;
 
 };
 
 }
 
-#endif
+#endif // RenderThemeGtk_h

@@ -215,6 +215,18 @@ typedef enum {
 } GtkThemeWidgetType;
 
 /*** General library functions ***/
+
+/**
+ * Prepare the drawing library for rendering onto the given
+ * drawable. Passing a NULL drawable means that the rendering
+ * will be suitable for the default colormap of the screen.
+ * returns: MOZ_GTK_SUCCESS if there were no errors
+ *          MOZ_GTK_UNSAFE_THEME if the current theme engine is known
+ *                               to crash with gtkdrawing.
+ */
+gint
+moz_gtk_use_parts_for_drawable(GdkDrawable* parts);
+
 /**
  * Initializes the drawing library.  You must call this function
  * prior to using any other functionality.
@@ -239,7 +251,7 @@ gint moz_gtk_enable_style_props(style_prop_t styleGetProp);
  *
  * returns: MOZ_GTK_SUCCESS if there was no error, an error code otherwise
  */
-gint moz_gtk_shutdown();
+void moz_gtk_shutdown();
 
 
 /*** Widget drawing ***/

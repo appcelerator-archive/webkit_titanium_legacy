@@ -238,7 +238,6 @@
 		</Configuration>
 		<Configuration
 			Name="Release_Cairo|Win32"
-			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(WebKitLibrariesDir)\tools\vsprops\common.vsprops;$(WebKitLibrariesDir)\tools\vsprops\release.vsprops;$(WebKitLibrariesDir)\tools\vsprops\WinCairo.vsprops;.\WebCoreCommon.vsprops;.\WebCoreCairo.vsprops;.\WebCoreCURL.vsprops"
 			CharacterSet="1"
@@ -10271,18 +10270,6 @@
 			</File>
 			<File
 				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGAElement.cpp"
-				>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementInstanceList.h"
-				>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
-				>
-			</File>
-			<File
-				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSSVGElementWrapperFactory.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -29786,14 +29773,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\html\DataGridColumn.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridColumn.h"
-				>
-			</File>
-			<File
 				RelativePath="..\html\DataGridColumn.h"
 				>
 			</File>
@@ -29802,19 +29781,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\html\DataGridColumnList.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\html\DataGridColumnList.h"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridColumnList.h"
-				>
-			</File>
-			<File
-				RelativePath="..\html\DataGridDataSource.h"
 				>
 			</File>
 			<File

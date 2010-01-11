@@ -59,7 +59,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-        AdditionalOptions="/DYNAMICBASE"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(VCInstallDir)\PlatformSDK\Lib&quot;"
 				GenerateDebugInformation="true"

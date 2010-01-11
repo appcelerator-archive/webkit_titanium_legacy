@@ -188,30 +188,6 @@ void EditorClient::respondToChangedContents()
     notImplemented();
 }
 
-void clipboard_get_contents_cb(GtkClipboard* clipboard, GtkSelectionData* selection_data, guint info, gpointer data)
-{
-    EditorClient* client = static_cast<EditorClient*>(data);
-
-    if (!client->m_range)
-        return;
-
-    if (static_cast<gint>(info) == WEBKIT_WEB_VIEW_TARGET_INFO_HTML) {
-        String markup = createMarkup(client->m_range.get(), 0, AnnotateForInterchange);
-        gtk_selection_data_set(selection_data, selection_data->target, 8,
-                               reinterpret_cast<const guchar*>(markup.utf8().data()), markup.utf8().length());
-    } else {
-        String text = client->m_range->text();
-        gtk_selection_data_set_text(selection_data, text.utf8().data(), text.utf8().length());
-    }
-}
-
-void clipboard_clear_contents_cb(GtkClipboard* clipboard, gpointer data)
-{
-    EditorClient* client = static_cast<EditorClient*>(data);
-
-    client->m_range = 0;
-}
-
 void EditorClient::respondToChangedSelection()
 {
     WebKitWebViewPrivate* priv = m_webView->priv;
@@ -223,16 +199,21 @@ void EditorClient::respondToChangedSelection()
     if (targetFrame->editor()->ignoreCompositionSelectionChange())
         return;
 
-    GtkClipboard* clipboard = gtk_widget_get_clipboard(GTK_WIDGET(m_webView), GDK_SELECTION_PRIMARY);
+#if PLATFORM(X11)
     if (targetFrame->selection()->isRange()) {
-        GtkTargetList* targetList = webkit_web_view_get_copy_target_list(m_webView);
-        gint targetCount;
-        GtkTargetEntry* targets = gtk_target_table_new_from_list(targetList, &targetCount);
-        gtk_clipboard_set_with_data(clipboard, targets, targetCount,
-                                    clipboard_get_contents_cb, clipboard_clear_contents_cb, this);
-        m_range = targetFrame->selection()->toNormalizedRange();
-        gtk_target_table_free(targets, targetCount);
+        bool primary = PasteboardHelper::usePrimaryClipboard();
+        PasteboardHelper::setUsePrimaryClipboard(true);
+        GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(targetFrame);
+        PasteboardHelper::setUsePrimaryClipboard(primary);
+
+        DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
+        RefPtr<Range> range = targetFrame->selection()->toNormalizedRange();
+        dataObject->setText(targetFrame->selectedText());
+        dataObject->setMarkup(createMarkup(range.get(), 0, AnnotateForInterchange));
+
+        PasteboardHelper::helper()->writeClipboardContents(clipboard);
     }
+#endif
 
     if (!targetFrame->editor()->hasComposition())
         return;

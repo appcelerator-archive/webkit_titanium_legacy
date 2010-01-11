@@ -8,9 +8,9 @@
  *  Copyright (C) 2008 Nuanti Ltd.
  *  Copyright (C) 2008, 2009 Collabora Ltd.
  *  Copyright (C) 2009 Igalia S.L.
- *  Copyright (C) 2009 Martin Robinson
  *  Copyright (C) 2009 Movial Creative Technologies Inc.
  *  Copyright (C) 2009 Bobby Powers
+ *  Copyright (C) 2009 Martin Robinson
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public

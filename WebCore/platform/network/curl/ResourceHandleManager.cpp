@@ -786,8 +786,8 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         }
         // Determine the MIME type based on the path.
         d->m_response.setMimeType(MIMETypeRegistry::getMIMETypeForPath(url));
-    } 
-    
+    }
+
     d->m_handle = curl_easy_init();
 
 #if LIBCURL_VERSION_NUM > 0x071200
@@ -865,7 +865,6 @@ void ResourceHandleManager::initializeHandle(ResourceHandle* job)
         curl_easy_setopt(d->m_handle, CURLOPT_HTTPHEADER, headers);
         d->m_customHeaders = headers;
     }
-
     // curl CURLOPT_USERPWD expects username:password
     if (d->m_user.length() || d->m_pass.length()) {
         String userpass = d->m_user + ":" + d->m_pass;

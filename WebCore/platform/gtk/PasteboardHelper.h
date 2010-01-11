@@ -27,6 +27,8 @@
 #include "Frame.h"
 #include "DataObjectGtk.h"
 
+#include <wtf/RefCounted.h>
+
 typedef struct _GtkClipboard GtkClipboard;
 typedef struct _GtkTargetList GtkTargetList;
 

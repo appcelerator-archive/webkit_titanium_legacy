@@ -63,8 +63,8 @@ my $isGtk;
 my $isWx;
 my @wxArgs;
 my $isChromium;
-my $isCairoWin32;
 my $isInspectorFrontend;
+my $isCairoWin32;
 
 # Variables for Win32 support
 my $vcBuildPath;
@@ -242,7 +242,7 @@ sub argumentsForConfiguration()
     push(@args, '--gtk') if isGtk();
     push(@args, '--wx') if isWx();
     push(@args, '--chromium') if isChromium();
-		push(@args, '--cairo-win32') if isCairoWin32();
+    push(@args, '--cairo-win32') if isCairoWin32();
     push(@args, '--inspector-frontend') if isInspectorFrontend();
     return @args;
 }

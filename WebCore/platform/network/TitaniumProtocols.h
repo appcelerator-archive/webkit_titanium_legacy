@@ -31,7 +31,7 @@ namespace WebCore {
         static KURL URLToFileURL(KURL url);
         static bool CanPreprocess(const ResourceRequest& request);
         static String Preprocess(const ResourceRequest& request, String& mimeType);
-        static String TitaniumProtocols::ProxyForURL(String& url);
+        static String ProxyForURL(String& url);
 
         static NormalizeURLCallback NormalizeCallback;
         static URLToPathCallback URLCallback;
