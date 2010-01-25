@@ -115,6 +115,7 @@ public slots:
     void resetLoadFinished() { m_loadFinished = false; }
     void setWindowIsKey(bool isKey);
     void setMainFrameIsFirstResponder(bool isFirst);
+    void setXSSAuditorEnabled(bool enable);
 
     bool pauseAnimationAtTimeOnElementWithId(const QString& animationName, double time, const QString& elementId);
     bool pauseTransitionAtTimeOnElementWithId(const QString& propertyName, double time, const QString& elementId);
@@ -132,6 +133,9 @@ public slots:
 
     void waitForPolicyDelegate();
     void overridePreference(const QString& name, const QVariant& value);
+    void setUserStyleSheetLocation(const QString& url);
+    void setUserStyleSheetEnabled(bool enabled);
+    void setDomainRelaxationForbiddenForURLScheme(bool forbidden, const QString& scheme);
 
 private slots:
     void processWork();
@@ -150,6 +154,7 @@ private:
     bool m_handleErrorPages;
     bool m_loadFinished;
 
+    QUrl m_userStyleSheetLocation;
     QBasicTimer m_timeoutTimer;
     QWebFrame* m_topLoadingFrame;
     WebCore::DumpRenderTree* m_drt;

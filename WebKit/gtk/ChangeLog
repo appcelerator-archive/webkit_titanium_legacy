@@ -1,3 +1,169 @@
+2010-01-19  Joanmarie Diggs  <joanmarie.diggs@gmail.com>
+
+        Reviewed by Xan Lopez.
+
+        https://bugs.webkit.org/show_bug.cgi?id=30883
+        [Gtk] Implement AtkText for HTML elements which contain text
+
+        Adds two news tests.
+
+        * tests/testatk.c
+        (testWebkitAtkGetTextInParagraphAndBodySimple):
+        (testWebkitAtkGetTextInParagraphAndBodyModerate):
+        (main):
+
+2010-01-19  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Unreviewed. Changes to the test I forgot to make after a last
+        minute change before landing 53294 - this causes make distcheck to
+        fail.
+
+        * tests/testloading.c:
+        (load_error_status_changed_cb):
+        (test_loading_error):
+
+2010-01-19  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        News items for 1.1.19.
+
+        * NEWS:
+
+2010-01-19  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] More crashes related to the clipboard management
+        https://bugs.webkit.org/show_bug.cgi?id=33746
+
+        Pass the WebKitWebView object (which is a GObject, thus
+        ref-counted) to the clipboard functions instead of passing the
+        Page - this allows us to explicitely protect the object inbetween
+        the clipboard call and its callbacks, which fixes the crash.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::EditorClient::respondToChangedSelection):
+        * WebCoreSupport/PasteboardHelperGtk.cpp:
+        (WebKit::getClipboardContentsCallback):
+        (WebKit::clearClipboardContentsCallback):
+        (WebKit::PasteboardHelperGtk::writeClipboardContents):
+
+2010-01-15  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        Original patch by David Ronis <david.ronis@mcgill.ca>
+
+        Upgrade 1.1.17->1.1.18 fails: GTK_WIDGET_TOPLEVEL' was not declared in this scope
+        https://bugs.webkit.org/show_bug.cgi?id=33486
+
+        Deprecated symbols replaced for gtk+ versions over 2.18.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        (WebKit::ChromeClient::windowRect):
+        * webkit/webkitprivate.cpp:
+        (currentToplevelCallback):
+        * webkit/webkitwebframe.cpp:
+        (webkit_web_frame_print_full):
+        (webkit_web_frame_print):
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_focus_in_event):
+
+2010-01-14  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Eric Seidel.
+
+        [GTK] Crashes cleaning clipboard contents, with page cache enabled
+        https://bugs.webkit.org/show_bug.cgi?id=32900
+
+        Null-check the focus controller to avoid crashing. Could not find
+        a way to reproduce this consistently, thus no test.
+
+        * WebCoreSupport/PasteboardHelperGtk.cpp:
+        (WebKit::clearClipboardContentsCallback):
+
+2010-01-14  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Oliver Hunter.
+
+        [GTK] couple fixes for signal emissions, and property notifications
+        https://bugs.webkit.org/show_bug.cgi?id=33428
+
+        Do not emit signals and property notifications for error
+        pages. The notifications are not really useful for anything, you
+        can get them back by overriding the error pages, and it avoids a
+        number of hacks.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::FrameLoaderClient):
+        (WebKit::FrameLoaderClient::dispatchDidFinishLoad):
+        (WebKit::FrameLoaderClient::dispatchDidReceiveIcon):
+        (WebKit::FrameLoaderClient::dispatchDidStartProvisionalLoad):
+        (WebKit::FrameLoaderClient::dispatchDidReceiveTitle):
+        (WebKit::FrameLoaderClient::dispatchDidCommitLoad):
+        (WebKit::FrameLoaderClient::dispatchDidFirstVisuallyNonEmptyLayout):
+        (WebKit::FrameLoaderClient::dispatchDidFailLoad):
+        * WebCoreSupport/FrameLoaderClientGtk.h:
+        * tests/testloading.c:
+        (load_error_status_changed_cb):
+        (test_loading_error):
+
+2010-01-14  Martin Robinson  <martin.james.robinson@gmail.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] Enable DOM clipboard and drag-and-drop access
+        https://bugs.webkit.org/show_bug.cgi?id=30623
+
+        Use DataObjectGtk when setting and clearing pasteboard data on
+        the GDK_SELECTION_PRIMARY clipboard.
+
+        * WebCoreSupport/EditorClientGtk.cpp:
+        (WebKit::EditorClient::respondToChangedSelection):
+        (WebKit::EditorClient::EditorClient):
+        * WebCoreSupport/EditorClientGtk.h:
+        * WebCoreSupport/PasteboardHelperGtk.cpp:
+        (WebKit::fillSelectionData):
+        (WebKit::targetListForDataObject):
+        (WebKit::getClipboardContentsCallback):
+        (WebKit::clearClipboardContentsCallback):
+        (WebKit::PasteboardHelperGtk::writeClipboardContents):
+        * WebCoreSupport/PasteboardHelperGtk.h:
+
+2010-01-14  Alejandro G. Castro  <alex@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        Review the tooltip implementation
+        https://bugs.webkit.org/show_bug.cgi?id=32819
+
+        Change the GTK tooltip implementation to avoid the workaround that
+        we are currently using. Now we use a new private API to set the
+        text and all the tooltip handling is done in the webview widget.
+
+        * WebCoreSupport/ChromeClientGtk.cpp:
+        * webkit/webkitprivate.h:
+        * webkit/webkitwebview.cpp:
+        (webkit_web_view_set_tooltip_text): Added, new private API.
+        (webkit_web_view_query_tooltip): Added
+
+2010-01-09  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] couple fixes for signal emissions, and property notifications
+        https://bugs.webkit.org/show_bug.cgi?id=33428
+
+        Fix commitedLoad being called where it should not, causing it to
+        be called one time too many in some cases. We now match Qt's and
+        Mac's behavior here.
+
+        * WebCoreSupport/FrameLoaderClientGtk.cpp:
+        (WebKit::FrameLoaderClient::finishedLoading):
+        * tests/testloading.c:
+        (load_error_status_changed_cb):
+
 2010-01-08  Gustavo Noronha Silva  <gns@gnome.org>
 
         Reviewed by Xan Lopez.

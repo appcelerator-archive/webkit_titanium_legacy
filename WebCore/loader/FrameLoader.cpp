@@ -403,6 +403,12 @@ Frame* FrameLoader::loadSubframe(HTMLFrameOwnerElement* ownerElement, const KURL
         return 0;
     }
     
+    // All new frames will have m_isComplete set to true at this point due to synchronously loading
+    // an empty document in FrameLoader::init(). But many frames will now be starting an
+    // asynchronous load of url, so we set m_isComplete to false and then check if the load is
+    // actually completed below. (Note that we set m_isComplete to false even for synchronous
+    // loads, so that checkCompleted() below won't bail early.)
+    // FIXME: Can we remove this entirely? m_isComplete normally gets set to false when a load is committed.
     frame->loader()->m_isComplete = false;
    
     RenderObject* renderer = ownerElement->renderer();
@@ -412,16 +418,17 @@ Frame* FrameLoader::loadSubframe(HTMLFrameOwnerElement* ownerElement, const KURL
     
     checkCallImplicitClose();
     
+    // Some loads are performed synchronously (e.g., about:blank and loads
+    // cancelled by returning a null ResourceRequest from requestFromDelegate).
     // In these cases, the synchronous load would have finished
     // before we could connect the signals, so make sure to send the 
-    // completed() signal for the child by hand
+    // completed() signal for the child by hand and mark the load as being
+    // complete.
     // FIXME: In this case the Frame will have finished loading before 
     // it's being added to the child list. It would be a good idea to
     // create the child first, then invoke the loader separately.
-    if (url.isEmpty() || url == blankURL()) {
-        frame->loader()->completed();
+    if (frame->loader()->state() == FrameStateComplete)
         frame->loader()->checkCompleted();
-    }
 
     return frame.get();
 }
@@ -559,7 +566,7 @@ void FrameLoader::stopLoading(UnloadEventPolicy unloadEventPolicy, DatabasePolic
 
 #if ENABLE(DATABASE)
         if (databasePolicy == DatabasePolicyStop)
-            doc->stopDatabases();
+            doc->stopDatabases(0);
 #else
     UNUSED_PARAM(databasePolicy);
 #endif
@@ -613,7 +620,8 @@ KURL FrameLoader::iconURL()
         return KURL();
 
     KURL url;
-    url.setProtocol(m_URL.protocol());
+    bool couldSetProtocol = url.setProtocol(m_URL.protocol());
+    ASSERT_UNUSED(couldSetProtocol, couldSetProtocol);
     url.setHost(m_URL.host());
     if (m_URL.hasPort())
         url.setPort(m_URL.port());
@@ -663,7 +671,7 @@ void FrameLoader::didExplicitOpen()
     
     // Prevent window.open(url) -- eg window.open("about:blank") -- from blowing away results
     // from a subsequent window.document.open / window.document.write call. 
-    // Cancelling redirection here works for all cases because document.open 
+    // Canceling redirection here works for all cases because document.open 
     // implicitly precedes document.write.
     m_frame->redirectScheduler()->cancel(); 
     if (m_frame->document()->url() != blankURL())
@@ -829,6 +837,11 @@ void FrameLoader::begin(const KURL& url, bool dispatch, SecurityOrigin* origin)
     document->setURL(m_URL);
     m_frame->setDocument(document);
 
+    if (m_pendingStateObject) {
+        document->statePopped(m_pendingStateObject.get());
+        m_pendingStateObject.clear();
+    }
+    
     if (m_decoder)
         document->setDecoder(m_decoder.get());
     if (forcedSecurityOrigin)
@@ -1261,8 +1274,8 @@ bool FrameLoader::requestObject(RenderPart* renderer, const String& url, const A
     bool useFallback;
     if (shouldUsePlugin(completedURL, mimeType, renderer->hasFallbackContent(), useFallback)) {
         Settings* settings = m_frame->settings();
-        if (!settings || !settings->arePluginsEnabled() || 
-            (!settings->isJavaEnabled() && MIMETypeRegistry::isJavaAppletMIMEType(mimeType)))
+        if (!m_client->allowPlugins(settings && settings->arePluginsEnabled())
+            || (!settings->isJavaEnabled() && MIMETypeRegistry::isJavaAppletMIMEType(mimeType)))
             return false;
         if (isSandboxed(SandboxPlugins))
             return false;
@@ -1451,7 +1464,7 @@ void FrameLoader::provisionalLoadStarted()
 bool FrameLoader::isProcessingUserGesture()
 {
     Frame* frame = m_frame->tree()->top();
-    if (!frame->script()->isEnabled())
+    if (!frame->script()->canExecuteScripts())
         return true; // If JavaScript is disabled, a user gesture must have initiated the navigation.
     return frame->script()->processingUserGesture(); // FIXME: Use pageIsProcessingUserGesture.
 }
@@ -2297,6 +2310,8 @@ void FrameLoader::stopAllLoaders(DatabasePolicy databasePolicy)
     if (m_documentLoader)
         m_documentLoader->clearArchiveResources();
 
+    m_checkTimer.stop();
+
     m_inStopAllLoaders = false;    
 }
 
@@ -2520,10 +2535,13 @@ void FrameLoader::transitionToCommitted(PassRefPtr<CachedPage> cachedPage)
         case FrameLoadTypeBack:
         case FrameLoadTypeBackWMLDeckNotAccessible:
         case FrameLoadTypeIndexedBackForward:
-            if (Page* page = m_frame->page())
+            if (Page* page = m_frame->page()) {
                 if (page->backForwardList()) {
                     history()->updateForBackForwardNavigation();
 
+                    if (history()->currentItem())
+                        m_pendingStateObject = history()->currentItem()->stateObject();
+                        
                     // Create a document view for this document, or used the cached view.
                     if (cachedPage) {
                         DocumentLoader* cachedDocumentLoader = cachedPage->documentLoader();
@@ -2534,6 +2552,7 @@ void FrameLoader::transitionToCommitted(PassRefPtr<CachedPage> cachedPage)
                     } else
                         m_client->transitionToCommittedForNewPage();
                 }
+            }
             break;
 
         case FrameLoadTypeReload:
@@ -2658,7 +2677,7 @@ void FrameLoader::open(CachedPage& cachedPage)
     closeURL();
     
     // Delete old status bar messages (if it _was_ activated on last URL).
-    if (m_frame->script()->isEnabled()) {
+    if (m_frame->script()->canExecuteScripts()) {
         m_frame->setJSStatusBarText(String());
         m_frame->setJSDefaultStatusBarText(String());
     }
@@ -2882,6 +2901,9 @@ CachePolicy FrameLoader::subresourceCachePolicy() const
     if (m_loadType == FrameLoadTypeReload)
         return CachePolicyRevalidate;
 
+    if (request.cachePolicy() == ReturnCacheDataElseLoad)
+        return CachePolicyAllowStale;
+
     return CachePolicyVerify;
 }
 
@@ -2920,6 +2942,10 @@ void FrameLoader::checkLoadCompleteForThisFrame()
                 // stopAllLoaders instead of stopLoadingSubframes?
                 stopLoadingSubframes();
                 pdl->stopLoading();
+
+                // If we're in the middle of loading multipart data, we need to restore the document loader.
+                if (isReplacing() && !m_documentLoader.get())
+                    setDocumentLoader(m_provisionalDocumentLoader.get());
 
                 // Finish resetting the load state, but only if another load hasn't been started by the
                 // delegate callback.
@@ -3195,7 +3221,8 @@ void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadTyp
         request.setCachePolicy(ReloadIgnoringCacheData);
         request.setHTTPHeaderField("Cache-Control", "no-cache");
         request.setHTTPHeaderField("Pragma", "no-cache");
-    }
+    } else if (isBackForwardLoadType(loadType) && !request.url().protocolIs("https"))
+        request.setCachePolicy(ReturnCacheDataElseLoad);
     
     if (mainResource)
         request.setHTTPAccept(defaultAcceptHeader);
@@ -3679,9 +3706,6 @@ void FrameLoader::navigateWithinDocument(HistoryItem* item)
     loadInSameDocument(item->url(), item->stateObject(), false);
 
     // Restore user view state from the current history item here since we don't do a normal load.
-    // Even though we just manually set the current history item, this ASSERT verifies nothing 
-    // inside of loadInSameDocument() caused it to change.
-    ASSERT(history()->currentItem() == item);
     history()->restoreScrollPositionAndViewState();
 }
 
@@ -3877,7 +3901,7 @@ void FrameLoader::dispatchDocumentElementAvailable()
 
 void FrameLoader::dispatchDidClearWindowObjectsInAllWorlds()
 {
-    if (!m_frame->script()->isEnabled())
+    if (!m_frame->script()->canExecuteScripts())
         return;
 
     Vector<DOMWrapperWorld*> worlds;
@@ -3888,7 +3912,7 @@ void FrameLoader::dispatchDidClearWindowObjectsInAllWorlds()
 
 void FrameLoader::dispatchDidClearWindowObjectInWorld(DOMWrapperWorld* world)
 {
-    if (!m_frame->script()->isEnabled() || !m_frame->script()->existingWindowShell(world))
+    if (!m_frame->script()->canExecuteScripts() || !m_frame->script()->existingWindowShell(world))
         return;
 
     m_client->dispatchDidClearWindowObjectInWorld(world);
@@ -3916,14 +3940,14 @@ void FrameLoader::updateSandboxFlags()
 
     if (m_sandboxFlags == flags)
         return;
-        
+
     m_sandboxFlags = flags;
 
     m_frame->document()->updateSandboxFlags();
 
     for (Frame* child = m_frame->tree()->firstChild(); child; child = child->tree()->nextSibling())
         child->loader()->updateSandboxFlags();
- }
+}
 
 PassRefPtr<Widget> FrameLoader::createJavaAppletWidget(const IntSize& size, HTMLAppletElement* element, const HashMap<String, String>& args)
 {

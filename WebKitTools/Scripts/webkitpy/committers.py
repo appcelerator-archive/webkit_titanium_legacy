@@ -1,9 +1,9 @@
 # Copyright (c) 2009, Google Inc. All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
 # met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 # notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above
@@ -13,7 +13,7 @@
 #     * Neither the name of Google Inc. nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -28,7 +28,9 @@
 #
 # WebKit's Python module for committer and reviewer validation
 
+
 class Committer:
+
     def __init__(self, name, email_or_emails):
         self.full_name = name
         if isinstance(email_or_emails, str):
@@ -37,21 +39,28 @@ class Committer:
             self.emails = email_or_emails
         self.can_review = False
 
-    # FIXME: We're assuming the first email is a valid bugzilla email, which might not be right.
     def bugzilla_email(self):
+        # FIXME: We're assuming the first email is a valid bugzilla email,
+        # which might not be right.
         return self.emails[0]
 
     def __str__(self):
         return '"%s" <%s>' % (self.full_name, self.emails[0])
 
+
 class Reviewer(Committer):
+
     def __init__(self, name, email_or_emails):
         Committer.__init__(self, name, email_or_emails)
         self.can_review = True
 
-# This is intended as a canonical, machine-readable list of all non-reviewer committers for WebKit.
-# If your name is missing here and you are a committer, please add it.  No review needed.
-# All reviewers are committers, so this list is only of committers who are not reviewers.
+
+# This is intended as a canonical, machine-readable list of all non-reviewer
+# committers for WebKit.  If your name is missing here and you are a committer,
+# please add it.  No review needed.  All reviewers are committers, so this list
+# is only of committers who are not reviewers.
+
+
 committers_unable_to_review = [
     Committer("Aaron Boodman", "aa@chromium.org"),
     Committer("Adam Langley", "agl@chromium.org"),
@@ -70,6 +79,7 @@ committers_unable_to_review = [
     Committer("Brian Weinstein", "bweinstein@apple.com"),
     Committer("Cameron McCormack", "cam@webkit.org"),
     Committer("Chris Fleizach", "cfleizach@apple.com"),
+    Committer("Chris Jerdonek", "cjerdonek@webkit.org"),
     Committer("Chris Marrin", "cmarrin@apple.com"),
     Committer("Chris Petersen", "cpetersen@apple.com"),
     Committer("Christian Dywan", ["christian@twotoasts.de", "christian@webkit.org"]),
@@ -91,6 +101,7 @@ committers_unable_to_review = [
     Committer("Graham Dennis", ["Graham.Dennis@gmail.com", "gdennis@webkit.org"]),
     Committer("Greg Bolsinga", "bolsinga@apple.com"),
     Committer("Hin-Chung Lam", ["hclam@google.com", "hclam@chromium.org"]),
+    Committer("Jakob Petsovits", ["jpetsovits@rim.com", "jpetso@gmx.at"]),
     Committer("Jens Alfke", ["snej@chromium.org", "jens@apple.com"]),
     Committer("Jeremy Moskovich", ["playmobil@google.com", "jeremy@chromium.org"]),
     Committer("Jeremy Orlow", "jorlow@chromium.org"),
@@ -104,6 +115,7 @@ committers_unable_to_review = [
     Committer("Jungshik Shin", "jshin@chromium.org"),
     Committer("Keishi Hattori", "keishi@webkit.org"),
     Committer("Kelly Norton", "knorton@google.com"),
+    Committer("Kenneth Russell", "kbr@google.com"),
     Committer("Kent Tamura", "tkent@chromium.org"),
     Committer("Krzysztof Kowalczyk", "kkowalczyk@gmail.com"),
     Committer("Levi Weintraub", "lweintraub@apple.com"),
@@ -126,23 +138,28 @@ committers_unable_to_review = [
     Committer("Roland Steiner", "rolandsteiner@chromium.org"),
     Committer("Ryosuke Niwa", "rniwa@webkit.org"),
     Committer("Scott Violet", "sky@chromium.org"),
-    Committer("Shinichiro Hamaji", "hamaji@chromium.org"),
     Committer("Stephen White", "senorblanco@chromium.org"),
     Committer("Steve Block", "steveblock@google.com"),
     Committer("Tony Chang", "tony@chromium.org"),
     Committer("Trey Matteson", "trey@usa.net"),
     Committer("Tristan O'Tierney", ["tristan@otierney.net", "tristan@apple.com"]),
+    Committer("Victor Wang", "victorw@chromium.org"),
     Committer("William Siegrist", "wsiegrist@apple.com"),
     Committer("Yael Aharon", "yael.aharon@nokia.com"),
     Committer("Yaar Schnitman", ["yaar@chromium.org", "yaar@google.com"]),
     Committer("Yong Li", ["yong.li@torchmobile.com", "yong.li.webkit@gmail.com"]),
     Committer("Yongjun Zhang", "yongjun.zhang@nokia.com"),
     Committer("Yury Semikhatsky", "yurys@chromium.org"),
+    Committer("Zoltan Herczeg", "zherczeg@webkit.org"),
     Committer("Zoltan Horvath", "zoltan@webkit.org"),
 ]
 
-# This is intended as a canonical, machine-readable list of all reviewers for WebKit.
-# If your name is missing here and you are a reviewer, please add it.  No review needed.
+
+# This is intended as a canonical, machine-readable list of all reviewers for
+# WebKit.  If your name is missing here and you are a reviewer, please add it.
+# No review needed.
+
+
 reviewers_list = [
     Reviewer("Ada Chan", "adachan@apple.com"),
     Reviewer("Adam Barth", "abarth@webkit.org"),
@@ -196,8 +213,9 @@ reviewers_list = [
     Reviewer("Richard Williamson", "rjw@apple.com"),
     Reviewer("Rob Buis", ["rwlbuis@gmail.com", "rwlbuis@webkit.org"]),
     Reviewer("Sam Weinig", ["sam@webkit.org", "weinig@apple.com"]),
+    Reviewer("Shinichiro Hamaji", "hamaji@chromium.org"),
     Reviewer("Simon Fraser", "simon.fraser@apple.com"),
-    Reviewer("Simon Hausmann", ["hausmann@webkit.org", "hausmann@kde.org"]),
+    Reviewer("Simon Hausmann", ["hausmann@webkit.org", "hausmann@kde.org", "simon.hausmann@nokia.com"]),
     Reviewer("Stephanie Lewis", "slewis@apple.com"),
     Reviewer("Steve Falkenburg", "sfalken@apple.com"),
     Reviewer("Tim Omernick", "timo@apple.com"),
@@ -210,8 +228,12 @@ reviewers_list = [
 
 
 class CommitterList:
+
     # Committers and reviewers are passed in to allow easy testing
-    def __init__(self, committers=committers_unable_to_review, reviewers=reviewers_list):
+
+    def __init__(self,
+                 committers=committers_unable_to_review,
+                 reviewers=reviewers_list):
         self._committers = committers + reviewers
         self._reviewers = reviewers
         self._committers_by_email = {}

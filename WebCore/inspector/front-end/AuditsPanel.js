@@ -193,7 +193,7 @@ WebInspector.AuditsPanel.prototype = {
             InspectorBackend.enableResourceTracking(false);
             this._updateLauncherViewControls();
         } else
-            InjectedScriptAccess.evaluate("window.location.reload()", nullCallback);
+            InjectedScriptAccess.getDefault().evaluate("window.location.reload()", nullCallback);
     },
 
     _didMainResourceLoad: function()
@@ -247,13 +247,6 @@ WebInspector.AuditsPanel.prototype = {
         WebInspector.Panel.prototype.attach.call(this);
 
         this.auditsItemTreeElement.select();
-    },
-
-    resize: function()
-    {
-        var visibleView = this.visibleView;
-        if (visibleView && "resize" in visibleView)
-            visibleView.resize();
     },
 
     updateMainViewWidth: function(width)

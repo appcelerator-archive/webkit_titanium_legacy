@@ -48,6 +48,9 @@ static const char permissionDeniedErrorMessage[] = "User denied Geolocation";
 
 static PassRefPtr<Geoposition> createGeoposition(GeolocationPosition* position)
 {
+    if (!position)
+        return 0;
+    
     RefPtr<Coordinates> coordinates = Coordinates::create(position->latitude(), position->longitude(), position->canProvideAltitude(), position->altitude(), 
                                                           position->accuracy(), position->canProvideAltitudeAccuracy(), position->altitudeAccuracy(),
                                                           position->canProvideHeading(), position->heading(), position->canProvideSpeed(), position->speed());
@@ -107,15 +110,15 @@ void Geolocation::GeoNotifier::timerFired(Timer<GeoNotifier>*)
 {
     m_timer.stop();
 
-    // Cache our pointer to the Geolocation object, as this GeoNotifier object
+    // Protect this GeoNotifier object, since it
     // could be deleted by a call to clearWatch in a callback.
-    Geolocation* geolocation = m_geolocation;
+    RefPtr<GeoNotifier> protect(this);
 
     if (m_fatalError) {
         if (m_errorCallback)
             m_errorCallback->handleEvent(m_fatalError.get());
         // This will cause this notifier to be deleted.
-        geolocation->fatalErrorOccurred(this);
+        m_geolocation->fatalErrorOccurred(this);
         return;
     }
 
@@ -123,7 +126,7 @@ void Geolocation::GeoNotifier::timerFired(Timer<GeoNotifier>*)
         RefPtr<PositionError> error = PositionError::create(PositionError::TIMEOUT, "Timeout expired");
         m_errorCallback->handleEvent(error.get());
     }
-    geolocation->requestTimedOut(this);
+    m_geolocation->requestTimedOut(this);
 }
 
 void Geolocation::Watchers::set(int id, PassRefPtr<GeoNotifier> prpNotifier)
@@ -276,6 +279,22 @@ void Geolocation::clearWatch(int watchId)
     
     if (!hasListeners())
         stopUpdating();
+}
+
+void Geolocation::suspend()
+{
+#if !ENABLE(CLIENT_BASED_GEOLOCATION)
+    if (hasListeners())
+        m_service->suspend();
+#endif
+}
+
+void Geolocation::resume()
+{
+#if !ENABLE(CLIENT_BASED_GEOLOCATION)
+    if (hasListeners())
+        m_service->resume();
+#endif
 }
 
 void Geolocation::setIsAllowed(bool allowed)

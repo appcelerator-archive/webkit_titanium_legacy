@@ -277,7 +277,7 @@ JSValue ObjcInstance::invokeMethod(ExecState* exec, const MethodList &methodList
 
     if (*type != 'v') {
         [invocation getReturnValue:buffer];
-        result = convertObjcValueToValue(exec, buffer, objcValueType, _rootObject.get());
+        result = convertObjcValueToValue(exec, buffer, objcValueType, m_rootObject.get());
     }
 } @catch(NSException* localException) {
 }
@@ -329,7 +329,7 @@ JSValue ObjcInstance::invokeDefaultMethod(ExecState* exec, const ArgList &args)
     // OK with 32 here.
     char buffer[32];
     [invocation getReturnValue:buffer];
-    result = convertObjcValueToValue(exec, buffer, objcValueType, _rootObject.get());
+    result = convertObjcValueToValue(exec, buffer, objcValueType, m_rootObject.get());
 } @catch(NSException* localException) {
 }
     moveGlobalExceptionToExecState(exec);
@@ -348,7 +348,7 @@ bool ObjcInstance::setValueOfUndefinedField(ExecState* exec, const Identifier& p
     JSLock::DropAllLocks dropAllLocks(SilenceAssertionsOnly); // Can't put this inside the @try scope because it unwinds incorrectly.
 
     // This check is not really necessary because NSObject implements
-    // setValue:forUndefinedKey:, and unfortnately the default implementation
+    // setValue:forUndefinedKey:, and unfortunately the default implementation
     // throws an exception.
     if ([targetObject respondsToSelector:@selector(setValue:forUndefinedKey:)]){
         setGlobalException(nil);
@@ -376,14 +376,14 @@ JSValue ObjcInstance::getValueOfUndefinedField(ExecState* exec, const Identifier
     JSLock::DropAllLocks dropAllLocks(SilenceAssertionsOnly); // Can't put this inside the @try scope because it unwinds incorrectly.
 
     // This check is not really necessary because NSObject implements
-    // valueForUndefinedKey:, and unfortnately the default implementation
+    // valueForUndefinedKey:, and unfortunately the default implementation
     // throws an exception.
     if ([targetObject respondsToSelector:@selector(valueForUndefinedKey:)]){
         setGlobalException(nil);
     
         @try {
             id objcValue = [targetObject valueForUndefinedKey:[NSString stringWithCString:property.ascii() encoding:NSASCIIStringEncoding]];
-            result = convertObjcValueToValue(exec, &objcValue, ObjcObjectType, _rootObject.get());
+            result = convertObjcValueToValue(exec, &objcValue, ObjcObjectType, m_rootObject.get());
         } @catch(NSException* localException) {
             // Do nothing.  Class did not override valueForUndefinedKey:.
         }

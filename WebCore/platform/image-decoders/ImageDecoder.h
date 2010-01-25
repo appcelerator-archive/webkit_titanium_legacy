@@ -199,13 +199,11 @@ namespace WebCore {
         // biggest size that decoded images can have. Image decoders will deflate those
         // images that are bigger than m_maxNumPixels. (Not supported by all image decoders yet)
         ImageDecoder()
-            : m_failed(false)
+            : m_scaled(false)
+            , m_failed(false)
             , m_sizeAvailable(false)
             , m_isAllDataReceived(false)
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
             , m_maxNumPixels(-1)
-            , m_scaled(false)
-#endif
         {
         }
 
@@ -242,6 +240,11 @@ namespace WebCore {
             // Requesting the size of an invalid bitmap is meaningless.
             ASSERT(!m_failed);
             return m_size;
+        }
+
+        IntSize scaledSize() const
+        {
+            return m_scaled ? IntSize(m_scaledColumns.size(), m_scaledRows.size()) : size();
         }
 
         // Returns the size of frame |index|.  This will only differ from size()
@@ -302,20 +305,17 @@ namespace WebCore {
 #endif
 
     protected:
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
         void prepareScaleDataIfNecessary();
         int upperBoundScaledX(int origX, int searchStart = 0);
         int lowerBoundScaledX(int origX, int searchStart = 0);
+        int upperBoundScaledY(int origY, int searchStart = 0);
+        int lowerBoundScaledY(int origY, int searchStart = 0);
         int scaledY(int origY, int searchStart = 0);
-#endif
 
         RefPtr<SharedBuffer> m_data; // The encoded data.
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
-        int m_maxNumPixels;
         Vector<int> m_scaledColumns;
         Vector<int> m_scaledRows;
         bool m_scaled;
-#endif
         Vector<RGBA32Buffer> m_frameBufferCache;
         bool m_failed;
 
@@ -334,6 +334,7 @@ namespace WebCore {
         IntSize m_size;
         bool m_sizeAvailable;
         bool m_isAllDataReceived;
+        int m_maxNumPixels;
     };
 
 } // namespace WebCore

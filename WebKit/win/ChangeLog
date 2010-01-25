@@ -1,3 +1,277 @@
+2010-01-23  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        <rdar://problem/7569820> svg/custom/text-zoom.xhtml fails on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=34006
+
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings): Added WebKitZoomsTextOnlyPreferenceKey
+        with a default value of true.
+
+2010-01-20  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Add missing implementation for WebGeolocationPosition::initWithTimestamp.
+
+        * WebGeolocationPosition.cpp:
+        (WebGeolocationPosition::initWithTimestamp): Implemented.
+
+2010-01-20  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: accSelect() is not implemented
+
+        https://bugs.webkit.org/show_bug.cgi?id=33918
+        <rdar://problem/7436861>
+
+        Reviewed by Darin Adler.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::accSelect):
+        If there is an invalid combination of state flags, return early. If the
+        caller passed the "take focus" flag, focus the object. If the "take
+        selection" flag was passed, check whether the parent object is an
+        AccessibilityListBox; if so, call the object's setSelectedChildren()
+        function. If the parent is an AccessibilityMenuListPopup, call the
+        child object's setSelected() function. Otherwise, if the parent is some
+        other, unsupported object, return early.
+        If the selection flags include "add", "remove", or "extend" selection,
+        and the parent object is not multi-selectable, return early. Otherwise,
+        set or unset the child's selected flag based on the passed flag.
+
+2010-01-20  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Darin Adler and Adam Roben.
+
+        Feature defines are difficult to maintain on Windows builds
+        https://bugs.webkit.org/show_bug.cgi?id=33883
+
+        FeatureDefines.vsprops are now maintained in a way similar to
+        Configurations/FeatureDefines.xcconfig, with the added advantage
+        of having a single FeatureDefines file across all projects.
+
+        * WebKit.vcproj/Interfaces.vcproj: Add FeatureDefines.vsprops inherited property sheet.
+        * WebKit.vcproj/WebKit.sln: Set up Cairo configuration for WebCoreGenerated.
+        * WebKit.vcproj/WebKit.vcproj: Remove ENABLE_ preprocessor definitions.
+        Add FeatureDefines.vsprops inherited property sheet.
+        * WebKit.vcproj/WebKitGUID.vcproj: Add FeatureDefines.vsprops inherited property sheet.
+
+2010-01-17  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: The child <option> elements of a non-multiple <select> are not
+        exposed
+
+        https://bugs.webkit.org/show_bug.cgi?id=33773
+        <rdar://problem/7550556>
+
+        Reviewed by Alice Liu.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::get_accState):
+        If the object is invisible, set the invisible state flag. If the object
+        is collapsed, set the collapsed state. If the object is a combo box,
+        set the has popup flag, and if it's not collapsed, set the expanded
+        flag.
+        (MSAARole):
+        Add new WebCore to MSAA role mappings.
+
+        * WebCoreLocalizedStrings.cpp:
+        (WebCore::AXMenuListActionVerb):
+        Return the action verb that Firefox uses for <select> elements with
+        popups.
+        (WebCore::AXMenuListPopupActionVerb):
+        Return the verb that Firefox uses for a popup list.
+
+2010-01-19  John Sullivan  <sullivan@apple.com>
+
+        https://bugs.webkit.org/show_bug.cgi?id=33854
+        Would like a variant of WebHTMLRepresentation's searchForLabelsBeforeElement that returns 
+        more info about where the result was found
+
+        Reviewed by Darin Adler
+
+        * Interfaces/IWebHTMLRepresentation.idl:
+        Created variant of searchForLabels that includes additional in/out parameters resultDistance and resultIsInCellAbove.
+        
+        * Interfaces/WebKit.idl:
+        Touched in order to get other idl change to propagate correctly.
+
+        * WebHTMLRepresentation.cpp:
+        (WebHTMLRepresentation::deprecatedSearchForLabels):
+        Renamed since iDL doesn't support two functions with the same name but different signatures.
+        (WebHTMLRepresentation::searchForLabels):
+        Implemented variant of searchForLabels that includes additional in/out parameters resultDistance and resultIsInCellAbove.
+
+        * WebHTMLRepresentation.h:
+        Declared variant of searchForLabels that includes additional in/out parameters resultDistance and resultIsInCellAbove.
+
+2010-01-19  Adam Roben  <aroben@apple.com>
+
+        Windows build fix
+
+        * WebScriptWorld.cpp: Added missing #include.
+
+2010-01-19  Dave Hyatt  <hyatt@apple.com>
+
+        Build bustage fix. Make sure the newly added scriptWorldForGlobalContext function is [local] in the IDL.
+
+        * Interfaces/IWebScriptWorld.idl:
+
+2010-01-19  Dave Hyatt  <hyatt@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Add an API to obtain a WebScriptWorld from a JSGlobalContextRef.
+
+        * Interfaces/IWebScriptWorld.idl:
+        * WebScriptWorld.cpp:
+        (WebScriptWorld::scriptWorldForGlobalContext):
+        * WebScriptWorld.h:
+
+2010-01-18  Adam Roben  <aroben@apple.com>
+
+        Add IWebViewPrivate::setDomainRelaxationForbiddenForURLScheme
+
+        WebKit/win part of fixing <http://webkit.org/b/33806>
+        <rdar://problem/7552837> Would like API to disallow setting of
+        document.domain for pages with certain URL schemes
+
+        Reviewed by Sam Weinig.
+
+        * Interfaces/IWebViewPrivate.idl: Added
+        setDomainRelaxationForbiddenForURLScheme.
+
+        * Interfaces/WebKit.idl: Touched to force a build.
+
+        * WebView.cpp:
+        (WebView::setDomainRelaxationForbiddenForURLScheme):
+        * WebView.h:
+        Added. Calls through to SecurityOrigin.
+
+2010-01-18  Chris Marrin  <cmarrin@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Use new setScrollFrame API
+        https://bugs.webkit.org/show_bug.cgi?id=32279
+
+        * WebView.cpp:
+        (WebView::updateRootLayerContents):
+
+2010-01-15  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Screen rect for <option> elements is always the zero rect
+
+        https://bugs.webkit.org/show_bug.cgi?id=33758
+
+        Reviewed by Oliver Hunt.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::accLocation):
+        Use elementRect() rather than boundingBoxRect(), which
+        AccessibilityListBoxOption overrides.
+
+2010-01-15  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        get_accParent should try to retrieve parent AccessibilityObject, before
+        calling upon window
+
+        https://bugs.webkit.org/show_bug.cgi?id=22893
+
+        Reviewed by Darin Adler.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::get_accParent):
+        If the object has a parent object, return it. If not, return the
+        accessible for the WebView window.
+
+2010-01-12  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: selected, selectable, extended selectable, and multiple
+        selectable states are not reported
+
+        https://bugs.webkit.org/show_bug.cgi?id=33574
+        <rdar://problem/7536826>
+
+        Reviewed by Darin Adler.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::get_accState):
+        Remove the call to isMultiSelect(). Call the correctly-named
+        isMultiSelectable(), and if it returns true, set both the "extended
+        selectable" and "multiple selectable" states. Check whether the object
+        is selected or selectable, and report those states.
+
+2010-01-13  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Add additional Geolocation interfaces in WebKit for Windows.
+
+        * Interfaces/IWebGeolocationPolicyListener.idl: Added.
+        * Interfaces/IWebUIDelegatePrivate.idl: Add decidePolicyForGeolocationRequest to IWebUIDelegatePrivate2.
+        Append since this version hasn't shipped.
+        * Interfaces/WebKit.idl: Add include of IWebGeolocationPolicyListener.idl.
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::requestGeolocationPermissionForFrame): Call into decidePolicyForGeolocationRequest.
+        * WebCoreSupport/WebGeolocationControllerClient.cpp:
+        (WebGeolocationControllerClient::WebGeolocationControllerClient): Moved *.
+        * WebGeolocationPolicyListener.cpp: Added.
+        * WebGeolocationPolicyListener.h: Added.
+        * WebKit.vcproj/Interfaces.vcproj: Added IWebGeolocationPolicyListener.
+        * WebKit.vcproj/WebKit.vcproj: Added WebGeolocationPolicyListener, WebGeolocationPolicyListener.
+        * WebView.cpp:
+        (WebView::setGeolocationProvider): Removed extraneous STDMETHODCALLTYPE.
+        (WebView::geolocationProvider): Removed extraneous STDMETHODCALLTYPE.
+        (WebView::geolocationDidChangePosition): Removed extraneous STDMETHODCALLTYPE.
+        (WebView::geolocationDidFailWithError): Removed extraneous STDMETHODCALLTYPE.
+
+2010-01-12  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Adam Roben, Sam Weinig.
+
+        Add Geolocation interfaces in WebKit for Windows.
+
+        * ForEachCoClass.h: Added WebGeolocationPosition.
+        * Interfaces/IWebError.idl:
+        * Interfaces/IWebGeolocationPosition.idl: Added.
+        * Interfaces/IWebGeolocationProvider.idl: Added.
+        * Interfaces/IWebViewPrivate.idl:
+        * Interfaces/WebKit.idl:
+        * WebCoreSupport/WebGeolocationControllerClient.cpp: Added.
+        (WebGeolocationControllerClient::WebGeolocationControllerClient):
+        (WebGeolocationControllerClient::startUpdating):
+        (WebGeolocationControllerClient::stopUpdating):
+        (WebGeolocationControllerClient::lastPosition):
+        * WebCoreSupport/WebGeolocationControllerClient.h: Added.
+        * WebGeolocationPosition.cpp: Added IWebGeolocationPosition implementation.
+        * WebGeolocationPosition.h: Added IWebGeolocationPosition implementation.
+        * WebKit.vcproj/Interfaces.vcproj: Added IWebGeolocationPosition.idl, IWebGeolocationProvider.idl,
+        relocated JavaScriptCoreAPITypes.idl, WebScrollbarTypes.idl
+        * WebKit.vcproj/WebKit.vcproj: Added WebGeolocationPosition.h/.cpp, WebGeolocationControllerClient.h/cpp,        
+        * WebKitClassFactory.cpp: Add WebGeolocationPosition include.
+        * WebView.cpp:
+        (WebView::initWithFrame): Create WebGeolocationControllerClient if Geolocation is enabled.
+        (WebView::setGeolocationProvider): Added Geolocation-specific method.
+        (WebView::geolocationProvider): Added Geolocation-specific method.
+        (WebView::geolocationDidChangePosition): Added Geolocation-specific method.
+        (WebView::geolocationDidFailWithError): Added Geolocation-specific method.
+        * WebView.h: Added setGeolocationProvider, geolocationProvider, geolocationDidChangePosition, geolocationDidFailWithError.
+
+2010-01-11  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of <select multiple> elements is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=33522
+
+        Reviewed by Darin Adler.
+
+        * AccessibleBase.cpp:
+        (MSAARole):
+        Map the WebCore::ListBox and WebCore::ListBoxOption roles to the MSAA
+        "list" and "list item" roles.
+
 2010-01-08  Brent Fulgham  <bfulgham@webkit.org>
 
         Build fix, no review.

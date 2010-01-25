@@ -52,22 +52,22 @@
     const expectedValues = [
       // [time, element-id, property, expected-value, tolerance]
       // color and width of each side should be animating
-      [0.5, 'box', 'border-top-color', [128, 0, 128], 15],
-      [0.5, 'box', 'border-right-color', [128, 0, 128], 15],
-      [0.5, 'box', 'border-bottom-color', [128, 0, 128], 15],
-      [0.5, 'box', 'border-left-color', [128, 0, 128], 15],
-      [0.5, 'box', 'border-top-width', 10, 1],
-      [0.5, 'box', 'border-right-width', 10, 1],
-      [0.5, 'box', 'border-bottom-width', 10, 1],
-      [0.5, 'box', 'border-left-width', 10, 1],
+      [0.5, 'box', 'border-top-color', [128, 0, 128], 30],
+      [0.5, 'box', 'border-right-color', [128, 0, 128], 30],
+      [0.5, 'box', 'border-bottom-color', [128, 0, 128], 30],
+      [0.5, 'box', 'border-left-color', [128, 0, 128], 30],
+      [0.5, 'box', 'border-top-width', 10, 2],
+      [0.5, 'box', 'border-right-width', 10, 2],
+      [0.5, 'box', 'border-bottom-width', 10, 2],
+      [0.5, 'box', 'border-left-width', 10, 2],
 
       // only border-width should be animating
-      [0.5, 'box1', 'border-top-width', 10, 1],
+      [0.5, 'box1', 'border-top-width', 10, 2],
       [0.5, 'box1', 'border-top-color', [255, 0, 255], 0],  // initial value
 
       // border-width should be animating
-      [0.5, 'box2', 'border-top-width', 10, 1],
-      [0.5, 'box2', 'border-bottom-width', 20, 2],
+      [0.5, 'box2', 'border-top-width', 10, 2],
+      [0.5, 'box2', 'border-bottom-width', 20, 4],
     ];
     
     function setupTest()

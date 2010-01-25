@@ -154,7 +154,7 @@ WebInspector.ScriptsPanel = function()
     this.enableToggleButton = new WebInspector.StatusBarButton("", "enable-toggle-status-bar-item");
     this.enableToggleButton.addEventListener("click", this._toggleDebugging.bind(this), false);
 
-    this.pauseOnExceptionButton = new WebInspector.StatusBarButton("", "scripts-pause-on-exceptions-status-bar-item");
+    this.pauseOnExceptionButton = new WebInspector.StatusBarButton("", "scripts-pause-on-exceptions-status-bar-item", 3);
     this.pauseOnExceptionButton.addEventListener("click", this._togglePauseOnExceptions.bind(this), false);
 
     this._breakpointsURLMap = {};
@@ -194,6 +194,13 @@ WebInspector.ScriptsPanel = function()
     this.reset();
 }
 
+// Keep these in sync with WebCore::JavaScriptDebugServer
+WebInspector.ScriptsPanel.PauseOnExceptionsState = {
+    DontPauseOnExceptions : 0,
+    PauseOnAllExceptions : 1,
+    PauseOnUncaughtExceptions: 2
+};
+
 WebInspector.ScriptsPanel.prototype = {
     toolbarItemClass: "scripts",
 
@@ -227,7 +234,6 @@ WebInspector.ScriptsPanel.prototype = {
                 this.visibleView.headersVisible = false;
             this.visibleView.show(this.viewsContainerElement);
         }
-
         // Hide any views that are visible that are not this panel's current visible view.
         // This can happen when a ResourceView is visible in the Resources panel then switched
         // to the this panel.
@@ -400,7 +406,7 @@ WebInspector.ScriptsPanel.prototype = {
             if (result)
                 callback(result.value, result.isException);
         }
-        InjectedScriptAccess.evaluateInCallFrame(callFrame.id, code, objectGroup, evalCallback);
+        InjectedScriptAccess.get(callFrame.injectedScriptId).evaluateInCallFrame(callFrame.id, code, objectGroup, evalCallback);
     },
 
     debuggerPaused: function(callFrames)
@@ -604,7 +610,7 @@ WebInspector.ScriptsPanel.prototype = {
             if (!WebInspector.panels.resources)
                 return null;
             view = WebInspector.panels.resources.resourceViewForResource(scriptOrResource);
-            view.headersVisible = false;
+            view.headersVisible = false; 
 
             if (scriptOrResource.url in this._breakpointsURLMap) {
                 var sourceFrame = this._sourceFrameForScriptOrResource(scriptOrResource);
@@ -795,16 +801,18 @@ WebInspector.ScriptsPanel.prototype = {
 
         event.preventDefault();
     },
-
+    
     _updatePauseOnExceptionsButton: function()
     {
-        if (InspectorBackend.pauseOnExceptions()) {
-            this.pauseOnExceptionButton.title = WebInspector.UIString("Don't pause on exceptions.");
-            this.pauseOnExceptionButton.toggled = true;
-        } else {
-            this.pauseOnExceptionButton.title = WebInspector.UIString("Pause on exceptions.");
-            this.pauseOnExceptionButton.toggled = false;
-        }
+        if (InspectorBackend.pauseOnExceptionsState() == WebInspector.ScriptsPanel.PauseOnExceptionsState.DontPauseOnExceptions)
+            this.pauseOnExceptionButton.title = WebInspector.UIString("Don't pause on exceptions.\nClick to Pause on all exceptions.");
+        else if (InspectorBackend.pauseOnExceptionsState() == WebInspector.ScriptsPanel.PauseOnExceptionsState.PauseOnAllExceptions)
+            this.pauseOnExceptionButton.title = WebInspector.UIString("Pause on all exceptions.\nClick to Pause on uncaught exceptions.");
+        else if (InspectorBackend.pauseOnExceptionsState() == WebInspector.ScriptsPanel.PauseOnExceptionsState.PauseOnUncaughtExceptions)
+            this.pauseOnExceptionButton.title = WebInspector.UIString("Pause on uncaught exceptions.\nClick to Not pause on exceptions.");
+        
+        this.pauseOnExceptionButton.state = InspectorBackend.pauseOnExceptionsState();
+        
     },
 
     _updateDebuggerButtons: function()
@@ -907,7 +915,7 @@ WebInspector.ScriptsPanel.prototype = {
 
     _togglePauseOnExceptions: function()
     {
-        InspectorBackend.setPauseOnExceptions(!InspectorBackend.pauseOnExceptions());
+        InspectorBackend.setPauseOnExceptionsState((InspectorBackend.pauseOnExceptionsState() + 1) % this.pauseOnExceptionButton.states);
         this._updatePauseOnExceptionsButton();
     },
 

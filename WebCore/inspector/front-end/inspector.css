@@ -366,6 +366,14 @@ button.status-bar-item.toggled-on .glyph {
     background-color: rgb(66, 129, 235);
 }
 
+button.status-bar-item.toggled-1 .glyph {
+    background-color: rgb(66, 129, 235);
+}
+
+button.status-bar-item.toggled-2 .glyph {
+    background-color: purple;   
+}
+
 button.status-bar-item:disabled {
     opacity: 0.5;
     background-position: 0 0 !important;
@@ -759,39 +767,55 @@ body.drawer-visible #drawer {
 
 .resource-view {
     display: none;
-    overflow: hidden;
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    overflow: hidden;
 }
 
 .resource-view.visible {
     display: block;
 }
 
-.resource-view.headers-visible {
-    overflow-y: auto;
-    overflow-x: hidden;
+.resource-view .scope-bar {
+    display: none;
+    position: absolute;
+    height: 20px;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgb(236, 236, 236)), to(rgb(217, 217, 217)));
+    border-bottom: 1px solid rgb(163, 163, 163);
+}
+
+.resource-view.headers-visible .scope-bar {
+    display: block;
+}
+
+.resource-view .scope-bar li {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }
 
 .resource-view-headers {
-    display: none;
     padding: 6px;
-    border-bottom: 1px solid rgb(64%, 64%, 64%);
-    background-color: white;
-    -webkit-user-select: text;
+    -webkit-user-select: text;    
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+.resource-view.headers-visible .resource-view-headers {
+    top: 20px;
 }
 
 .resource-view-headers .outline-disclosure .parent {
     -webkit-user-select: none;
     font-weight: bold;
-}
-
-.resource-view.headers-visible .resource-view-headers {
-    display: block;
 }
 
 .resource-view-headers .outline-disclosure .children li {
@@ -832,16 +856,7 @@ body.drawer-visible #drawer {
 }
 
 .resource-view.headers-visible .resource-view-content {
-    position: relative;
-    top: auto;
-    right: auto;
-    left: auto;
-    bottom: auto;
-}
-
-.resource-view.headers-visible .source-view-frame {
-    height: auto;
-    vertical-align: top;
+    top: 20px;
 }
 
 .webkit-line-gutter-backdrop {
@@ -1815,7 +1830,7 @@ li.editing .swatch, li.editing .enabled-button,  li.editing-sub-part .delete-but
 .sidebar {
     position: absolute;
     top: 0;
-    min-height: 100%;
+    bottom: 0;
     left: 0;
     width: 200px;
     overflow-y: auto;
@@ -2256,7 +2271,7 @@ body.inactive .data-grid th.sort-ascending, body.inactive .data-grid th.sort-des
     margin: 0 0 5px 20px;
 }
 
-.panel-enabler-view button, .pane button {
+.panel-enabler-view button:not(.status-bar-item), .pane button {
     color: rgb(6, 6, 6);
     background-color: transparent;
     border: 1px solid rgb(165, 165, 165);
@@ -2266,11 +2281,39 @@ body.inactive .data-grid th.sort-ascending, body.inactive .data-grid th.sort-des
     -webkit-appearance: none;
 }
 
-.panel-enabler-view button {
+.panel-enabler-view button:not(.status-bar-item) {
     font-size: 13px;
     margin: 6px 0 0 0;
     padding: 3px 20px;
     height: 24px;
+}
+
+.panel-enabler-view.welcome {
+    z-index: auto;
+}
+
+.panel-enabler-view.welcome img {
+    height: 90%;
+    min-height: 180px;
+    max-width: 90%;
+}
+
+.panel-enabler-view.welcome .instructions {
+    display: inline-block;
+    vertical-align: middle;
+    width: 330px;
+    margin: 0;
+    padding: 15px;
+    white-space: normal;
+    line-height: 175%;
+}
+
+.panel-enabler-view.welcome .message {
+    margin-bottom: 2ex;
+}
+
+.panel-enabler-view.welcome button.status-bar-item {
+    vertical-align: middle;
 }
 
 .pane button {
@@ -2413,7 +2456,6 @@ button.enable-toggle-status-bar-item.toggled-on .glyph {
 
 #script-resource-views {
     display: block;
-    overflow: auto;
     padding: 0;
     position: absolute;
     top: 23px;
@@ -3285,6 +3327,8 @@ body.inactive .sidebar-tree-item.selected .bubble.search-matches {
 .timeline .sidebar {
     overflow-y: hidden;
     z-index: 100;
+    min-height: 100%;
+    bottom: auto;
 }
 
 #timeline-overview-separator {
@@ -3728,6 +3772,12 @@ ol.breakpoint-list {
     text-overflow: ellipsis;
     overflow: hidden;
     margin: 4px 0;
+    color: rgb(33%, 33%, 33%);
+    cursor: pointer;
+}
+
+.breakpoint-list li:hover {
+    color: rgb(15%, 15%, 15%);
 }
 
 .breakpoint-list .checkbox-elem {
@@ -3744,15 +3794,6 @@ ol.breakpoint-list {
     text-overflow: ellipsis;
     overflow: hidden;
     margin: 2px 0 0px 20px;
-}
-
-.breakpoint-list a {
-    color: rgb(33%, 33%, 33%);
-    cursor: pointer;
-}
-
-.breakpoint-list a:hover {
-    color: rgb(15%, 15%, 15%);
 }
 
 .webkit-html-js-node, .webkit-html-css-node {
@@ -3788,8 +3829,12 @@ ol.breakpoint-list {
     overflow: auto;
 }
 
-.text-editor-sheet {
+.text-editor-clip {
     opacity: 0;
+    position: absolute;
+    top:0;
+    left:0;
+    pointer-events: none;
 }
 
 .text-editor-cursor {

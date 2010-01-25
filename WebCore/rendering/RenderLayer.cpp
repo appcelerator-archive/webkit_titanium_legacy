@@ -657,6 +657,12 @@ static inline bool isPositionedContainer(RenderLayer* layer)
     return o->isRenderView() || o->isPositioned() || o->isRelPositioned() || layer->hasTransform();
 }
 
+static inline bool isFixedPositionedContainer(RenderLayer* layer)
+{
+    RenderObject* o = layer->renderer();
+    return o->isRenderView() || layer->hasTransform();
+}
+
 RenderLayer* RenderLayer::enclosingPositionedAncestor() const
 {
     RenderLayer* curr = parent();
@@ -986,9 +992,10 @@ RenderLayer::convertToLayerCoords(const RenderLayer* ancestorLayer, int& xPos, i
 {
     if (ancestorLayer == this)
         return;
-        
-    if (renderer()->style()->position() == FixedPosition) {
-        // Add in the offset of the view.  We can obtain this by calling
+
+    EPosition position = renderer()->style()->position();
+    if (position == FixedPosition && (!ancestorLayer || ancestorLayer == renderer()->view()->layer())) {
+        // If the fixed layer's container is the root, just add in the offset of the view. We can obtain this by calling
         // localToAbsolute() on the RenderView.
         FloatPoint absPos = renderer()->localToAbsolute(FloatPoint(), true);
         xPos += absPos.x();
@@ -996,9 +1003,43 @@ RenderLayer::convertToLayerCoords(const RenderLayer* ancestorLayer, int& xPos, i
         return;
     }
  
+    if (position == FixedPosition) {
+        // For a fixed layers, we need to walk up to the root to see if there's a fixed position container
+        // (e.g. a transformed layer). It's an error to call convertToLayerCoords() across a layer with a transform,
+        // so we should always find the ancestor at or before we find the fixed position container.
+        RenderLayer* fixedPositionContainerLayer = 0;
+        bool foundAncestor = false;
+        for (RenderLayer* currLayer = parent(); currLayer; currLayer = currLayer->parent()) {
+            if (currLayer == ancestorLayer)
+                foundAncestor = true;
+
+            if (isFixedPositionedContainer(currLayer)) {
+                fixedPositionContainerLayer = currLayer;
+                ASSERT(foundAncestor);
+                break;
+            }
+        }
+        
+        ASSERT(fixedPositionContainerLayer); // We should have hit the RenderView's layer at least.
+
+        if (fixedPositionContainerLayer != ancestorLayer) {
+            int fixedContainerX = 0;
+            int fixedContainerY = 0;
+            convertToLayerCoords(fixedPositionContainerLayer, fixedContainerX, fixedContainerY);
+            
+            int ancestorX = 0;
+            int ancestorY = 0;
+            ancestorLayer->convertToLayerCoords(fixedPositionContainerLayer, ancestorX, ancestorY);
+        
+            xPos += (fixedContainerX - ancestorX);
+            yPos += (fixedContainerY - ancestorY);
+            return;
+        }
+    }
+    
     RenderLayer* parentLayer;
-    if (renderer()->style()->position() == AbsolutePosition) {
-        // Do what enclosingPositionedAncestor() does, but check for ancestorLayer along the way
+    if (position == AbsolutePosition || position == FixedPosition) {
+        // Do what enclosingPositionedAncestor() does, but check for ancestorLayer along the way.
         parentLayer = parent();
         bool foundAncestorFirst = false;
         while (parentLayer) {
@@ -1114,7 +1155,7 @@ void RenderLayer::scrollByRecursively(int xDelta, int yDelta)
                 frame->eventHandler()->updateAutoscrollRenderer();
         }
     } else if (renderer()->view()->frameView()) {
-        // If we are here, we were called on a renderer that can be programatically scrolled, but doesn't
+        // If we are here, we were called on a renderer that can be programmatically scrolled, but doesn't
         // have an overflow clip. Which means that it is a document node that can be scrolled.
         renderer()->view()->frameView()->scrollBy(IntSize(xDelta, yDelta));
         // FIXME: If we didn't scroll the whole way, do we want to try looking at the frames ownerElement? 
@@ -1891,8 +1932,7 @@ RenderLayer::updateScrollInfoAfterLayout()
     // Set up the range (and page step/line step).
     if (m_hBar) {
         int clientWidth = box->clientWidth();
-        int pageStep = (clientWidth - cAmountToKeepWhenPaging);
-        if (pageStep < 0) pageStep = clientWidth;
+        int pageStep = max(clientWidth * cFractionToStepWhenPaging, 1.f);
         m_hBar->setSteps(cScrollbarPixelsPerLineStep, pageStep);
         m_hBar->setProportion(clientWidth, m_scrollWidth);
         // Explicitly set the horizontal scroll value.  This ensures that when a
@@ -1907,8 +1947,7 @@ RenderLayer::updateScrollInfoAfterLayout()
     }
     if (m_vBar) {
         int clientHeight = box->clientHeight();
-        int pageStep = (clientHeight - cAmountToKeepWhenPaging);
-        if (pageStep < 0) pageStep = clientHeight;
+        int pageStep = max(clientHeight * cFractionToStepWhenPaging, 1.f);
         m_vBar->setSteps(cScrollbarPixelsPerLineStep, pageStep);
         m_vBar->setProportion(clientHeight, m_scrollHeight);
     }
@@ -2236,7 +2275,7 @@ void RenderLayer::paintLayer(RenderLayer* rootLayer, GraphicsContext* p,
     // If this layer's renderer is a child of the paintingRoot, we render unconditionally, which
     // is done by passing a nil paintingRoot down to our renderer (as if no paintingRoot was ever set).
     // Else, our renderer tree may or may not contain the painting root, so we pass that root along
-    // so it will be tested against as we decend through the renderers.
+    // so it will be tested against as we descend through the renderers.
     RenderObject* paintingRootForRenderer = 0;
     if (paintingRoot && !renderer()->isDescendantOf(paintingRoot))
         paintingRootForRenderer = paintingRoot;
@@ -2606,7 +2645,7 @@ RenderLayer* RenderLayer::hitTestLayer(RenderLayer* rootLayer, RenderLayer* cont
 
     // Next we want to see if the mouse pos is inside the child RenderObjects of the layer.
     if (fgRect.contains(hitTestPoint) && isSelfPaintingLayer()) {
-        // Hit test with a temporary HitTestResult, because we onlyl want to commit to 'result' if we know we're frontmost.
+        // Hit test with a temporary HitTestResult, because we only want to commit to 'result' if we know we're frontmost.
         HitTestResult tempResult(result.point());
         if (hitTestContents(request, tempResult, layerBounds, hitTestPoint, HitTestDescendants) &&
             isHitCandidate(this, false, zOffsetForContentsPtr, unflattenedTransformState.get())) {
@@ -3302,7 +3341,7 @@ void RenderLayer::repaintIncludingNonCompositingDescendants(RenderBoxModelObject
 
 bool RenderLayer::shouldBeNormalFlowOnly() const
 {
-    return (renderer()->hasOverflowClip() || renderer()->hasReflection() || renderer()->hasMask() || renderer()->isVideo()) &&
+    return (renderer()->hasOverflowClip() || renderer()->hasReflection() || renderer()->hasMask() || renderer()->isVideo() || renderer()->isEmbeddedObject()) &&
            !renderer()->isPositioned() &&
            !renderer()->isRelPositioned() &&
            !renderer()->hasTransform() &&
@@ -3311,7 +3350,7 @@ bool RenderLayer::shouldBeNormalFlowOnly() const
 
 bool RenderLayer::isSelfPaintingLayer() const
 {
-    return !isNormalFlowOnly() || renderer()->hasReflection() || renderer()->hasMask() || renderer()->isTableRow() || renderer()->isVideo();
+    return !isNormalFlowOnly() || renderer()->hasReflection() || renderer()->hasMask() || renderer()->isTableRow() || renderer()->isVideo() || renderer()->isEmbeddedObject();
 }
 
 void RenderLayer::styleChanged(StyleDifference diff, const RenderStyle*)

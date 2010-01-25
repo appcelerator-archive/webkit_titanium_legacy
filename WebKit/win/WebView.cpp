@@ -43,6 +43,8 @@
 #include "WebEditorClient.h"
 #include "WebElementPropertyBag.h"
 #include "WebFrame.h"
+#include "WebGeolocationControllerClient.h"
+#include "WebGeolocationPosition.h"
 #include "WebIconDatabase.h"
 #include "WebInspector.h"
 #include "WebInspectorClient.h"
@@ -122,6 +124,11 @@
 #include <WebCore/SimpleFontData.h>
 #include <WebCore/TypingCommand.h>
 #include <WebCore/WindowMessageBroadcaster.h>
+
+#if ENABLE(CLIENT_BASED_GEOLOCATION)
+#include <WebCore/GeolocationController.h>
+#include <WebCore/GeolocationError.h>
+#endif
 
 #if PLATFORM(CG)
 #include <CoreGraphics/CGContext.h>
@@ -2431,12 +2438,19 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
         Settings::setShouldPaintNativeControls(shouldPaintNativeControls);
 #endif
 
+#if ENABLE(CLIENT_BASED_GEOLOCATION)
+    WebGeolocationControllerClient* geolocationControllerClient = new WebGeolocationControllerClient(this);
+#else
+    WebGeolocationControllerClient* geolocationControllerClient = 0;
+#endif
+
     m_webInspectorClient = new WebInspectorClient(this);
+
     BOOL useHighResolutionTimer;
     if (SUCCEEDED(m_preferences->shouldUseHighResolutionTimers(&useHighResolutionTimer)))
         Settings::setShouldUseHighResolutionTimers(useHighResolutionTimer);
 
-    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this), 0);
+    m_page = new Page(new WebChromeClient(this), new WebContextMenuClient(this), new WebEditorClient(this), new WebDragClient(this), m_webInspectorClient, new WebPluginHalterClient(this), 0, geolocationControllerclient);
 
     BSTR localStoragePath;
     if (SUCCEEDED(m_preferences->localStorageDatabasePath(&localStoragePath))) {
@@ -6008,8 +6022,7 @@ void WebView::updateRootLayerContents()
         return;
     FrameView* frameView = coreFrame->view();
 
-    m_layerRenderer->setScrollFrame(frameView->layoutWidth(), frameView->layoutHeight(), 
-                                 frameView->scrollX(), frameView->scrollY());
+    m_layerRenderer->setScrollFrame(IntRect(frameView->scrollX(), frameView->scrollY(), frameView->layoutWidth(), frameView->layoutHeight()));
 }
 #endif
 
@@ -6091,6 +6104,63 @@ HRESULT WebView::hasPluginForNodeBeenHalted(IDOMNode* domNode, BOOL* result)
         return E_FAIL;
 
     *result = view->hasBeenHalted();
+    return S_OK;
+}
+
+HRESULT WebView::setGeolocationProvider(IWebGeolocationProvider* locationProvider)
+{
+    m_geolocationProvider = locationProvider;
+    return S_OK;
+}
+
+HRESULT WebView::geolocationProvider(IWebGeolocationProvider** locationProvider)
+{
+    if (!locationProvider)
+        return E_POINTER;
+
+    if (!m_geolocationProvider)
+        return E_FAIL;
+
+    return m_geolocationProvider.copyRefTo(locationProvider);
+}
+
+HRESULT WebView::geolocationDidChangePosition(IWebGeolocationPosition* position)
+{
+#if ENABLE(CLIENT_BASED_GEOLOCATION)
+    if (!m_page)
+        return E_FAIL;
+    m_page->geolocationController()->positionChanged(core(position));
+    return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
+}
+
+HRESULT WebView::geolocationDidFailWithError(IWebError* error)
+{
+#if ENABLE(CLIENT_BASED_GEOLOCATION)
+    if (!m_page)
+        return E_FAIL;
+    if (!error)
+        return E_POINTER;
+
+    BSTR descriptionBSTR;
+    if (FAILED(error->localizedDescription(&descriptionBSTR)))
+        return E_FAIL;
+    String descriptionString(descriptionBSTR, SysStringLen(descriptionBSTR));
+    SysFreeString(descriptionBSTR);
+
+    RefPtr<GeolocationError> geolocationError = GeolocationError::create(GeolocationError::PositionUnavailable, descriptionString);
+    m_page->geolocationController()->errorOccurred(geolocationError.get());
+    return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
+}
+
+HRESULT WebView::setDomainRelaxationForbiddenForURLScheme(BOOL forbidden, BSTR scheme)
+{
+    SecurityOrigin::setDomainRelaxationForbiddenForURLScheme(forbidden, String(scheme, SysStringLen(scheme)));
     return S_OK;
 }
 

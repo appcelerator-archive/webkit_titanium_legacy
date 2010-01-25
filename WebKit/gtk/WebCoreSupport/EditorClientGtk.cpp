@@ -24,6 +24,7 @@
 #include "EditorClientGtk.h"
 
 #include "CString.h"
+#include "DataObjectGtk.h"
 #include "EditCommand.h"
 #include "Editor.h"
 #include "EventNames.h"
@@ -33,6 +34,7 @@
 #include "KeyboardEvent.h"
 #include "NotImplemented.h"
 #include "Page.h"
+#include "PasteboardHelperGtk.h"
 #include "PlatformKeyboardEvent.h"
 #include "markup.h"
 #include "DataObjectGtk.h"
@@ -191,7 +193,8 @@ void EditorClient::respondToChangedContents()
 void EditorClient::respondToChangedSelection()
 {
     WebKitWebViewPrivate* priv = m_webView->priv;
-    Frame* targetFrame = core(m_webView)->focusController()->focusedOrMainFrame();
+    WebCore::Page* corePage = core(m_webView);
+    Frame* targetFrame = corePage->focusController()->focusedOrMainFrame();
 
     if (!targetFrame)
         return;
@@ -200,18 +203,13 @@ void EditorClient::respondToChangedSelection()
         return;
 
 #if PLATFORM(X11)
+    GtkClipboard* clipboard = gtk_widget_get_clipboard(GTK_WIDGET(m_webView), GDK_SELECTION_PRIMARY);
+    DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
+
     if (targetFrame->selection()->isRange()) {
-        bool primary = PasteboardHelper::usePrimaryClipboard();
-        PasteboardHelper::setUsePrimaryClipboard(true);
-        GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(targetFrame);
-        PasteboardHelper::setUsePrimaryClipboard(primary);
-
-        DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
-        RefPtr<Range> range = targetFrame->selection()->toNormalizedRange();
-        dataObject->setText(targetFrame->selectedText());
-        dataObject->setMarkup(createMarkup(range.get(), 0, AnnotateForInterchange));
-
-        PasteboardHelper::helper()->writeClipboardContents(clipboard);
+        dataObject->clear();
+        dataObject->setRange(targetFrame->selection()->toNormalizedRange());
+        pasteboardHelperInstance()->writeClipboardContents(clipboard, m_webView);
     }
 #endif
 
@@ -534,7 +532,6 @@ void EditorClient::handleInputMethodKeydown(KeyboardEvent* event)
 EditorClient::EditorClient(WebKitWebView* webView)
     : m_isInRedo(false)
     , m_webView(webView)
-    , m_range(0)
 {
     WebKitWebViewPrivate* priv = m_webView->priv;
     g_signal_connect(priv->imContext, "commit", G_CALLBACK(imContextCommitted), this);

@@ -209,15 +209,6 @@ static IntPoint viewPointToGlobalPoint(FrameView* view, IntPoint& viewPoint)
     return viewPoint + IntSize(x, y);
 }
 
-/* From EventHandler.cpp */
-static IntPoint documentPointForWindowPoint(Frame* frame, const IntPoint& windowPoint)
-{
-    FrameView* view = frame->view();
-    // FIXME: Is it really OK to use the wrong coordinates here when view is 0?
-    // Historically the code would just crash; this is clearly no worse than that.
-    return view ? view->windowToContents(windowPoint) : windowPoint;
-}
-
 static gboolean webkit_web_view_forward_context_menu_event(WebKitWebView* webView, const PlatformMouseEvent& event)
 {
     Page* page = core(webView);
@@ -667,7 +658,11 @@ static gboolean webkit_web_view_focus_in_event(GtkWidget* widget, GdkEventFocus*
     // TODO: Improve focus handling as suggested in
     // http://bugs.webkit.org/show_bug.cgi?id=16910
     GtkWidget* toplevel = gtk_widget_get_toplevel(widget);
+#if GTK_CHECK_VERSION(2, 18, 0)
+    if (gtk_widget_is_toplevel(toplevel) && gtk_window_has_toplevel_focus(GTK_WINDOW(toplevel))) {
+#else
     if (GTK_WIDGET_TOPLEVEL(toplevel) && gtk_window_has_toplevel_focus(GTK_WINDOW(toplevel))) {
+#endif
         WebKitWebView* webView = WEBKIT_WEB_VIEW(widget);
         FocusController* focusController = core(webView)->focusController();
 
@@ -856,7 +851,11 @@ static gboolean webkit_web_view_script_dialog(WebKitWebView* webView, WebKitWebF
     }
 
     window = gtk_widget_get_toplevel(GTK_WIDGET(webView));
+#if GTK_CHECK_VERSION(2, 18, 0)
+    dialog = gtk_message_dialog_new(gtk_widget_is_toplevel(window) ? GTK_WINDOW(window) : 0, GTK_DIALOG_DESTROY_WITH_PARENT, messageType, buttons, "%s", message);
+#else
     dialog = gtk_message_dialog_new(GTK_WIDGET_TOPLEVEL(window) ? GTK_WINDOW(window) : 0, GTK_DIALOG_DESTROY_WITH_PARENT, messageType, buttons, "%s", message);
+#endif
     gchar* title = g_strconcat("JavaScript - ", webkit_web_frame_get_uri(frame), NULL);
     gtk_window_set_title(GTK_WINDOW(dialog), title);
     g_free(title);
@@ -1073,6 +1072,7 @@ static void webkit_web_view_finalize(GObject* object)
     WebKitWebView* webView = WEBKIT_WEB_VIEW(object);
     WebKitWebViewPrivate* priv = webView->priv;
 
+    g_free(priv->tooltipText);
     g_free(priv->mainResourceIdentifier);
     g_free(priv->encoding);
     g_free(priv->customEncoding);
@@ -1350,6 +1350,20 @@ static gboolean webkit_web_view_drag_drop(GtkWidget* widget, GdkDragContext* con
     gtk_drag_finish(context, TRUE, FALSE, time);
     return TRUE;
 }
+
+#if GTK_CHECK_VERSION(2, 12, 0)
+static gboolean webkit_web_view_query_tooltip(GtkWidget *widget, gint x, gint y, gboolean keyboard_mode, GtkTooltip *tooltip)
+{
+    WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(widget);
+
+    if (priv->tooltipText) {
+        gtk_tooltip_set_text(tooltip, priv->tooltipText);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+#endif
 
 static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
 {
@@ -2220,6 +2234,9 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
     widgetClass->screen_changed = webkit_web_view_screen_changed;
     widgetClass->drag_end = webkit_web_view_drag_end;
     widgetClass->drag_data_get = webkit_web_view_drag_data_get;
+#if GTK_CHECK_VERSION(2, 12, 0)
+    widgetClass->query_tooltip = webkit_web_view_query_tooltip;
+#endif
     widgetClass->drag_motion = webkit_web_view_drag_motion;
     widgetClass->drag_leave = webkit_web_view_drag_leave;
     widgetClass->drag_drop = webkit_web_view_drag_drop;
@@ -2489,6 +2506,14 @@ static void webkit_web_view_class_init(WebKitWebViewClass* webViewClass)
     *
     * Connect to "notify::load-status" to monitor loading.
     *
+    * Some versions of WebKitGTK+ emitted this signal for the default
+    * error page, while loading it. This behavior was considered bad,
+    * because it was essentially exposing an implementation
+    * detail. From 1.1.19 onwards this signal is no longer emitted for
+    * the default error pages, but keep in mind that if you override
+    * the error pages by using webkit_web_frame_load_alternate_string()
+    * the signals will be emitted.
+    *
     * Since: 1.1.7
     */
     g_object_class_install_property(objectClass, PROP_LOAD_STATUS,
@@ -2746,6 +2771,8 @@ static void webkit_web_view_init(WebKitWebView* webView)
     priv->webWindowFeatures = webkit_web_window_features_new();
 
     priv->subResources = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
+
+    priv->tooltipText = 0;
 
     gtk_drag_dest_set(GTK_WIDGET(webView), static_cast<GtkDestDefaults>(0), NULL, 0,
                       (GdkDragAction) (GDK_ACTION_COPY | GDK_ACTION_MOVE | GDK_ACTION_LINK));
@@ -4086,6 +4113,36 @@ GList* webkit_web_view_get_subresources(WebKitWebView* webView)
     WebKitWebViewPrivate* priv = webView->priv;
     GList* subResources = g_hash_table_get_values(priv->subResources);
     return g_list_remove(subResources, priv->mainResource);
+}
+
+/* From EventHandler.cpp */
+static IntPoint documentPointForWindowPoint(Frame* frame, const IntPoint& windowPoint)
+{
+    FrameView* view = frame->view();
+    // FIXME: Is it really OK to use the wrong coordinates here when view is 0?
+    // Historically the code would just crash; this is clearly no worse than that.
+    return view ? view->windowToContents(windowPoint) : windowPoint;
+}
+
+void webkit_web_view_set_tooltip_text(WebKitWebView* webView, const char* tooltip)
+{
+#if GTK_CHECK_VERSION(2, 12, 0)
+    WebKitWebViewPrivate* priv = webView->priv;
+    g_free(priv->tooltipText);
+    if (tooltip && *tooltip != '\0') {
+        priv->tooltipText = g_strdup(tooltip);
+        gtk_widget_set_has_tooltip(GTK_WIDGET(webView), TRUE);
+    } else {
+        priv->tooltipText = 0;
+        gtk_widget_set_has_tooltip(GTK_WIDGET(webView), FALSE);
+    }
+
+    gtk_widget_trigger_tooltip_query(GTK_WIDGET(webView));
+#else
+    // TODO: Support older GTK+ versions
+    // See http://bugs.webkit.org/show_bug.cgi?id=15793
+    notImplemented();
+#endif
 }
 
 /**

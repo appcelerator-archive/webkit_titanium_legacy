@@ -23,27 +23,41 @@
 #include "QtAbstractWebPopup.h"
 #include <QComboBox>
 
+class QGraphicsProxyWidget;
+
 namespace WebCore {
 
-class QtFallbackWebPopup : private QComboBox, public QtAbstractWebPopup {
+class QtFallbackWebPopupCombo;
+
+class QtFallbackWebPopup : public QObject, public QtAbstractWebPopup {
     Q_OBJECT
 public:
     QtFallbackWebPopup();
+    ~QtFallbackWebPopup();
 
-    virtual void show(const QRect& geometry, int selectedIndex);
-    virtual void hide() { hidePopup(); }
-    virtual void populate(const QFont& font, const QList<Item>& items);
-    virtual void setParent(QWidget* parent);
+    virtual void show();
+    virtual void hide();
 
 private slots:
     void activeChanged(int);
 
 private:
+    friend class QtFallbackWebPopupCombo;
     bool m_popupVisible;
+    QtFallbackWebPopupCombo* m_combo;
+    QGraphicsProxyWidget* m_proxy;
 
+    void populate();
+};
 
+class QtFallbackWebPopupCombo : public QComboBox {
+public:
+    QtFallbackWebPopupCombo(QtFallbackWebPopup& ownerPopup);
     virtual void showPopup();
     virtual void hidePopup();
+
+private:
+    QtFallbackWebPopup& m_ownerPopup;
 };
 
 }

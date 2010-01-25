@@ -67,7 +67,10 @@
 
 #include <limits.h>
 
+#ifndef Q_OS_WIN
 #include <unistd.h>
+#endif
+
 #include <qdebug.h>
 
 extern void qt_drt_run(bool b);
@@ -87,13 +90,13 @@ const unsigned int maxViewHeight = 600;
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
     : QNetworkAccessManager(parent)
 {
-#ifndef QT_NO_SSL
+#ifndef QT_NO_OPENSSL
     connect(this, SIGNAL(sslErrors(QNetworkReply*, const QList<QSslError>&)),
             this, SLOT(sslErrorsEncountered(QNetworkReply*, const QList<QSslError>&)));
 #endif
 }
 
-#ifndef QT_NO_SSL
+#ifndef QT_NO_OPENSSL
 void NetworkAccessManager::sslErrorsEncountered(QNetworkReply* reply, const QList<QSslError>& errors)
 {
     if (reply->url().host() == "127.0.0.1" || reply->url().host() == "localhost") {
@@ -159,7 +162,6 @@ void WebPage::resetSettings()
 {
     // After each layout test, reset the settings that may have been changed by
     // layoutTestController.overridePreference() or similar.
-
     settings()->resetFontSize(QWebSettings::DefaultFontSize);
     settings()->resetAttribute(QWebSettings::JavascriptCanOpenWindows);
     settings()->resetAttribute(QWebSettings::JavascriptEnabled);
@@ -167,7 +169,12 @@ void WebPage::resetSettings()
     settings()->resetAttribute(QWebSettings::LinksIncludedInFocusChain);
     settings()->resetAttribute(QWebSettings::OfflineWebApplicationCacheEnabled);
     settings()->resetAttribute(QWebSettings::LocalContentCanAccessRemoteUrls);
+
+    // globalSettings must be reset explicitly.
+    m_drt->layoutTestController()->setXSSAuditorEnabled(false);
+
     QWebSettings::setMaximumPagesInCache(0); // reset to default
+    settings()->setUserStyleSheetUrl(QUrl()); // reset to default
 }
 
 QWebPage *WebPage::createWindow(QWebPage::WebWindowType)
@@ -306,8 +313,8 @@ QObject* WebPage::createPlugin(const QString& classId, const QUrl& url, const QS
 DumpRenderTree::DumpRenderTree()
     : m_dumpPixels(false)
     , m_stdin(0)
-    , m_notifier(0)
     , m_enableTextOutput(false)
+    , m_singleFileMode(false)
 {
     qt_drt_overwritePluginDirectories();
     QWebSettings::enablePersistentStorage();
@@ -337,6 +344,7 @@ DumpRenderTree::DumpRenderTree()
     // dump results itself when the last page loaded in the test has finished loading.
     connect(m_page, SIGNAL(loadStarted()),
             m_controller, SLOT(resetLoadFinished()));
+    connect(m_page, SIGNAL(windowCloseRequested()), this, SLOT(windowCloseRequested()));
 
     connect(m_page->mainFrame(), SIGNAL(titleChanged(const QString&)),
             SLOT(titleChanged(const QString&)));
@@ -355,20 +363,6 @@ DumpRenderTree::~DumpRenderTree()
 {
     delete m_mainView;
     delete m_stdin;
-    delete m_notifier;
-}
-
-void DumpRenderTree::open()
-{
-    if (!m_stdin) {
-        m_stdin = new QFile;
-        m_stdin->open(stdin, QFile::ReadOnly);
-    }
-
-    if (!m_notifier) {
-        m_notifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read);
-        connect(m_notifier, SIGNAL(activated(int)), this, SLOT(readStdin(int)));
-    }
 }
 
 static void clearHistory(QWebPage* page)
@@ -454,20 +448,59 @@ void DumpRenderTree::open(const QUrl& aurl)
     m_page->mainFrame()->load(url);
 }
 
-void DumpRenderTree::readStdin(int /* socket */)
+void DumpRenderTree::readLine()
 {
-    // Read incoming data from stdin...
-    QByteArray line = m_stdin->readLine();
-    if (line.endsWith('\n'))
-        line.truncate(line.size()-1);
-    //fprintf(stderr, "\n    opening %s\n", line.constData());
-    if (line.isEmpty())
-        quit();
+    if (!m_stdin) {
+        m_stdin = new QFile;
+        m_stdin->open(stdin, QFile::ReadOnly);
 
-    if (line.startsWith("http:") || line.startsWith("https:"))
+        if (!m_stdin->isReadable()) {
+            emit quit();
+            return;
+        }
+    }
+
+    QByteArray line = m_stdin->readLine().trimmed();
+
+    if (line.isEmpty()) {
+        emit quit();
+        return;
+    }
+
+    processLine(QString::fromLocal8Bit(line.constData(), line.length()));
+}
+
+void DumpRenderTree::processLine(const QString &input)
+{
+    QString line = input;
+
+    if (line.startsWith(QLatin1String("http:"))
+            || line.startsWith(QLatin1String("https:"))
+            || line.startsWith(QLatin1String("file:"))) {
         open(QUrl(line));
-    else {
+    } else {
         QFileInfo fi(line);
+
+        if (!fi.exists()) {
+            QDir currentDir = QDir::currentPath();
+
+            // Try to be smart about where the test is located
+            if (currentDir.dirName() == QLatin1String("LayoutTests"))
+                fi = QFileInfo(currentDir, line.replace(QRegExp(".*?LayoutTests/(.*)"), "\\1"));
+            else if (!line.contains(QLatin1String("LayoutTests")))
+                fi = QFileInfo(currentDir, line.prepend(QLatin1String("LayoutTests/")));
+
+            if (!fi.exists()) {
+                if (isSingleFileMode())
+                    emit quit();
+                else
+                    emit ready();
+
+                return;
+            }
+
+        }
+
         open(QUrl::fromLocalFile(fi.absoluteFilePath()));
     }
 
@@ -613,9 +646,7 @@ void DumpRenderTree::dump()
 
     QWebFrame *mainFrame = m_page->mainFrame();
 
-    //fprintf(stderr, "    Dumping\n");
-    if (!m_notifier) {
-        // Dump markup in single file mode...
+    if (isSingleFileMode()) {
         QString markup = mainFrame->toHtml();
         fprintf(stdout, "Source:\n\n%s\n", markup.toUtf8().constData());
     }
@@ -693,8 +724,10 @@ void DumpRenderTree::dump()
     fflush(stdout);
     fflush(stderr);
 
-    if (!m_notifier)
-        quit(); // Exit now in single file mode...
+    if (isSingleFileMode())
+        emit quit();
+    else
+        emit ready();
 }
 
 void DumpRenderTree::titleChanged(const QString &s)
@@ -750,7 +783,16 @@ QWebPage *DumpRenderTree::createWindow()
     connect(page, SIGNAL(frameCreated(QWebFrame*)), this, SLOT(connectFrame(QWebFrame*)));
     connectFrame(page->mainFrame());
     connect(page, SIGNAL(loadFinished(bool)), m_controller, SLOT(maybeDump(bool)));
+    connect(page, SIGNAL(windowCloseRequested()), this, SLOT(windowCloseRequested()));
     return page;
+}
+
+void DumpRenderTree::windowCloseRequested()
+{
+    QWebPage* page = qobject_cast<QWebPage*>(sender());
+    QObject* container = page->parent();
+    windows.removeAll(container);
+    container->deleteLater();
 }
 
 int DumpRenderTree::windowCount() const

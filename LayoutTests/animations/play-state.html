@@ -38,12 +38,12 @@
     
     const expectedValues = [
       // [animation-name, time, element-id, property, expected-value, tolerance]
-      ["move1", 0.5, "box1", "webkitTransform", [1,0,0,1,25,0], 10],
-      ["move1", 1.5, "box1", "webkitTransform", [1,0,0,1,50,0], 10],
-      ["move1", 2.5, "box1", "webkitTransform", [1,0,0,1,75,0], 10],
-      ["move2", 0.5, "box2", "left", 25, 10],
-      ["move3", 1.5, "box2", "left", 50, 10],
-      ["move4", 2.5, "box2", "left", 75, 10],
+      ["move1", 0.5, "box1", "webkitTransform", [1,0,0,1,25,0], 15],
+      ["move1", 1.5, "box1", "webkitTransform", [1,0,0,1,50,0], 15],
+      ["move1", 2.5, "box1", "webkitTransform", [1,0,0,1,75,0], 15],
+      ["move2", 0.5, "box2", "left", 25, 15],
+      ["move3", 1.5, "box2", "left", 50, 15],
+      ["move4", 2.5, "box2", "left", 75, 15],
     ];
     
     function stop()
@@ -70,7 +70,7 @@
 </head>
 <body>
 <p>
-This tests the operation of -webkit-animation-play-state. After 1 seconds the box should stop and after one
+This tests the operation of -webkit-animation-play-state. After 2 second the box should stop and after one
 more second it should start again. We test it both while in motion and when stopped.
 <div id="box1">
 </div>

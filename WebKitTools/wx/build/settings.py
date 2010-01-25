@@ -99,7 +99,8 @@ webcore_dirs = [
     'bindings',
     'bindings/js',
     'bridge', 
-    'bridge/c', 
+    'bridge/c',
+    'bridge/jsc',
     'css',
     'DerivedSources',
     'dom',
@@ -125,8 +126,7 @@ webcore_dirs = [
     'platform/image-decoders/gif', 
     'platform/image-decoders/ico', 
     'platform/image-decoders/jpeg', 
-    'platform/image-decoders/png', 
-    'platform/image-decoders/xbm', 
+    'platform/image-decoders/png',
     'platform/image-decoders/zlib',
     'platform/mock',
     'platform/network', 
@@ -263,7 +263,7 @@ def common_configure(conf):
     if build_port == "wx":
         update_wx_deps(conf, wk_root, msvc_version)
     
-        conf.env.append_value('CXXDEFINES', ['BUILDING_WX__=1'])
+        conf.env.append_value('CXXDEFINES', ['BUILDING_WX__=1', 'JS_NO_EXPORT'])
 
         if building_on_win32:
             conf.env.append_value('LIBPATH', os.path.join(msvclibs_dir, 'lib'))

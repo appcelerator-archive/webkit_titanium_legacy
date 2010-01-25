@@ -64,6 +64,7 @@
     <file>SidebarPane.js</file>
     <file>SidebarTreeElement.js</file>
     <file>SourceFrame.js</file>
+    <file>SourceFrame2.js</file>
     <file>SourceSyntaxHighlighter.js</file>
     <file>SourceView.js</file>
     <file>StatusBarButton.js</file>
@@ -84,9 +85,11 @@
     <file>utilities.js</file>
     <file>View.js</file>
     <file>WatchExpressionsSidebarPane.js</file>
+    <file>WelcomeView.js</file>
     <file>audits.css</file>
     <file>inspector.css</file>
     <file>inspectorSyntaxHighlight.css</file>
+    <file>textEditor.css</file>
     <file>Images/back.png</file>
     <file>Images/checker.png</file>
     <file>Images/clearConsoleButtonGlyph.png</file>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2008, 2009, 2010 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -696,7 +696,7 @@ bool NetscapePluginInstanceProxy::getWindowNPObject(uint32_t& objectID)
     if (!frame)
         return false;
     
-    if (!frame->script()->isEnabled())
+    if (!frame->script()->canExecuteScripts())
         objectID = 0;
     else
         objectID = idForObject(frame->script()->windowShell(pluginWorld())->window());
@@ -1201,7 +1201,7 @@ bool NetscapePluginInstanceProxy::demarshalValueFromArray(ExecState* exec, NSArr
             if (!frame)
                 return false;
             
-            if (!frame->script()->isEnabled())
+            if (!frame->script()->canExecuteScripts())
                 return false;
 
             RefPtr<RootObject> rootObject = frame->script()->createRootObject(m_pluginView);
@@ -1253,6 +1253,10 @@ PassRefPtr<Instance> NetscapePluginInstanceProxy::createBindingsInstance(PassRef
     
     if (_WKPHGetScriptableNPObject(m_pluginHostProxy->port(), m_pluginID, requestID) != KERN_SUCCESS)
         return 0;
+
+    // If the plug-in host crashes while we're waiting for a reply, the last reference to the instance proxy
+    // will go away. Prevent this by protecting it here.
+    RefPtr<NetscapePluginInstanceProxy> protect(this);
     
     auto_ptr<GetScriptableNPObjectReply> reply = waitForReply<GetScriptableNPObjectReply>(requestID);
     if (!reply.get())

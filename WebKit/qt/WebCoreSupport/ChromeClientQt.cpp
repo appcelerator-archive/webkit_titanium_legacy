@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include "config.h"
 #include "ChromeClientQt.h"
 
@@ -42,6 +43,10 @@
 #include "QWebPageClient.h"
 #include "SecurityOrigin.h"
 
+#include <qdebug.h>
+#include <qtextdocument.h>
+#include <qtooltip.h>
+
 #include "qwebpage.h"
 #include "qwebpage_p.h"
 #include "qwebframe_p.h"
@@ -49,12 +54,11 @@
 #include "qwebsecurityorigin_p.h"
 #include "qwebview.h"
 
-#include <qtooltip.h>
-#include <qtextdocument.h>
+#if USE(ACCELERATED_COMPOSITING)
+#include "GraphicsLayerQt.h"
+#endif
 
-namespace WebCore
-{
-
+namespace WebCore {
 
 ChromeClientQt::ChromeClientQt(QWebPage* webPage)
     : m_webPage(webPage)
@@ -466,7 +470,29 @@ void ChromeClientQt::requestGeolocationPermissionForFrame(Frame*, Geolocation*)
     notImplemented();
 }
 
-QtAbstractWebPopup* ChromeClientQt::createPopup()
+#if USE(ACCELERATED_COMPOSITING)
+void ChromeClientQt::attachRootGraphicsLayer(Frame* frame, GraphicsLayer* graphicsLayer)
+{    
+    if (platformPageClient())
+        platformPageClient()->setRootGraphicsLayer(graphicsLayer ? graphicsLayer->nativeLayer() : 0);
+}
+
+void ChromeClientQt::setNeedsOneShotDrawingSynchronization()
+{
+    // we want the layers to synchronize next time we update the screen anyway
+    if (platformPageClient())
+        platformPageClient()->markForSync(false);
+}
+
+void ChromeClientQt::scheduleCompositingLayerSync()
+{
+    // we want the layers to synchronize ASAP
+    if (platformPageClient())
+        platformPageClient()->markForSync(true);
+}
+#endif
+
+QtAbstractWebPopup* ChromeClientQt::createSelectPopup()
 {
     return new QtFallbackWebPopup;
 }

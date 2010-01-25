@@ -40,6 +40,10 @@ class TestQueue(AbstractQueue):
     name = "test-queue"
 
 
+class TestReviewQueue(AbstractReviewQueue):
+    name = "test-review-queue"
+
+
 class AbstractQueueTest(CommandsTest):
     def _assert_log_progress_output(self, patch_ids, progress_output):
         OutputCapture().assert_outputs(self, TestQueue().log_progress, [patch_ids], expected_stderr=progress_output)
@@ -63,11 +67,29 @@ class AbstractQueueTest(CommandsTest):
         self._assert_run_webkit_patch(["one", 2])
 
 
+class AbstractReviewQueueTest(CommandsTest):
+    def test_patch_collection_delegate_methods(self):
+        queue = TestReviewQueue()
+        tool = MockBugzillaTool()
+        queue.bind_to_tool(tool)
+        self.assertEquals(queue.collection_name(), "test-review-queue")
+        self.assertEquals(queue.fetch_potential_patch_ids(), [103])
+        queue.status_server()
+        self.assertTrue(queue.is_terminal_status("Pass"))
+        self.assertTrue(queue.is_terminal_status("Fail"))
+        self.assertTrue(queue.is_terminal_status("Error: Your patch exploded"))
+        self.assertFalse(queue.is_terminal_status("Foo"))
+
+
 class CommitQueueTest(QueuesTest):
-    def test_style_queue(self):
+    def test_commit_queue(self):
         expected_stderr = {
             "begin_work_queue" : "CAUTION: commit-queue will discard all local changes in \"%s\"\nRunning WebKit commit-queue.\n" % os.getcwd(),
-            "next_work_item" : "2 patches in commit-queue [197, 128]\n",
+            # FIXME: The commit-queue warns about bad committers twice.  This is due to the fact that we access Attachment.reviewer() twice and it logs each time.
+            "next_work_item" : """Warning, attachment 128 on bug 42 has invalid committer (non-committer@example.com)
+Warning, attachment 128 on bug 42 has invalid committer (non-committer@example.com)
+2 patches in commit-queue [197, 106]
+""",
         }
         self.assert_queue_outputs(CommitQueue(), expected_stderr=expected_stderr)
 

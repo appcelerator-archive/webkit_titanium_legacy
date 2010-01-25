@@ -41,7 +41,10 @@ class CloseBugForLandDiff(AbstractStep):
 
     def run(self, state):
         comment_text = bug_comment_from_commit_text(self._tool.scm(), state["commit_text"])
-        bug_id = state["patch"]["bug_id"]
+        bug_id = state.get("bug_id")
+        if not bug_id and state.get("patch"):
+            bug_id = state.get("patch").bug_id()
+
         if bug_id:
             log("Updating bug %s" % bug_id)
             if self._options.close_bug:

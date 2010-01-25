@@ -33,7 +33,9 @@
 #include "Console.h"
 #include "InspectorController.h"
 #include "PlatformString.h"
+#include "ScriptState.h"
 
+#include <wtf/HashMap.h>
 #include <wtf/RefCounted.h>
 
 namespace WebCore {
@@ -55,6 +57,8 @@ public:
 
     ~InjectedScriptHost();
 
+    void setInjectedScriptSource(const String& source) { m_injectedScriptSource = source; }
+
     InspectorController* inspectorController() { return m_inspectorController; }
     void disconnectController() { m_inspectorController = 0; }
 
@@ -62,8 +66,6 @@ public:
 
     void copyText(const String& text);
     Node* nodeForId(long nodeId);
-    ScriptValue wrapObject(const ScriptValue& object, const String& objectGroup);
-    ScriptValue unwrapObject(const String& objectId);
     long pushNodePathToFrontend(Node* node, bool withChildren, bool selectInUI);
 
     void addNodesToSearchResult(const String& nodeIds);
@@ -81,12 +83,23 @@ public:
 #endif
     void reportDidDispatchOnInjectedScript(long callId, const String& result, bool isException);
 
+    ScriptObject injectedScriptFor(ScriptState*);
+    ScriptObject injectedScriptForId(long);
+    void discardInjectedScripts();
+    void releaseWrapperObjectGroup(long injectedScriptId, const String& objectGroup);
+
 private:
     InjectedScriptHost(InspectorController* inspectorController);
     InspectorDOMAgent* inspectorDOMAgent();
     InspectorFrontend* inspectorFrontend();
 
+    void releaseWrapperObjectGroup(const ScriptObject& injectedScript, const String& objectGroup);
+
     InspectorController* m_inspectorController;
+    String m_injectedScriptSource;
+    long m_nextInjectedScriptId;
+    typedef HashMap<long, ScriptObject> IdToInjectedScriptMap;
+    IdToInjectedScriptMap m_idToInjectedScript;
 };
 
 } // namespace WebCore

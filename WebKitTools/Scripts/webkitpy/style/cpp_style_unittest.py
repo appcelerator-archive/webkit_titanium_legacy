@@ -4,6 +4,7 @@
 # Copyright (C) 2009 Google Inc. All rights reserved.
 # Copyright (C) 2009 Torch Mobile Inc.
 # Copyright (C) 2009 Apple Inc. All rights reserved.
+# Copyright (C) 2010 Chris Jerdonek (cjerdonek@webkit.org)
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -41,7 +42,9 @@ import random
 import re
 import unittest
 import cpp_style
-# FIXME: Remove the need to import something from checker. See the
+from cpp_style import CppProcessor
+
+# FIXME: Remove the need to import anything from checker. See the
 #        FIXME notes near the STYLE_CATEGORIES definition for a
 #        suggestion on how to best do this.
 from checker import STYLE_CATEGORIES
@@ -65,8 +68,7 @@ class ErrorCollector:
                         'Message "%s" has category "%s",'
                         ' which is not in STYLE_CATEGORIES' % (message, category))
         self._seen_style_categories[category] = 1
-        if cpp_style._should_print_error(category, confidence):
-            self._errors.append('%s  [%s] [%d]' % (message, category, confidence))
+        self._errors.append('%s  [%s] [%d]' % (message, category, confidence))
 
     def results(self):
         if len(self._errors) < 2:
@@ -110,7 +112,23 @@ class MockIo:
 
 
 class CppStyleTestBase(unittest.TestCase):
-    """Provides some useful helper functions for cpp_style tests."""
+    """Provides some useful helper functions for cpp_style tests.
+
+    Attributes:
+      verbosity: An integer that is the current verbosity level for
+                 the tests.
+
+    """
+
+    # FIXME: Refactor the unit tests so the verbosity level is passed
+    #        explicitly, just like it is in the real code.
+    verbosity = 1;
+
+    # Helper function to avoid needing to explicitly pass verbosity
+    # in all the unit test calls to cpp_style.process_file_data().
+    def process_file_data(self, filename, file_extension, lines, error):
+        """Call cpp_style.process_file_data() with the current verbosity."""
+        return cpp_style.process_file_data(filename, file_extension, lines, error, self.verbosity)
 
     # Perform lint on single line of input and return the error message.
     def perform_single_line_lint(self, code, file_name):
@@ -119,7 +137,7 @@ class CppStyleTestBase(unittest.TestCase):
         cpp_style.remove_multi_line_comments(file_name, lines, error_collector)
         clean_lines = cpp_style.CleansedLines(lines)
         include_state = cpp_style._IncludeState()
-        function_state = cpp_style._FunctionState()
+        function_state = cpp_style._FunctionState(self.verbosity)
         ext = file_name[file_name.rfind('.') + 1:]
         class_state = cpp_style._ClassState()
         file_state = cpp_style._FileState()
@@ -179,7 +197,7 @@ class CppStyleTestBase(unittest.TestCase):
         """
         file_name = 'foo.cpp'
         error_collector = ErrorCollector(self.assert_)
-        function_state = cpp_style._FunctionState()
+        function_state = cpp_style._FunctionState(self.verbosity)
         lines = code.split('\n')
         cpp_style.remove_multi_line_comments(file_name, lines, error_collector)
         lines = cpp_style.CleansedLines(lines)
@@ -237,7 +255,7 @@ class CppStyleTestBase(unittest.TestCase):
 
     def assert_blank_lines_check(self, lines, start_errors, end_errors):
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data('foo.cpp', 'cpp', lines, error_collector)
+        self.process_file_data('foo.cpp', 'cpp', lines, error_collector)
         self.assertEquals(
             start_errors,
             error_collector.results().count(
@@ -695,10 +713,10 @@ class CppStyleTest(CppStyleTestBase):
         file_path = 'mydir/foo.cpp'
 
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'cpp',
-                                    ['const char* str = "This is a\\',
-                                     ' multiline string.";'],
-                                    error_collector)
+        self.process_file_data(file_path, 'cpp',
+                               ['const char* str = "This is a\\',
+                                ' multiline string.";'],
+                               error_collector)
         self.assertEquals(
             2,  # One per line.
             error_collector.result_list().count(multiline_string_error_message))
@@ -1409,8 +1427,8 @@ class CppStyleTest(CppStyleTestBase):
     def test_newline_at_eof(self):
         def do_test(self, data, is_missing_eof):
             error_collector = ErrorCollector(self.assert_)
-            cpp_style.process_file_data('foo.cpp', 'cpp', data.split('\n'),
-                                        error_collector)
+            self.process_file_data('foo.cpp', 'cpp', data.split('\n'),
+                                   error_collector)
             # The warning appears only once.
             self.assertEquals(
                 int(is_missing_eof),
@@ -1424,10 +1442,9 @@ class CppStyleTest(CppStyleTestBase):
     def test_invalid_utf8(self):
         def do_test(self, raw_bytes, has_invalid_utf8):
             error_collector = ErrorCollector(self.assert_)
-            cpp_style.process_file_data(
-                'foo.cpp', 'cpp',
-                unicode(raw_bytes, 'utf8', 'replace').split('\n'),
-                error_collector)
+            self.process_file_data('foo.cpp', 'cpp',
+                                   unicode(raw_bytes, 'utf8', 'replace').split('\n'),
+                                   error_collector)
             # The warning appears only once.
             self.assertEquals(
                 int(has_invalid_utf8),
@@ -1460,40 +1477,40 @@ class CppStyleTest(CppStyleTestBase):
 
     def test_allow_blank_line_before_closing_namespace(self):
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data('foo.cpp', 'cpp',
-                                    ['namespace {', '', '}  // namespace'],
-                                    error_collector)
+        self.process_file_data('foo.cpp', 'cpp',
+                               ['namespace {', '', '}  // namespace'],
+                               error_collector)
         self.assertEquals(0, error_collector.results().count(
             'Blank line at the end of a code block.  Is this needed?'
             '  [whitespace/blank_line] [3]'))
 
     def test_allow_blank_line_before_if_else_chain(self):
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data('foo.cpp', 'cpp',
-                                    ['if (hoge) {',
-                                     '',  # No warning
-                                     '} else if (piyo) {',
-                                     '',  # No warning
-                                     '} else if (piyopiyo) {',
-                                     '  hoge = true;',  # No warning
-                                     '} else {',
-                                     '',  # Warning on this line
-                                     '}'],
-                                    error_collector)
+        self.process_file_data('foo.cpp', 'cpp',
+                               ['if (hoge) {',
+                                '',  # No warning
+                                '} else if (piyo) {',
+                                '',  # No warning
+                                '} else if (piyopiyo) {',
+                                '  hoge = true;',  # No warning
+                                '} else {',
+                                '',  # Warning on this line
+                                '}'],
+                               error_collector)
         self.assertEquals(1, error_collector.results().count(
             'Blank line at the end of a code block.  Is this needed?'
             '  [whitespace/blank_line] [3]'))
 
     def test_else_on_same_line_as_closing_braces(self):
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data('foo.cpp', 'cpp',
-                                    ['if (hoge) {',
-                                     '',
-                                     '}',
-                                     ' else {'  # Warning on this line
-                                     '',
-                                     '}'],
-                                    error_collector)
+        self.process_file_data('foo.cpp', 'cpp',
+                               ['if (hoge) {',
+                                '',
+                                '}',
+                                ' else {'  # Warning on this line
+                                '',
+                                '}'],
+                               error_collector)
         self.assertEquals(1, error_collector.results().count(
             'An else should appear on the same line as the preceding }'
             '  [whitespace/newline] [4]'))
@@ -1570,34 +1587,6 @@ class CppStyleTest(CppStyleTestBase):
         self.assert_lint('int a = 5;\t// set a to 5',
                          'Tab found; better to use spaces  [whitespace/tab] [1]')
 
-    def test_filter(self):
-        old_filters = cpp_style._cpp_style_state.filters
-        try:
-            cpp_style._cpp_style_state.set_filters(['-', '+whitespace', '-whitespace/indent'])
-            self.assert_lint(
-                '// Hello there ',
-                'Line ends in whitespace.  Consider deleting these extra spaces.'
-                '  [whitespace/end_of_line] [4]')
-            self.assert_lint('int a = (int)1.0;', '')
-            self.assert_lint(' weird opening space', '')
-        finally:
-            cpp_style._cpp_style_state.filters = old_filters
-
-    def test_filter_appending(self):
-        old_filters = cpp_style._cpp_style_state.filters
-        try:
-            # Reset filters
-            cpp_style._cpp_style_state.set_filters(['-whitespace'])
-            self.assert_lint('// Hello there ', '')
-            cpp_style._cpp_style_state.set_filters(['-whitespace', '+whitespace/end_of_line'])
-            self.assert_lint(
-                '// Hello there ',
-                'Line ends in whitespace.  Consider deleting these extra spaces.'
-                '  [whitespace/end_of_line] [4]')
-            self.assert_lint(' weird opening space', '')
-        finally:
-            cpp_style._cpp_style_state.filters = old_filters
-
     def test_unnamed_namespaces_in_headers(self):
         self.assert_language_rules_check(
             'foo.h', 'namespace {',
@@ -1665,7 +1654,7 @@ class CppStyleTest(CppStyleTestBase):
         # doesn't allow us to test the suggested header guard, but it does let us
         # test all the other header tests.
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h', [], error_collector)
+        self.process_file_data(file_path, 'h', [], error_collector)
         expected_guard = ''
         matcher = re.compile(
             'No \#ifndef header guard found\, suggested CPP variable is\: ([A-Za-z_0-9]+) ')
@@ -1680,8 +1669,8 @@ class CppStyleTest(CppStyleTestBase):
 
         # Wrong guard
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h',
-                                    ['#ifndef FOO_H', '#define FOO_H'], error_collector)
+        self.process_file_data(file_path, 'h',
+                               ['#ifndef FOO_H', '#define FOO_H'], error_collector)
         self.assertEquals(
             1,
             error_collector.result_list().count(
@@ -1691,8 +1680,8 @@ class CppStyleTest(CppStyleTestBase):
 
         # No define
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h',
-                                    ['#ifndef %s' % expected_guard], error_collector)
+        self.process_file_data(file_path, 'h',
+                               ['#ifndef %s' % expected_guard], error_collector)
         self.assertEquals(
             1,
             error_collector.result_list().count(
@@ -1702,10 +1691,10 @@ class CppStyleTest(CppStyleTestBase):
 
         # Mismatched define
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h',
-                                    ['#ifndef %s' % expected_guard,
-                                     '#define FOO_H'],
-                                    error_collector)
+        self.process_file_data(file_path, 'h',
+                               ['#ifndef %s' % expected_guard,
+                                '#define FOO_H'],
+                               error_collector)
         self.assertEquals(
             1,
             error_collector.result_list().count(
@@ -1715,22 +1704,22 @@ class CppStyleTest(CppStyleTestBase):
 
         # No header guard errors
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h',
-                                    ['#ifndef %s' % expected_guard,
-                                     '#define %s' % expected_guard,
-                                     '#endif // %s' % expected_guard],
-                                    error_collector)
+        self.process_file_data(file_path, 'h',
+                               ['#ifndef %s' % expected_guard,
+                                '#define %s' % expected_guard,
+                                '#endif // %s' % expected_guard],
+                               error_collector)
         for line in error_collector.result_list():
             if line.find('build/header_guard') != -1:
                 self.fail('Unexpected error: %s' % line)
 
         # Completely incorrect header guard
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'h',
-                                    ['#ifndef FOO',
-                                     '#define FOO',
-                                     '#endif  // FOO'],
-                                    error_collector)
+        self.process_file_data(file_path, 'h',
+                               ['#ifndef FOO',
+                                '#define FOO',
+                                '#endif  // FOO'],
+                               error_collector)
         self.assertEquals(
             1,
             error_collector.result_list().count(
@@ -1872,13 +1861,13 @@ class CppStyleTest(CppStyleTestBase):
 
         # There should be a copyright message in the first 10 lines
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'cpp', [], error_collector)
+        self.process_file_data(file_path, 'cpp', [], error_collector)
         self.assertEquals(
             1,
             error_collector.result_list().count(legal_copyright_message))
 
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(
+        self.process_file_data(
             file_path, 'cpp',
             ['' for unused_i in range(10)] + [copyright_line],
             error_collector)
@@ -1888,13 +1877,13 @@ class CppStyleTest(CppStyleTestBase):
 
         # Test that warning isn't issued if Copyright line appears early enough.
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(file_path, 'cpp', [copyright_line], error_collector)
+        self.process_file_data(file_path, 'cpp', [copyright_line], error_collector)
         for message in error_collector.result_list():
             if message.find('legal/copyright') != -1:
                 self.fail('Unexpected error: %s' % message)
 
         error_collector = ErrorCollector(self.assert_)
-        cpp_style.process_file_data(
+        self.process_file_data(
             file_path, 'cpp',
             ['' for unused_i in range(9)] + [copyright_line],
             error_collector)
@@ -2056,6 +2045,16 @@ class OrderOfIncludesTest(CppStyleTestBase):
                                          '#include <assert.h>\n',
                                          '')
 
+    def test_webkit_api_test_excluded(self):
+        self.assert_language_rules_check('WebKitTools/WebKitAPITest/Test.h',
+                                         '#include "foo.h"\n',
+                                         '')
+
+    def test_webkit_api_test_excluded(self):
+        self.assert_language_rules_check('WebKit/qt/QGVLauncher/main.cpp',
+                                         '#include "foo.h"\n',
+                                         '')
+
     def test_check_line_break_after_own_header(self):
         self.assert_language_rules_check('foo.cpp',
                                          '#include "config.h"\n'
@@ -2196,6 +2195,12 @@ class OrderOfIncludesTest(CppStyleTestBase):
                                          'Found header this file implements after a header this file implements.'
                                          ' Should be: config.h, primary header, blank line, and then alphabetically sorted.'
                                          '  [build/include_order] [4]')
+        self.assert_language_rules_check('ResourceHandleWin.cpp',
+                                         '#include "config.h"\n'
+                                         '#include "ResourceHandle.h"\n'
+                                         '\n'
+                                         '#include "ResourceHandleWin.h"\n',
+                                         '')
 
     def test_try_drop_common_suffixes(self):
         self.assertEqual('foo/foo', cpp_style._drop_common_suffixes('foo/foo-inl.h'))
@@ -2223,6 +2228,13 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def tearDown(self):
         cpp_style._FunctionState._NORMAL_TRIGGER = self.old_normal_trigger
         cpp_style._FunctionState._TEST_TRIGGER = self.old_test_trigger
+
+    # FIXME: Eliminate the need for this function.
+    def set_verbosity(self, verbosity):
+        """Set new test verbosity and return old test verbosity."""
+        old_verbosity = self.verbosity
+        self.verbosity = verbosity
+        return old_verbosity
 
     def assert_function_lengths_check(self, code, expected_message):
         """Check warnings for long function bodies are as expected.
@@ -2263,7 +2275,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
           lines: Number of lines to generate.
           error_level:  --v setting for cpp_style.
         """
-        trigger_level = self.trigger_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_lines(self.verbosity)
         self.assert_function_lengths_check(
             'void test(int x)' + self.function_body(lines),
             ('Small and focused functions are preferred: '
@@ -2346,29 +2358,29 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
             '')
 
     def test_function_length_check_definition_below_severity0(self):
-        old_verbosity = cpp_style._set_verbose_level(0)
+        old_verbosity = self.set_verbosity(0)
         self.assert_function_length_check_definition_ok(self.trigger_lines(0) - 1)
-        cpp_style._set_verbose_level(old_verbosity)
+        self.set_verbosity(old_verbosity)
 
     def test_function_length_check_definition_at_severity0(self):
-        old_verbosity = cpp_style._set_verbose_level(0)
+        old_verbosity = self.set_verbosity(0)
         self.assert_function_length_check_definition_ok(self.trigger_lines(0))
-        cpp_style._set_verbose_level(old_verbosity)
+        self.set_verbosity(old_verbosity)
 
     def test_function_length_check_definition_above_severity0(self):
-        old_verbosity = cpp_style._set_verbose_level(0)
+        old_verbosity = self.set_verbosity(0)
         self.assert_function_length_check_above_error_level(0)
-        cpp_style._set_verbose_level(old_verbosity)
+        self.set_verbosity(old_verbosity)
 
     def test_function_length_check_definition_below_severity1v0(self):
-        old_verbosity = cpp_style._set_verbose_level(0)
+        old_verbosity = self.set_verbosity(0)
         self.assert_function_length_check_below_error_level(1)
-        cpp_style._set_verbose_level(old_verbosity)
+        self.set_verbosity(old_verbosity)
 
     def test_function_length_check_definition_at_severity1v0(self):
-        old_verbosity = cpp_style._set_verbose_level(0)
+        old_verbosity = self.set_verbosity(0)
         self.assert_function_length_check_at_error_level(1)
-        cpp_style._set_verbose_level(old_verbosity)
+        self.set_verbosity(old_verbosity)
 
     def test_function_length_check_definition_below_severity1(self):
         self.assert_function_length_check_definition_ok(self.trigger_lines(1) - 1)
@@ -2382,7 +2394,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def test_function_length_check_definition_severity1_plus_blanks(self):
         error_level = 1
         error_lines = self.trigger_lines(error_level) + 1
-        trigger_level = self.trigger_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_lines(self.verbosity)
         self.assert_function_lengths_check(
             'void test_blanks(int x)' + self.function_body(error_lines),
             ('Small and focused functions are preferred: '
@@ -2394,7 +2406,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def test_function_length_check_complex_definition_severity1(self):
         error_level = 1
         error_lines = self.trigger_lines(error_level) + 1
-        trigger_level = self.trigger_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_lines(self.verbosity)
         self.assert_function_lengths_check(
             ('my_namespace::my_other_namespace::MyVeryLongTypeName*\n'
              'my_namespace::my_other_namespace::MyFunction(int arg1, char* arg2)'
@@ -2409,7 +2421,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def test_function_length_check_definition_severity1_for_test(self):
         error_level = 1
         error_lines = self.trigger_test_lines(error_level) + 1
-        trigger_level = self.trigger_test_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_test_lines(self.verbosity)
         self.assert_function_lengths_check(
             'TEST_F(Test, Mutator)' + self.function_body(error_lines),
             ('Small and focused functions are preferred: '
@@ -2421,7 +2433,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def test_function_length_check_definition_severity1_for_split_line_test(self):
         error_level = 1
         error_lines = self.trigger_test_lines(error_level) + 1
-        trigger_level = self.trigger_test_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_test_lines(self.verbosity)
         self.assert_function_lengths_check(
             ('TEST_F(GoogleUpdateRecoveryRegistryProtectedTest,\n'
              '    FixGoogleUpdate_AllValues_MachineApp)'  # note: 4 spaces
@@ -2436,7 +2448,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def test_function_length_check_definition_severity1_for_bad_test_doesnt_break(self):
         error_level = 1
         error_lines = self.trigger_test_lines(error_level) + 1
-        trigger_level = self.trigger_test_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_test_lines(self.verbosity)
         self.assert_function_lengths_check(
             ('TEST_F('
              + self.function_body(error_lines)),
@@ -2449,7 +2461,7 @@ class CheckForFunctionLengthsTest(CppStyleTestBase):
     def test_function_length_check_definition_severity1_with_embedded_no_lints(self):
         error_level = 1
         error_lines = self.trigger_lines(error_level) + 1
-        trigger_level = self.trigger_lines(cpp_style._verbose_level())
+        trigger_level = self.trigger_lines(self.verbosity)
         self.assert_function_lengths_check(
             'void test(int x)' + self.function_body_with_no_lints(error_lines),
             ('Small and focused functions are preferred: '
@@ -2646,16 +2658,6 @@ class NoNonVirtualDestructorsTest(CppStyleTestBase):
              '[whitespace/braces] [4]',
              'The class Foo probably needs a virtual destructor due to having '
              'virtual method(s), one declared at line 2.  [runtime/virtual] [4]'])
-
-
-class CppStyleStateTest(unittest.TestCase):
-    def test_error_count(self):
-        self.assertEquals(0, cpp_style.error_count())
-        cpp_style._cpp_style_state.increment_error_count()
-        cpp_style._cpp_style_state.increment_error_count()
-        self.assertEquals(2, cpp_style.error_count())
-        cpp_style._cpp_style_state.reset_error_count()
-        self.assertEquals(0, cpp_style.error_count())
 
 
 class WebKitStyleTest(CppStyleTestBase):
@@ -3030,7 +3032,9 @@ class WebKitStyleTest(CppStyleTestBase):
             '    doSomethingElseAgain();\n'
             '}\n',
             '')
-
+        self.assert_multi_line_lint(
+            '#define TEST_ASSERT(expression) do { if (!(expression)) { TestsController::shared().testFailed(__FILE__, __LINE__, #expression); return; } } while (0)\n',
+            '')
         self.assert_multi_line_lint(
             'if (condition) {\n'
             '    doSomething();\n'
@@ -3573,8 +3577,19 @@ class WebKitStyleTest(CppStyleTestBase):
         self.assert_lint('void this_op_code(int var1, int var2)', '', 'JavaScriptCore/foo.cpp')
         self.assert_lint('void this_op_code(int var1, int var2)', 'this_op_code' + name_error_message)
 
+        # GObject requires certain magical names in class declarations.
+        self.assert_lint('void webkit_dom_object_init();', '')
+        self.assert_lint('void webkit_dom_object_class_init();', '')
+
+        # The GTK+ APIs use GTK+ naming style, which includes lower-cased, _-separated values.
+        self.assert_lint('void this_is_a_gtk_style_name(int var1, int var2)', '', 'WebKit/gtk/webkit/foo.cpp')
+
         # There is an exception for some unit tests that begin with "tst_".
         self.assert_lint('void tst_QWebFrame::arrayObjectEnumerable(int var1, int var2)', '')
+
+        # The Qt API uses names that begin with "qt_".
+        self.assert_lint('void QTFrame::qt_drt_is_awesome(int var1, int var2)', '')
+        self.assert_lint('void qt_drt_is_awesome(int var1, int var2);', '')
 
         # const_iterator is allowed as well.
         self.assert_lint('typedef VectorType::const_iterator const_iterator;', '')
@@ -3594,18 +3609,52 @@ class WebKitStyleTest(CppStyleTestBase):
         pass
 
 
-    def test_can_handle(self):
-        """Tests for cpp_style.can_handle()."""
-        self.assert_(not cpp_style.can_handle(''))
-        self.assert_(cpp_style.can_handle('foo.h'))
-        self.assert_(not cpp_style.can_handle('foo.hpp'))
-        self.assert_(cpp_style.can_handle('foo.c'))
-        self.assert_(cpp_style.can_handle('foo.cpp'))
-        self.assert_(not cpp_style.can_handle('foo.cc'))
-        self.assert_(not cpp_style.can_handle('foo.cxx'))
-        self.assert_(not cpp_style.can_handle('foo.C'))
-        self.assert_(not cpp_style.can_handle('foo.mm'))
-        self.assert_(not cpp_style.can_handle('-'))
+class CppProcessorTest(unittest.TestCase):
+
+    """Tests CppProcessor class."""
+
+    def mock_handle_style_error(self):
+        pass
+
+    def _processor(self):
+        return CppProcessor("foo", "h", self.mock_handle_style_error, 3)
+
+    def test_init(self):
+        """Test __init__ constructor."""
+        processor = self._processor()
+        self.assertEquals(processor.file_extension, "h")
+        self.assertEquals(processor.file_path, "foo")
+        self.assertEquals(processor.handle_style_error, self.mock_handle_style_error)
+        self.assertEquals(processor.verbosity, 3)
+
+    def test_eq(self):
+        """Test __eq__ equality function."""
+        processor1 = self._processor()
+        processor2 = self._processor()
+
+        # == calls __eq__.
+        self.assertTrue(processor1 == processor2)
+
+        def mock_handle_style_error2(self):
+            pass
+
+        # Verify that a difference in any argument cause equality to fail.
+        processor = CppProcessor("foo", "h", self.mock_handle_style_error, 3)
+        self.assertFalse(processor == CppProcessor("bar", "h", self.mock_handle_style_error, 3))
+        self.assertFalse(processor == CppProcessor("foo", "c", self.mock_handle_style_error, 3))
+        self.assertFalse(processor == CppProcessor("foo", "h", mock_handle_style_error2, 3))
+        self.assertFalse(processor == CppProcessor("foo", "h", self.mock_handle_style_error, 4))
+
+    def test_ne(self):
+        """Test __ne__ inequality function."""
+        processor1 = self._processor()
+        processor2 = self._processor()
+
+        # != calls __ne__.
+        # By default, __ne__ always returns true on different objects.
+        # Thus, just check the distinguishing case to verify that the
+        # code defines __ne__.
+        self.assertFalse(processor1 != processor2)
 
 
 def tearDown():

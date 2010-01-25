@@ -61,6 +61,7 @@ class MediaPlayerPrivate : public MediaPlayerPrivateInterface {
 
             void load(const String &url);
             void cancelLoad();
+            bool loadNextLocation();
 
             void play();
             void pause();
@@ -71,13 +72,10 @@ class MediaPlayerPrivate : public MediaPlayerPrivateInterface {
             float duration() const;
             float currentTime() const;
             void seek(float);
-            void setEndTime(float);
 
             void setRate(float);
             void setVolume(float);
             void volumeChanged();
-
-            int dataRate() const;
 
             MediaPlayer::NetworkState networkState() const;
             MediaPlayer::ReadyState readyState() const;
@@ -85,12 +83,12 @@ class MediaPlayerPrivate : public MediaPlayerPrivateInterface {
             PassRefPtr<TimeRanges> buffered() const;
             float maxTimeSeekable() const;
             unsigned bytesLoaded() const;
-            bool totalBytesKnown() const;
             unsigned totalBytes() const;
 
             void setVisible(bool);
             void setSize(const IntSize&);
 
+            void mediaLocationChanged(GstMessage*);
             void loadStateChanged();
             void sizeChanged();
             void timeChanged();
@@ -104,6 +102,8 @@ class MediaPlayerPrivate : public MediaPlayerPrivateInterface {
             bool hasSingleSecurityOrigin() const;
 
             bool supportsFullscreen() const;
+
+            bool pipelineReset() const { return m_resetPipeline; }
 
         private:
             MediaPlayerPrivate(MediaPlayer*);
@@ -120,6 +120,7 @@ class MediaPlayerPrivate : public MediaPlayerPrivateInterface {
             void startEndPointTimerIfNeeded();
 
             void createGSTPlayBin(String url);
+            bool changePipelineState(GstState state);
 
         private:
             MediaPlayer* m_player;
@@ -137,9 +138,12 @@ class MediaPlayerPrivate : public MediaPlayerPrivateInterface {
             mutable bool m_isStreaming;
             IntSize m_size;
             GstBuffer* m_buffer;
-
+            GstStructure* m_mediaLocations;
+            gint m_mediaLocationCurrentIndex;
+            bool m_resetPipeline;
             bool m_paused;
             bool m_seeking;
+            float m_playbackRate;
             bool m_errorOccured;
             guint m_volumeIdleId;
     };

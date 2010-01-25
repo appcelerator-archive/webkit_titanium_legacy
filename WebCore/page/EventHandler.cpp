@@ -2333,7 +2333,7 @@ bool EventHandler::handleDrag(const MouseEventWithHitTestResults& event)
         
         if (m_mouseDownMayStartDrag) {
             // gather values from DHTML element, if it set any
-            dragState().m_dragClipboard->sourceOperation(srcOp);
+            srcOp = dragState().m_dragClipboard->sourceOperation();
             
             // Yuck, a draggedImage:moveTo: message can be fired as a result of kicking off the
             // drag with dragImage!  Because of that dumb reentrancy, we may think we've not
@@ -2537,18 +2537,12 @@ void EventHandler::updateLastScrollbarUnderMouse(Scrollbar* scrollbar, bool setL
 #if ENABLE(TOUCH_EVENTS)
 bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
 {
-    Document* doc = m_frame->document();
-    if (!doc)
-        return false;
-
-    if (!doc->hasListenerType(Document::TOUCH_LISTENER))
-        return false;
-
     RefPtr<TouchList> touches = TouchList::create();
     RefPtr<TouchList> pressedTouches = TouchList::create();
     RefPtr<TouchList> releasedTouches = TouchList::create();
     RefPtr<TouchList> movedTouches = TouchList::create();
     RefPtr<TouchList> targetTouches = TouchList::create();
+    RefPtr<TouchList> cancelTouches = TouchList::create();
 
     const Vector<PlatformTouchPoint>& points = event.touchPoints();
     AtomicString* eventName = 0;
@@ -2563,9 +2557,18 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
         if (target && target->isTextNode())
             target = target->parentNode();
 
+        Document* doc = target->document();
+        if (!doc)
+            continue;
+        if (!doc->hasListenerType(Document::TOUCH_LISTENER))
+            continue;
+
+        int adjustedPageX = lroundf(framePoint.x() / m_frame->pageZoomFactor());
+        int adjustedPageY = lroundf(framePoint.y() / m_frame->pageZoomFactor());
+
         RefPtr<Touch> touch = Touch::create(m_frame, target, point.id(),
                                             point.screenPos().x(), point.screenPos().y(),
-                                            framePoint.x(), framePoint.y());
+                                            adjustedPageX, adjustedPageY);
 
         if (event.type() == TouchStart && !i) {
             m_touchEventTarget = target;
@@ -2575,6 +2578,8 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
 
         if (point.state() == PlatformTouchPoint::TouchReleased)
             releasedTouches->append(touch);
+        else if (point.state() == PlatformTouchPoint::TouchCancelled)
+            cancelTouches->append(touch);
         else {
             if (point.state() == PlatformTouchPoint::TouchPressed)
                 pressedTouches->append(touch);
@@ -2592,6 +2597,21 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
         return false;
 
     bool defaultPrevented = false;
+
+    if (event.type() == TouchCancel) {
+        eventName = &eventNames().touchcancelEvent;
+        RefPtr<TouchEvent> cancelEv =
+            TouchEvent::create(TouchList::create().get(), TouchList::create().get(), cancelTouches.get(),
+                                                   *eventName, m_touchEventTarget->document()->defaultView(),
+                                                   m_firstTouchScreenPos.x(), m_firstTouchScreenPos.y(),
+                                                   m_firstTouchPagePos.x(), m_firstTouchPagePos.y(),
+                                                   event.ctrlKey(), event.altKey(), event.shiftKey(),
+                                                   event.metaKey());
+
+        ExceptionCode ec = 0;
+        m_touchEventTarget->dispatchEvent(cancelEv.get(), ec);
+        defaultPrevented |= cancelEv->defaultPrevented();
+    }
 
     if (releasedTouches->length() > 0) {
         eventName = &eventNames().touchendEvent;
@@ -2640,7 +2660,7 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
         defaultPrevented |= moveEv->defaultPrevented();
     }
 
-    if (event.type() == TouchEnd)
+    if (event.type() == TouchEnd || event.type() == TouchCancel)
         m_touchEventTarget = 0;
 
     return defaultPrevented;

@@ -344,6 +344,31 @@ static JSValueRef showMenuCallback(JSContextRef context, JSObjectRef function, J
     return JSValueMakeUndefined(context);
 }
 
+static JSValueRef takeFocusCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    toAXElement(thisObject)->takeFocus();
+    return JSValueMakeUndefined(context);
+}
+
+static JSValueRef takeSelectionCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    toAXElement(thisObject)->takeSelection();
+    return JSValueMakeUndefined(context);
+}
+
+static JSValueRef addSelectionCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    toAXElement(thisObject)->addSelection();
+    return JSValueMakeUndefined(context);
+}
+
+static JSValueRef removeSelectionCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    toAXElement(thisObject)->removeSelection();
+    return JSValueMakeUndefined(context);
+}
+
+
 // Static Value Getters
 
 static JSValueRef getARIADropEffectsCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
@@ -492,6 +517,16 @@ static JSValueRef getIsSelectedCallback(JSContextRef context, JSObjectRef thisOb
     return JSValueMakeBoolean(context, toAXElement(thisObject)->isSelected());
 }
 
+static JSValueRef getIsSelectableCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->isSelectable());
+}
+
+static JSValueRef getIsMultiSelectableCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->isMultiSelectable());
+}
+
 static JSValueRef getIsExpandedCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
 {
     return JSValueMakeBoolean(context, toAXElement(thisObject)->isExpanded());
@@ -500,6 +535,26 @@ static JSValueRef getIsExpandedCallback(JSContextRef context, JSObjectRef thisOb
 static JSValueRef getIsCheckedCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
 {
     return JSValueMakeBoolean(context, toAXElement(thisObject)->isChecked());
+}
+
+static JSValueRef getIsVisibleCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->isVisible());
+}
+
+static JSValueRef getIsOffScreenCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->isOffScreen());
+}
+
+static JSValueRef getIsCollapsedCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->isCollapsed());
+}
+
+static JSValueRef getHasPopupCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
+{
+    return JSValueMakeBoolean(context, toAXElement(thisObject)->hasPopup());
 }
 
 static JSValueRef hierarchicalLevelCallback(JSContextRef context, JSObjectRef thisObject, JSStringRef, JSValueRef*)
@@ -587,8 +642,14 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "isEnabled", getIsEnabledCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isRequired", getIsRequiredCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isSelected", getIsSelectedCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isSelectable", getIsSelectableCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isMultiSelectable", getIsMultiSelectableCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isExpanded", getIsExpandedCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isChecked", getIsCheckedCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isVisible", getIsVisibleCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isOffScreen", getIsOffScreenCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "isCollapsed", getIsCollapsedCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "hasPopup", getHasPopupCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "valueDescription", getValueDescriptionCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "hierarchicalLevel", hierarchicalLevelCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "documentEncoding", getDocumentEncodingCallback, 0, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -641,6 +702,10 @@ JSClassRef AccessibilityUIElement::getJSClass()
         { "selectedRowAtIndex", selectedRowAtIndexCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "isEqual", isEqualCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "addNotificationListener", addNotificationListenerCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "takeFocus", takeFocusCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "takeSelection", takeSelectionCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "addSelection", addSelectionCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "removeSelection", removeSelectionCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { 0, 0, 0 }
     };
 

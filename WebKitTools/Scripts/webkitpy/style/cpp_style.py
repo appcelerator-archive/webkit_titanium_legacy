@@ -4,6 +4,7 @@
 # Copyright (C) 2009 Google Inc. All rights reserved.
 # Copyright (C) 2009 Torch Mobile Inc.
 # Copyright (C) 2009 Apple Inc. All rights reserved.
+# Copyright (C) 2010 Chris Jerdonek (cjerdonek@webkit.org)
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -242,122 +243,19 @@ class _IncludeState(dict):
         return error_message
 
 
-class _CppStyleState(object):
-    """Maintains module-wide state.."""
-
-    def __init__(self):
-        self.verbose_level = 1  # global setting.
-        self.error_count = 0    # global count of reported errors
-        # filters to apply when emitting error messages
-        self.filters = []
-
-        # output format:
-        # "emacs" - format that emacs can parse (default)
-        # "vs7" - format that Microsoft Visual Studio 7 can parse
-        self.output_format = 'emacs'
-
-    def set_output_format(self, output_format):
-        """Sets the output format for errors."""
-        self.output_format = output_format
-
-    def set_verbose_level(self, level):
-        """Sets the module's verbosity, and returns the previous setting."""
-        last_verbose_level = self.verbose_level
-        self.verbose_level = level
-        return last_verbose_level
-
-    def set_filters(self, filters):
-        """Sets the error-message filters.
-
-        These filters are applied when deciding whether to emit a given
-        error message.
-
-        Args:
-          filters: A list of strings that are boolean filter rules used
-                   to determine whether a style category should be checked.
-                   Each string should start with + or -. An example
-                   string is "+whitespace/indent". The list includes any
-                   prepended default filter rules.
-
-        Raises:
-          ValueError: Not all filters started with '+' or '-'. For example,
-                      "-,+whitespace,-whitespace/indent,whitespace/badfilter"
-        """
-        self.filters = []
-        for filter in filters:
-            clean_filter = filter.strip()
-            if clean_filter:
-                self.filters.append(clean_filter)
-        for filter in self.filters:
-            if not (filter.startswith('+') or filter.startswith('-')):
-                raise ValueError('Every filter in --filter must start with '
-                                 '+ or - (%s does not)' % filter)
-
-    def reset_error_count(self):
-        """Sets the module's error statistic back to zero."""
-        self.error_count = 0
-
-    def increment_error_count(self):
-        """Bumps the module's error statistic."""
-        self.error_count += 1
-
-
-_cpp_style_state = _CppStyleState()
-
-
-def _output_format():
-    """Gets the module's output format."""
-    return _cpp_style_state.output_format
-
-
-def _set_output_format(output_format):
-    """Sets the module's output format."""
-    _cpp_style_state.set_output_format(output_format)
-
-
-def _verbose_level():
-    """Returns the module's verbosity setting."""
-    return _cpp_style_state.verbose_level
-
-
-def _set_verbose_level(level):
-    """Sets the module's verbosity, and returns the previous setting."""
-    return _cpp_style_state.set_verbose_level(level)
-
-
-def _filters():
-    """Returns the module's list of output filters, as a list."""
-    return _cpp_style_state.filters
-
-
-def _set_filters(filters):
-    """Sets the module's error-message filters.
-
-    These filters are applied when deciding whether to emit a given
-    error message.
-
-    Args:
-      filters: A list of strings that are boolean filter rules used
-               to determine whether a style category should be checked.
-               Each string should start with + or -. An example
-               string is "+whitespace/indent". The list includes any
-               prepended default filter rules.
-    """
-    _cpp_style_state.set_filters(filters)
-
-
-def error_count():
-    """Returns the global count of reported errors."""
-    return _cpp_style_state.error_count
-
-
 class _FunctionState(object):
-    """Tracks current function name and the number of lines in its body."""
+    """Tracks current function name and the number of lines in its body.
+
+    Attributes:
+      verbosity: The verbosity level to use while checking style.
+
+    """
 
     _NORMAL_TRIGGER = 250  # for --v=0, 500 for --v=1, etc.
     _TEST_TRIGGER = 400    # about 50% more than _NORMAL_TRIGGER.
 
-    def __init__(self):
+    def __init__(self, verbosity):
+        self.verbosity = verbosity
         self.in_a_function = False
         self.lines_in_function = 0
         self.current_function = ''
@@ -389,7 +287,7 @@ class _FunctionState(object):
             base_trigger = self._TEST_TRIGGER
         else:
             base_trigger = self._NORMAL_TRIGGER
-        trigger = base_trigger * 2 ** _verbose_level()
+        trigger = base_trigger * 2 ** self.verbosity
 
         if self.lines_in_function > trigger:
             error_level = int(math.log(self.lines_in_function / base_trigger, 2))
@@ -496,59 +394,6 @@ class FileInfo:
     def is_source(self):
         """File has a source file extension."""
         return self.extension()[1:] in ('c', 'cc', 'cpp', 'cxx')
-
-
-def _should_print_error(category, confidence):
-    """Returns true iff confidence >= verbose, and category passes filter."""
-    # There are two ways we might decide not to print an error message:
-    # the verbosity level isn't high enough, or the filters filter it out.
-    if confidence < _cpp_style_state.verbose_level:
-        return False
-
-    is_filtered = False
-    for one_filter in _filters():
-        if one_filter.startswith('-'):
-            if category.startswith(one_filter[1:]):
-                is_filtered = True
-        elif one_filter.startswith('+'):
-            if category.startswith(one_filter[1:]):
-                is_filtered = False
-        else:
-            assert False  # should have been checked for in set_filter.
-    if is_filtered:
-        return False
-
-    return True
-
-
-def error(filename, line_number, category, confidence, message):
-    """Logs the fact we've found a lint error.
-
-    We log where the error was found, and also our confidence in the error,
-    that is, how certain we are this is a legitimate style regression, and
-    not a misidentification or a use that's sometimes justified.
-
-    Args:
-      filename: The name of the file containing the error.
-      line_number: The number of the line containing the error.
-      category: A string used to describe the "category" this bug
-                falls under: "whitespace", say, or "runtime".  Categories
-                may have a hierarchy separated by slashes: "whitespace/indent".
-      confidence: A number from 1-5 representing a confidence score for
-                  the error, with 5 meaning that we are certain of the problem,
-                  and 1 meaning that it could be a legitimate construct.
-      message: The error message.
-    """
-    # There are two ways we might decide not to print an error message:
-    # the verbosity level isn't high enough, or the filters filter it out.
-    if _should_print_error(category, confidence):
-        _cpp_style_state.increment_error_count()
-        if _cpp_style_state.output_format == 'vs7':
-            sys.stderr.write('%s(%s):  %s  [%s] [%d]\n' % (
-                filename, line_number, message, category, confidence))
-        else:
-            sys.stderr.write('%s:%s:  %s  [%s] [%d]\n' % (
-                filename, line_number, message, category, confidence))
 
 
 # Matches standard C++ escape esequences per 2.13.2.3 of the C++ standard.
@@ -2094,7 +1939,8 @@ def check_style(filename, clean_lines, line_number, file_extension, file_state, 
         # It's ok to have many commands in a switch case that fits in 1 line
         and not ((cleansed_line.find('case ') != -1
                   or cleansed_line.find('default:') != -1)
-                 and cleansed_line.find('break;') != -1)):
+                 and cleansed_line.find('break;') != -1)
+        and not cleansed_line.startswith('#define ')):
         error(filename, line_number, 'whitespace/newline', 4,
               'More than one command on the same line')
 
@@ -2223,6 +2069,11 @@ def _classify_include(filename, include, is_system, include_state):
     # In case the two filename bases are the same then the above lenient check
     # probably was a false positive.
     elif include_state.visited_primary_section() and target_base == include_base:
+        if include == "ResourceHandleWin.h":
+            # FIXME: Thus far, we've only seen one example of these, but if we
+            # start to see more, please consider generalizing this check
+            # somehow.
+            return _OTHER_HEADER
         return _PRIMARY_HEADER
 
     return _OTHER_HEADER
@@ -2243,6 +2094,13 @@ def check_include_line(filename, clean_lines, line_number, include_state, error)
       include_state: An _IncludeState instance in which the headers are inserted.
       error: The function to call with any errors found.
     """
+
+    if (filename.find('WebKitTools/WebKitAPITest/') >= 0
+        or filename.find('WebKit/qt/QGVLauncher/') >= 0):
+        # Files in this directory are consumers of the WebKit API and
+        # therefore do not follow the same header including discipline as
+        # WebCore.
+        return
 
     line = clean_lines.lines[line_number]
 
@@ -2612,7 +2470,11 @@ def check_identifier_name_in_declaration(filename, line_number, line, error):
         if modified_identifier.find('_') >= 0:
             # Various exceptions to the rule: JavaScript op codes functions, const_iterator.
             if (not (filename.find('JavaScriptCore') >= 0 and modified_identifier.find('_op_') >= 0)
+                and not filename.find('WebKit/gtk/webkit/') >= 0
                 and not modified_identifier.startswith('tst_')
+                and not modified_identifier.startswith('webkit_dom_object_')
+                and not modified_identifier.startswith('qt_')
+                and not modified_identifier.find('::qt_') >= 0
                 and not modified_identifier == "const_iterator"):
                 error(filename, line_number, 'readability/naming', 4, identifier + " is incorrectly named. Don't use underscores in your identifier names.")
 
@@ -2959,7 +2821,7 @@ def process_line(filename, file_extension,
     check_invalid_increment(filename, clean_lines, line, error)
 
 
-def process_file_data(filename, file_extension, lines, error):
+def _process_lines(filename, file_extension, lines, error, verbosity):
     """Performs lint checks and reports any errors to the given error function.
 
     Args:
@@ -2973,7 +2835,7 @@ def process_file_data(filename, file_extension, lines, error):
              ['// marker so line numbers end in a known way'])
 
     include_state = _IncludeState()
-    function_state = _FunctionState()
+    function_state = _FunctionState(verbosity)
     class_state = _ClassState()
     file_state = _FileState()
 
@@ -2998,65 +2860,49 @@ def process_file_data(filename, file_extension, lines, error):
     check_for_new_line_at_eof(filename, lines, error)
 
 
-def process_file(filename, error=error):
-    """Performs cpp_style on a single file.
+class CppProcessor(object):
 
-    Args:
-      filename: The name of the file to parse.
-      error: The function to call with any errors found.
-    """
-    try:
-        # Support the UNIX convention of using "-" for stdin.  Note that
-        # we are not opening the file with universal newline support
-        # (which codecs doesn't support anyway), so the resulting lines do
-        # contain trailing '\r' characters if we are reading a file that
-        # has CRLF endings.
-        # If after the split a trailing '\r' is present, it is removed
-        # below. If it is not expected to be present (i.e. os.linesep !=
-        # '\r\n' as in Windows), a warning is issued below if this file
-        # is processed.
+    """Processes C++ lines for checking style."""
 
-        if filename == '-':
-            lines = codecs.StreamReaderWriter(sys.stdin,
-                                              codecs.getreader('utf8'),
-                                              codecs.getwriter('utf8'),
-                                              'replace').read().split('\n')
-        else:
-            lines = codecs.open(filename, 'r', 'utf8', 'replace').read().split('\n')
+    def __init__(self, file_path, file_extension, handle_style_error, verbosity):
+        """Create a CppProcessor instance.
 
-        carriage_return_found = False
-        # Remove trailing '\r'.
-        for line_number in range(len(lines)):
-            if lines[line_number].endswith('\r'):
-                lines[line_number] = lines[line_number].rstrip('\r')
-                carriage_return_found = True
+        Args:
+          file_extension: A string that is the file extension, without
+                          the leading dot.
 
-    except IOError:
-        sys.stderr.write(
-            "Skipping input '%s': Can't open for reading\n" % filename)
-        return
+        """
+        self.file_extension = file_extension
+        self.file_path = file_path
+        self.handle_style_error = handle_style_error
+        self.verbosity = verbosity
 
-    # Note, if no dot is found, this will give the entire filename as the ext.
-    file_extension = filename[filename.rfind('.') + 1:]
+    # Useful for unit testing.
+    def __eq__(self, other):
+        """Return whether this CppProcessor instance is equal to another."""
+        if self.file_extension != other.file_extension:
+            return False
+        if self.file_path != other.file_path:
+            return False
+        if self.handle_style_error != other.handle_style_error:
+            return False
+        if self.verbosity != other.verbosity:
+            return False
 
-    # When reading from stdin, the extension is unknown, so no cpp_style tests
-    # should rely on the extension.
-    if (filename != '-' and not can_handle(filename)):
-        sys.stderr.write('Ignoring %s; not a .cpp, .c or .h file\n' % filename)
-    else:
-        process_file_data(filename, file_extension, lines, error)
-        if carriage_return_found and os.linesep != '\r\n':
-            # Use 0 for line_number since outputing only one error for potentially
-            # several lines.
-            error(filename, 0, 'whitespace/newline', 1,
-                  'One or more unexpected \\r (^M) found;'
-                  'better to use only a \\n')
+        return True
+
+    # Useful for unit testing.
+    def __ne__(self, other):
+        # Python does not automatically deduce __ne__() from __eq__().
+        return not self.__eq__(other)
+
+    def process(self, lines):
+        _process_lines(self.file_path, self.file_extension, lines,
+                       self.handle_style_error, self.verbosity)
 
 
-def can_handle(filename):
-    """Checks if this module supports for the specified file type.
+# FIXME: Remove this function (requires refactoring unit tests).
+def process_file_data(filename, file_extension, lines, error, verbosity):
+    processor = CppProcessor(filename, file_extension, error, verbosity)
+    processor.process(lines)
 
-    Args:
-      filename: A filename. It may contain directory names.
-     """
-    return os.path.splitext(filename)[1] in ('.h', '.cpp', '.c')

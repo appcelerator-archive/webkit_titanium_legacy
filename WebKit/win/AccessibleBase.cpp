@@ -29,6 +29,8 @@
 
 #include "AccessibleImage.h"
 #include "WebView.h"
+#include <WebCore/AccessibilityListBox.h>
+#include <WebCore/AccessibilityMenuListPopup.h>
 #include <WebCore/AccessibilityObject.h>
 #include <WebCore/AXObjectCache.h>
 #include <WebCore/BString.h>
@@ -106,7 +108,17 @@ HRESULT STDMETHODCALLTYPE AccessibleBase::get_accParent(IDispatch** parent)
 {
     *parent = 0;
 
-    if (!m_object || !m_object->topDocumentFrameView())
+    if (!m_object)
+        return E_FAIL;
+
+    AccessibilityObject* parentObject = m_object->parentObjectUnignored();
+    if (parentObject) {
+        *parent = wrapper(parentObject);
+        (*parent)->AddRef();
+        return S_OK;
+    }
+
+    if (!m_object->topDocumentFrameView())
         return E_FAIL;
 
     return WebView::AccessibleObjectFromWindow(m_object->topDocumentFrameView()->hostWindow()->platformPageClient(),
@@ -252,9 +264,6 @@ HRESULT STDMETHODCALLTYPE AccessibleBase::get_accState(VARIANT vChild, VARIANT* 
     if (childObj->isOffScreen())
         pvState->lVal |= STATE_SYSTEM_OFFSCREEN;
 
-    if (childObj->isMultiSelect())
-        pvState->lVal |= STATE_SYSTEM_MULTISELECTABLE;
-
     if (childObj->isPasswordField())
         pvState->lVal |= STATE_SYSTEM_PROTECTED;
 
@@ -276,7 +285,27 @@ HRESULT STDMETHODCALLTYPE AccessibleBase::get_accState(VARIANT vChild, VARIANT* 
     if (childObj->canSetFocusAttribute())
         pvState->lVal |= STATE_SYSTEM_FOCUSABLE;
 
-    // TODO: Add selected and selectable states.
+    if (childObj->isSelected())
+        pvState->lVal |= STATE_SYSTEM_SELECTED;
+
+    if (childObj->canSetSelectedAttribute())
+        pvState->lVal |= STATE_SYSTEM_SELECTABLE;
+
+    if (childObj->isMultiSelectable())
+        pvState->lVal |= STATE_SYSTEM_EXTSELECTABLE | STATE_SYSTEM_MULTISELECTABLE;
+
+    if (!childObj->isVisible())
+        pvState->lVal |= STATE_SYSTEM_INVISIBLE;
+
+    if (childObj->isCollapsed())
+        pvState->lVal |= STATE_SYSTEM_COLLAPSED;
+
+    if (childObj->roleValue() == PopUpButtonRole) {
+        pvState->lVal |= STATE_SYSTEM_HASPOPUP;
+
+        if (!childObj->isCollapsed())
+            pvState->lVal |= STATE_SYSTEM_EXPANDED;
+    }
 
     return S_OK;
 }
@@ -335,9 +364,54 @@ HRESULT STDMETHODCALLTYPE AccessibleBase::get_accKeyboardShortcut(VARIANT vChild
     return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE AccessibleBase::accSelect(long, VARIANT)
+HRESULT STDMETHODCALLTYPE AccessibleBase::accSelect(long selectionFlags, VARIANT vChild)
 {
-    return E_NOTIMPL;
+    // According to MSDN, these combinations are invalid.
+    if (((selectionFlags & (SELFLAG_ADDSELECTION | SELFLAG_REMOVESELECTION)) == (SELFLAG_ADDSELECTION | SELFLAG_REMOVESELECTION)) ||
+        ((selectionFlags & (SELFLAG_ADDSELECTION | SELFLAG_TAKESELECTION)) == (SELFLAG_ADDSELECTION | SELFLAG_TAKESELECTION)) ||
+        ((selectionFlags & (SELFLAG_REMOVESELECTION | SELFLAG_TAKESELECTION)) == (SELFLAG_REMOVESELECTION | SELFLAG_TAKESELECTION)) ||
+        ((selectionFlags & (SELFLAG_EXTENDSELECTION | SELFLAG_TAKESELECTION)) == (SELFLAG_REMOVESELECTION | SELFLAG_TAKESELECTION)))
+        return E_INVALIDARG;
+
+    AccessibilityObject* childObject;
+    HRESULT hr = getAccessibilityObjectForChild(vChild, childObject);
+
+    if (FAILED(hr))
+        return hr;
+
+    if (selectionFlags & SELFLAG_TAKEFOCUS)
+        childObject->setFocused(true);
+
+    AccessibilityObject* parentObject = childObject->parentObject();
+    if (!parentObject)
+        return E_INVALIDARG;
+
+    if (selectionFlags & SELFLAG_TAKESELECTION) {
+        if (parentObject->isListBox()) {
+            Vector<RefPtr<AccessibilityObject> > selectedChildren(1);
+            selectedChildren[0] = childObject;
+            static_cast<AccessibilityListBox*>(parentObject)->setSelectedChildren(selectedChildren);
+        } else if (parentObject->isMenuListPopup())
+            childObject->setSelected(true);
+        else
+            return E_INVALIDARG;
+    }
+
+    // MSDN says that ADD, REMOVE, and EXTENDSELECTION are invalid for
+    // single-select.
+    if (!parentObject->isMultiSelectable())
+        return E_INVALIDARG;
+
+    if (selectionFlags & SELFLAG_ADDSELECTION)
+        childObject->setSelected(true);
+
+    if (selectionFlags & SELFLAG_REMOVESELECTION)
+        childObject->setSelected(false);
+
+    // FIXME: Should implement SELFLAG_EXTENDSELECTION. For now, we just return
+    // S_OK, matching Firefox.
+
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE AccessibleBase::get_accSelection(VARIANT*)
@@ -405,7 +479,7 @@ HRESULT STDMETHODCALLTYPE AccessibleBase::accLocation(long* left, long* top, lon
     if (!childObj->documentFrameView())
         return E_FAIL;
 
-    IntRect screenRect(childObj->documentFrameView()->contentsToScreen(childObj->boundingBoxRect()));
+    IntRect screenRect(childObj->documentFrameView()->contentsToScreen(childObj->elementRect()));
     *left = screenRect.x();
     *top = screenRect.y();
     *width = screenRect.width();
@@ -556,6 +630,8 @@ static long MSAARole(AccessibilityRole role)
         case WebCore::GroupRole:
             return ROLE_SYSTEM_GROUPING;
         case WebCore::ListRole:
+        case WebCore::ListBoxRole:
+        case WebCore::MenuListPopupRole:
             return ROLE_SYSTEM_LIST;
         case WebCore::TableRole:
             return ROLE_SYSTEM_TABLE;
@@ -565,7 +641,9 @@ static long MSAARole(AccessibilityRole role)
         case WebCore::ImageMapRole:
         case WebCore::ImageRole:
             return ROLE_SYSTEM_GRAPHIC;
+        case WebCore::MenuListOptionRole:
         case WebCore::ListItemRole:
+        case WebCore::ListBoxOptionRole:
             return ROLE_SYSTEM_LISTITEM;
         case WebCore::PopUpButtonRole:
             return ROLE_SYSTEM_COMBOBOX;

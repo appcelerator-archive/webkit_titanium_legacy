@@ -33,52 +33,61 @@ from webkitpy.commands.queues import AbstractReviewQueue
 from webkitpy.committers import CommitterList
 from webkitpy.executive import ScriptError
 from webkitpy.webkitport import WebKitPort
+from webkitpy.queueengine import QueueEngine
 
 
 class AbstractEarlyWarningSystem(AbstractReviewQueue):
+    _build_style = "release"
+
     def __init__(self):
         AbstractReviewQueue.__init__(self)
         self.port = WebKitPort.port(self.port_name)
 
     def should_proceed_with_work_item(self, patch):
         try:
-            self.run_webkit_patch(["build", self.port.flag(), "--force-clean", "--quiet"])
+            self.run_webkit_patch([
+                "build",
+                self.port.flag(),
+                "--build-style=%s" % self._build_style,
+                "--force-clean",
+                "--quiet"])
             self._update_status("Building", patch)
         except ScriptError, e:
             self._update_status("Unable to perform a build")
             return False
         return True
 
-    def process_work_item(self, patch):
-        try:
-            self.run_webkit_patch([
-                "build-attachment",
-                self.port.flag(),
-                "--force-clean",
-                "--quiet",
-                "--non-interactive",
-                "--parent-command=%s" % self.name,
-                "--no-update",
-                patch["id"]])
-            self._did_pass(patch)
-        except ScriptError, e:
-            self._did_fail(patch)
-            raise e
+    def _review_patch(self, patch):
+        self.run_webkit_patch([
+            "build-attachment",
+            self.port.flag(),
+            "--build-style=%s" % self._build_style,
+            "--force-clean",
+            "--quiet",
+            "--non-interactive",
+            "--parent-command=%s" % self.name,
+            "--no-update",
+            patch.id()])
 
     @classmethod
     def handle_script_error(cls, tool, state, script_error):
-        status_id = cls._update_status_for_script_error(tool, state, script_error)
-        # FIXME: This won't be right for ports that don't use build-webkit!
-        if not script_error.command_name() == "build-webkit":
-            return
+        is_svn_apply = script_error.command_name() == "svn-apply"
+        status_id = cls._update_status_for_script_error(tool, state, script_error, is_error=is_svn_apply)
+        if is_svn_apply:
+            QueueEngine.exit_after_handled_error(script_error)
         results_link = tool.status_server.results_url_for_status(status_id)
-        message = "Attachment %s did not build on %s:\nBuild output: %s" % (state["patch"]["id"], cls.port_name, results_link)
-        tool.bugs.post_comment_to_bug(state["patch"]["bug_id"], message, cc=cls.watchers)
+        message = "Attachment %s did not build on %s:\nBuild output: %s" % (state["patch"].id(), cls.port_name, results_link)
+        tool.bugs.post_comment_to_bug(state["patch"].bug_id(), message, cc=cls.watchers)
+        exit(1)
 
 
 class GtkEWS(AbstractEarlyWarningSystem):
     name = "gtk-ews"
     port_name = "gtk"
+    watchers = AbstractEarlyWarningSystem.watchers + [
+        "gns@gnome.org",
+        "xan.lopez@gmail.com",
+    ]
 
 
 class QtEWS(AbstractEarlyWarningSystem):
@@ -102,7 +111,7 @@ class AbstractCommitterOnlyEWS(AbstractEarlyWarningSystem):
         self._committers = committers
 
     def process_work_item(self, patch):
-        if not self._committers.committer_by_email(patch["attacher_email"]):
+        if not self._committers.committer_by_email(patch.attacher_email()):
             self._did_error(patch, "%s cannot process patches from non-committers :(" % self.name)
             return
         AbstractEarlyWarningSystem.process_work_item(self, patch)

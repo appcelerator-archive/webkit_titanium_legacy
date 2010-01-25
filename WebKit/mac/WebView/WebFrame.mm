@@ -848,7 +848,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     if (!_private->coreFrame || !_private->coreFrame->document())
         return nil;
 
-    return kit(createFragmentFromMarkup(_private->coreFrame->document(), markupString, baseURLString).get());
+    return kit(createFragmentFromMarkup(_private->coreFrame->document(), markupString, baseURLString, FragmentScriptingNotAllowed).get());
 }
 
 - (DOMDocumentFragment *)_documentFragmentWithNodesAsParagraphs:(NSArray *)nodes
@@ -1356,7 +1356,10 @@ static bool needsMicrosoftMessengerDOMDocumentWorkaround()
 
 - (void)loadRequest:(NSURLRequest *)request
 {
-    _private->coreFrame->loader()->load(request, false);
+    Frame* coreFrame = _private->coreFrame;
+    if (!coreFrame)
+        return;
+    coreFrame->loader()->load(request, false);
 }
 
 static NSURL *createUniqueWebDataURL()

@@ -289,13 +289,6 @@ void Page::goBackOrForward(int distance)
 
 void Page::goToItem(HistoryItem* item, FrameLoadType type)
 {
-#if !ASSERT_DISABLED
-    // If we're navigating to an item with history state for a Document other than the
-    // current Document, the new Document had better be in the page cache.
-    if (item->stateObject() && item->document() != m_mainFrame->document())
-        ASSERT(item->document()->inPageCache());
-#endif
-
     // Abort any current load unless we're navigating the current document to a new state object
     if (!item->stateObject() || item->document() != m_mainFrame->document()) {
         // Define what to do with any open database connections. By default we stop them and terminate the database thread.
@@ -318,7 +311,7 @@ void Page::goToItem(HistoryItem* item, FrameLoadType type)
 
 int Page::getHistoryLength()
 {
-    return m_backForwardList->backListCount() + 1;
+    return m_backForwardList->backListCount() + 1 + m_backForwardList->forwardListCount();
 }
 
 void Page::setGlobalHistoryItem(HistoryItem* item)
@@ -689,7 +682,7 @@ void Page::setDebugger(JSC::Debugger* debugger)
 StorageNamespace* Page::sessionStorage(bool optionalCreate)
 {
     if (!m_sessionStorage && optionalCreate)
-        m_sessionStorage = StorageNamespace::sessionStorageNamespace();
+        m_sessionStorage = StorageNamespace::sessionStorageNamespace(this);
 
     return m_sessionStorage.get();
 }
@@ -775,4 +768,16 @@ void Page::didStopPlugin(HaltablePlugin* obj)
         m_pluginHalter->didStopPlugin(obj);
 }
 
+#if !ASSERT_DISABLED
+void Page::checkFrameCountConsistency() const
+{
+    ASSERT(m_frameCount >= 0);
+
+    int frameCount = 0;
+    for (Frame* frame = mainFrame(); frame; frame = frame->tree()->traverseNext())
+        ++frameCount;
+
+    ASSERT(m_frameCount + 1 == frameCount);
+}
+#endif
 } // namespace WebCore

@@ -42,6 +42,7 @@
 #include "FrameView.h"
 #include "HTMLElement.h"
 #include "HTMLNames.h"
+#include "InspectorController.h"
 #include "NamedNodeMap.h"
 #include "NodeList.h"
 #include "NodeRenderStyle.h"
@@ -157,21 +158,6 @@ void Element::setBooleanAttribute(const QualifiedName& name, bool b)
 NamedNodeMap* Element::attributes() const
 {
     return attributes(false);
-}
-
-NamedNodeMap* Element::attributes(bool readonly) const
-{
-    if (!m_isStyleAttributeValid)
-        updateStyleAttribute();
-
-#if ENABLE(SVG)
-    if (!m_areSVGAttributesValid)
-        updateAnimatedSVGAttribute(String());
-#endif
-
-    if (!readonly && !namedAttrMap)
-        createAttributeMap();
-    return namedAttrMap.get();
 }
 
 Node::NodeType Element::nodeType() const
@@ -534,7 +520,7 @@ void Element::setAttribute(const AtomicString& name, const AtomicString& value, 
 
     if (localName == idAttributeName().localName())
         updateId(old ? old->value() : nullAtom, value);
-    
+
     if (old && value.isNull())
         namedAttrMap->removeAttribute(old->name());
     else if (!old && !value.isNull())
@@ -543,6 +529,15 @@ void Element::setAttribute(const AtomicString& name, const AtomicString& value, 
         old->setValue(value);
         attributeChanged(old);
     }
+
+#if ENABLE(INSPECTOR)
+    if (Page* page = document()->page()) {
+        if (InspectorController* inspectorController = page->inspectorController()) {
+            if (!m_synchronizingStyleAttribute)
+                inspectorController->didModifyDOMAttr(this);
+        }
+    }
+#endif
 }
 
 void Element::setAttribute(const QualifiedName& name, const AtomicString& value, ExceptionCode&)
@@ -554,7 +549,7 @@ void Element::setAttribute(const QualifiedName& name, const AtomicString& value,
 
     if (name == idAttributeName())
         updateId(old ? old->value() : nullAtom, value);
-    
+
     if (old && value.isNull())
         namedAttrMap->removeAttribute(name);
     else if (!old && !value.isNull())
@@ -563,6 +558,15 @@ void Element::setAttribute(const QualifiedName& name, const AtomicString& value,
         old->setValue(value);
         attributeChanged(old);
     }
+
+#if ENABLE(INSPECTOR)
+    if (Page* page = document()->page()) {
+        if (InspectorController* inspectorController = page->inspectorController()) {
+            if (!m_synchronizingStyleAttribute)
+                inspectorController->didModifyDOMAttr(this);
+        }
+    }
+#endif
 }
 
 PassRefPtr<Attribute> Element::createAttribute(const QualifiedName& name, const AtomicString& value)
@@ -578,23 +582,22 @@ void Element::attributeChanged(Attribute* attr, bool)
 
 void Element::updateAfterAttributeChanged(Attribute* attr)
 {
-    AXObjectCache* axObjectCache = document()->axObjectCache();
-    if (!axObjectCache->accessibilityEnabled())
+    if (!AXObjectCache::accessibilityEnabled())
         return;
 
     const QualifiedName& attrName = attr->name();
     if (attrName == aria_activedescendantAttr) {
         // any change to aria-activedescendant attribute triggers accessibility focus change, but document focus remains intact
-        axObjectCache->handleActiveDescendantChanged(renderer());
+        document()->axObjectCache()->handleActiveDescendantChanged(renderer());
     } else if (attrName == roleAttr) {
         // the role attribute can change at any time, and the AccessibilityObject must pick up these changes
-        axObjectCache->handleAriaRoleChanged(renderer());
+        document()->axObjectCache()->handleAriaRoleChanged(renderer());
     } else if (attrName == aria_valuenowAttr) {
         // If the valuenow attribute changes, AX clients need to be notified.
-        axObjectCache->postNotification(renderer(), AXObjectCache::AXValueChanged, true);
+        document()->axObjectCache()->postNotification(renderer(), AXObjectCache::AXValueChanged, true);
     } else if (attrName == aria_labelAttr || attrName == aria_labeledbyAttr || attrName == altAttr || attrName == titleAttr) {
         // If the content of an element changes due to an attribute change, notify accessibility.
-        axObjectCache->contentChanged(renderer());
+        document()->axObjectCache()->contentChanged(renderer());
     }
 }
     
@@ -603,8 +606,18 @@ void Element::recalcStyleIfNeededAfterAttributeChanged(Attribute* attr)
     if (document()->attached() && document()->styleSelector()->hasSelectorForAttribute(attr->name().localName()))
         setNeedsStyleRecalc();
 }
-        
-void Element::setAttributeMap(PassRefPtr<NamedNodeMap> list)
+
+// Returns true is the given attribute is an event handler.
+// We consider an event handler any attribute that begins with "on".
+// It is a simple solution that has the advantage of not requiring any
+// code or configuration change if a new event handler is defined.
+
+static bool isEventHandlerAttribute(const QualifiedName& name)
+{
+    return name.namespaceURI().isNull() && name.localName().startsWith("on");
+}
+    
+void Element::setAttributeMap(PassRefPtr<NamedNodeMap> list, FragmentScriptingPermission scriptingPermission)
 {
     document()->incDOMTreeVersion();
 
@@ -624,6 +637,22 @@ void Element::setAttributeMap(PassRefPtr<NamedNodeMap> list)
 
     if (namedAttrMap) {
         namedAttrMap->m_element = this;
+        // If the element is created as result of a paste or drag-n-drop operation
+        // we want to remove all the script and event handlers.
+        if (scriptingPermission == FragmentScriptingNotAllowed) {
+            unsigned i = 0;
+            while (i < namedAttrMap->length()) {
+                const QualifiedName& attributeName = namedAttrMap->m_attributes[i]->name();
+                if (isEventHandlerAttribute(attributeName)) {
+                    namedAttrMap->m_attributes.remove(i);
+                    continue;
+                }
+
+                if ((attributeName.localName().endsWith(hrefAttr.localName()) || attributeName == srcAttr || attributeName == actionAttr) && protocolIsJavaScript(deprecatedParseURL(namedAttrMap->m_attributes[i]->value())))
+                    namedAttrMap->m_attributes[i]->setValue(nullAtom);
+                i++;
+            }
+        }
         unsigned len = namedAttrMap->length();
         for (unsigned i = 0; i < len; i++)
             attributeChanged(namedAttrMap->m_attributes[i].get());
@@ -654,14 +683,14 @@ String Element::nodeNamePreservingCase() const
     return m_tagName.toString();
 }
 
-void Element::setPrefix(const AtomicString &_prefix, ExceptionCode& ec)
+void Element::setPrefix(const AtomicString& prefix, ExceptionCode& ec)
 {
     ec = 0;
-    checkSetPrefix(_prefix, ec);
+    checkSetPrefix(prefix, ec);
     if (ec)
         return;
 
-    m_tagName.setPrefix(_prefix);
+    m_tagName.setPrefix(prefix.isEmpty() ? AtomicString() : prefix);
 }
 
 KURL Element::baseURI() const
@@ -1005,6 +1034,7 @@ void Element::finishParsingChildren()
 void Element::dispatchAttrRemovalEvent(Attribute*)
 {
     ASSERT(!eventDispatchForbidden());
+
 #if 0
     if (!document()->hasListenerType(Document::DOMATTRMODIFIED_LISTENER))
         return;
@@ -1017,6 +1047,7 @@ void Element::dispatchAttrRemovalEvent(Attribute*)
 void Element::dispatchAttrAdditionEvent(Attribute*)
 {
     ASSERT(!eventDispatchForbidden());
+
 #if 0
     if (!document()->hasListenerType(Document::DOMATTRMODIFIED_LISTENER))
         return;
@@ -1049,21 +1080,6 @@ String Element::openTagStartToString() const
     }
 
     return result;
-}
-
-void Element::updateId(const AtomicString& oldId, const AtomicString& newId)
-{
-    if (!inDocument())
-        return;
-
-    if (oldId == newId)
-        return;
-
-    Document* doc = document();
-    if (!oldId.isEmpty())
-        doc->removeElementById(oldId, this);
-    if (!newId.isEmpty())
-        doc->addElementById(newId, this);
 }
 
 #ifndef NDEBUG
@@ -1156,6 +1172,14 @@ void Element::removeAttribute(const String& name, ExceptionCode& ec)
         if (ec == NOT_FOUND_ERR)
             ec = 0;
     }
+    
+#if ENABLE(INSPECTOR)
+    if (Page* page = document()->page()) {
+        if (InspectorController* inspectorController = page->inspectorController())
+            inspectorController->didModifyDOMAttr(this);
+    }
+#endif
+    
 }
 
 void Element::removeAttributeNS(const String& namespaceURI, const String& localName, ExceptionCode& ec)
@@ -1254,7 +1278,7 @@ void Element::updateFocusAppearance(bool /*restorePreviousSelection*/)
         }
     }
     // FIXME: I'm not sure all devices will want this off, but this is
-    // currently turned off for Andriod.
+    // currently turned off for Android.
 #if !ENABLE(DIRECTIONAL_PAD_NAVIGATION)
     else if (renderer() && !renderer()->isWidget())
         renderer()->enclosingLayer()->scrollRectToVisible(getRect());
@@ -1427,7 +1451,7 @@ bool Element::webkitMatchesSelector(const String& selector, ExceptionCode& ec)
 
 KURL Element::getURLAttribute(const QualifiedName& name) const
 {
-#ifndef NDEBUG
+#if !ASSERT_DISABLED
     if (namedAttrMap) {
         if (Attribute* attribute = namedAttrMap->getAttributeItem(name))
             ASSERT(isURLAttribute(attribute));

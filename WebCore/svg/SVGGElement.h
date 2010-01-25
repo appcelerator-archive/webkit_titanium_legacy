@@ -37,6 +37,7 @@ namespace WebCore {
         SVGGElement(const QualifiedName&, Document*);
         virtual ~SVGGElement();
 
+        virtual bool isShadowTreeContainerElement() const { return false; }
         virtual bool isValid() const { return SVGTests::isValid(); }
 
         virtual void parseMappedAttribute(MappedAttribute*);
@@ -50,9 +51,6 @@ namespace WebCore {
         ANIMATED_PROPERTY_DECLARATIONS(SVGGElement, SVGExternalResourcesRequiredIdentifier,
                                        SVGNames::externalResourcesRequiredAttrString, bool,
                                        ExternalResourcesRequired, externalResourcesRequired)
-
-        friend class SVGUseElement;
-        TransformationMatrix localMatrix() const;
     };
 
 } // namespace WebCore

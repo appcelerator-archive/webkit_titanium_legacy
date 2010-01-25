@@ -32,6 +32,7 @@
 #include "CollectionCache.h"
 #include "CollectionType.h"
 #include "Color.h"
+#include "Document.h"
 #include "DocumentMarker.h"
 #include "ScriptExecutionContext.h"
 #include "Timer.h"
@@ -63,6 +64,7 @@ namespace WebCore {
     class DocLoader;
     class DocumentFragment;
     class DocumentType;
+    class DocumentWeakReference;
     class EditingText;
     class Element;
     class EntityReference;
@@ -177,11 +179,11 @@ class Document : public ContainerNode, public ScriptExecutionContext {
 public:
     static PassRefPtr<Document> create(Frame* frame)
     {
-        return adoptRef(new Document(frame, false));
+        return adoptRef(new Document(frame, false, false));
     }
     static PassRefPtr<Document> createXHTML(Frame* frame)
     {
-        return adoptRef(new Document(frame, true));
+        return adoptRef(new Document(frame, true, false));
     }
     virtual ~Document();
 
@@ -259,6 +261,7 @@ public:
     DEFINE_ATTRIBUTE_EVENT_LISTENER(touchstart);
     DEFINE_ATTRIBUTE_EVENT_LISTENER(touchmove);
     DEFINE_ATTRIBUTE_EVENT_LISTENER(touchend);
+    DEFINE_ATTRIBUTE_EVENT_LISTENER(touchcancel);
 #endif
 
     DocumentType* doctype() const { return m_docType.get(); }
@@ -352,7 +355,7 @@ public:
     CollectionCache* nameCollectionInfo(CollectionType, const AtomicString& name);
 
     // Other methods (not part of DOM)
-    virtual bool isHTMLDocument() const { return false; }
+    bool isHTMLDocument() const { return m_isHTML; }
     virtual bool isImageDocument() const { return false; }
 #if ENABLE(SVG)
     virtual bool isSVGDocument() const { return false; }
@@ -820,7 +823,7 @@ public:
     void updateFocusAppearanceSoon();
     void cancelFocusAppearanceUpdate();
         
-    // FF method for accessing the selection added for compatability.
+    // FF method for accessing the selection added for compatibility.
     DOMSelection* getSelection() const;
     
     // Extension for manipulating canvas drawing contexts for use in CSS
@@ -840,12 +843,7 @@ public:
     typedef JSC::WeakGCMap<WebCore::Node*, JSNode*> JSWrapperCache;
     typedef HashMap<DOMWrapperWorld*, JSWrapperCache*> JSWrapperCacheMap;
     JSWrapperCacheMap& wrapperCacheMap() { return m_wrapperCacheMap; }
-    JSWrapperCache* getWrapperCache(DOMWrapperWorld* world)
-    {
-        if (JSWrapperCache* wrapperCache = m_wrapperCacheMap.get(world))
-            return wrapperCache;
-        return createWrapperCache(world);
-    }
+    JSWrapperCache* getWrapperCache(DOMWrapperWorld* world);
     JSWrapperCache* createWrapperCache(DOMWrapperWorld*);
 #endif
 
@@ -914,13 +912,11 @@ public:
     bool processingLoadEvent() const { return m_processingLoadEvent; }
 
 #if ENABLE(DATABASE)
-    void addOpenDatabase(Database*);
-    void removeOpenDatabase(Database*);
-    DatabaseThread* databaseThread();   // Creates the thread as needed, but not if it has been already terminated.
-    void setHasOpenDatabases() { m_hasOpenDatabases = true; }
-    bool hasOpenDatabases() { return m_hasOpenDatabases; }
-    void stopDatabases();
+    virtual bool isDatabaseReadOnly() const;
+    virtual void databaseExceededQuota(const String& name);
 #endif
+
+    virtual bool isContextThread() const;
 
     void setUsingGeolocation(bool f) { m_usingGeolocation = f; }
     bool usingGeolocation() const { return m_usingGeolocation; };
@@ -934,7 +930,7 @@ public:
 #endif
 
 protected:
-    Document(Frame*, bool isXHTML);
+    Document(Frame*, bool isXHTML, bool isHTML);
 
     void setStyleSelector(CSSStyleSelector* styleSelector) { m_styleSelector = styleSelector; }
 
@@ -1176,25 +1172,22 @@ private:
     bool m_useSecureKeyboardEntryWhenActive;
 
     bool m_isXHTML;
+    bool m_isHTML;
 
     unsigned m_numNodeListCaches;
 
 #if USE(JSC)
     JSWrapperCacheMap m_wrapperCacheMap;
+    JSWrapperCache* m_normalWorldWrapperCache;
 #endif
 
-#if ENABLE(DATABASE)
-    RefPtr<DatabaseThread> m_databaseThread;
-    bool m_hasOpenDatabases;    // This never changes back to false, even as the database thread is closed.
-    typedef HashSet<Database*> DatabaseSet;
-    OwnPtr<DatabaseSet> m_openDatabaseSet;
-#endif
-    
     bool m_usingGeolocation;
 
 #if ENABLE(WML)
     bool m_containsWMLContent;
 #endif
+
+    RefPtr<DocumentWeakReference> m_weakReference;
 };
 
 inline bool Document::hasElementWithId(AtomicStringImpl* id) const

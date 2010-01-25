@@ -39,6 +39,7 @@
 #include "V8CustomBinding.h"
 #include "V8CustomXPathNSResolver.h"
 #include "V8DOMMap.h"
+#include "V8Event.h"
 #include "V8Index.h"
 #include "V8Utilities.h"
 #include "V8XPathNSResolver.h"
@@ -112,36 +113,13 @@ namespace WebCore {
         static void setDOMWrapper(v8::Handle<v8::Object> object, int type, void* cptr)
         {
             ASSERT(object->InternalFieldCount() >= 2);
-            object->SetPointerInInternalField(V8Custom::kDOMWrapperObjectIndex, cptr);
-            object->SetInternalField(V8Custom::kDOMWrapperTypeIndex, v8::Integer::New(type));
+            object->SetPointerInInternalField(v8DOMWrapperObjectIndex, cptr);
+            object->SetInternalField(v8DOMWrapperTypeIndex, v8::Integer::New(type));
         }
 
         static v8::Handle<v8::Object> lookupDOMWrapper(V8ClassIndex::V8WrapperType type, v8::Handle<v8::Object> object)
         {
             return object.IsEmpty() ? object : object->FindInstanceInPrototypeChain(getTemplate(type));
-        }
-
-        // A helper function extract native object pointer from a DOM wrapper
-        // and cast to the specified type.
-        template <class C>
-        static C* convertDOMWrapperToNative(v8::Handle<v8::Object> object)
-        {
-#ifndef NDEBUG
-            v8::HandleScope handleScope;
-            ASSERT(maybeDOMWrapper(object));
-#endif
-            return reinterpret_cast<C*>(object->GetPointerFromInternalField(V8Custom::kDOMWrapperObjectIndex));
-        }
-
-        template <class C>
-        static C* convertDOMWrapperToNode(v8::Handle<v8::Object> object)
-        {
-#ifndef NDEBUG
-            v8::HandleScope handleScope;
-            ASSERT(maybeDOMWrapper(object));
-            ASSERT(domWrapperType(object) == V8ClassIndex::NODE);
-#endif
-            return convertDOMWrapperToNative<C>(object);
         }
 
         template<typename T>
@@ -174,30 +152,6 @@ namespace WebCore {
 
         static v8::Handle<v8::Value> convertNewNodeToV8Object(Node*, V8Proxy*, DOMWrapperMap<Node>&);
 
-        template <class C>
-        static C* convertToNativeObject(V8ClassIndex::V8WrapperType type, v8::Handle<v8::Object> object)
-        {
-            // Native event listener is per frame, it cannot be handled by this generic function.
-            ASSERT(type != V8ClassIndex::EVENTLISTENER);
-            ASSERT(type != V8ClassIndex::EVENTTARGET);
-
-            ASSERT(maybeDOMWrapper(object));
-
-#ifndef NDEBUG
-            const bool typeIsValid =
-#define MAKE_CASE(TYPE, NAME) (type != V8ClassIndex::TYPE) &&
-                DOM_NODE_TYPES(MAKE_CASE)
-#if ENABLE(SVG)
-                SVG_NODE_TYPES(MAKE_CASE)
-#endif
-#undef MAKE_CASE
-                true;
-            ASSERT(typeIsValid);
-#endif
-
-            return convertDOMWrapperToNative<C>(object);
-        }
-
         static V8ClassIndex::V8WrapperType domWrapperType(v8::Handle<v8::Object>);
 
         static v8::Handle<v8::Value> convertEventToV8Object(PassRefPtr<Event> event)
@@ -206,13 +160,6 @@ namespace WebCore {
         }
 
         static v8::Handle<v8::Value> convertEventToV8Object(Event*);
-
-        static Event* convertToNativeEvent(v8::Handle<v8::Value> jsEvent)
-        {
-            if (!isDOMEventWrapper(jsEvent))
-                return 0;
-            return convertDOMWrapperToNative<Event>(v8::Handle<v8::Object>::Cast(jsEvent));
-        }
 
         static v8::Handle<v8::Value> convertEventTargetToV8Object(PassRefPtr<EventTarget> eventTarget)
         {
@@ -247,18 +194,18 @@ namespace WebCore {
 
         static PassRefPtr<EventListener> getEventListener(V8Proxy* proxy, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
 
-
+#if ENABLE(XPATH)
         // XPath-related utilities
         static RefPtr<XPathNSResolver> getXPathNSResolver(v8::Handle<v8::Value> value, V8Proxy* proxy = 0)
         {
             RefPtr<XPathNSResolver> resolver;
             if (V8XPathNSResolver::HasInstance(value))
-                resolver = convertToNativeObject<XPathNSResolver>(V8ClassIndex::XPATHNSRESOLVER, v8::Handle<v8::Object>::Cast(value));
+                resolver = V8XPathNSResolver::toNative(v8::Handle<v8::Object>::Cast(value));
             else if (value->IsObject())
                 resolver = V8CustomXPathNSResolver::create(proxy, value->ToObject());
             return resolver;
         }
-
+#endif
         // DOMImplementation is a singleton and it is handled in a special
         // way. A wrapper is generated per document and stored in an
         // internal field of the document.
@@ -280,8 +227,6 @@ namespace WebCore {
 
         // Check whether a V8 value is a wrapper of type |classType|.
         static bool isWrapperOfType(v8::Handle<v8::Value>, V8ClassIndex::V8WrapperType);
-
-        static void* convertToSVGPODTypeImpl(V8ClassIndex::V8WrapperType, v8::Handle<v8::Value>);
 
         // Check whether a V8 value is a DOM Event wrapper.
         static bool isDOMEventWrapper(v8::Handle<v8::Value>);

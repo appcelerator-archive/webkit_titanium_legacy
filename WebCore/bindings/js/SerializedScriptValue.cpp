@@ -28,12 +28,14 @@
 #include "SerializedScriptValue.h"
 
 #include "File.h"
+#include "FileList.h"
 #include "JSDOMGlobalObject.h"
 #include "JSFile.h"
 #include "JSFileList.h"
 #include <JavaScriptCore/APICast.h>
 #include <runtime/DateInstance.h>
 #include <runtime/ExceptionHelpers.h>
+#include <runtime/JSLock.h>
 #include <runtime/PropertyNameArray.h>
 #include <wtf/HashTraits.h>
 #include <wtf/Vector.h>
@@ -141,6 +143,28 @@ private:
     unsigned m_length;
 };
 
+class SerializedFileList : public SharedSerializedData {
+public:
+    static PassRefPtr<SerializedFileList> create(const FileList* list)
+    {
+        return adoptRef(new SerializedFileList(list));
+    }
+
+    unsigned length() const { return m_files.size(); }
+    const String& item(unsigned idx) { return m_files[idx]; }
+
+private:
+    SerializedFileList(const FileList* list)
+    {
+        unsigned length = list->length();
+        m_files.reserveCapacity(length);
+        for (unsigned i = 0; i < length; i++)
+            m_files.append(list->item(i)->path().crossThreadString());
+    }
+
+    Vector<String> m_files;
+};
+
 SerializedScriptValueData::SerializedScriptValueData(RefPtr<SerializedObject> data)
     : m_type(ObjectType)
     , m_sharedData(data)
@@ -150,6 +174,12 @@ SerializedScriptValueData::SerializedScriptValueData(RefPtr<SerializedObject> da
 SerializedScriptValueData::SerializedScriptValueData(RefPtr<SerializedArray> data)
     : m_type(ArrayType)
     , m_sharedData(data)
+{
+}
+
+SerializedScriptValueData::SerializedScriptValueData(const FileList* fileList)
+    : m_type(FileListType)
+    , m_sharedData(SerializedFileList::create(fileList))
 {
 }
 
@@ -167,6 +197,11 @@ SerializedArray* SharedSerializedData::asArray()
 SerializedObject* SharedSerializedData::asObject()
 {
     return static_cast<SerializedObject*>(this);
+}
+
+SerializedFileList* SharedSerializedData::asFileList()
+{
+    return static_cast<SerializedFileList*>(this);
 }
 
 static const unsigned maximumFilterRecursion = 40000;
@@ -496,6 +531,8 @@ struct SerializingTreeWalker : public BaseWalker {
             JSObject* obj = asObject(value);
             if (obj->inherits(&JSFile::s_info))
                 return SerializedScriptValueData(toFile(obj));
+            if (obj->inherits(&JSFileList::s_info))
+                return SerializedScriptValueData(toFileList(obj));
                 
             CallData unusedData;
             if (value.getCallData(unusedData) == CallTypeNone)
@@ -577,6 +614,8 @@ struct DeserializingTreeWalker : public BaseWalker {
 
     DeserializingTreeWalker(ExecState* exec, bool mustCopy)
         : BaseWalker(exec)
+        , m_globalObject(exec->lexicalGlobalObject())
+        , m_isDOMGlobalObject(m_globalObject->inherits(&JSDOMGlobalObject::s_info))
         , m_mustCopy(mustCopy)
     {
     }
@@ -657,11 +696,25 @@ struct DeserializingTreeWalker : public BaseWalker {
             case SerializedScriptValueData::DateType:
                 return new (m_exec) DateInstance(m_exec, value.asDouble());
             case SerializedScriptValueData::FileType:
+                if (!m_isDOMGlobalObject)
+                    return jsNull();
                 return toJS(m_exec, static_cast<JSDOMGlobalObject*>(m_exec->lexicalGlobalObject()), File::create(value.asString().crossThreadString()));
-            default:
+            case SerializedScriptValueData::FileListType: {
+                if (!m_isDOMGlobalObject)
+                    return jsNull();
+                RefPtr<FileList> result = FileList::create();
+                SerializedFileList* serializedFileList = value.asFileList();
+                unsigned length = serializedFileList->length();
+                for (unsigned i = 0; i < length; i++)
+                    result->append(File::create(serializedFileList->item(i)));
+                return toJS(m_exec, static_cast<JSDOMGlobalObject*>(m_exec->lexicalGlobalObject()), result.get());
+            }
+            case SerializedScriptValueData::EmptyType:
                 ASSERT_NOT_REACHED();
-                return JSValue();
+                return jsNull();
         }
+        ASSERT_NOT_REACHED();
+        return jsNull();
     }
 
     void getPropertyNames(RefPtr<SerializedObject> object, Vector<SerializedObject::PropertyNameList, 16>& properties)
@@ -699,11 +752,14 @@ struct DeserializingTreeWalker : public BaseWalker {
     }
 
 private:
+    JSGlobalObject* m_globalObject;
+    bool m_isDOMGlobalObject;
     bool m_mustCopy;
 };
 
 JSValue SerializedScriptValueData::deserialize(ExecState* exec, bool mustCopy) const
 {
+    JSLock lock(SilenceAssertionsOnly);
     DeserializingTreeWalker context(exec, mustCopy);
     return walk<DeserializingTreeWalker>(context, *this);
 }
@@ -808,11 +864,14 @@ struct TeardownTreeWalker {
             case SerializedScriptValueData::StringType:
             case SerializedScriptValueData::ImmediateType:
             case SerializedScriptValueData::NumberType:
+            case SerializedScriptValueData::DateType:
+            case SerializedScriptValueData::EmptyType:
+            case SerializedScriptValueData::FileType:
+            case SerializedScriptValueData::FileListType:
                 return true;
-            default:
-                ASSERT_NOT_REACHED();
-                return JSValue();
         }
+        ASSERT_NOT_REACHED();
+        return true;
     }
 
     void getPropertyNames(RefPtr<SerializedObject> object, Vector<SerializedObject::PropertyNameList, 16>& properties)

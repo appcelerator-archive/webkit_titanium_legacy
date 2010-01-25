@@ -19,6 +19,7 @@
 #include "config.h"
 #include "PluginView.h"
 
+#include "Bridge.h"
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "Element.h"
@@ -37,8 +38,6 @@
 #include "KeyboardEvent.h"
 #include "MouseEvent.h"
 #include "NotImplemented.h"
-#include "npfunctions.h"
-#include "npinterface.h"
 #include "Page.h"
 #include "PlatformKeyboardEvent.h"
 #include "PlatformMouseEvent.h"
@@ -46,13 +45,14 @@
 #include "PluginDebug.h"
 #include "PluginMainThreadScheduler.h"
 #include "PluginPackage.h"
+#include "QWebPageClient.h"
 #include "RenderLayer.h"
 #include "ScriptController.h"
 #include "Settings.h"
+#include "npfunctions.h"
+#include "npinterface.h"
 #include "npruntime_impl.h"
-#include "runtime.h"
 #include "runtime_root.h"
-#include "QWebPageClient.h"
 #include <QKeyEvent>
 #include <QPixmap.h>
 #include <QRegion>
@@ -281,8 +281,6 @@ void PluginView::setNPWindowIfNeeded()
 
     m_npWindow.width = m_windowRect.width();
     m_npWindow.height = m_windowRect.height();
-    if (m_npWindow.x < 0 || m_npWindow.y < 0 || m_npWindow.width <= 0 || m_npWindow.height <= 0)
-        return;
     
     PluginView::setCurrentPluginView(this);
     JSC::JSLock::DropAllLocks dropAllLocks(JSC::SilenceAssertionsOnly);

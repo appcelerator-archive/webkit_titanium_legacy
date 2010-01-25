@@ -38,6 +38,7 @@ Usage:
     python standalone.py [-p <ws_port>] [-w <websock_handlers>]
                          [-s <scan_dir>]
                          [-d <document_root>]
+                         [-m <websock_handlers_map_file>]
                          ... for other options, see _main below ...
 
 <ws_port> is the port number to use for ws:// connection.
@@ -63,6 +64,7 @@ import logging
 import logging.handlers
 import optparse
 import os
+import re
 import socket
 import sys
 
@@ -88,6 +90,8 @@ _LOG_LEVELS = {
 
 _DEFAULT_LOG_MAX_BYTES = 1024 * 256
 _DEFAULT_LOG_BACKUP_COUNT = 5
+
+_DEFAULT_REQUEST_QUEUE_SIZE = 128
 
 # 1024 is practically large enough to contain WebSocket handshake lines.
 _MAX_MEMORIZED_LINES = 1024
@@ -278,6 +282,31 @@ def _configure_logging(options):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+def _alias_handlers(dispatcher, websock_handlers_map_file):
+    """Set aliases specified in websock_handler_map_file in dispatcher.
+
+    Args:
+        dispatcher: dispatch.Dispatcher instance
+        websock_handler_map_file: alias map file
+    """
+    fp = open(websock_handlers_map_file)
+    try:
+        for line in fp:
+            if line[0] == '#' or line.isspace():
+                continue
+            m = re.match('(\S+)\s+(\S+)', line)
+            if not m:
+                logging.warning('Wrong format in map file:' + line)
+                continue
+            try:
+                dispatcher.add_resource_path_alias(
+                    m.group(1), m.group(2))
+            except dispatch.DispatchError, e:
+                logging.error(str(e))
+    finally:
+        fp.close()
+
+
 
 def _main():
     parser = optparse.OptionParser()
@@ -287,6 +316,12 @@ def _main():
     parser.add_option('-w', '--websock_handlers', dest='websock_handlers',
                       default='.',
                       help='Web Socket handlers root directory.')
+    parser.add_option('-m', '--websock_handlers_map_file',
+                      dest='websock_handlers_map_file',
+                      default=None,
+                      help=('Web Socket handlers map file. '
+                            'Each line consists of alias_resource_path and '
+                            'existing_resource_path, separated by spaces.'))
     parser.add_option('-s', '--scan_dir', dest='scan_dir',
                       default=None,
                       help=('Web Socket handlers scan directory. '
@@ -314,11 +349,16 @@ def _main():
                       help='Log backup count')
     parser.add_option('--strict', dest='strict', action='store_true',
                       default=False, help='Strictly check handshake request')
+    parser.add_option('-q', '--queue', dest='request_queue_size', type='int',
+                      default=_DEFAULT_REQUEST_QUEUE_SIZE,
+                      help='request queue size')
     options = parser.parse_args()[0]
 
     os.chdir(options.document_root)
 
     _configure_logging(options)
+
+    SocketServer.TCPServer.request_queue_size = options.request_queue_size
 
     if options.use_tls:
         if not _HAS_OPEN_SSL:
@@ -337,6 +377,9 @@ def _main():
         # instantiation.  Dispatcher can be shared because it is thread-safe.
         options.dispatcher = dispatch.Dispatcher(options.websock_handlers,
                                                  options.scan_dir)
+        if options.websock_handlers_map_file:
+            _alias_handlers(options.dispatcher,
+                            options.websock_handlers_map_file)
         _print_warnings_if_any(options.dispatcher)
 
         WebSocketRequestHandler.options = options

@@ -23,9 +23,8 @@
 
 #include "ImageDecoder.h"
 
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
 #include <algorithm>
-#endif
+#include <cmath>
 
 #include "BMPImageDecoder.h"
 #include "GIFImageDecoder.h"
@@ -33,7 +32,6 @@
 #include "JPEGImageDecoder.h"
 #include "PNGImageDecoder.h"
 #include "SharedBuffer.h"
-#include "XBMImageDecoder.h"
 
 using namespace std;
 
@@ -56,14 +54,11 @@ static unsigned copyFromSharedBuffer(char* buffer, unsigned bufferLength, const 
 
 ImageDecoder* ImageDecoder::create(const SharedBuffer& data)
 {
-    // XBMs require 8 bytes of info.
-    static const unsigned maxMarkerLength = 8;
-
+    // We need at least 4 bytes to figure out what kind of image we're dealing with.
+    static const unsigned maxMarkerLength = 4;
     char contents[maxMarkerLength];
     unsigned length = copyFromSharedBuffer(contents, maxMarkerLength, data, 0);
-
-    // We need at least 4 bytes to figure out what kind of image we're dealing with.
-    if (length < 4)
+    if (length < maxMarkerLength)
         return 0;
 
     const unsigned char* uContents = reinterpret_cast<const unsigned char*>(contents);
@@ -94,10 +89,6 @@ ImageDecoder* ImageDecoder::create(const SharedBuffer& data)
     if (!memcmp(contents, "\000\000\001\000", 4) ||
         !memcmp(contents, "\000\000\002\000", 4))
         return new ICOImageDecoder();
-
-    // XBMs require 8 bytes of info.
-    if (length >= 8 && strncmp(contents, "#define ", 8) == 0)
-        return new XBMImageDecoder();
 
     // Give up. We don't know what the heck this is.
     return 0;
@@ -192,8 +183,6 @@ int RGBA32Buffer::height() const
 
 #endif
 
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
-
 namespace {
 
 enum MatchType {
@@ -218,6 +207,9 @@ inline void fillScaledValues(Vector<int>& scaledValues, double scaleRate, int le
 
 template <MatchType type> int getScaledValue(const Vector<int>& scaledValues, int valueToMatch, int searchStart)
 {
+    if (scaledValues.isEmpty())
+        return valueToMatch;
+
     const int* dataStart = scaledValues.data();
     const int* dataEnd = dataStart + scaledValues.size();
     const int* matched = std::lower_bound(dataStart + searchStart, dataEnd, valueToMatch);
@@ -236,18 +228,19 @@ template <MatchType type> int getScaledValue(const Vector<int>& scaledValues, in
 
 void ImageDecoder::prepareScaleDataIfNecessary()
 {
-    int width = m_size.width();
-    int height = m_size.height();
+    int width = size().width();
+    int height = size().height();
     int numPixels = height * width;
-    if (m_maxNumPixels <= 0 || numPixels <= m_maxNumPixels) {
+    if (m_maxNumPixels > 0 && numPixels > m_maxNumPixels) {
+        m_scaled = true;
+        double scale = sqrt(m_maxNumPixels / (double)numPixels);
+        fillScaledValues(m_scaledColumns, scale, width);
+        fillScaledValues(m_scaledRows, scale, height);
+    } else if (m_scaled) {
         m_scaled = false;
-        return;
+        m_scaledColumns.clear();
+        m_scaledRows.clear();
     }
-
-    m_scaled = true;
-    double scale = sqrt(m_maxNumPixels / (double)numPixels);
-    fillScaledValues(m_scaledColumns, scale, width);
-    fillScaledValues(m_scaledRows, scale, height);
 }
 
 int ImageDecoder::upperBoundScaledX(int origX, int searchStart)
@@ -260,11 +253,19 @@ int ImageDecoder::lowerBoundScaledX(int origX, int searchStart)
     return getScaledValue<LowerBound>(m_scaledColumns, origX, searchStart);
 }
 
+int ImageDecoder::upperBoundScaledY(int origY, int searchStart)
+{
+    return getScaledValue<UpperBound>(m_scaledRows, origY, searchStart);
+}
+
+int ImageDecoder::lowerBoundScaledY(int origY, int searchStart)
+{
+    return getScaledValue<LowerBound>(m_scaledRows, origY, searchStart);
+}
+
 int ImageDecoder::scaledY(int origY, int searchStart)
 {
     return getScaledValue<Exact>(m_scaledRows, origY, searchStart);
 }
-
-#endif // ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
 
 }

@@ -34,6 +34,7 @@
 #include <runtime/ObjectPrototype.h>
 #include <runtime/Identifier.h>
 
+using namespace std;
 using namespace JSC;
 
 const JSClassDefinition kJSClassDefinitionEmpty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -120,26 +121,18 @@ static void clearReferenceToPrototype(JSObjectRef prototype)
     jsClassData->cachedPrototype = 0;
 }
 
-PassRefPtr<OpaqueJSClass> OpaqueJSClass::create(const JSClassDefinition* definition)
+PassRefPtr<OpaqueJSClass> OpaqueJSClass::create(const JSClassDefinition* clientDefinition)
 {
-    if (const JSStaticFunction* staticFunctions = definition->staticFunctions) {
-        // copy functions into a prototype class
-        JSClassDefinition protoDefinition = kJSClassDefinitionEmpty;
-        protoDefinition.staticFunctions = staticFunctions;
-        protoDefinition.finalize = clearReferenceToPrototype;
-        
-        // We are supposed to use JSClassRetain/Release but since we know that we currently have
-        // the only reference to this class object we cheat and use a RefPtr instead.
-        RefPtr<OpaqueJSClass> protoClass = adoptRef(new OpaqueJSClass(&protoDefinition, 0));
+    JSClassDefinition definition = *clientDefinition; // Avoid modifying client copy.
 
-        // remove functions from the original class
-        JSClassDefinition objectDefinition = *definition;
-        objectDefinition.staticFunctions = 0;
-
-        return adoptRef(new OpaqueJSClass(&objectDefinition, protoClass.get()));
-    }
-
-    return adoptRef(new OpaqueJSClass(definition, 0));
+    JSClassDefinition protoDefinition = kJSClassDefinitionEmpty;
+    protoDefinition.finalize = clearReferenceToPrototype;
+    swap(definition.staticFunctions, protoDefinition.staticFunctions); // Move static functions to the prototype.
+    
+    // We are supposed to use JSClassRetain/Release but since we know that we currently have
+    // the only reference to this class object we cheat and use a RefPtr instead.
+    RefPtr<OpaqueJSClass> protoClass = adoptRef(new OpaqueJSClass(&protoDefinition, 0));
+    return adoptRef(new OpaqueJSClass(&definition, protoClass.get()));
 }
 
 OpaqueJSClassContextData::OpaqueJSClassContextData(OpaqueJSClass* jsClass)
@@ -152,7 +145,7 @@ OpaqueJSClassContextData::OpaqueJSClassContextData(OpaqueJSClass* jsClass)
             ASSERT(!it->first->isIdentifier());
             // Use a local variable here to sidestep an RVCT compiler bug.
             StaticValueEntry* entry = new StaticValueEntry(it->second->getProperty, it->second->setProperty, it->second->attributes);
-            staticValues->add(UString::Rep::createCopying(it->first->data(), it->first->size()), entry);
+            staticValues->add(UString::Rep::create(it->first->data(), it->first->size()), entry);
 
         }
             
@@ -167,7 +160,7 @@ OpaqueJSClassContextData::OpaqueJSClassContextData(OpaqueJSClass* jsClass)
             ASSERT(!it->first->isIdentifier());
             // Use a local variable here to sidestep an RVCT compiler bug.
             StaticFunctionEntry* entry = new StaticFunctionEntry(it->second->callAsFunction, it->second->attributes);
-            staticFunctions->add(UString::Rep::createCopying(it->first->data(), it->first->size()), entry);
+            staticFunctions->add(UString::Rep::create(it->first->data(), it->first->size()), entry);
         }
             
     } else

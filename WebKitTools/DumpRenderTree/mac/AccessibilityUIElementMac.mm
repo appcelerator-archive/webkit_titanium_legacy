@@ -780,3 +780,58 @@ bool AccessibilityUIElement::addNotificationListener(JSObjectRef functionCallbac
     return true;
 }
 
+bool AccessibilityUIElement::isSelectable() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isMultiSelectable() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isVisible() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isOffScreen() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isCollapsed() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::hasPopup() const
+{
+    // FIXME: implement
+    return false;
+}
+
+void AccessibilityUIElement::takeFocus()
+{
+    // FIXME: implement
+}
+
+void AccessibilityUIElement::takeSelection()
+{
+    // FIXME: implement
+}
+
+void AccessibilityUIElement::addSelection()
+{
+    // FIXME: implement
+}
+
+void AccessibilityUIElement::removeSelection()
+{
+    // FIXME: implement
+}

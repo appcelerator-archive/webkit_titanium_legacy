@@ -28,6 +28,7 @@
 #ifndef RenderThemeGtk_h
 #define RenderThemeGtk_h
 
+#include "GRefPtr.h"
 #include "RenderTheme.h"
 #include "gtkdrawing.h"
 
@@ -37,16 +38,17 @@ typedef struct _GtkContainer GtkContainer;
 typedef struct _GdkRectangle GdkRectangle;
 typedef struct _GdkDrawable GdkDrawable;
 typedef struct _GtkBorder GtkBorder;
+typedef struct _GtkThemeParts GtkThemeParts;
 
 namespace WebCore {
 
 class RenderThemeGtk : public RenderTheme {
 private:
-    RenderThemeGtk(Page* page);
+    RenderThemeGtk();
     virtual ~RenderThemeGtk();
 
 public:
-    static PassRefPtr<RenderTheme> create(Page*);
+    static PassRefPtr<RenderTheme> create();
 
     // A method asking if the theme's controls actually care about redrawing when hovered.
     virtual bool supportsHover(const RenderStyle* style) const { return true; }
@@ -88,7 +90,7 @@ public:
     virtual String extraMediaControlsStyleSheet();
 #endif
 
-    GdkDrawable* drawable() const;
+    GtkThemeParts* partsForDrawable(GdkDrawable*) const;
 
 protected:
     virtual bool paintCheckbox(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r);
@@ -146,7 +148,6 @@ private:
      */
     GtkContainer* gtkContainer() const;
 
-private:
     mutable GtkWidget* m_gtkWindow;
     mutable GtkContainer* m_gtkContainer;
     mutable GtkWidget* m_gtkEntry;
@@ -168,7 +169,7 @@ private:
     RefPtr<Image> m_pauseButton;
     RefPtr<Image> m_seekBackButton;
     RefPtr<Image> m_seekForwardButton;
-    Page* m_page;
+    GRefPtr<GHashTable> m_partsTable;
 
 };
 

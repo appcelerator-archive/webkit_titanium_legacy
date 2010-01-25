@@ -28,10 +28,13 @@
 #define JSSVGPODTypeWrapper_h
 
 #if ENABLE(SVG)
+#include "JSSVGContextCache.h"
 #include "SVGElement.h"
 #include <wtf/StdLibExtras.h>
 
 namespace WebCore {
+
+class DOMObject;
 
 template<typename PODType>
 class JSSVGPODTypeWrapper : public RefCounted<JSSVGPODTypeWrapper<PODType> > {
@@ -39,14 +42,14 @@ public:
     virtual ~JSSVGPODTypeWrapper() { }
 
     virtual operator PODType() = 0;
-    virtual void commitChange(PODType, SVGElement*) = 0;
+    virtual void commitChange(PODType, DOMObject*) = 0;
 };
 
 // This file contains JS wrapper objects for SVG datatypes, that are passed around by value
 // in WebCore/svg (aka. 'POD types'). For instance SVGMatrix is mapped to TransformationMatrix, and
 // passed around as const reference. SVG DOM demands these objects to be "live", changes to any
 // of the writable attributes of SVGMatrix need to be reflected in the object which exposed the
-// SVGMatrix object (ie. 'someElement.transform.matrix.a = 50.0', in that case 'SVGTransform').
+// SVGMatrix object (i.e. 'someElement.transform.matrix.a = 50.0', in that case 'SVGTransform').
 // The SVGTransform class stores its "TransformationMatrix m_matrix" object on the stack. If it would
 // be stored as pointer we could just build an auto-generated JSSVG* wrapper object around it
 // and all changes to that object would automatically affect the TransformationMatrix* object stored
@@ -86,12 +89,10 @@ public:
         return (m_creator.get()->*m_getter)();
     }
 
-    virtual void commitChange(PODType type, SVGElement* context)
+    virtual void commitChange(PODType type, DOMObject* wrapper)
     {
         (m_creator.get()->*m_setter)(type);
-
-        if (context)
-            context->svgAttributeChanged(m_creator->associatedAttributeName());
+        JSSVGContextCache::propagateSVGDOMChange(wrapper, m_creator->associatedAttributeName());
     }
 
 private:
@@ -113,9 +114,9 @@ private:
     SetterMethod m_setter;
 };
 
-// Represents a JS wrapper object for SVG POD types (not for SVGAnimated* clases). Any modification to the SVG POD
+// Represents a JS wrapper object for SVG POD types (not for SVGAnimated* classes). Any modification to the SVG POD
 // types don't cause any updates unlike JSSVGDynamicPODTypeWrapper. This class is used for return values (ie. getBBox())
-// and for properties where SVG specification explicitely states, that the contents of the POD type are immutable.
+// and for properties where SVG specification explicitly states, that the contents of the POD type are immutable.
 
 template<typename PODType>
 class JSSVGStaticPODTypeWrapper : public JSSVGPODTypeWrapper<PODType> {
@@ -130,7 +131,7 @@ public:
         return m_podType;
     }
 
-    virtual void commitChange(PODType type, SVGElement*)
+    virtual void commitChange(PODType type, DOMObject*)
     {
         m_podType = type;
     }
@@ -154,10 +155,10 @@ public:
         return adoptRef(new JSSVGStaticPODTypeWrapperWithPODTypeParent(type, parent));
     }
 
-    virtual void commitChange(PODType type, SVGElement* context)
+    virtual void commitChange(PODType type, DOMObject* wrapper)
     {
-        JSSVGStaticPODTypeWrapper<PODType>::commitChange(type, context);
-        m_parentType->commitChange(ParentTypeArg(type), context);    
+        JSSVGStaticPODTypeWrapper<PODType>::commitChange(type, wrapper);
+        m_parentType->commitChange(ParentTypeArg(type), wrapper);
     }
 
 private:
@@ -192,7 +193,7 @@ public:
         return (m_parent.get()->*m_getter)();
     }
 
-    virtual void commitChange(PODType type, SVGElement*)
+    virtual void commitChange(PODType type, DOMObject*)
     {
         (m_parent.get()->*m_setter)(type);
     }
@@ -237,15 +238,13 @@ public:
         return (m_creator.get()->*m_getter)();
     }
 
-    virtual void commitChange(PODType type, SVGElement* context)
+    virtual void commitChange(PODType type, DOMObject* wrapper)
     {
         if (!m_setter)
             return;
 
         (m_creator.get()->*m_setter)(type);
-
-        if (context)
-            context->svgAttributeChanged(m_associatedAttributeName);
+        JSSVGContextCache::propagateSVGDOMChange(wrapper, m_associatedAttributeName);
     }
 
 private:

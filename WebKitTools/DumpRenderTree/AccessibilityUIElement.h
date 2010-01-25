@@ -74,7 +74,12 @@ public:
     int childrenCount();
     AccessibilityUIElement titleUIElement();
     AccessibilityUIElement parentElement();
-    
+
+    void takeFocus();
+    void takeSelection();
+    void addSelection();
+    void removeSelection();
+
     // Methods - platform-independent implementations
     JSStringRef allAttributes();
     JSStringRef attributesOfLinkedUIElements();
@@ -113,8 +118,14 @@ public:
     bool isEnabled();
     bool isRequired() const;
     bool isSelected() const;
+    bool isSelectable() const;
+    bool isMultiSelectable() const;
     bool isExpanded() const;
     bool isChecked() const;
+    bool isVisible() const;
+    bool isOffScreen() const;
+    bool isCollapsed() const;
+    bool hasPopup() const;
     int hierarchicalLevel() const;
     double clickPointX();
     double clickPointY();

@@ -292,7 +292,7 @@ WebInspector.ConsoleView.prototype = {
 
     requestClearMessages: function()
     {
-        InjectedScriptAccess.clearConsoleMessages(function() {});
+        InjectedScriptAccess.getDefault().clearConsoleMessages(function() {});
     },
 
     clearMessages: function()
@@ -334,9 +334,14 @@ WebInspector.ConsoleView.prototype = {
         // Collect comma separated object properties for the completion.
 
         var includeInspectorCommandLineAPI = (!dotNotation && !bracketNotation);
-        if (WebInspector.panels.scripts && WebInspector.panels.scripts.paused)
-            var callFrameId = WebInspector.panels.scripts.selectedCallFrameId();
-        InjectedScriptAccess.getCompletions(expressionString, includeInspectorCommandLineAPI, callFrameId, reportCompletions);
+        var callFrameId = WebInspector.panels.scripts.selectedCallFrameId();
+        var injectedScriptAccess;
+        if (WebInspector.panels.scripts && WebInspector.panels.scripts.paused) {
+            var selectedCallFrame = WebInspector.panels.scripts.sidebarPanes.callstack.selectedCallFrame;
+            injectedScriptAccess = InjectedScriptAccess.get(selectedCallFrame.injectedScriptId);
+        } else
+            injectedScriptAccess = InjectedScriptAccess.getDefault();
+        injectedScriptAccess.getCompletions(expressionString, includeInspectorCommandLineAPI, callFrameId, reportCompletions);
     },
 
     _reportCompletions: function(bestMatchOnly, completionsReadyCallback, dotNotation, bracketNotation, prefix, result, isException) {
@@ -460,7 +465,7 @@ WebInspector.ConsoleView.prototype = {
         {
             callback(result.value, result.isException);
         };
-        InjectedScriptAccess.evaluate(expression, objectGroup, evalCallback);
+        InjectedScriptAccess.getDefault().evaluate(expression, objectGroup, evalCallback);
     },
 
     _enterKeyPressed: function(event)
@@ -533,12 +538,12 @@ WebInspector.ConsoleView.prototype = {
             elem.appendChild(treeOutline.element);
         }
 
-        InjectedScriptAccess.pushNodeToFrontend(object, printNode);
+        InjectedScriptAccess.get(object.injectedScriptId).pushNodeToFrontend(object, printNode);
     },
 
     _formatarray: function(arr, elem)
     {
-        InjectedScriptAccess.getProperties(arr, false, false, this._printArray.bind(this, elem));
+        InjectedScriptAccess.get(arr.injectedScriptId).getProperties(arr, false, false, this._printArray.bind(this, elem));
     },
 
     _formatstring: function(output, elem)
@@ -631,7 +636,7 @@ WebInspector.ConsoleMessage.prototype = {
 
     _format: function(parameters)
     {
-        // This node is used like a Builder. Values are contintually appended onto it.
+        // This node is used like a Builder. Values are continually appended onto it.
         var formattedResult = document.createElement("span");
         if (!parameters.length)
             return formattedResult;
@@ -684,7 +689,7 @@ WebInspector.ConsoleMessage.prototype = {
         formatters.o = consoleFormatWrapper();
         // Firebug allows both %i and %d for formatting integers.
         formatters.i = formatters.d;
-        // Support %O to force object formating, instead of the type-based %o formatting.
+        // Support %O to force object formatting, instead of the type-based %o formatting.
         formatters.O = consoleFormatWrapper(true);
 
         function append(a, b)

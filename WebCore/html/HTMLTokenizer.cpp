@@ -174,6 +174,7 @@ HTMLTokenizer::HTMLTokenizer(HTMLDocument* doc, bool reportErrors)
     , m_parser(new HTMLParser(doc, reportErrors))
     , m_inWrite(false)
     , m_fragment(false)
+    , m_scriptingPermission(FragmentScriptingAllowed)
 {
     begin();
 }
@@ -195,11 +196,12 @@ HTMLTokenizer::HTMLTokenizer(HTMLViewSourceDocument* doc)
     , m_parser(0)
     , m_inWrite(false)
     , m_fragment(false)
+    , m_scriptingPermission(FragmentScriptingAllowed)
 {
     begin();
 }
 
-HTMLTokenizer::HTMLTokenizer(DocumentFragment* frag)
+HTMLTokenizer::HTMLTokenizer(DocumentFragment* frag, FragmentScriptingPermission scriptingPermission)
     : m_buffer(0)
     , m_scriptCode(0)
     , m_scriptCodeSize(0)
@@ -212,9 +214,10 @@ HTMLTokenizer::HTMLTokenizer(DocumentFragment* frag)
     , m_timer(this, &HTMLTokenizer::timerFired)
     , m_externalScriptsTimer(this, &HTMLTokenizer::executeExternalScriptsTimerFired)
     , m_doc(frag->document())
-    , m_parser(new HTMLParser(frag))
+    , m_parser(new HTMLParser(frag, scriptingPermission))
     , m_inWrite(false)
     , m_fragment(true)
+    , m_scriptingPermission(scriptingPermission)
 {
     begin();
 }
@@ -476,6 +479,13 @@ HTMLTokenizer::State HTMLTokenizer::scriptHandler(State state)
 
     state = processListing(SegmentedString(m_scriptCode, m_scriptCodeSize), state);
     RefPtr<Node> node = processToken();
+    
+    if (node && m_scriptingPermission == FragmentScriptingNotAllowed) {
+        ExceptionCode ec;
+        node->remove(ec);
+        node = 0;
+    }
+    
     String scriptString = node ? node->textContent() : "";
     m_currentToken.tagName = scriptTag.localName();
     m_currentToken.beginTag = false;
@@ -1514,7 +1524,7 @@ HTMLTokenizer::State HTMLTokenizer::parseTag(SegmentedString& src, State state)
                 m_scriptTagSrcAttrValue = String();
                 m_scriptTagCharsetAttrValue = String();
                 if (m_currentToken.attrs && !m_fragment) {
-                    if (m_doc->frame() && m_doc->frame()->script()->isEnabled()) {
+                    if (m_doc->frame() && m_doc->frame()->script()->canExecuteScripts()) {
                         if ((a = m_currentToken.attrs->getAttributeItem(srcAttr)))
                             m_scriptTagSrcAttrValue = m_doc->completeURL(deprecatedParseURL(a->value())).string();
                     }
@@ -1685,7 +1695,7 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 
 #if ENABLE(INSPECTOR)
     if (InspectorTimelineAgent* timelineAgent = m_doc->inspectorTimelineAgent())
-        timelineAgent->willWriteHTML();
+        timelineAgent->willWriteHTML(source.length(), m_lineNumber);
 #endif
   
     Frame* frame = m_doc->frame();
@@ -1811,7 +1821,7 @@ void HTMLTokenizer::write(const SegmentedString& str, bool appendData)
 
 #if ENABLE(INSPECTOR)
     if (InspectorTimelineAgent* timelineAgent = m_doc->inspectorTimelineAgent())
-        timelineAgent->didWriteHTML();
+        timelineAgent->didWriteHTML(m_lineNumber);
 #endif
 
     m_inWrite = wasInWrite;
@@ -1924,7 +1934,7 @@ void HTMLTokenizer::finish()
 PassRefPtr<Node> HTMLTokenizer::processToken()
 {
     ScriptController* scriptController = (!m_fragment && m_doc->frame()) ? m_doc->frame()->script() : 0;
-    if (scriptController && scriptController->isEnabled())
+    if (scriptController && scriptController->canExecuteScripts())
         // FIXME: Why isn't this m_currentScriptTagStartLineNumber?  I suspect this is wrong.
         scriptController->setEventHandlerLineNumber(m_currentTagStartLineNumber + 1); // Script line numbers are 1 based.
     if (m_dest > m_buffer) {
@@ -2154,9 +2164,9 @@ void HTMLTokenizer::setSrc(const SegmentedString& source)
     m_src = source;
 }
 
-void parseHTMLDocumentFragment(const String& source, DocumentFragment* fragment)
+void parseHTMLDocumentFragment(const String& source, DocumentFragment* fragment, FragmentScriptingPermission scriptingPermission)
 {
-    HTMLTokenizer tok(fragment);
+    HTMLTokenizer tok(fragment, scriptingPermission);
     tok.setForceSynchronous(true);
     tok.write(source, true);
     tok.finish();

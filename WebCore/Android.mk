@@ -166,6 +166,9 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	dom/TagNodeList.cpp \
 	dom/Text.cpp \
 	dom/TextEvent.cpp \
+	dom/Touch.cpp \
+	dom/TouchEvent.cpp \
+	dom/TouchList.cpp \
 	dom/Traversal.cpp \
 	dom/TreeWalker.cpp \
 	dom/UIEvent.cpp \
@@ -234,6 +237,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	\
 	history/android/HistoryItemAndroid.cpp \
 	\
+	html/Blob.cpp \
 	html/CollectionCache.cpp \
 	html/File.cpp \
 	html/FileList.cpp \
@@ -395,6 +399,8 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	platform/android/GeolocationServiceBridge.cpp \
 	platform/android/KeyEventAndroid.cpp \
 	platform/android/LocalizedStringsAndroid.cpp \
+	platform/android/PlatformTouchEventAndroid.cpp \
+	platform/android/PlatformTouchPointAndroid.cpp \
 	platform/android/PopupMenuAndroid.cpp \
 	platform/android/RenderThemeAndroid.cpp \
 	platform/android/ScreenAndroid.cpp \
@@ -596,6 +602,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	rendering/RenderSVGInlineText.cpp \
 	rendering/RenderSVGModelObject.cpp \
 	rendering/RenderSVGRoot.cpp \
+	rendering/RenderSVGShadowTreeRootContainer.cpp \
 	rendering/RenderSVGTSpan.cpp \
 	rendering/RenderSVGText.cpp \
 	rendering/RenderSVGTextPath.cpp \
@@ -634,7 +641,8 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	rendering/SVGMarkerLayoutInfo.cpp \
 	rendering/SVGRenderSupport.cpp \
 	rendering/SVGRenderTreeAsText.cpp \
-	rendering/SVGRootInlineBox.cpp
+	rendering/SVGRootInlineBox.cpp \
+	rendering/SVGShadowTreeElements.cpp
 endif
 
 LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \

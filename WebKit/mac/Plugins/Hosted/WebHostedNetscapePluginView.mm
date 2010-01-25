@@ -37,10 +37,10 @@
 #import "WebUIDelegate.h"
 
 #import <CoreFoundation/CoreFoundation.h>
+#import <WebCore/Bridge.h>
 #import <WebCore/Frame.h>
 #import <WebCore/FrameLoaderTypes.h>
 #import <WebCore/HTMLPlugInElement.h>
-#import <WebCore/runtime.h>
 #import <WebCore/runtime_root.h>
 #import <WebCore/WebCoreObjCExtras.h>
 #import <runtime/InitializeThreading.h>
@@ -116,7 +116,11 @@ extern "C" {
         _softwareRenderer = WKSoftwareCARendererCreate(_proxy->renderContextID());
     else {
         _pluginLayer = WKMakeRenderLayer(_proxy->renderContextID());
-        self.wantsLayer = YES;
+
+        if (accleratedCompositingEnabled)
+            [self element]->setNeedsStyleRecalc(SyntheticStyleChange);
+        else
+            self.wantsLayer = YES;
     }
     
     // Update the window frame.

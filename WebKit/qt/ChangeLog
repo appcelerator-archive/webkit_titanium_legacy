@@ -1,3 +1,328 @@
+2010-01-25  Simon Hausmann  <hausmann@webkit.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] In RenderThemeQt determine the QStyle from the page client instead of the page's view
+        https://bugs.webkit.org/show_bug.cgi?id=34053
+
+        * Api/qgraphicswebview.cpp:
+        (QGraphicsWebViewPrivate::style): Implement QWebPageClient::style() and return the graphics
+        widget's style.
+        * Api/qwebpage.cpp:
+        (QWebPageWidgetClient::style): Implement QWebPageClient::style() and return the widget's style.
+
+2010-01-25  Janne Koskinen  <janne.p.koskinen@digia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Phone backup support for QtWebkit for Symbian devices.
+        https://bugs.webkit.org/show_bug.cgi?id=34077
+
+        * symbian/backup_registration.xml: Added.
+
+2010-01-23  Girish Ramakrishnan  <girish@forwardbias.in>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Fix positioning of ComboBox popup in QGraphicsWebView.
+        
+        Wrap the popup in a QGraphicsProxyWidget, so that the popup
+        transforms with the item.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=33887
+
+        * WebCoreSupport/QtFallbackWebPopup.cpp:
+        (WebCore::QtFallbackWebPopupCombo::hidePopup):
+        (WebCore::QtFallbackWebPopup::QtFallbackWebPopup):
+        (WebCore::QtFallbackWebPopup::~QtFallbackWebPopup):
+        (WebCore::QtFallbackWebPopup::show):
+        * WebCoreSupport/QtFallbackWebPopup.h:
+
+2010-01-22  Peter Kasting  <pkasting@google.com>
+
+        Not reviewed, backout.
+
+        Back out r52673, which caused several regressions.
+        https://bugs.webkit.org/show_bug.cgi?id=32533
+
+        * WebCoreSupport/QtFallbackWebPopup.cpp:
+        (WebCore::QtFallbackWebPopupCombo::hidePopup):
+
+2010-01-22  Girish Ramakrishnan  <girish@forwardbias.in>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Save the QWebPageClient instead of the ownerWidget in QtAbstractWebPopup
+        
+        The QWebPageClient is required for the QtFallbackWebPopup. QtFallbackWebPopup will
+        need it to create a QGraphicsProxyWidget (in a future commit) for the 
+        QGraphicsWebView's web popup.
+
+        * WebCoreSupport/QtFallbackWebPopup.cpp:
+        (WebCore::QtFallbackWebPopup::show):
+
+2010-01-22  Girish Ramakrishnan  <girish@forwardbias.in>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        QState::polished() was renamed to QState::propertiesAssigned() when
+        Qt 4.6.0 was released.
+
+        * QGVLauncher/main.cpp:
+        (MainWindow::init):
+
+2010-01-21  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] add setDomainRelaxationForbiddenForURLScheme in Qt DRT
+        https://bugs.webkit.org/show_bug.cgi?id=33945
+
+        * Api/qwebsecurityorigin.cpp:
+        (qt_drt_setDomainRelaxationForbiddenForURLScheme):
+
+2010-01-21  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        Reviewed by Antti Koivisto.
+
+        [Qt] Implement GraphicsLayer for accelerated layer compositing
+        https://bugs.webkit.org/show_bug.cgi?id=33514
+
+        Here we have the QGraphicsWebView support for accelerated compositing
+
+        * Api/qgraphicswebview.cpp:
+        (QGraphicsWebViewOverlay::q): access to container object
+        (QGraphicsWebViewOverlay::boundingRect): overlay has same rect as the
+        webview
+        (QGraphicsWebViewOverlay::paint): paint everything but the contents
+        (QGraphicsWebViewPrivate::QGraphicsWebViewPrivate): some vars needed
+        for accelerated compositing
+        (QGraphicsWebViewPrivate::):
+        (QGraphicsWebViewPrivate::~QGraphicsWebViewPrivate):
+        (QGraphicsWebViewPrivate::setRootGraphicsLayer): make sure we have a
+        scrollbar overlay, and that the new graphics layer is parented by the
+        web-view
+        (QGraphicsWebViewPrivate::markForSync): flush changes at earliest
+        convenience or during the next draw
+
+        (QGraphicsWebViewPrivate::updateCompositingScrollPosition): sync the
+        position of the compositing layer with the scroll position
+        (QGraphicsWebViewPrivate::syncLayers): flush changes now
+        (QGraphicsWebViewPrivate::scroll): make sure we also move the
+        compositing layer
+        (QGraphicsWebViewPrivate::update): also update the overlay if needed
+        (QGraphicsWebView::QGraphicsWebView): initialize overlay with 0
+        (QGraphicsWebView::paint): paint only contents if we have an overlay,
+        sync the compositing layers now if needed
+        (QGraphicsWebView::setPage): also clean up the compositing
+        (QGraphicsWebView::updateGeometry): also update overlay geo
+        (QGraphicsWebView::setGeometry): also update overlay geo
+        * Api/qgraphicswebview.h: reimp compositing stuff from QWebPageClient
+        * Api/qwebsettings.cpp: init new settings flag for compositing as
+        false
+        (QWebSettingsPrivate::apply): apply new settings flag for compositing
+        (QWebSettings::QWebSettings):
+        * Api/qwebsettings.h: new settings flag for compositing
+        * Api/qwebview.cpp: 
+        (QWebView::setPage): qwebview doesn't support compositing: always false
+        * QGVLauncher/main.cpp:
+        (WebView::WebView): some more cmdline arguments + compositing
+        (MainWindow::init): some more cmdline arguments
+        (main): ditto
+        * WebCoreSupport/ChromeClientQt.cpp:
+        (WebCore::ChromeClientQt::attachRootGraphicsLayer): reimp for
+        accel-compositing
+        (WebCore::ChromeClientQt::setNeedsOneShotDrawingSynchronization):
+        reimp for accel compositing
+        (WebCore::ChromeClientQt::scheduleCompositingLayerSync): reimp for
+        accel compositing
+        * WebCoreSupport/ChromeClientQt.h: reimps for accel compositing
+
+2010-01-21  Benjamin Poulain  <benjamin.poulain@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Improve the autotests of QtWebkit
+        https://bugs.webkit.org/show_bug.cgi?id=32216
+
+        Remove qWait() of the test when possible.
+
+        * tests/qwebpage/tst_qwebpage.cpp:
+        (tst_QWebPage::loadFinished):
+        (tst_QWebPage::database):
+        (tst_QWebPage::testEnablePersistentStorage):
+        (tst_QWebPage::errorPageExtension):
+        (tst_QWebPage::screenshot):
+
+2010-01-21  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Prospective build fix for the Qt build.
+
+        Fix compilation against Qt without WebKit support by not including QtWebKit/QWebView
+        but widget.h instead and instantiating QWebView through a typedef, to ensure we're using
+        our locally built WebKit.
+
+        * tests/hybridPixmap/widget.h:
+        * tests/hybridPixmap/widget.ui:
+
+2010-01-21  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Adding QPixmap/QImage support for the Qt hybrid layer
+        https://bugs.webkit.org/show_bug.cgi?id=32461
+
+        * tests/hybridPixmap: Added.
+        * tests/hybridPixmap/hybridPixmap.pro: Added.
+        * tests/hybridPixmap/resources.qrc: Added.
+        * tests/hybridPixmap/test.html: Added.
+        * tests/hybridPixmap/tst_hybridPixmap.cpp: Added.
+        (tst_hybridPixmap::tst_hybridPixmap): tests most of the use cases for
+        hybrid pixmap/image manipulation 
+        (tst_hybridPixmap::init): QTestLib initialization
+        (tst_hybridPixmap::cleanup): QTestLib cleanup
+        (tst_hybridPixmap::hybridPixmap): run the html file
+        * tests/hybridPixmap/widget.cpp: Added.
+        (Widget::Widget):
+        (Widget::refreshJS):
+        (Widget::start):
+        (Widget::completeTest):
+        (Widget::setPixmap):
+        (Widget::pixmap):
+        (Widget::setImage):
+        (Widget::image):
+        (Widget::~Widget):
+        (Widget::changeEvent):
+        (Widget::compare):
+        (Widget::imageSlot):
+        (Widget::pixmapSlot):
+        (Widget::randomSlot):
+        * tests/hybridPixmap/widget.h: Added.
+        * tests/hybridPixmap/widget.ui: Added.
+        * tests/tests.pro:
+
+2010-01-21  Luiz Agostini  <luiz.agostini@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Custom select popups.
+        https://bugs.webkit.org/show_bug.cgi?id=33418
+
+        Adjusting QtFallbackWebPopupCombo to the changes in WebCore layer.
+
+        * WebCoreSupport/ChromeClientQt.cpp:
+        (WebCore::ChromeClientQt::createSelectPopup):
+        * WebCoreSupport/ChromeClientQt.h:
+        * WebCoreSupport/QtFallbackWebPopup.cpp:
+        (WebCore::QtFallbackWebPopupCombo::QtFallbackWebPopupCombo):
+        (WebCore::QtFallbackWebPopupCombo::showPopup):
+        (WebCore::QtFallbackWebPopupCombo::hidePopup):
+        (WebCore::QtFallbackWebPopup::QtFallbackWebPopup):
+        (WebCore::QtFallbackWebPopup::~QtFallbackWebPopup):
+        (WebCore::QtFallbackWebPopup::show):
+        (WebCore::QtFallbackWebPopup::hide):
+        (WebCore::QtFallbackWebPopup::populate):
+        * WebCoreSupport/QtFallbackWebPopup.h:
+
+2010-01-19  Steve Block  <steveblock@google.com>
+
+        Reviewed by Adam Barth.
+
+        Renames WebCore/bridge/runtime.[cpp|h] to WebCore/bridge/Bridge.[cpp|h]
+        https://bugs.webkit.org/show_bug.cgi?id=33801
+
+        * Api/qwebframe.cpp:
+
+2010-01-14  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Drag and Drop source/destination code needs cleanup.
+        <https://bugs.webkit.org/show_bug.cgi?id=33691>.
+        
+        Update to new way of calling sourceOperation.
+
+        * WebCoreSupport/DragClientQt.cpp:
+        (WebCore::DragClientQt::startDrag):
+
+2010-01-14  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Symbian build fixes.
+
+        * tests/qwebpage/tst_qwebpage.cpp: Include util.h
+        * tests/tests.pri: Don't define TESTS_SOURCE_DIR, it doesn't work.
+        * tests/util.h: Define TESTS_SOURCE_DIR here, just like it's done in Qt.
+
+2010-01-14  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Update Symbian .def symbol export files after private API additions.
+
+        * symbian/bwins/QtWebKitu.def:
+        * symbian/eabi/QtWebKitu.def:
+
+2010-01-13  Darin Adler  <darin@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Move more of the selection and caret painting code from Frame to SelectionController.
+        https://bugs.webkit.org/show_bug.cgi?id=33619
+
+        * Api/qwebpage.cpp:
+        (QWebPagePrivate::inputMethodEvent): Seems possibly wrong to be directly invoking this
+        setCaretVisible here, but I updated it to call it in its new location.
+
+2010-01-11  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Holger Freyther.
+
+        [Qt] Add private API for QWebFrame scrolling, to maintain binary compatibility with Qt 4.6.
+
+        This is just a temporary addition until we have introduced #ifdefs to allow
+        safely removing the private API again.
+
+        * Api/qwebframe.cpp:
+        (qtwebkit_webframe_scrollRecursively):
+
+2010-01-10  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Adam Barth.
+
+        [Qt] Add enableXSSAuditor support to QWebSettings and DRT.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33419
+
+        * Api/qwebsettings.cpp:
+        (QWebSettingsPrivate::apply):
+        * Api/qwebsettings.h:
+
+2010-01-09  Daniel Bates  <dbates@webkit.org>
+
+        No review, rolling out r53044.
+        http://trac.webkit.org/changeset/53044
+        https://bugs.webkit.org/show_bug.cgi?id=33419
+        
+        We need to look into this some more because the Qt
+        bot is failing the XSSAuditor tests. See bug #33419
+        for more details.
+
+        * Api/qwebsettings.cpp:
+        * Api/qwebsettings.h:
+
+2010-01-09  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33419
+
+        Adds support for the XSSAuditor to the Qt DRT.
+
+        * Api/qwebsettings.cpp: Updated comment to reflect added key XSSAuditorEnabled.
+        * Api/qwebsettings.h: Adds settings key XSSAuditorEnabled.
+
 2010-01-08  Luiz Agostini  <luiz.agostini@openbossa.org>
 
         Reviewed by Kenneth Rohde Christiansen.

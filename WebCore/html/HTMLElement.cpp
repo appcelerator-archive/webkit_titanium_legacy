@@ -257,6 +257,8 @@ void HTMLElement::parseMappedAttribute(MappedAttribute *attr)
         setAttributeEventListener(eventNames().touchmoveEvent, createAttributeEventListener(this, attr));
     } else if (attr->name() == ontouchendAttr) {
         setAttributeEventListener(eventNames().touchendEvent, createAttributeEventListener(this, attr));
+    } else if (attr->name() == ontouchcancelAttr) {
+        setAttributeEventListener(eventNames().touchcancelEvent, createAttributeEventListener(this, attr));
     }
 }
 
@@ -270,7 +272,7 @@ String HTMLElement::outerHTML() const
     return createMarkup(this);
 }
 
-PassRefPtr<DocumentFragment> HTMLElement::createContextualFragment(const String &html)
+PassRefPtr<DocumentFragment> HTMLElement::createContextualFragment(const String &html, FragmentScriptingPermission scriptingPermission)
 {
     // the following is in accordance with the definition as used by IE
     if (endTagRequirement() == TagStatusForbidden)
@@ -283,7 +285,7 @@ PassRefPtr<DocumentFragment> HTMLElement::createContextualFragment(const String 
     RefPtr<DocumentFragment> fragment = DocumentFragment::create(document());
     
     if (document()->isHTMLDocument())
-         parseHTMLDocumentFragment(html, fragment.get());
+         parseHTMLDocumentFragment(html, fragment.get(), scriptingPermission);
     else {
         if (!parseXMLDocumentFragment(html, fragment.get(), this))
             // FIXME: We should propagate a syntax error exception out here.
@@ -375,6 +377,13 @@ static void replaceChildrenWithText(HTMLElement* element, const String& text, Ex
 
 void HTMLElement::setInnerHTML(const String& html, ExceptionCode& ec)
 {
+    if (hasLocalName(scriptTag) || hasLocalName(styleTag)) {
+        // Script and CSS source shouldn't be parsed as HTML.
+        removeChildren();
+        appendChild(document()->createTextNode(html), ec);
+        return;
+    }
+
     RefPtr<DocumentFragment> fragment = createContextualFragment(html);
     if (!fragment) {
         ec = NO_MODIFICATION_ALLOWED_ERR;

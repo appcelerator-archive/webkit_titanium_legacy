@@ -33,6 +33,10 @@ WebInspector.DOMNode = function(doc, payload) {
     this.ownerDocument = doc;
 
     this.id = payload.id;
+    // injectedScriptId is a node is for DOM nodes which should be converted
+    // to corresponding InjectedScript by the inspector backend. We indicate
+    // this by making injectedScriptId negative.
+    this.injectedScriptId = -payload.id;
     this.nodeType = payload.nodeType;
     this.nodeName = payload.nodeName;
     this.localName = payload.localName;
@@ -140,6 +144,8 @@ WebInspector.DOMNode.prototype = {
 
     _setAttributesPayload: function(attrs)
     {
+        this.attributes = [];
+        this._attributesMap = {};
         for (var i = 0; i < attrs.length; i += 2)
             this._addAttribute(attrs[i], attrs[i + 1]);
     },
@@ -363,15 +369,16 @@ WebInspector.DOMAgent.prototype = {
         callback();
         // TODO(pfeldman): Fix this hack.
         var elem = WebInspector.panels.elements.treeOutline.findTreeElement(node);
-        if (elem) {
-            elem._updateTitle();
-        }
+        if (elem)
+            elem.updateTitle();
     },
 
     _attributesUpdated: function(nodeId, attrsArray)
     {
         var node = this._idToDOMNode[nodeId];
         node._setAttributesPayload(attrsArray);
+        var event = {target: node};
+        this.document._fireDomEvent("DOMAttrModified", event);
     },
 
     nodeForId: function(nodeId) {
@@ -513,6 +520,7 @@ WebInspector.EventListeners.getEventListenersForNodeAsync = function(node, callb
 WebInspector.CSSStyleDeclaration = function(payload)
 {
     this.id = payload.id;
+    this.injectedScriptId = payload.injectedScriptId;
     this.width = payload.width;
     this.height = payload.height;
     this.__disabledProperties = payload.__disabledProperties;
@@ -555,6 +563,7 @@ WebInspector.CSSStyleDeclaration.parseRule = function(payload)
 {
     var rule = {};
     rule.id = payload.id;
+    rule.injectedScriptId = payload.injectedScriptId;
     rule.selectorText = payload.selectorText;
     rule.style = new WebInspector.CSSStyleDeclaration(payload.style);
     rule.style.parentRule = rule;

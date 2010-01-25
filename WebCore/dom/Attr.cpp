@@ -27,6 +27,7 @@
 #include "Element.h"
 #include "ExceptionCode.h"
 #include "Text.h"
+#include "XMLNSNames.h"
 
 namespace WebCore {
 
@@ -102,7 +103,13 @@ void Attr::setPrefix(const AtomicString& prefix, ExceptionCode& ec)
     if (ec)
         return;
 
-    m_attribute->setPrefix(prefix);
+    if ((prefix == xmlnsAtom && namespaceURI() != XMLNSNames::xmlnsNamespaceURI)
+        || static_cast<Attr*>(this)->qualifiedName() == xmlnsAtom) {
+        ec = NAMESPACE_ERR;
+        return;
+    }
+
+    m_attribute->setPrefix(prefix.isEmpty() ? AtomicString() : prefix);
 }
 
 String Attr::nodeValue() const

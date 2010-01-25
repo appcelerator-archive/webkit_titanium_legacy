@@ -46,7 +46,7 @@ namespace WebCore {
 v8::Handle<v8::Value> V8XMLHttpRequestUpload::addEventListenerCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.XMLHttpRequestUpload.addEventListener()");
-    XMLHttpRequestUpload* xmlHttpRequestUpload = V8DOMWrapper::convertToNativeObject<XMLHttpRequestUpload>(V8ClassIndex::XMLHTTPREQUESTUPLOAD, args.Holder());
+    XMLHttpRequestUpload* xmlHttpRequestUpload = V8XMLHttpRequestUpload::toNative(args.Holder());
 
     XMLHttpRequest* xmlHttpRequest = xmlHttpRequestUpload->associatedXMLHttpRequest();
 
@@ -56,7 +56,7 @@ v8::Handle<v8::Value> V8XMLHttpRequestUpload::addEventListenerCallback(const v8:
         bool useCapture = args[2]->BooleanValue();
         xmlHttpRequestUpload->addEventListener(type, listener, useCapture);
 
-        createHiddenDependency(args.Holder(), args[1], V8Custom::kXMLHttpRequestCacheIndex);
+        createHiddenDependency(args.Holder(), args[1], cacheIndex);
     }
     return v8::Undefined();
 }
@@ -64,7 +64,7 @@ v8::Handle<v8::Value> V8XMLHttpRequestUpload::addEventListenerCallback(const v8:
 v8::Handle<v8::Value> V8XMLHttpRequestUpload::removeEventListenerCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.XMLHttpRequestUpload.removeEventListener()");
-    XMLHttpRequestUpload* xmlHttpRequestUpload = V8DOMWrapper::convertToNativeObject<XMLHttpRequestUpload>(V8ClassIndex::XMLHTTPREQUESTUPLOAD, args.Holder());
+    XMLHttpRequestUpload* xmlHttpRequestUpload = V8XMLHttpRequestUpload::toNative(args.Holder());
 
     XMLHttpRequest* xmlHttpRequest = xmlHttpRequestUpload->associatedXMLHttpRequest();
 
@@ -74,7 +74,7 @@ v8::Handle<v8::Value> V8XMLHttpRequestUpload::removeEventListenerCallback(const 
         bool useCapture = args[2]->BooleanValue();
         xmlHttpRequestUpload->removeEventListener(type, listener.get(), useCapture);
 
-        removeHiddenDependency(args.Holder(), args[1], V8Custom::kXMLHttpRequestCacheIndex);
+        removeHiddenDependency(args.Holder(), args[1], cacheIndex);
     }
 
     return v8::Undefined();

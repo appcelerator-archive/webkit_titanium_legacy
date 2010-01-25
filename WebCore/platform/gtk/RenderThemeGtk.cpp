@@ -39,8 +39,8 @@
 #include "UserAgentStyleSheets.h"
 #include "gtkdrawing.h"
 
-#include <gtk/gtk.h>
 #include <gdk/gdk.h>
+#include <gtk/gtk.h>
 
 namespace WebCore {
 
@@ -108,17 +108,20 @@ void RenderThemeGtk::initMediaStyling(GtkStyle* style, bool force)
 }
 #endif
 
-PassRefPtr<RenderTheme> RenderThemeGtk::create(Page* page)
+PassRefPtr<RenderTheme> RenderThemeGtk::create()
 {
-    return adoptRef(new RenderThemeGtk(page));
+    return adoptRef(new RenderThemeGtk());
 }
 
 PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page* page)
 {
-    return RenderThemeGtk::create(page).releaseRef();
+    static RenderTheme* rt = RenderThemeGtk::create().releaseRef();
+    return rt;
 }
 
-RenderThemeGtk::RenderThemeGtk(Page* page)
+static int mozGtkRefCount = 0;
+
+RenderThemeGtk::RenderThemeGtk()
     : m_gtkWindow(0)
     , m_gtkContainer(0)
     , m_gtkEntry(0)
@@ -137,13 +140,16 @@ RenderThemeGtk::RenderThemeGtk(Page* page)
     , m_pauseButton(0)
     , m_seekBackButton(0)
     , m_seekForwardButton(0)
-    , m_page(page)
+    , m_partsTable(adoptGRef(g_hash_table_new_full(0, 0, 0, g_free)))
 {
-    static bool mozillaGtkInitialized = false;
-    if (!mozillaGtkInitialized) {
+    if (!mozGtkRefCount) {
         moz_gtk_init();
-        mozillaGtkInitialized = true;
+
+        // Use the theme parts for the default drawable.
+        moz_gtk_use_theme_parts(partsForDrawable(0));
     }
+
+    ++mozGtkRefCount;
 
 #if ENABLE(VIDEO)
     initMediaStyling(gtk_rc_get_style(GTK_WIDGET(gtkContainer())), false);
@@ -159,6 +165,30 @@ RenderThemeGtk::~RenderThemeGtk()
     m_pauseButton.clear();
     m_seekBackButton.clear();
     m_seekForwardButton.clear();
+
+    GList* values = g_hash_table_get_values(m_partsTable.get());
+    for (guint i = 0; i < g_list_length(values); i++)
+        moz_gtk_destroy_theme_parts_widgets(
+            static_cast<GtkThemeParts*>(g_list_nth_data(values, i)));
+}
+
+GtkThemeParts* RenderThemeGtk::partsForDrawable(GdkDrawable* drawable) const
+{
+    // A null drawable represents the default screen colormap.
+    GdkColormap* colormap = 0;
+    if (!drawable)
+        colormap = gdk_screen_get_default_colormap(gdk_screen_get_default());
+    else
+        colormap = gdk_drawable_get_colormap(drawable);
+
+    GtkThemeParts* parts = static_cast<GtkThemeParts*>(g_hash_table_lookup(m_partsTable.get(), colormap));
+    if (!parts) {
+        parts = g_new0(GtkThemeParts, 1);
+        parts->colormap = colormap;
+        g_hash_table_insert(m_partsTable.get(), colormap, parts);
+    }
+
+    return parts;
 }
 
 GdkDrawable* RenderThemeGtk::drawable() const
@@ -304,7 +334,9 @@ static bool paintMozillaGtkWidget(const RenderThemeGtk* theme, GtkThemeWidgetTyp
 
     gdk_rectangle_intersect(&gdkRect, &gdkClipRect, &gdkClipRect);
 
-    moz_gtk_use_parts_for_drawable(theme->drawable());
+    // Since the theme renderer is going to be drawing onto this GdkDrawable,
+    // select the appropriate widgets for the drawable depth.
+    moz_gtk_use_theme_parts(theme->partsForDrawable(i.context->gdkDrawable()));
     return moz_gtk_widget_paint(type, i.context->gdkDrawable(), &gdkRect, &gdkClipRect, &mozState, flags, direction) != MOZ_GTK_SUCCESS;
 }
 

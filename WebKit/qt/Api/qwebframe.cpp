@@ -21,6 +21,7 @@
 #include "config.h"
 #include "qwebframe.h"
 
+#include "Bridge.h"
 #include "CallFrame.h"
 #include "Document.h"
 #include "DocumentLoader.h"
@@ -67,7 +68,6 @@
 #include "qwebpage_p.h"
 #include "qwebsecurityorigin.h"
 #include "qwebsecurityorigin_p.h"
-#include "runtime.h"
 #include "runtime_object.h"
 #include "runtime_root.h"
 #include "wtf/HashMap.h"
@@ -1096,6 +1096,11 @@ bool QWebFrame::scrollRecursively(int dx, int dy)
         } while (frame && frame->view());
     }
     return (scrolledHorizontal || scrolledVertical || scrolledOverflow);
+}
+
+bool QWEBKIT_EXPORT qtwebkit_webframe_scrollRecursively(QWebFrame* qFrame, int dx, int dy)
+{
+    return qFrame->scrollRecursively(dx, dy);
 }
 
 /*!

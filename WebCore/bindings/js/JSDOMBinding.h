@@ -23,6 +23,7 @@
 #define JSDOMBinding_h
 
 #include "JSDOMGlobalObject.h"
+#include "JSSVGContextCache.h"
 #include "Document.h"
 #include <runtime/Completion.h>
 #include <runtime/Lookup.h>
@@ -141,10 +142,11 @@ namespace WebCore {
     };
 
     typedef JSC::WeakGCMap<void*, DOMObject*> DOMObjectWrapperMap;
+    typedef JSC::WeakGCMap<StringImpl*, JSC::JSString*> JSStringCache; 
 
     class DOMWrapperWorld : public RefCounted<DOMWrapperWorld> {
     public:
-        DOMWrapperWorld(JSC::JSGlobalData*);
+        DOMWrapperWorld(JSC::JSGlobalData*, bool isNormal);
         ~DOMWrapperWorld();
 
         void rememberDocument(Document* document) { documentsWithWrappers.add(document); }
@@ -152,10 +154,14 @@ namespace WebCore {
 
         // FIXME: can we make this private?
         DOMObjectWrapperMap m_wrappers;
+        JSStringCache m_stringCache;
+
+        bool isNormal() const { return m_isNormal; }
 
     private:
         JSC::JSGlobalData* m_globalData;
         HashSet<Document*> documentsWithWrappers;
+        bool m_isNormal;
     };
 
     // Map from static HashTable instances to per-GlobalData ones.
@@ -187,7 +193,7 @@ namespace WebCore {
 
     public:
         WebCoreJSClientData(JSC::JSGlobalData* globalData)
-            : m_normalWorld(globalData)
+            : m_normalWorld(globalData, true)
         {
             m_worldSet.add(&m_normalWorld);
         }
@@ -296,19 +302,21 @@ namespace WebCore {
     #define CREATE_SVG_OBJECT_WRAPPER(exec, globalObject, className, object, context) createDOMObjectWrapper<JS##className>(exec, globalObject, static_cast<className*>(object), context)
     template<class WrapperClass, class DOMClass> inline DOMObject* createDOMObjectWrapper(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, DOMClass* object, SVGElement* context)
     {
-        ASSERT(object);
-        ASSERT(!getCachedDOMObjectWrapper(exec, object));
-        WrapperClass* wrapper = new (exec) WrapperClass(getDOMStructure<WrapperClass>(exec, globalObject), globalObject, object, context);
-        cacheDOMObjectWrapper(exec, object, wrapper);
+        DOMObject* wrapper = createDOMObjectWrapper<WrapperClass, DOMClass>(exec, globalObject, object);
+        ASSERT(wrapper);
+        if (context)
+            JSSVGContextCache::addWrapper(wrapper, context);
         return wrapper;
     }
     template<class WrapperClass, class DOMClass> inline JSC::JSValue getDOMObjectWrapper(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, DOMClass* object, SVGElement* context)
     {
         if (!object)
             return JSC::jsNull();
-        if (DOMObject* wrapper = getCachedDOMObjectWrapper(exec, object))
+        if (DOMObject* wrapper = getCachedDOMObjectWrapper(exec, object)) {
+            ASSERT(JSSVGContextCache::svgContextForDOMObject(wrapper) == context);
             return wrapper;
-        return createDOMObjectWrapper<WrapperClass>(exec, globalObject, object, context);
+        }
+        return createDOMObjectWrapper<WrapperClass, DOMClass>(exec, globalObject, object, context);
     }
 #endif
 
@@ -340,6 +348,14 @@ namespace WebCore {
     // Convert a DOM implementation exception code into a JavaScript exception in the execution state.
     void setDOMException(JSC::ExecState*, ExceptionCode);
 
+    JSC::JSValue jsString(JSC::ExecState*, const String&); // empty if the string is null
+    JSC::JSValue jsStringSlowCase(JSC::ExecState*, JSStringCache&, StringImpl*);
+    JSC::JSValue jsString(JSC::ExecState*, const KURL&); // empty if the URL is null
+    inline JSC::JSValue jsString(JSC::ExecState* exec, const AtomicString& s)
+    { 
+        return jsString(exec, s.string());
+    }
+        
     JSC::JSValue jsStringOrNull(JSC::ExecState*, const String&); // null if the string is null
     JSC::JSValue jsStringOrNull(JSC::ExecState*, const KURL&); // null if the URL is null
 
@@ -402,6 +418,27 @@ namespace WebCore {
     Frame* toDynamicFrame(JSC::ExecState*);
     bool processingUserGesture(JSC::ExecState*);
     KURL completeURL(JSC::ExecState*, const String& relativeURL);
+
+    inline DOMWrapperWorld* currentWorld(JSC::ExecState* exec)
+    {
+        return static_cast<JSDOMGlobalObject*>(exec->lexicalGlobalObject())->world();
+    }
+    
+    inline JSC::JSValue jsString(JSC::ExecState* exec, const String& s)
+    {
+        StringImpl* stringImpl = s.impl();
+        if (!stringImpl || !stringImpl->length())
+            return jsEmptyString(exec);
+
+        if (stringImpl->length() == 1 && stringImpl->characters()[0] <= 0xFF)
+            return jsString(exec, stringImpl->ustring());
+
+        JSStringCache& stringCache = currentWorld(exec)->m_stringCache;
+        if (JSC::JSString* wrapper = stringCache.get(stringImpl))
+            return wrapper;
+
+        return jsStringSlowCase(exec, stringCache, stringImpl);
+    }
 
 } // namespace WebCore
 

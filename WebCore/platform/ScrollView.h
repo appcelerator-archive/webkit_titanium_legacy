@@ -249,6 +249,9 @@ protected:
     IntRect scrollCornerRect() const;
     virtual void updateScrollCorner();
     virtual void paintScrollCorner(GraphicsContext*, const IntRect& cornerRect);
+
+    // Scroll the content by blitting the pixels
+    virtual void scrollContentsFastPath(const IntSize& scrollDelta, const IntRect& rectToScroll, const IntRect& clipRect);
     
 private:
     RefPtr<Scrollbar> m_horizontalScrollbar;
@@ -310,16 +313,6 @@ public:
 
 private:
     NSScrollView<WebCoreFrameScrollView>* scrollView() const;
-#endif
-
-#if PLATFORM(QT)
-public:
-    void adjustWidgetsPreventingBlittingCount(int delta);
-private:
-    bool rootPreventsBlitting() const { return root()->m_widgetsPreventingBlitting > 0; }
-    unsigned m_widgetsPreventingBlitting;
-#else
-    bool rootPreventsBlitting() const { return false; }
 #endif
 
 #if PLATFORM(GTK)

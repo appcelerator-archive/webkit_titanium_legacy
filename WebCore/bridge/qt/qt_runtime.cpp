@@ -43,10 +43,10 @@
 #include "qobject.h"
 #include "qstringlist.h"
 #include "qt_instance.h"
+#include "qt_pixmapruntime.h"
 #include "qvarlengtharray.h"
 #include <JSFunction.h>
 #include <limits.h>
-#include <runtime.h>
 #include <runtime/Error.h>
 #include <runtime_array.h>
 #include <runtime_object.h>
@@ -720,6 +720,8 @@ QVariant convertValueToQVariant(ExecState* exec, JSValue value, QMetaType::Type 
                     }
                 }
                 break;
+            } else if (QtPixmapInstance::canHandle(static_cast<QMetaType::Type>(hint))) {
+                ret = QtPixmapInstance::variantFromObject(object, static_cast<QMetaType::Type>(hint));
             } else if (hint == (QMetaType::Type) qMetaTypeId<QVariant>()) {
                 if (value.isUndefinedOrNull()) {
                     if (distance)
@@ -848,6 +850,9 @@ JSValue convertQVariantToValue(ExecState* exec, PassRefPtr<RootObject> root, con
         QObject* obj = variant.value<QObject*>();
         return QtInstance::getQtInstance(obj, root, QScriptEngine::QtOwnership)->createRuntimeObject(exec);
     }
+
+    if (QtPixmapInstance::canHandle(static_cast<QMetaType::Type>(variant.type())))
+        return QtPixmapInstance::createRuntimeObject(exec, root, variant);
 
     if (type == QMetaType::QVariantMap) {
         // create a new object, and stuff properties into it
@@ -1744,7 +1749,7 @@ template <typename T> QtArray<T>::~QtArray ()
 
 template <typename T> RootObject* QtArray<T>::rootObject() const
 {
-    return _rootObject && _rootObject->isValid() ? _rootObject.get() : 0;
+    return m_rootObject && m_rootObject->isValid() ? m_rootObject.get() : 0;
 }
 
 template <typename T> void QtArray<T>::setValueAt(ExecState* exec, unsigned index, JSValue aValue) const

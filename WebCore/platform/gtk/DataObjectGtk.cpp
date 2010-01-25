@@ -19,24 +19,35 @@
 #include "config.h"
 #include "DataObjectGtk.h"
 
+#include "markup.h"
 #include <gtk/gtk.h>
 
 namespace WebCore {
 
-
-DataObjectGtk::DataObjectGtk()
-    : m_image(0)
-    , m_dragContext(0)
+String DataObjectGtk::text()
 {
-
+    if (m_range)
+        return m_range->text();
+    return m_text;
 }
 
-DataObjectGtk::~DataObjectGtk()
+String DataObjectGtk::markup()
 {
-    if (m_image)
-        g_object_unref(m_image);
-    if (m_dragContext)
-        g_object_unref(m_dragContext);
+    if (m_range)
+        createMarkup(m_range.get(), 0, AnnotateForInterchange);
+    return m_markup;
+}
+
+void DataObjectGtk::setText(const String& newText)
+{
+    m_range = 0;
+    m_text = newText;
+}
+
+void DataObjectGtk::setMarkup(const String& newMarkup)
+{
+    m_range = 0;
+    m_markup = newMarkup;
 }
 
 Vector<String> DataObjectGtk::files()
@@ -45,8 +56,11 @@ Vector<String> DataObjectGtk::files()
     Vector<String> files;
 
     for (size_t i = 0; i < uris.size(); i++) {
-        if (uris[0].isLocalFile())
-            files.append(uris[0].string());
+        KURL& uri = uris[0];
+        if (!uri.isValid() || !uri.isLocalFile())
+            continue;
+
+        files.append(uri.string());
     }
 
     return files;
@@ -56,8 +70,9 @@ String DataObjectGtk::url()
 {
     Vector<KURL> uris(uriList());
     for (size_t i = 0; i < uris.size(); i++) {
-        if (uris[0].isValid())
-            return uris[0].string();
+        KURL& uri = uris[0];
+        if (uri.isValid())
+            return uri;
     }
 
     return String();
@@ -67,10 +82,11 @@ String DataObjectGtk::urlLabel()
 {
     if (hasText())
         return text();
-    else if (hasURL())
+
+    if (hasURL())
         return url();
-    else
-        return String();
+
+    return String();
 }
 
 bool DataObjectGtk::hasURL()
@@ -89,32 +105,8 @@ void DataObjectGtk::setText(const String& newText)
     m_text.replace(nonBreakingSpaceCharacter, spaceCharacter);
 }
 
-void DataObjectGtk::setImage(GdkPixbuf* newImage)
-{
-    if (m_image)
-        g_object_unref(m_image);
-
-    if (newImage)
-        g_object_ref(newImage);
-
-    m_image = newImage;
-}
-void DataObjectGtk::setDragContext(GdkDragContext* newDragContext)
-{
-    if (m_dragContext)
-        g_object_unref(m_dragContext);
-
-    if (newDragContext)
-        g_object_ref(newDragContext);
-
-    m_dragContext = newDragContext;
-}
-
 void DataObjectGtk::clearImage()
 {
-    if (m_image)
-        g_object_unref(m_image);
-
     m_image = 0;
 }
 
@@ -126,7 +118,6 @@ void DataObjectGtk::clear()
     clearImage();
 }
 
-/*static*/
 DataObjectGtk* DataObjectGtk::forClipboard(GtkClipboard* clipboard)
 {
     static HashMap<GtkClipboard*, RefPtr<DataObjectGtk> > objectMap;

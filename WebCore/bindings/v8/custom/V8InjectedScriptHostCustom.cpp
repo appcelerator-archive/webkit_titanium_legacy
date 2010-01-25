@@ -31,8 +31,8 @@
 #include "config.h"
 #include "V8InjectedScriptHost.h"
 
-#include "Database.h"
 #include "DOMWindow.h"
+#include "Database.h"
 #include "Frame.h"
 #include "InjectedScriptHost.h"
 #include "InspectorController.h"
@@ -41,25 +41,77 @@
 
 #include "V8Binding.h"
 #include "V8CustomBinding.h"
+#include "V8Database.h"
+#include "V8Node.h"
 #include "V8Proxy.h"
+#include "V8Storage.h"
 
 namespace WebCore {
 
-v8::Handle<v8::Value> V8InjectedScriptHost::inspectedWindowCallback(const v8::Arguments& args)
+static void WeakReferenceCallback(v8::Persistent<v8::Value> object, void* parameter)
 {
-    INC_STATS("InjectedScriptHost.inspectedWindow()");
-
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
-    InspectorController* ic = host->inspectorController();
-    if (!ic)
-        return v8::Undefined();
-    return V8DOMWrapper::convertToV8Object<DOMWindow>(V8ClassIndex::DOMWINDOW, ic->inspectedPage()->mainFrame()->domWindow());
+    InjectedScriptHost* nativeObject = static_cast<InjectedScriptHost*>(parameter);
+    nativeObject->deref();
+    object.Dispose();
 }
 
-v8::Handle<v8::Value> V8InjectedScriptHost::wrapCallbackCallback(const v8::Arguments& args)
+static v8::Local<v8::Object> createInjectedScriptHostV8Wrapper(InjectedScriptHost* host)
 {
-    INC_STATS("InjectedScriptHost.wrapCallback()");
-    return args[0];
+    V8ClassIndex::V8WrapperType descriptorType = V8ClassIndex::INJECTEDSCRIPTHOST;
+    v8::Local<v8::Function> function = V8DOMWrapper::getTemplate(descriptorType)->GetFunction();
+    if (function.IsEmpty()) {
+        // Return if allocation failed.
+        return v8::Local<v8::Object>();
+    }
+    v8::Local<v8::Object> instance = SafeAllocation::newInstance(function);
+    if (instance.IsEmpty()) {
+        // Avoid setting the wrapper if allocation failed.
+        return v8::Local<v8::Object>();
+    }
+    V8DOMWrapper::setDOMWrapper(instance, V8ClassIndex::ToInt(descriptorType), host);
+    // Create a weak reference to the v8 wrapper of InspectorBackend to deref
+    // InspectorBackend when the wrapper is garbage collected.
+    host->ref();
+    v8::Persistent<v8::Object> weakHandle = v8::Persistent<v8::Object>::New(instance);
+    weakHandle.MakeWeak(host, &WeakReferenceCallback);
+    return instance;
+}
+
+static ScriptObject createInjectedScript(const String& scriptSource, InjectedScriptHost* injectedScriptHost, ScriptState* inspectedScriptState, long id)
+{
+    v8::HandleScope scope;
+
+    v8::Local<v8::Context> inspectedContext = inspectedScriptState->context();
+    v8::Context::Scope contextScope(inspectedContext);
+
+    // Call custom code to create InjectedScripHost wrapper specific for the context
+    // instead of calling V8DOMWrapper::convertToV8Object that would create the
+    // wrapper in the current context.
+    // FIXME: make it possible to use generic bindings factory for InjectedScriptHost.
+    v8::Local<v8::Object> scriptHostWrapper = createInjectedScriptHostV8Wrapper(injectedScriptHost);
+    if (scriptHostWrapper.IsEmpty())
+        return ScriptObject();
+
+    v8::Local<v8::Object> windowGlobal = inspectedContext->Global();
+
+    // Inject javascript into the context. The compiled script is supposed to evaluate into
+    // a single anonymous function(it's anonymous to avoid cluttering the global object with
+    // inspector's stuff) the function is called a few lines below with InjectedScriptHost wrapper,
+    // injected script id and explicit reference to the inspected global object. The function is expected
+    // to create and configure InjectedScript instance that is going to be used by the inspector.
+    v8::Local<v8::Script> script = v8::Script::Compile(v8String(scriptSource));
+    v8::Local<v8::Value> v = script->Run();
+    ASSERT(!v.IsEmpty());
+    ASSERT(v->IsFunction());
+
+    v8::Handle<v8::Value> args[] = {
+      scriptHostWrapper,
+      windowGlobal,
+      v8::Number::New(id)
+    };
+    v8::Local<v8::Value> injectedScriptValue = v8::Function::Cast(*v)->Call(windowGlobal, 3, args);
+    v8::Local<v8::Object> injectedScript(v8::Object::Cast(*injectedScriptValue));
+    return ScriptObject(inspectedScriptState, injectedScript);
 }
 
 v8::Handle<v8::Value> V8InjectedScriptHost::nodeForIdCallback(const v8::Arguments& args)
@@ -68,7 +120,7 @@ v8::Handle<v8::Value> V8InjectedScriptHost::nodeForIdCallback(const v8::Argument
     if (args.Length() < 1)
         return v8::Undefined();
 
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
+    InjectedScriptHost* host = V8InjectedScriptHost::toNative(args.Holder());
     
     Node* node = host->nodeForId(args[0]->ToInt32()->Value());
     if (!node)
@@ -81,34 +133,14 @@ v8::Handle<v8::Value> V8InjectedScriptHost::nodeForIdCallback(const v8::Argument
     return V8DOMWrapper::convertToV8Object(V8ClassIndex::NODE, node);
 }
 
-v8::Handle<v8::Value> V8InjectedScriptHost::wrapObjectCallback(const v8::Arguments& args)
-{
-    INC_STATS("InjectedScriptHost.wrapObject()");
-    if (args.Length() < 2)
-        return v8::Undefined();
-
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
-    return host->wrapObject(ScriptValue(args[0]), toWebCoreStringWithNullCheck(args[1])).v8Value();
-}
-
-v8::Handle<v8::Value> V8InjectedScriptHost::unwrapObjectCallback(const v8::Arguments& args)
-{
-    INC_STATS("InjectedScriptHost.unwrapObject()");
-    if (args.Length() < 1)
-        return v8::Undefined();
-
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
-    return host->unwrapObject(toWebCoreStringWithNullCheck(args[0])).v8Value();
-}
-
 v8::Handle<v8::Value> V8InjectedScriptHost::pushNodePathToFrontendCallback(const v8::Arguments& args)
 {
     INC_STATS("InjectedScriptHost.pushNodePathToFrontend()");
     if (args.Length() < 3)
         return v8::Undefined();
 
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
-    Node* node = V8DOMWrapper::convertDOMWrapperToNode<Node>(v8::Handle<v8::Object>::Cast(args[0]));
+    InjectedScriptHost* host = V8InjectedScriptHost::toNative(args.Holder());
+    Node* node = V8Node::toNative(v8::Handle<v8::Object>::Cast(args[0]));
     bool withChildren = args[1]->ToBoolean()->Value();
     bool selectInUI = args[2]->ToBoolean()->Value();
     if (node)
@@ -124,7 +156,7 @@ v8::Handle<v8::Value> V8InjectedScriptHost::databaseForIdCallback(const v8::Argu
     if (args.Length() < 1)
         return v8::Undefined();
 
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
+    InjectedScriptHost* host = V8InjectedScriptHost::toNative(args.Holder());
     Database* database = host->databaseForId(args[0]->ToInt32()->Value());
     if (!database)
         return v8::Undefined();
@@ -137,8 +169,8 @@ v8::Handle<v8::Value> V8InjectedScriptHost::selectDatabaseCallback(const v8::Arg
     if (args.Length() < 1)
         return v8::Undefined();
 
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
-    Database* database = V8DOMWrapper::convertToNativeObject<Database>(V8ClassIndex::DATABASE, v8::Handle<v8::Object>::Cast(args[0]));
+    InjectedScriptHost* host = V8InjectedScriptHost::toNative(args.Holder());
+    Database* database = V8Database::toNative(v8::Handle<v8::Object>::Cast(args[0]));
     if (database)
         host->selectDatabase(database);
 
@@ -153,13 +185,37 @@ v8::Handle<v8::Value> V8InjectedScriptHost::selectDOMStorageCallback(const v8::A
     if (args.Length() < 1)
         return v8::Undefined();
 
-    InjectedScriptHost* host = V8DOMWrapper::convertToNativeObject<InjectedScriptHost>(V8ClassIndex::INJECTEDSCRIPTHOST, args.Holder());
-    Storage* storage = V8DOMWrapper::convertToNativeObject<Storage>(V8ClassIndex::STORAGE, v8::Handle<v8::Object>::Cast(args[0]));
+    InjectedScriptHost* host = V8InjectedScriptHost::toNative(args.Holder());
+    Storage* storage = V8Storage::toNative(v8::Handle<v8::Object>::Cast(args[0]));
     if (storage)
         host->selectDOMStorage(storage);
 
     return v8::Undefined();
 }
 #endif
+
+ScriptObject InjectedScriptHost::injectedScriptFor(ScriptState* inspectedScriptState)
+{
+    v8::HandleScope handleScope;
+    v8::Local<v8::Context> context = inspectedScriptState->context();
+    v8::Context::Scope contextScope(context);
+
+    v8::Local<v8::Object> global = context->Global();
+    // Skip proxy object. The proxy object will survive page navigation while we need
+    // an object whose lifetime consides with that of the inspected context.
+    global = v8::Local<v8::Object>::Cast(global->GetPrototype());
+
+    v8::Local<v8::String> key = v8::String::New("Devtools_InjectedScript");
+    v8::Local<v8::Value> val = global->GetHiddenValue(key);
+    if (!val.IsEmpty() && val->IsObject())
+        return ScriptObject(inspectedScriptState, v8::Local<v8::Object>::Cast(val));
+
+    ASSERT(!m_injectedScriptSource.isEmpty());
+    ScriptObject injectedScriptObject = createInjectedScript(m_injectedScriptSource, this, inspectedScriptState, m_nextInjectedScriptId);
+    m_idToInjectedScript.set(m_nextInjectedScriptId, injectedScriptObject);
+    ++m_nextInjectedScriptId;
+    global->SetHiddenValue(key, injectedScriptObject.v8Object());
+    return injectedScriptObject;
+}
 
 } // namespace WebCore

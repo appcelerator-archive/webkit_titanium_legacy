@@ -425,9 +425,7 @@ void ScrollView::updateScrollbars(const IntSize& desiredOffset)
     if (m_horizontalScrollbar) {
         int clientWidth = visibleWidth();
         m_horizontalScrollbar->setEnabled(contentsWidth() > clientWidth);
-        int pageStep = (clientWidth - cAmountToKeepWhenPaging);
-        if (pageStep < 0)
-            pageStep = clientWidth;
+        int pageStep = max(clientWidth * cFractionToStepWhenPaging, 1.f);
         IntRect oldRect(m_horizontalScrollbar->frameRect());
         IntRect hBarRect = IntRect(0,
                                    height() - m_horizontalScrollbar->height(),
@@ -449,7 +447,7 @@ void ScrollView::updateScrollbars(const IntSize& desiredOffset)
     if (m_verticalScrollbar) {
         int clientHeight = visibleHeight();
         m_verticalScrollbar->setEnabled(contentsHeight() > clientHeight);
-        int pageStep = (clientHeight - cAmountToKeepWhenPaging);
+        int pageStep = max(clientHeight * cFractionToStepWhenPaging, 1.f);
         if (pageStep < 0)
             pageStep = clientHeight;
         IntRect oldRect(m_verticalScrollbar->frameRect());
@@ -513,9 +511,9 @@ void ScrollView::scrollContents(const IntSize& scrollDelta)
         hostWindow()->repaint(panScrollIconDirtyRect, true);
     }
 
-    if (canBlitOnScroll() && !rootPreventsBlitting()) { // The main frame can just blit the WebView window
+    if (canBlitOnScroll()) { // The main frame can just blit the WebView window
        // FIXME: Find a way to blit subframes without blitting overlapping content
-       hostWindow()->scroll(-scrollDelta, scrollViewRect, clipRect);
+       scrollContentsFastPath(-scrollDelta, scrollViewRect, clipRect);
     } else { 
        // We need to go ahead and repaint the entire backing store.  Do it now before moving the
        // windowed plugins.
@@ -528,6 +526,11 @@ void ScrollView::scrollContents(const IntSize& scrollDelta)
     // Now update the window (which should do nothing but a blit of the backing store's updateRect and so should
     // be very fast).
     hostWindow()->paint();
+}
+
+void ScrollView::scrollContentsFastPath(const IntSize& scrollDelta, const IntRect& rectToScroll, const IntRect& clipRect)
+{
+    hostWindow()->scroll(scrollDelta, rectToScroll, clipRect);
 }
 
 IntPoint ScrollView::windowToContents(const IntPoint& windowPoint) const
@@ -603,14 +606,6 @@ void ScrollView::setParent(ScrollView* parentView)
     if (m_scrollbarsAvoidingResizer && parent())
         parent()->adjustScrollbarsAvoidingResizerCount(-m_scrollbarsAvoidingResizer);
 
-#if PLATFORM(QT)
-    if (m_widgetsPreventingBlitting && parent())
-        parent()->adjustWidgetsPreventingBlittingCount(-m_widgetsPreventingBlitting);
-
-    if (m_widgetsPreventingBlitting && parentView)
-        parentView->adjustWidgetsPreventingBlittingCount(m_widgetsPreventingBlitting);
-#endif
-
     Widget::setParent(parentView);
 
     if (m_scrollbarsAvoidingResizer && parent())
@@ -673,7 +668,7 @@ void ScrollView::wheelEvent(PlatformWheelEvent& e)
         if (e.granularity() == ScrollByPageWheelEvent) {
             ASSERT(deltaX == 0);
             bool negative = deltaY < 0;
-            deltaY = max(0, visibleHeight() - cAmountToKeepWhenPaging);
+            deltaY = max(visibleHeight() * cFractionToStepWhenPaging, 1.f);
             if (negative)
                 deltaY = -deltaY;
         }

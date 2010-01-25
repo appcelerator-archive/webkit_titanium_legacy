@@ -27,6 +27,7 @@
 #include "CachedResourceClient.h"
 #include "CachedResourceHandle.h"
 #include "NamedMappedAttrMap.h"
+#include "MappedAttributeEntry.h"
 #include "SegmentedString.h"
 #include "Timer.h"
 #include "Tokenizer.h"
@@ -136,7 +137,7 @@ class HTMLTokenizer : public Tokenizer, public CachedResourceClient {
 public:
     HTMLTokenizer(HTMLDocument*, bool reportErrors);
     HTMLTokenizer(HTMLViewSourceDocument*);
-    HTMLTokenizer(DocumentFragment*);
+    HTMLTokenizer(DocumentFragment*, FragmentScriptingPermission = FragmentScriptingAllowed);
     virtual ~HTMLTokenizer();
 
     virtual void write(const SegmentedString&, bool appendData);
@@ -423,11 +424,12 @@ private:
     OwnPtr<HTMLParser> m_parser;
     bool m_inWrite;
     bool m_fragment;
+    FragmentScriptingPermission m_scriptingPermission;
 
     OwnPtr<PreloadScanner> m_preloadScanner;
 };
 
-void parseHTMLDocumentFragment(const String&, DocumentFragment*);
+void parseHTMLDocumentFragment(const String&, DocumentFragment*, FragmentScriptingPermission = FragmentScriptingAllowed);
 
 UChar decodeNamedEntity(const char*);
 

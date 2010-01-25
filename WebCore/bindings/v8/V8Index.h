@@ -32,9 +32,12 @@
 #define V8Index_h
 
 #include <v8.h>
-#include "PlatformString.h"  // for WebCore::String
 
 namespace WebCore {
+
+static const int v8DOMWrapperTypeIndex = 0;
+static const int v8DOMWrapperObjectIndex = 1;
+static const int v8DefaultWrapperInternalFieldCount = 2;
 
 typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 
@@ -327,6 +330,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #define DOM_OBJECT_TYPES_1(V)                                           \
     V(BARINFO, BarInfo)                                                 \
     V(BEFORELOADEVENT, BeforeLoadEvent)                                 \
+    V(BLOB, Blob)                                                       \
     V(CANVASGRADIENT, CanvasGradient)                                   \
     V(CANVASPATTERN, CanvasPattern)                                     \
     V(CANVASRENDERINGCONTEXT, CanvasRenderingContext)                   \
@@ -388,6 +392,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(PAGETRANSITIONEVENT, PageTransitionEvent)                         \
     V(PLUGIN, Plugin)                                                   \
     V(PLUGINARRAY, PluginArray)                                         \
+    V(POPSTATEEVENT, PopStateEvent)                                     \
     V(PROGRESSEVENT, ProgressEvent)                                     \
     V(RANGE, Range)                                                     \
     V(RANGEEXCEPTION, RangeException)                                   \
@@ -454,6 +459,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(WEBGLARRAYBUFFER, WebGLArrayBuffer)                               \
     V(WEBGLBUFFER, WebGLBuffer)                                         \
     V(WEBGLBYTEARRAY, WebGLByteArray)                                   \
+    V(WEBGLCONTEXTATTRIBUTES, WebGLContextAttributes)                   \
     V(WEBGLFLOATARRAY, WebGLFloatArray)                                 \
     V(WEBGLFRAMEBUFFER, WebGLFramebuffer)                               \
     V(WEBGLINTARRAY, WebGLIntArray)                                     \

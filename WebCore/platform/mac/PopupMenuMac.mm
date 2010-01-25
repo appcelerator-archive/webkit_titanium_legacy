@@ -81,8 +81,14 @@ void PopupMenu::populate()
         else {
             PopupMenuStyle style = client()->itemStyle(i);
             NSMutableDictionary* attributes = [[NSMutableDictionary alloc] init];
-            if (style.font() != Font())
-                [attributes setObject:style.font().primaryFont()->getNSFont() forKey:NSFontAttributeName];
+            if (style.font() != Font()) {
+                NSFont *font = style.font().primaryFont()->getNSFont();
+                if (!font) {
+                    CGFloat size = style.font().primaryFont()->platformData().size();
+                    font = style.font().weight() < FontWeightBold ? [NSFont systemFontOfSize:size] : [NSFont boldSystemFontOfSize:size];
+                }
+                [attributes setObject:font forKey:NSFontAttributeName];
+            }
             // FIXME: Add support for styling the foreground and background colors.
             // FIXME: Find a way to customize text color when an item is highlighted.
             NSAttributedString* string = [[NSAttributedString alloc] initWithString:client()->itemText(i) attributes:attributes];
@@ -108,7 +114,7 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
     int numItems = [m_popup.get() numberOfItems];
     if (numItems <= 0) {
         if (client())
-            client()->popupDidHide(true);
+            client()->popupDidHide();
         return;
     }
     ASSERT(numItems > index);
@@ -165,7 +171,7 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
 
     if (client()) {
         int newIndex = [m_popup.get() indexOfSelectedItem];
-        client()->popupDidHide(true);
+        client()->popupDidHide();
 
         // Adjust newIndex for hidden first item.
         if (!client()->shouldPopOver())

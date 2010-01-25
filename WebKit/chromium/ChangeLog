@@ -1,3 +1,509 @@
+2010-01-22  Elliot Glaysher  <erg@chromium.org>
+
+        Reviewed by David Levin.
+
+        Chromium: theme selection colors to match gtk theme
+        Add functions to RenderThemeChromiumLinux to change the selection color
+        according to the current GTK+ theme.
+
+        Since the change is to the Chromium WebKit API layer, testing is done
+        in Chromium's test shell (see Chromium side of this patch:
+        http://codereview.chromium.org/554004)
+
+        https://bugs.webkit.org/show_bug.cgi?id=33921
+
+        * public/WebView.h: Adds interface to change the selection colors
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::setSelectionColors): Implements new interface.
+        * src/WebViewImpl.h:
+
+2010-01-22  Steve VanDeBogart  <vandebo@chromium.org>
+
+        Reviewed by David Levin.
+
+        Middle clicking the main scroll bars should not trigger a paste event
+        in Linux chromium.
+        https://bugs.webkit.org/show_bug.cgi?id=33062
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::mouseUp):
+
+2010-01-22  Albert J. Wong  <ajwong@chromium.org>
+
+        Not reviewed.  backout.
+
+        Backout r53705.
+        Causes ui_tests to timeout, and browser_tests to fail with
+        TestConnectToBadPort and WindowOpenInvalidExtension.
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchDidChangeLocationWithinPage):
+        (WebKit::FrameLoaderClientImpl::postProgressStartedNotification):
+        (WebKit::FrameLoaderClientImpl::postProgressFinishedNotification):
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::WebViewImpl):
+        * src/WebViewImpl.h:
+
+2010-01-22  Peter Kasting  <pkasting@google.com>
+
+        Not reviewed, backout.
+
+        Back out r52673, which caused several regressions.
+        https://bugs.webkit.org/show_bug.cgi?id=32533
+
+        * src/AutocompletePopupMenuClient.cpp:
+        (WebKit::AutocompletePopupMenuClient::initialize):
+        (WebKit::AutocompletePopupMenuClient::popupDidHide):
+        (WebKit::AutocompletePopupMenuClient::setTextFromItem):
+        * src/AutocompletePopupMenuClient.h:
+
+2010-01-21  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        The Chromium WebKit API needs to expose storage event related data
+        https://bugs.webkit.org/show_bug.cgi?id=33985
+
+        setItem and removeItem on WebStorageArea need to expose what the previous
+        value was for the key being modified.  Clear needs to return whether it
+        actually cleared anything.
+
+        * public/WebStorageArea.h:
+        (WebKit::WebStorageArea::setItem):
+        (WebKit::WebStorageArea::removeItem):
+        (WebKit::WebStorageArea::clear):
+        * src/StorageAreaProxy.cpp:
+        (WebCore::StorageAreaProxy::StorageAreaProxy):
+        (WebCore::StorageAreaProxy::setItem):
+        (WebCore::StorageAreaProxy::removeItem):
+        (WebCore::StorageAreaProxy::clear):
+        (WebCore::StorageAreaProxy::storageEvent):
+        * src/StorageAreaProxy.h:
+        * src/StorageNamespaceProxy.cpp:
+        (WebCore::StorageNamespace::localStorageNamespace):
+        (WebCore::StorageNamespace::sessionStorageNamespace):
+        (WebCore::StorageNamespaceProxy::StorageNamespaceProxy):
+        (WebCore::StorageNamespaceProxy::copy):
+        (WebCore::StorageNamespaceProxy::storageArea):
+        * src/StorageNamespaceProxy.h:
+        * src/WebStorageAreaImpl.cpp:
+        (WebKit::WebStorageAreaImpl::setItem):
+        (WebKit::WebStorageAreaImpl::removeItem):
+        (WebKit::WebStorageAreaImpl::clear):
+        * src/WebStorageAreaImpl.h:
+
+2010-01-21  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by David Levin.
+
+        [Chromium] spurious WebViewClient::didStopLoading if changing
+        location.hash while a subframe is still loading
+
+        https://bugs.webkit.org/show_bug.cgi?id=33884
+
+        This is a refinement of http://trac.webkit.org/changeset/51548
+
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::dispatchDidChangeLocationWithinPage):
+        (WebKit::FrameLoaderClientImpl::postProgressStartedNotification):
+        (WebKit::FrameLoaderClientImpl::postProgressFinishedNotification):
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::WebViewImpl):
+        (WebKit::WebViewImpl::didStartLoading):
+        (WebKit::WebViewImpl::didStopLoading):
+        * src/WebViewImpl.h:
+
+2010-01-21  Adam Barth  <abarth@webkit.org>
+
+        Unreviewed.  Added a blank line requested by the great an powerful
+        fishd.
+
+        * public/WebFrameClient.h:
+
+2010-01-21  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        [chromium] Add allowPlugins callback to allow per-site enabling of plugins
+        https://bugs.webkit.org/show_bug.cgi?id=33974
+
+        Forward the new allowPlugins callback to WebKitClient so that it can
+        make the policy decision.
+
+        * public/WebFrameClient.h:
+        (WebKit::WebFrameClient::allowPlugins):
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::allowJavaScript):
+        (WebKit::FrameLoaderClientImpl::allowPlugins):
+        * src/FrameLoaderClientImpl.h:
+
+2010-01-21  James Robinson  <jamesr@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Bumps the refcount when WebNode::toElement/toConstElement are called.
+        https://bugs.webkit.org/show_bug.cgi?id=33977
+        
+        Ensures that when a wrapper around a WebNode is create via the
+        toElement() or toConstElement() calls that the refcount on the WebNode
+        is increased, by forcing a call to WebNode::assign().  This is needed
+        so that the following code:
+        {
+          WebNode n = someNode();
+          WebElement e = n.toElement<WebElement>();
+        }
+        does not decrease the overall refcount on the Node that someNode()
+        returns.
+
+        This caused crashes in the 'Save page as..' feature.
+
+        * public/WebNode.h:
+        (WebKit::WebNode::toElement):
+        (WebKit::WebNode::toConstElement):
+
+2010-01-21  Michael Nordman  <michaeln@google.com>
+
+        Reviewed by Darin Fisher.
+
+        Adds WebKit::WebDataSource::applicationCacheHost() to the API.
+        https://bugs.webkit.org/show_bug.cgi?id=33880
+
+        * WebKit.gyp:
+        * public/WebDataSource.h:
+        * src/ApplicationCacheHost.cpp:
+        * src/ApplicationCacheHostInternal.h: Copied from WebKit/chromium/src/ApplicationCacheHost.cpp.
+        (WebCore::ApplicationCacheHostInternal::notifyEventListener):
+        (WebCore::ApplicationCacheHostInternal::toWebApplicationCacheHost):
+        * src/WebDataSourceImpl.cpp:
+        (WebKit::WebDataSourceImpl::applicationCacheHost):
+        * src/WebDataSourceImpl.h:
+
+2010-01-21  Eric Uhrhane  <ericu@chromium.org>
+
+        Reviewed by Dmitry Titov.
+
+        Add changes missing from r53595, without which Chromium has no database.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33966
+
+        No new tests - fixes database layout tests in Chromium.
+
+        * src/WebRuntimeFeatures.cpp:
+        (WebKit::WebRuntimeFeatures::enableDatabase):
+        (WebKit::WebRuntimeFeatures::isDatabaseEnabled):
+
+2010-01-21  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        [Chromium] Implement texSubImage2D taking WebGLArray
+        https://bugs.webkit.org/show_bug.cgi?id=33932
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3D::texSubImage2D):
+
+2010-01-20  Vitaly Repeshko  <vitalyr@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        [V8] Support SerializedScriptValue.
+        https://bugs.webkit.org/show_bug.cgi?id=32920
+        http://crbug.com/30620
+
+        Updated uses of SerializedScriptValue:
+        * src/PlatformMessagePortChannel.cpp:
+        (WebCore::PlatformMessagePortChannel::postMessageToRemote):
+        (WebCore::PlatformMessagePortChannel::tryGetMessageFromRemote):
+        * src/WebWorkerBase.cpp:
+        (WebKit::WebWorkerBase::postMessageToWorkerObject):
+        * src/WebWorkerClientImpl.cpp:
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerContext):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerObjectTask):
+        * src/WebWorkerImpl.cpp:
+        (WebKit::WebWorkerImpl::postMessageToWorkerContextTask):
+
+2010-01-20  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] computePageRectsForFrame seems to be unnecessary
+        https://bugs.webkit.org/show_bug.cgi?id=33881
+
+        * src/WebFrameImpl.cpp: Stop including FrameChromium.h
+
+2010-01-19  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        Chromium build fix.
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::):
+        Correct enum names.
+
+        * src/LocalizedStrings.cpp:
+        (WebCore::AXMenuListPopupActionVerb):
+        Stubbed.
+        (WebCore::AXMenuListActionVerb):
+        Stubbed.
+
+2010-01-19  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        Chromium build fix.
+
+        * public/WebAccessibilityRole.h:
+        (WebKit::):
+
+        * src/AssertMatchingEnums.cpp:
+
+2010-01-18  Jonathan Dixon  <joth@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Add support for enabling navigator.geolocation at runtime in the V8 bindings.
+        Adds the [EnabledAtRuntime] modifier to the navigator IDL.
+        https://bugs.webkit.org/show_bug.cgi?id=33467
+
+        * public/WebRuntimeFeatures.h:
+        * src/WebRuntimeFeatures.cpp:
+        (WebKit::WebRuntimeFeatures::enableGeolocation):
+        (WebKit::WebRuntimeFeatures::isGeolocationEnabled):
+
+2010-01-17  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        [Chromium] Remove an old runFileChooser() method.
+        https://bugs.webkit.org/show_bug.cgi?id=33778
+        
+        Chromium code switched to new runFileChooser() introduced by
+        r53269. The old one is not needed anymore.
+
+        * public/WebViewClient.h:
+        * src/ChromeClientImpl.cpp:
+        (WebKit::ChromeClientImpl::runOpenPanel):
+
+2010-01-15  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r53344.
+        http://trac.webkit.org/changeset/53344
+        https://bugs.webkit.org/show_bug.cgi?id=32920
+
+        Broke the Chromium Mac builder.
+
+        * src/PlatformMessagePortChannel.cpp:
+        (WebCore::PlatformMessagePortChannel::postMessageToRemote):
+        (WebCore::PlatformMessagePortChannel::tryGetMessageFromRemote):
+        * src/WebWorkerBase.cpp:
+        (WebKit::WebWorkerBase::postMessageToWorkerObject):
+        * src/WebWorkerClientImpl.cpp:
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerContext):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerObjectTask):
+        * src/WebWorkerImpl.cpp:
+        (WebKit::WebWorkerImpl::postMessageToWorkerContextTask):
+
+2010-01-15  Vitaly Repeshko  <vitalyr@chromium.org>
+
+        Reviewed by David Levin.
+
+        [V8] Support SerializedScriptValue.
+        https://bugs.webkit.org/show_bug.cgi?id=32920
+        http://crbug.com/30620
+
+        Updated uses of SerializedScriptValue:
+        * src/PlatformMessagePortChannel.cpp:
+        (WebCore::PlatformMessagePortChannel::postMessageToRemote):
+        (WebCore::PlatformMessagePortChannel::tryGetMessageFromRemote):
+        * src/WebWorkerBase.cpp:
+        (WebKit::WebWorkerBase::postMessageToWorkerObject):
+        * src/WebWorkerClientImpl.cpp:
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerContext):
+        (WebKit::WebWorkerClientImpl::postMessageToWorkerObjectTask):
+        * src/WebWorkerImpl.cpp:
+        (WebKit::WebWorkerImpl::postMessageToWorkerContextTask):
+
+2010-01-14  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Oliver Hunt.
+
+        [Chromium] Forgot to adopt a ref counted object in StorageNamespaceProxy
+        https://bugs.webkit.org/show_bug.cgi?id=33704
+
+        * src/StorageNamespaceProxy.cpp:
+        (WebCore::StorageNamespace::localStorageNamespace):
+        (WebCore::StorageNamespace::sessionStorageNamespace):
+
+2010-01-14  Marcus Bulach  <bulach@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Adds WebKit::WebSecurityOrigin::createFromDatabaseIdentifier.
+        https://bugs.webkit.org/show_bug.cgi?id=33648
+
+        * public/WebSecurityOrigin.h:
+        * src/WebSecurityOrigin.cpp:
+        (WebKit::WebSecurityOrigin::createFromDatabaseIdentifier):
+
+2010-01-14  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        Drag and Drop source/destination code needs cleanup.
+        <https://bugs.webkit.org/show_bug.cgi?id=33691>.
+        
+        Update to new way of calling sourceOperation.
+
+        * src/DragClientImpl.cpp:
+        (WebKit::DragClientImpl::startDrag):
+
+2010-01-14  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Remove references to V8DOMWrapper::convertToNative*().
+
+        https://bugs.webkit.org/show_bug.cgi?id=33677
+
+        * src/WebBindings.cpp:
+        (WebKit::getDragDataImpl):
+        (WebKit::getRangeImpl):
+
+2010-01-14  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Introduce WebFileChooserParams to convey parameters for
+        WebViewClient::runFileChooser(), and add new parameters to it.
+        https://bugs.webkit.org/show_bug.cgi?id=32473
+
+        The new parameters are
+         - selected file names
+         - "accept" attribute value
+
+        * WebKit.gyp: Add WebFileChooserParams.h
+        * public/WebFileChooserParams.h: Added.
+        * public/WebViewClient.h:
+        (WebKit::WebViewClient::runFileChooser):
+          Add runFileChooser() with WebFileChooserParams, and mark the old one deprecated.
+        * src/ChromeClientImpl.cpp:
+        (WebKit::ChromeClientImpl::runOpenPanel):
+          Call the new runFileChooser() first, then call the old
+          runFileChooser() if the new one failed.
+
+2010-01-13  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        Need to implement WebGLContextAttributes
+        https://bugs.webkit.org/show_bug.cgi?id=31169
+
+        Added the WebGLContextAttributes class and custom JavaScript
+        bindings to accept a native object as the second argument to
+        getContext("experimental-webgl") per the WebGL specification.
+        Added GraphicsContext3D::Attributes struct to isolate DOM and
+        graphics layers. Added getContextAttributes() to
+        WebGLRenderingContext. Added test case ensuring that context
+        attributes can be passed down and returned. Tested in Safari and
+        Chromium. The attributes will be hooked up to the creation of the
+        OpenGL context in bug 33416.
+
+        * src/GraphicsContext3D.cpp:
+        (WebCore::GraphicsContext3DInternal::GraphicsContext3DInternal):
+        (WebCore::GraphicsContext3DInternal::getContextAttributes):
+        (WebCore::GraphicsContext3D::create):
+        (WebCore::GraphicsContext3D::GraphicsContext3D):
+        (WebCore::GraphicsContext3D::getContextAttributes):
+
+2010-01-13  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: selected, selectable, extended selectable, and multiple
+        selectable states are not reported
+
+        https://bugs.webkit.org/show_bug.cgi?id=33574
+        <rdar://problem/7536826>
+
+        Reviewed by Darin Adler.
+
+        * public/WebAccessibilityObject.h:
+        Update for WebCore::AccessibilityObject function rename.
+
+        * src/WebAccessibilityObject.cpp:
+        (WebKit::WebAccessibilityObject::isMultiSelectable):
+        Ditto.
+
+2010-01-13  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] Move getSessionStorageNamespace from WebKitClient to WebViewClient
+        https://bugs.webkit.org/show_bug.cgi?id=33492
+
+        * public/WebKitClient.h:
+        * public/WebViewClient.h:
+        (WebKit::WebViewClient::createSessionStorageNamespace):
+        * src/StorageNamespaceProxy.cpp:
+        (WebCore::StorageNamespace::sessionStorageNamespace):
+
+2010-01-13  Jeremy Orlow  <jorlow@chromium.org>
+
+        No reviewer.  More or less a build fix.  My 53180 broke some 
+        stuff on the Chromium port so I'm reverting.
+
+        * public/WebKitClient.h:
+        * public/WebViewClient.h:
+        * src/StorageNamespaceProxy.cpp:
+        (WebCore::StorageNamespace::sessionStorageNamespace):
+
+2010-01-11  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        [Chromium] Move getSessionStorageNamespace from WebKitClient to WebViewClient
+        https://bugs.webkit.org/show_bug.cgi?id=33492
+
+        * public/WebKitClient.h:
+        * public/WebViewClient.h:
+        (WebKit::WebViewClient::getSessionStorageNamespace):
+        * src/StorageNamespaceProxy.cpp:
+        (WebCore::StorageNamespace::sessionStorageNamespace):
+
+2010-01-11  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        [Chromium] Re-work webkit_unit_tests so that WebKit is initialized only once
+        https://bugs.webkit.org/show_bug.cgi?id=33504
+
+        * WebKit.gyp:
+        * tests/KURLTest.cpp:
+        (ComponentCase::TEST):
+        * tests/RunAllTests.cpp: Added.
+        (main):
+        * tests/WebKitTest.h: Removed.
+
+2010-01-09  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        ScriptController::isEnabled needs to be renamed
+        https://bugs.webkit.org/show_bug.cgi?id=32063
+
+        Rename ScriptController::isEnabled to
+        ScriptController::canExecuteScripts.
+
+        * src/WebFrameImpl.cpp:
+        (WebKit::WebFrameImpl::bindToWindowObject):
+
+2010-01-08  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33417
+
+        Cleans up style errors exposed by the patch for bug #33198.
+
+        No functionality was changed. So, no new tests.
+
+        * src/GraphicsContext3D.cpp:
+
 2010-01-08  Darin Fisher  <darin@chromium.org>
 
         Reviewed by Dimitri Glazkov.

@@ -108,6 +108,7 @@
                 'public/WebEditingAction.h',
                 'public/WebElement.h',
                 'public/WebFileChooserCompletion.h',
+                'public/WebFileChooserParams.h',
                 'public/WebFindOptions.h',
                 'public/WebFrame.h',
                 'public/WebFrameClient.h',
@@ -189,6 +190,7 @@
                 'public/win/WebScreenInfoFactory.h',
                 'public/win/WebScreenInfoFactory.h',
                 'src/ApplicationCacheHost.cpp',
+                'src/ApplicationCacheHostInternal.h',
                 'src/AssertMatchingEnums.cpp',
                 'src/AutocompletePopupMenuClient.cpp',
                 'src/AutocompletePopupMenuClient.h',
@@ -417,8 +419,7 @@
             ],
             'sources': [
                 'tests/KURLTest.cpp',
-                'tests/WebKitTest.h',
-                '<(chromium_src_dir)/base/test/run_all_unittests.cc',
+                'tests/RunAllTests.cpp',
             ],
         },
     ], # targets

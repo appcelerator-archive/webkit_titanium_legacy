@@ -565,7 +565,7 @@ bool ClipboardWin::setData(const String& type, const String& data)
     return false;
 }
 
-static void addMimeTypesForFormat(HashSet<String>& results, FORMATETC& format)
+static void addMimeTypesForFormat(HashSet<String>& results, const FORMATETC& format)
 {
     // URL and Text are provided for compatibility with IE's model
     if (format.cfFormat == urlFormat()->cfFormat || format.cfFormat == urlWFormat()->cfFormat) {
@@ -599,7 +599,8 @@ HashSet<String> ClipboardWin::types() const
 
     FORMATETC data;
 
-    while (itr->Next(1, &data, 0) != S_FALSE) {
+    // IEnumFORMATETC::Next returns S_FALSE if there are no more items.
+    while (itr->Next(1, &data, 0) == S_OK) {
         addMimeTypesForFormat(results, data);
     }
 
@@ -820,7 +821,8 @@ bool ClipboardWin::hasData()
 
     FORMATETC data;
 
-    if (itr->Next(1, &data, 0) != S_FALSE) {
+    // IEnumFORMATETC::Next returns S_FALSE if there are no more items.
+    if (itr->Next(1, &data, 0) == S_OK) {
         // There is at least one item in the IDataObject
         return true;
     }

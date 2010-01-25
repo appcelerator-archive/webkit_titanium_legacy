@@ -497,7 +497,7 @@ DOMWindow* V8Proxy::retrieveWindow(v8::Handle<v8::Context> context)
     ASSERT(!global.IsEmpty());
     global = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, global);
     ASSERT(!global.IsEmpty());
-    return V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, global);
+    return V8DOMWindow::toNative(global);
 }
 
 Frame* V8Proxy::retrieveFrame(v8::Handle<v8::Context> context)
@@ -547,12 +547,12 @@ V8Proxy* V8Proxy::retrieve(Frame* frame)
 {
     if (!frame)
         return 0;
-    return frame->script()->isEnabled() ? frame->script()->proxy() : 0;
+    return frame->script()->canExecuteScripts() ? frame->script()->proxy() : 0;
 }
 
 V8Proxy* V8Proxy::retrieve(ScriptExecutionContext* context)
 {
-    if (!context->isDocument())
+    if (!context || !context->isDocument())
         return 0;
     return retrieve(static_cast<Document*>(context)->frame());
 }

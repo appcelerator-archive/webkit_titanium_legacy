@@ -126,7 +126,11 @@ AccessibilityUIElement AccessibilityUIElement::titleUIElement()
 
 AccessibilityUIElement AccessibilityUIElement::parentElement()
 {
-    return 0;
+    COMPtr<IDispatch> parent;
+    m_element->get_accParent(&parent);
+
+    COMPtr<IAccessible> parentAccessible(Query, parent);
+    return parentAccessible;
 }
 
 JSStringRef AccessibilityUIElement::attributesOfChildren()
@@ -263,9 +267,24 @@ JSStringRef AccessibilityUIElement::valueDescription()
 {
     return 0;
 }
+
+static DWORD accessibilityState(COMPtr<IAccessible> element)
+{
+    VARIANT state;
+    element->get_accState(self(), &state);
+
+    ASSERT(V_VT(&state) == VT_I4);
+
+    DWORD result = state.lVal;
+    VariantClear(&state);
+
+    return result;
+}
+
 bool AccessibilityUIElement::isSelected() const
 {
-    return false;
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_SELECTED) == STATE_SYSTEM_SELECTED;
 }
 
 int AccessibilityUIElement::hierarchicalLevel() const
@@ -330,7 +349,8 @@ bool AccessibilityUIElement::isActionSupported(JSStringRef action)
 
 bool AccessibilityUIElement::isEnabled()
 {
-    return false;
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_UNAVAILABLE) != STATE_SYSTEM_UNAVAILABLE;
 }
 
 bool AccessibilityUIElement::isRequired() const
@@ -450,6 +470,8 @@ void AccessibilityUIElement::decrement()
 
 void AccessibilityUIElement::showMenu()
 {
+    ASSERT(hasPopup());
+    m_element->accDoDefaultAction(self());
 }
 
 AccessibilityUIElement AccessibilityUIElement::disclosedRowAtIndex(unsigned index)
@@ -512,4 +534,59 @@ bool AccessibilityUIElement::addNotificationListener(JSObjectRef functionCallbac
     return false;
 }
 
+bool AccessibilityUIElement::isSelectable() const
+{
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_SELECTABLE) == STATE_SYSTEM_SELECTABLE;
+}
 
+bool AccessibilityUIElement::isMultiSelectable() const
+{
+    DWORD multiSelectable = STATE_SYSTEM_EXTSELECTABLE | STATE_SYSTEM_MULTISELECTABLE;
+    DWORD state = accessibilityState(m_element);
+    return (state & multiSelectable) == multiSelectable;
+}
+
+bool AccessibilityUIElement::isVisible() const
+{
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_INVISIBLE) != STATE_SYSTEM_INVISIBLE;
+}
+
+bool AccessibilityUIElement::isOffScreen() const
+{
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_OFFSCREEN) == STATE_SYSTEM_OFFSCREEN;
+}
+
+bool AccessibilityUIElement::isCollapsed() const
+{
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_COLLAPSED) == STATE_SYSTEM_COLLAPSED;
+}
+
+bool AccessibilityUIElement::hasPopup() const
+{
+    DWORD state = accessibilityState(m_element);
+    return (state & STATE_SYSTEM_HASPOPUP) == STATE_SYSTEM_HASPOPUP;
+}
+
+void AccessibilityUIElement::takeFocus()
+{
+    m_element->accSelect(SELFLAG_TAKEFOCUS, self());
+}
+
+void AccessibilityUIElement::takeSelection()
+{
+    m_element->accSelect(SELFLAG_TAKESELECTION, self());
+}
+
+void AccessibilityUIElement::addSelection()
+{
+    m_element->accSelect(SELFLAG_ADDSELECTION, self());
+}
+
+void AccessibilityUIElement::removeSelection()
+{
+    m_element->accSelect(SELFLAG_REMOVESELECTION, self());
+}

@@ -30,11 +30,22 @@
 #ifndef NPV8Object_h
 #define NPV8Object_h
 
+#include "V8Index.h"
+#if PLATFORM(CHROMIUM)
+// FIXME: Chromium uses a different npruntime.h, which is in
+// the Chromium source repository under third_party/npapi/bindings.
+// The Google-specific changes in that file should probably be
+// moved into bridge/npruntime.h, guarded by an #if PlATFORM(CHROMIUM).
 #include "bindings/npruntime.h"
+#else
+#include "bridge/npruntime.h"  // Use WebCore version for Android and other ports.
+#endif
 #include <v8.h>
 
 namespace WebCore {
     class DOMWindow;
+
+    static const int npObjectInternalFieldCount = v8DefaultWrapperInternalFieldCount + 0;
 }
 
 extern NPClass* npScriptObjectClass;
@@ -56,5 +67,7 @@ struct PrivateIdentifier {
 };
 
 NPObject* npCreateV8ScriptObject(NPP, v8::Handle<v8::Object>, WebCore::DOMWindow*);
+
+NPObject* v8ObjectToNPObject(v8::Handle<v8::Object>);
 
 #endif // NPV8Object_h

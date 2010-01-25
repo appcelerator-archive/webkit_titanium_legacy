@@ -122,8 +122,8 @@ namespace JSC {
 
         virtual bool hasInstance(ExecState*, JSValue, JSValue prototypeProperty);
 
-        virtual void getPropertyNames(ExecState*, PropertyNameArray&);
-        virtual void getOwnPropertyNames(ExecState*, PropertyNameArray&);
+        virtual void getPropertyNames(ExecState*, PropertyNameArray&, EnumerationMode mode = ExcludeDontEnumProperties);
+        virtual void getOwnPropertyNames(ExecState*, PropertyNameArray&, EnumerationMode mode = ExcludeDontEnumProperties);
 
         virtual JSValue toPrimitive(ExecState*, PreferredPrimitiveType = NoPreference) const;
         virtual bool getPrimitiveNumber(ExecState*, double& number, JSValue& value);
@@ -381,7 +381,7 @@ ALWAYS_INLINE bool JSCell::fastGetOwnPropertySlot(ExecState* exec, const Identif
 
 // It may seem crazy to inline a function this large but it makes a big difference
 // since this is function very hot in variable lookup
-inline bool JSObject::getPropertySlot(ExecState* exec, const Identifier& propertyName, PropertySlot& slot)
+ALWAYS_INLINE bool JSObject::getPropertySlot(ExecState* exec, const Identifier& propertyName, PropertySlot& slot)
 {
     JSObject* object = this;
     while (true) {
@@ -394,7 +394,7 @@ inline bool JSObject::getPropertySlot(ExecState* exec, const Identifier& propert
     }
 }
 
-inline bool JSObject::getPropertySlot(ExecState* exec, unsigned propertyName, PropertySlot& slot)
+ALWAYS_INLINE bool JSObject::getPropertySlot(ExecState* exec, unsigned propertyName, PropertySlot& slot)
 {
     JSObject* object = this;
     while (true) {

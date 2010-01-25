@@ -31,6 +31,7 @@
 #include <wtf/OwnFastMallocPtr.h>
 #include <wtf/PossiblyNull.h>
 #include <wtf/StringHashFunctions.h>
+#include <wtf/Vector.h>
 #include <wtf/unicode/Unicode.h>
 
 namespace JSC {
@@ -83,18 +84,22 @@ private:
 
 class UStringImpl : Noncopyable {
 public:
-    static PassRefPtr<UStringImpl> create(UChar* buffer, int length)
+    template<size_t inlineCapacity>
+    static PassRefPtr<UStringImpl> adopt(Vector<UChar, inlineCapacity>& vector)
     {
-        return adoptRef(new UStringImpl(buffer, length, BufferOwned));
+        if (unsigned length = vector.size())
+            return adoptRef(new UStringImpl(vector.releaseBuffer(), length, BufferOwned));
+        return &empty();
     }
 
-    static PassRefPtr<UStringImpl> createCopying(const UChar* buffer, int length)
+    static PassRefPtr<UStringImpl> create(const UChar* buffer, int length)
     {
         UChar* newBuffer;
-        if (!UStringImpl::allocChars(length).getValue(newBuffer))
-            return &null();
-        copyChars(newBuffer, buffer, length);
-        return adoptRef(new UStringImpl(newBuffer, length, BufferOwned));
+        if (PassRefPtr<UStringImpl> impl = tryCreateUninitialized(length, newBuffer)) {
+            copyChars(newBuffer, buffer, length);
+            return impl;
+        }
+        return &null();
     }
 
     static PassRefPtr<UStringImpl> create(PassRefPtr<UStringImpl> rep, int offset, int length)
@@ -111,14 +116,30 @@ public:
 
     static PassRefPtr<UStringImpl> createUninitialized(unsigned length, UChar*& output)
     {
-        ASSERT(length);
+        if (!length) {
+            output = 0;
+            return &empty();
+        }
+
+        if (length > ((std::numeric_limits<size_t>::max() - sizeof(UStringImpl)) / sizeof(UChar)))
+            CRASH();
+        UStringImpl* resultImpl = static_cast<UStringImpl*>(fastMalloc(sizeof(UChar) * length + sizeof(UStringImpl)));
+        output = reinterpret_cast<UChar*>(resultImpl + 1);
+        return adoptRef(new(resultImpl) UStringImpl(output, length, BufferInternal));
+    }
+
+    static PassRefPtr<UStringImpl> tryCreateUninitialized(unsigned length, UChar*& output)
+    {
+        if (!length) {
+            output = 0;
+            return &empty();
+        }
+
         if (length > ((std::numeric_limits<size_t>::max() - sizeof(UStringImpl)) / sizeof(UChar)))
             return 0;
-
         UStringImpl* resultImpl;
         if (!tryFastMalloc(sizeof(UChar) * length + sizeof(UStringImpl)).getValue(resultImpl))
             return 0;
-
         output = reinterpret_cast<UChar*>(resultImpl + 1);
         return adoptRef(new(resultImpl) UStringImpl(output, length, BufferInternal));
     }
@@ -128,28 +149,23 @@ public:
     int size() const { return m_length; }
     size_t cost()
     {
-        UStringImpl* base = bufferOwnerString();
+        // For substrings, return the cost of the base string.
+        if (bufferOwnership() == BufferSubstring)
+            return m_dataBuffer.asPtr<UStringImpl*>()->cost();
+
         if (m_dataBuffer & s_reportedCostBit)
             return 0;
         m_dataBuffer |= s_reportedCostBit;
-        return base->m_length;
+        return m_length;
     }
     unsigned hash() const { if (!m_hash) m_hash = computeHash(data(), m_length); return m_hash; }
-    unsigned computedHash() const { ASSERT(m_hash); return m_hash; } // fast path for Identifiers
+    unsigned existingHash() const { ASSERT(m_hash); return m_hash; } // fast path for Identifiers
     void setHash(unsigned hash) { ASSERT(hash == computeHash(data(), m_length)); m_hash = hash; } // fast path for Identifiers
     bool isIdentifier() const { return m_isIdentifier; }
     void setIsIdentifier(bool isIdentifier) { m_isIdentifier = isIdentifier; }
 
     UStringImpl* ref() { m_refCount += s_refCountIncrement; return this; }
-    ALWAYS_INLINE void deref() { if (!(m_refCount -= s_refCountIncrement)) destroy(); }
-
-    static WTF::PossiblyNull<UChar*> allocChars(size_t length)
-    {
-        ASSERT(length);
-        if (length > std::numeric_limits<size_t>::max() / sizeof(UChar))
-            return 0;
-        return tryFastMalloc(sizeof(UChar) * length);
-    }
+    ALWAYS_INLINE void deref() { if (!(m_refCount -= s_refCountIncrement)) delete this; }
 
     static void copyChars(UChar* destination, const UChar* source, unsigned numCharacters)
     {
@@ -243,8 +259,10 @@ private:
         checkConsistency();
     }
 
-    void* operator new(size_t size) { return fastMalloc(size); }
+    using Noncopyable::operator new;
     void* operator new(size_t, void* inPlace) { return inPlace; }
+
+    ~UStringImpl();
 
     // This number must be at least 2 to avoid sharing empty, null as well as 1 character strings from SmallStrings.
     static const int s_minLengthToShare = 10;
@@ -256,7 +274,6 @@ private:
     static const int s_refCountIncrement = 2;
     static const int s_staticRefCountInitialValue = 1;
 
-    void destroy();
     UStringImpl* bufferOwnerString() { return (bufferOwnership() == BufferSubstring) ? m_dataBuffer.asPtr<UStringImpl*>() :  this; }
     const UStringImpl* bufferOwnerString() const { return (bufferOwnership() == BufferSubstring) ? m_dataBuffer.asPtr<UStringImpl*>() :  this; }
     SharedUChar* baseSharedBuffer();

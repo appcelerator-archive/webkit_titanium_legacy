@@ -36,7 +36,7 @@
 #include <QTextStream>
 #include <QSocketNotifier>
 
-#ifndef QT_NO_SSL
+#ifndef QT_NO_OPENSSL
 #include <QSslError>
 #endif
 
@@ -68,14 +68,14 @@ public:
     DumpRenderTree();
     virtual ~DumpRenderTree();
 
-    // Initialize in multi-file mode, used by run-webkit-tests.
-    void open();
-
     // Initialize in single-file mode.
     void open(const QUrl& url);
 
     void setTextOutputEnabled(bool enable) { m_enableTextOutput = enable; }
     bool isTextOutputEnabled() { return m_enableTextOutput; }
+
+    void setSingleFileMode(bool flag) { m_singleFileMode = flag; }
+    bool isSingleFileMode() { return m_singleFileMode; }
 
     void setDumpPixels(bool);
 
@@ -100,15 +100,20 @@ public:
 
 public Q_SLOTS:
     void initJSObjects();
-    void readStdin(int);
+
+    void readLine();
+    void processLine(const QString&);
+
     void dump();
     void titleChanged(const QString &s);
     void connectFrame(QWebFrame *frame);
     void dumpDatabaseQuota(QWebFrame* frame, const QString& dbName);
     void statusBarMessage(const QString& message);
+    void windowCloseRequested();
 
 Q_SIGNALS:
     void quit();
+    void ready();
 
 private:
     QString dumpFramesAsText(QWebFrame* frame);
@@ -126,10 +131,10 @@ private:
     GCController* m_gcController;
 
     QFile *m_stdin;
-    QSocketNotifier* m_notifier;
 
     QList<QObject*> windows;
     bool m_enableTextOutput;
+    bool m_singleFileMode;
 };
 
 class NetworkAccessManager : public QNetworkAccessManager {
@@ -138,7 +143,7 @@ public:
     NetworkAccessManager(QObject* parent);
 
 private slots:
-#ifndef QT_NO_SSL
+#ifndef QT_NO_OPENSSL
     void sslErrorsEncountered(QNetworkReply*, const QList<QSslError>&);
 #endif
 };

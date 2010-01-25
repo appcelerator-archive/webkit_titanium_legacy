@@ -37,6 +37,7 @@
 #include "CString.h"
 #include "CachedCSSStyleSheet.h"
 #include "Chrome.h"
+#include "ChromeClient.h"
 #include "Comment.h"
 #include "Console.h"
 #include "CookieJar.h"
@@ -128,6 +129,7 @@
 #include "WebKitTransitionEvent.h"
 #include "WheelEvent.h"
 #include "XMLHttpRequest.h"
+#include "XMLNSNames.h"
 #include "XMLNames.h"
 #include "XMLTokenizer.h"
 #include "htmlediting.h"
@@ -136,11 +138,6 @@
 #include <wtf/MainThread.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/StdLibExtras.h>
-
-#if ENABLE(DATABASE)
-#include "Database.h"
-#include "DatabaseThread.h"
-#endif
 
 #if ENABLE(SHARED_WORKERS)
 #include "SharedWorkerRepository.h"
@@ -171,6 +168,10 @@
 #include "SVGNames.h"
 #include "SVGZoomEvent.h"
 #include "SVGStyleElement.h"
+#endif
+
+#if ENABLE(TOUCH_EVENTS)
+#include "TouchEvent.h"
 #endif
 
 #if ENABLE(WML)
@@ -317,7 +318,36 @@ static bool disableRangeMutation(Page* page)
 
 static HashSet<Document*>* documentsThatNeedStyleRecalc = 0;
 
-Document::Document(Frame* frame, bool isXHTML)
+class DocumentWeakReference : public ThreadSafeShared<DocumentWeakReference> {
+public:
+    static PassRefPtr<DocumentWeakReference> create(Document* document)
+    {
+        return adoptRef(new DocumentWeakReference(document));
+    }
+
+    Document* document()
+    {
+        ASSERT(isMainThread());
+        return m_document;
+    }
+
+    void clear()
+    {
+        ASSERT(isMainThread());
+        m_document = 0;
+    }
+
+private:
+    DocumentWeakReference(Document* document)
+        : m_document(document)
+    {
+        ASSERT(isMainThread());
+    }
+
+    Document* m_document;
+};
+
+Document::Document(Frame* frame, bool isXHTML, bool isHTML)
     : ContainerNode(0)
     , m_domtree_version(0)
     , m_styleSheets(StyleSheetList::create(this))
@@ -327,6 +357,9 @@ Document::Document(Frame* frame, bool isXHTML)
     , m_rawTitle("")
     , m_titleSetExplicitly(false)
     , m_updateFocusAppearanceTimer(this, &Document::updateFocusAppearanceTimerFired)
+    , m_startTime(currentTime())
+    , m_overMinimumLayoutThreshold(false)
+    , m_extraLayoutDelay(0)
     , m_executeScriptSoonTimer(this, &Document::executeScriptSoonTimerFired)
     , m_xmlVersion("1.0")
     , m_xmlStandalone(false)
@@ -349,14 +382,16 @@ Document::Document(Frame* frame, bool isXHTML)
     , m_inPageCache(false)
     , m_useSecureKeyboardEntryWhenActive(false)
     , m_isXHTML(isXHTML)
+    , m_isHTML(isHTML)
     , m_numNodeListCaches(0)
-#if ENABLE(DATABASE)
-    , m_hasOpenDatabases(false)
+#if USE(JSC)
+    , m_normalWorldWrapperCache(0)
 #endif
     , m_usingGeolocation(false)
 #if ENABLE(WML)
     , m_containsWMLContent(false)
 #endif
+    , m_weakReference(DocumentWeakReference::create(this))
 {
     m_document = this;
 
@@ -407,9 +442,6 @@ Document::Document(Frame* frame, bool isXHTML)
     resetActiveLinkColor();
 
     m_processingLoadEvent = false;
-    m_startTime = currentTime();
-    m_overMinimumLayoutThreshold = false;
-    m_extraLayoutDelay = 0;
     
     initSecurityContext();
     initDNSPrefetch();
@@ -500,15 +532,10 @@ Document::~Document()
     for (unsigned i = 0; i < count; i++)
         deleteAllValues(m_nameCollectionInfo[i]);
 
-#if ENABLE(DATABASE)
-    if (m_databaseThread) {
-        ASSERT(m_databaseThread->terminationRequested());
-        m_databaseThread = 0;
-    }
-#endif
-
     if (m_styleSheets)
         m_styleSheets->documentDestroyed();
+
+    m_weakReference->clear();
 }
 
 #if USE(JSC)
@@ -516,6 +543,10 @@ Document::JSWrapperCache* Document::createWrapperCache(DOMWrapperWorld* world)
 {
     JSWrapperCache* wrapperCache = new JSWrapperCache();
     m_wrapperCacheMap.set(world, wrapperCache);
+    if (world->isNormal()) {
+        ASSERT(!m_normalWorldWrapperCache);
+        m_normalWorldWrapperCache = wrapperCache;
+    }
     world->rememberDocument(this);
     return wrapperCache;
 }
@@ -776,21 +807,17 @@ PassRefPtr<Node> Document::adoptNode(PassRefPtr<Node> source, ExceptionCode& ec)
 
 bool Document::hasPrefixNamespaceMismatch(const QualifiedName& qName)
 {
-    DEFINE_STATIC_LOCAL(const AtomicString, xmlnsNamespaceURI, ("http://www.w3.org/2000/xmlns/"));
-    DEFINE_STATIC_LOCAL(const AtomicString, xmlns, ("xmlns"));
-    DEFINE_STATIC_LOCAL(const AtomicString, xml, ("xml"));
-
     // These checks are from DOM Core Level 2, createElementNS
     // http://www.w3.org/TR/DOM-Level-2-Core/core.html#ID-DocCrElNS
     if (!qName.prefix().isEmpty() && qName.namespaceURI().isNull()) // createElementNS(null, "html:div")
         return true;
-    if (qName.prefix() == xml && qName.namespaceURI() != XMLNames::xmlNamespaceURI) // createElementNS("http://www.example.com", "xml:lang")
+    if (qName.prefix() == xmlAtom && qName.namespaceURI() != XMLNames::xmlNamespaceURI) // createElementNS("http://www.example.com", "xml:lang")
         return true;
 
     // Required by DOM Level 3 Core and unspecified by DOM Level 2 Core:
     // http://www.w3.org/TR/2004/REC-DOM-Level-3-Core-20040407/core.html#ID-DocCrElNS
     // createElementNS("http://www.w3.org/2000/xmlns/", "foo:bar"), createElementNS(null, "xmlns:bar")
-    if ((qName.prefix() == xmlns && qName.namespaceURI() != xmlnsNamespaceURI) || (qName.prefix() != xmlns && qName.namespaceURI() == xmlnsNamespaceURI))
+    if ((qName.prefix() == xmlnsAtom && qName.namespaceURI() != XMLNSNames::xmlnsNamespaceURI) || (qName.prefix() != xmlnsAtom && qName.namespaceURI() == XMLNSNames::xmlnsNamespaceURI))
         return true;
 
     return false;
@@ -1440,7 +1467,7 @@ void Document::updateLayoutIgnorePendingStylesheets()
         } else if (m_hasNodesWithPlaceholderStyle)
             // If new nodes have been added or style recalc has been done with style sheets still pending, some nodes 
             // may not have had their real style calculated yet. Normally this gets cleaned when style sheets arrive 
-            // but here we need up-to-date style immediatly.
+            // but here we need up-to-date style immediately.
             recalcStyle(Force);
     }
 
@@ -1527,7 +1554,7 @@ void Document::detach()
         (*i)->documentDetached(this);
     
     // This is required, as our Frame might delete itself as soon as it detaches
-    // us. However, this violates Node::detach() symantics, as it's never
+    // us. However, this violates Node::detach() semantics, as it's never
     // possible to re-attach. Eventually Document::detach() should be renamed,
     // or this setting of the frame to 0 could be made explicit in each of the
     // callers of Document::detach().
@@ -1982,9 +2009,9 @@ void Document::updateBaseURL()
         m_baseURL = KURL();
 
     if (m_elemSheet)
-        m_elemSheet->setHref(m_baseURL.string());
+        m_elemSheet->setBaseURL(m_baseURL);
     if (m_mappedElementSheet)
-        m_mappedElementSheet->setHref(m_baseURL.string());
+        m_mappedElementSheet->setBaseURL(m_baseURL);
 }
 
 String Document::userAgent(const KURL& url) const
@@ -2006,7 +2033,7 @@ CSSStyleSheet* Document::pageUserSheet()
         return 0;
     
     // Parse the sheet and cache it.
-    m_pageUserSheet = CSSStyleSheet::create(this, settings()->userStyleSheetLocation());
+    m_pageUserSheet = CSSStyleSheet::createInline(this, settings()->userStyleSheetLocation());
     m_pageUserSheet->setIsUserStyleSheet(true);
     m_pageUserSheet->parseString(userSheetText, !inCompatMode());
     return m_pageUserSheet.get();
@@ -2041,7 +2068,7 @@ const Vector<RefPtr<CSSStyleSheet> >* Document::pageGroupUserSheets() const
             const UserStyleSheet* sheet = sheets->at(i).get();
             if (!UserContentURLPattern::matchesPatterns(url(), sheet->whitelist(), sheet->blacklist()))
                 continue;
-            RefPtr<CSSStyleSheet> parsedSheet = CSSStyleSheet::create(const_cast<Document*>(this), sheet->url());
+            RefPtr<CSSStyleSheet> parsedSheet = CSSStyleSheet::createInline(const_cast<Document*>(this), sheet->url());
             parsedSheet->setIsUserStyleSheet(true);
             parsedSheet->parseString(sheet->source(), !inCompatMode());
             if (!m_pageGroupUserSheets)
@@ -2063,14 +2090,14 @@ void Document::clearPageGroupUserSheets()
 CSSStyleSheet* Document::elementSheet()
 {
     if (!m_elemSheet)
-        m_elemSheet = CSSStyleSheet::create(this, m_baseURL.string());
+        m_elemSheet = CSSStyleSheet::createInline(this, m_baseURL);
     return m_elemSheet.get();
 }
 
 CSSStyleSheet* Document::mappedElementSheet()
 {
     if (!m_mappedElementSheet)
-        m_mappedElementSheet = CSSStyleSheet::create(this, m_baseURL.string());
+        m_mappedElementSheet = CSSStyleSheet::createInline(this, m_baseURL);
     return m_mappedElementSheet.get();
 }
 
@@ -3005,6 +3032,10 @@ PassRefPtr<Event> Document::createEvent(const String& eventType, ExceptionCode& 
     else if (eventType == "SVGZoomEvents")
         event = SVGZoomEvent::create();
 #endif
+#if ENABLE(TOUCH_EVENTS)
+    else if (eventType == "TouchEvent")
+        event = TouchEvent::create();
+#endif
     if (event) {
         event->setCreatedByDOM(true);
         return event.release();
@@ -3043,7 +3074,8 @@ void Document::addListenerTypeIfNeeded(const AtomicString& eventType)
         addListenerType(BEFORELOAD_LISTENER);
     else if (eventType == eventNames().touchstartEvent
              || eventType == eventNames().touchmoveEvent
-             || eventType == eventNames().touchendEvent)
+             || eventType == eventNames().touchendEvent
+             || eventType == eventNames().touchcancelEvent)
         addListenerType(TOUCH_LISTENER);
 }
 
@@ -3068,7 +3100,7 @@ String Document::cookie(ExceptionCode& ec) const
     // INVALID_STATE_ERR exception on getting if the Document has no
     // browsing context.
 
-    if (securityOrigin()->isSandboxed(SandboxOrigin)) {
+    if (!securityOrigin()->canAccessCookies()) {
         ec = SECURITY_ERR;
         return String();
     }
@@ -3089,7 +3121,7 @@ void Document::setCookie(const String& value, ExceptionCode& ec)
     // INVALID_STATE_ERR exception on setting if the Document has no
     // browsing context.
 
-    if (securityOrigin()->isSandboxed(SandboxOrigin)) {
+    if (!securityOrigin()->canAccessCookies()) {
         ec = SECURITY_ERR;
         return;
     }
@@ -3115,6 +3147,11 @@ String Document::domain() const
 
 void Document::setDomain(const String& newDomain, ExceptionCode& ec)
 {
+    if (SecurityOrigin::isDomainRelaxationForbiddenForURLScheme(securityOrigin()->protocol())) {
+        ec = SECURITY_ERR;
+        return;
+    }
+
     // Both NS and IE specify that changing the domain is only allowed when
     // the new domain is a suffix of the old domain.
 
@@ -4017,7 +4054,7 @@ PassRefPtr<Attr> Document::createAttributeNS(const String& namespaceURI, const S
     }
 
     // Spec: DOM Level 2 Core: http://www.w3.org/TR/DOM-Level-2-Core/core.html#ID-DocCrAttrNS
-    if (!shouldIgnoreNamespaceChecks && qName.localName() == "xmlns" && qName.namespaceURI() != "http://www.w3.org/2000/xmlns/") {
+    if (!shouldIgnoreNamespaceChecks && qName.localName() == xmlnsAtom && qName.namespaceURI() != XMLNSNames::xmlnsNamespaceURI) {
         ec = NAMESPACE_ERR;
         return 0;
     }
@@ -4340,10 +4377,8 @@ void Document::initSecurityContext()
     // loading URL.
     const KURL& url = m_frame->loader()->url();
     m_cookieURL = url;
-    ScriptExecutionContext::setSecurityOrigin(SecurityOrigin::create(url));
+    ScriptExecutionContext::setSecurityOrigin(SecurityOrigin::create(url, m_frame->loader()->sandboxFlags()));
 
-    updateSandboxFlags();
- 
     if (SecurityOrigin::allowSubstituteDataAccessToLocal()) {
         // If this document was loaded with substituteData, then the document can
         // load local resources.  See https://bugs.webkit.org/show_bug.cgi?id=16756
@@ -4392,6 +4427,29 @@ void Document::setSecurityOrigin(SecurityOrigin* securityOrigin)
     // FIXME: Find a better place to enable DNS prefetch, which is a loader concept,
     // not applicable to arbitrary documents.
     initDNSPrefetch();
+}
+
+#if ENABLE(DATABASE)
+
+bool Document::isDatabaseReadOnly() const
+{
+    if (!page() || page()->settings()->privateBrowsingEnabled())
+        return true;
+    return false;
+}
+
+void Document::databaseExceededQuota(const String& name)
+{
+    Page* currentPage = page();
+    if (currentPage)
+        currentPage->chrome()->client()->exceededDatabaseQuota(document()->frame(), name);
+}
+
+#endif
+
+bool Document::isContextThread() const
+{
+    return isMainThread();
 }
 
 void Document::updateURLForPushOrReplaceState(const KURL& url)
@@ -4488,62 +4546,11 @@ void Document::executeScriptSoon(ScriptElementData* data, CachedResourceHandle<C
         m_executeScriptSoonTimer.startOneShot(0);
 }
 
-// FF method for accessing the selection added for compatability.
+// FF method for accessing the selection added for compatibility.
 DOMSelection* Document::getSelection() const
 {
     return frame() ? frame()->domWindow()->getSelection() : 0;
 }
-
-#if ENABLE(DATABASE)
-
-void Document::addOpenDatabase(Database* database)
-{
-    if (!m_openDatabaseSet)
-        m_openDatabaseSet.set(new DatabaseSet);
-
-    ASSERT(!m_openDatabaseSet->contains(database));
-    m_openDatabaseSet->add(database);
-}
-
-void Document::removeOpenDatabase(Database* database)
-{
-    ASSERT(m_openDatabaseSet && m_openDatabaseSet->contains(database));
-    if (!m_openDatabaseSet)
-        return;
-        
-    m_openDatabaseSet->remove(database);
-}
-
-DatabaseThread* Document::databaseThread()
-{
-    if (!m_databaseThread && !m_hasOpenDatabases) {
-        // Create the database thread on first request - but not if at least one database was already opened,
-        // because in that case we already had a database thread and terminated it and should not create another.
-        m_databaseThread = DatabaseThread::create();
-        if (!m_databaseThread->start())
-            m_databaseThread = 0;
-    }
-
-    return m_databaseThread.get();
-}
-
-void Document::stopDatabases()
-{
-    if (m_openDatabaseSet) {
-        DatabaseSet::iterator i = m_openDatabaseSet->begin();
-        DatabaseSet::iterator end = m_openDatabaseSet->end();
-        for (; i != end; ++i) {
-            (*i)->stop();
-            if (m_databaseThread)
-                m_databaseThread->unscheduleDatabaseTasks(*i);
-        }
-    }
-    
-    if (m_databaseThread)
-        m_databaseThread->requestTermination();
-}
-
-#endif
 
 #if ENABLE(WML)
 void Document::resetWMLPageState()
@@ -4683,21 +4690,27 @@ private:
 };
 
 struct PerformTaskContext : Noncopyable {
-    PerformTaskContext(ScriptExecutionContext* scriptExecutionContext, PassOwnPtr<ScriptExecutionContext::Task> task)
-        : scriptExecutionContext(scriptExecutionContext)
+    PerformTaskContext(PassRefPtr<DocumentWeakReference> documentReference, PassOwnPtr<ScriptExecutionContext::Task> task)
+        : documentReference(documentReference)
         , task(task)
     {
     }
 
-    ScriptExecutionContext* scriptExecutionContext; // The context should exist until task execution.
+    RefPtr<DocumentWeakReference> documentReference;
     OwnPtr<ScriptExecutionContext::Task> task;
 };
 
 static void performTask(void* ctx)
 {
-    PerformTaskContext* ptctx = reinterpret_cast<PerformTaskContext*>(ctx);
-    ptctx->task->performTask(ptctx->scriptExecutionContext);
-    delete ptctx;
+    ASSERT(isMainThread());
+
+    PerformTaskContext* context = reinterpret_cast<PerformTaskContext*>(ctx);
+    ASSERT(context);
+
+    if (Document* document = context->documentReference->document())
+        context->task->performTask(document);
+
+    delete context;
 }
 
 void Document::postTask(PassOwnPtr<Task> task)
@@ -4706,7 +4719,7 @@ void Document::postTask(PassOwnPtr<Task> task)
         ScriptExecutionContextTaskTimer* timer = new ScriptExecutionContextTaskTimer(static_cast<Document*>(this), task);
         timer->startOneShot(0);
     } else {
-        callOnMainThread(performTask, new PerformTaskContext(this, task));
+        callOnMainThread(performTask, new PerformTaskContext(m_weakReference, task));
     }
 }
 

@@ -663,7 +663,6 @@ __asm void ctiVMThrowTrampoline()
 {
     ARM
     PRESERVE8
-    IMPORT cti_vm_throw
     mov r0, sp
     bl cti_vm_throw
     add sp, sp, #36
@@ -889,21 +888,25 @@ NEVER_INLINE void JITThunks::tryCacheGetByID(CallFrame* callFrame, CodeBlock* co
         ASSERT(slot.slotBase().isObject());
 
         JSObject* slotBaseObject = asObject(slot.slotBase());
-
+        size_t offset = slot.cachedOffset();
+        
         // Since we're accessing a prototype in a loop, it's a good bet that it
         // should not be treated as a dictionary.
-        if (slotBaseObject->structure()->isDictionary())
+        if (slotBaseObject->structure()->isDictionary()) {
             slotBaseObject->flattenDictionaryObject();
+            offset = slotBaseObject->structure()->get(propertyName);
+        }
         
         stubInfo->initGetByIdProto(structure, slotBaseObject->structure());
 
         ASSERT(!structure->isDictionary());
         ASSERT(!slotBaseObject->structure()->isDictionary());
-        JIT::compileGetByIdProto(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, structure, slotBaseObject->structure(), slot.cachedOffset(), returnAddress);
+        JIT::compileGetByIdProto(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, structure, slotBaseObject->structure(), offset, returnAddress);
         return;
     }
 
-    size_t count = normalizePrototypeChain(callFrame, baseValue, slot.slotBase());
+    size_t offset = slot.cachedOffset();
+    size_t count = normalizePrototypeChain(callFrame, baseValue, slot.slotBase(), propertyName, offset);
     if (!count) {
         stubInfo->accessType = access_get_by_id_generic;
         return;
@@ -911,7 +914,7 @@ NEVER_INLINE void JITThunks::tryCacheGetByID(CallFrame* callFrame, CodeBlock* co
 
     StructureChain* prototypeChain = structure->prototypeChain(callFrame);
     stubInfo->initGetByIdChain(structure, prototypeChain);
-    JIT::compileGetByIdChain(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, structure, prototypeChain, count, slot.cachedOffset(), returnAddress);
+    JIT::compileGetByIdChain(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, structure, prototypeChain, count, offset, returnAddress);
 }
 
 #endif // ENABLE(JIT_OPTIMIZE_PROPERTY_ACCESS)
@@ -1070,7 +1073,7 @@ RVCT(    IMPORT JITStubThunked_#op#)
 RVCT(    str lr, [sp, #32])
 RVCT(    bl JITStubThunked_#op#)
 RVCT(    ldr lr, [sp, #32])
-RVCT(    bx lr))
+RVCT(    bx lr)
 RVCT(})
 RVCT()
 */
@@ -1436,10 +1439,11 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_proto_list)
     STUB_INIT_STACK_FRAME(stackFrame);
 
     CallFrame* callFrame = stackFrame.callFrame;
+    const Identifier& propertyName = stackFrame.args[1].identifier();
 
     JSValue baseValue = stackFrame.args[0].jsValue();
     PropertySlot slot(baseValue);
-    JSValue result = baseValue.get(callFrame, stackFrame.args[1].identifier(), slot);
+    JSValue result = baseValue.get(callFrame, propertyName, slot);
 
     CHECK_FOR_EXCEPTION();
 
@@ -1454,6 +1458,8 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_proto_list)
 
     ASSERT(slot.slotBase().isObject());
     JSObject* slotBaseObject = asObject(slot.slotBase());
+    
+    size_t offset = slot.cachedOffset();
 
     if (slot.slotBase() == baseValue)
         ctiPatchCallByReturnAddress(codeBlock, STUB_RETURN_ADDRESS, FunctionPtr(cti_op_get_by_id_proto_fail));
@@ -1461,23 +1467,25 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_get_by_id_proto_list)
         ASSERT(!asCell(baseValue)->structure()->isDictionary());
         // Since we're accessing a prototype in a loop, it's a good bet that it
         // should not be treated as a dictionary.
-        if (slotBaseObject->structure()->isDictionary())
+        if (slotBaseObject->structure()->isDictionary()) {
             slotBaseObject->flattenDictionaryObject();
+            offset = slotBaseObject->structure()->get(propertyName);
+        }
 
         int listIndex;
         PolymorphicAccessStructureList* prototypeStructureList = getPolymorphicAccessStructureListSlot(stubInfo, listIndex);
 
-        JIT::compileGetByIdProtoList(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, prototypeStructureList, listIndex, structure, slotBaseObject->structure(), slot.cachedOffset());
+        JIT::compileGetByIdProtoList(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, prototypeStructureList, listIndex, structure, slotBaseObject->structure(), offset);
 
         if (listIndex == (POLYMORPHIC_LIST_CACHE_SIZE - 1))
             ctiPatchCallByReturnAddress(codeBlock, STUB_RETURN_ADDRESS, FunctionPtr(cti_op_get_by_id_proto_list_full));
-    } else if (size_t count = normalizePrototypeChain(callFrame, baseValue, slot.slotBase())) {
+    } else if (size_t count = normalizePrototypeChain(callFrame, baseValue, slot.slotBase(), propertyName, offset)) {
         ASSERT(!asCell(baseValue)->structure()->isDictionary());
         int listIndex;
         PolymorphicAccessStructureList* prototypeStructureList = getPolymorphicAccessStructureListSlot(stubInfo, listIndex);
 
         StructureChain* protoChain = structure->prototypeChain(callFrame);
-        JIT::compileGetByIdChainList(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, prototypeStructureList, listIndex, structure, protoChain, count, slot.cachedOffset());
+        JIT::compileGetByIdChainList(callFrame->scopeChain()->globalData, callFrame, codeBlock, stubInfo, prototypeStructureList, listIndex, structure, protoChain, count, offset);
 
         if (listIndex == (POLYMORPHIC_LIST_CACHE_SIZE - 1))
             ctiPatchCallByReturnAddress(codeBlock, STUB_RETURN_ADDRESS, FunctionPtr(cti_op_get_by_id_proto_list_full));
@@ -1622,7 +1630,7 @@ DEFINE_STUB_FUNCTION(void*, op_call_JSFunction)
 {
     STUB_INIT_STACK_FRAME(stackFrame);
 
-#ifndef NDEBUG
+#if !ASSERT_DISABLED
     CallData callData;
     ASSERT(stackFrame.args[0].jsValue().getCallData(callData) == CallTypeJS);
 #endif
@@ -1871,7 +1879,7 @@ DEFINE_STUB_FUNCTION(JSObject*, op_construct_JSConstruct)
         VM_THROW_EXCEPTION();
     }
 
-#ifndef NDEBUG
+#if !ASSERT_DISABLED
     ConstructData constructData;
     ASSERT(constructor->getConstructData(constructData) == ConstructTypeJS);
 #endif
@@ -2411,8 +2419,6 @@ DEFINE_STUB_FUNCTION(EncodedJSValue, op_post_inc)
     return JSValue::encode(number);
 }
 
-#if USE(JSVALUE32_64)
-
 DEFINE_STUB_FUNCTION(int, op_eq)
 {
     STUB_INIT_STACK_FRAME(stackFrame);
@@ -2420,6 +2426,7 @@ DEFINE_STUB_FUNCTION(int, op_eq)
     JSValue src1 = stackFrame.args[0].jsValue();
     JSValue src2 = stackFrame.args[1].jsValue();
 
+#if USE(JSVALUE32_64)
     start:
     if (src2.isUndefined()) {
         return src1.isNull() || 
@@ -2500,7 +2507,17 @@ DEFINE_STUB_FUNCTION(int, op_eq)
     src1 = asObject(cell1)->toPrimitive(stackFrame.callFrame);
     CHECK_FOR_EXCEPTION();
     goto start;
+    
+#else // USE(JSVALUE32_64)
+    CallFrame* callFrame = stackFrame.callFrame;
+    
+    bool result = JSValue::equalSlowCaseInline(callFrame, src1, src2);
+    CHECK_FOR_EXCEPTION_AT_END();
+    return result;
+#endif // USE(JSVALUE32_64)
 }
+
+#if USE(JSVALUE32_64)
 
 DEFINE_STUB_FUNCTION(int, op_eq_strings)
 {
@@ -2514,23 +2531,7 @@ DEFINE_STUB_FUNCTION(int, op_eq_strings)
     return string1->value(stackFrame.callFrame) == string2->value(stackFrame.callFrame);
 }
 
-#else // USE(JSVALUE32_64)
-
-DEFINE_STUB_FUNCTION(int, op_eq)
-{
-    STUB_INIT_STACK_FRAME(stackFrame);
-
-    JSValue src1 = stackFrame.args[0].jsValue();
-    JSValue src2 = stackFrame.args[1].jsValue();
-
-    CallFrame* callFrame = stackFrame.callFrame;
-
-    bool result = JSValue::equalSlowCaseInline(callFrame, src1, src2);
-    CHECK_FOR_EXCEPTION_AT_END();
-    return result;
-}
-
-#endif // USE(JSVALUE32_64)
+#endif
 
 DEFINE_STUB_FUNCTION(EncodedJSValue, op_lshift)
 {

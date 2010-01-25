@@ -36,12 +36,14 @@
 
 namespace WebCore {
 
+class String;
+
 // An ISODateTime instance represents one of the following date and time combinations:
-// * year-month
-// * year-month-day
-// * year-week
-// * hour-minute-second-millisecond
-// * year-month-day hour-minute-second-millisecond
+// * Month type: year-month
+// * Date type: year-month-day
+// * Week type: year-week
+// * Time type: hour-minute-second-millisecond
+// * DateTime or DateTimeLocal type: year-month-day hour-minute-second-millisecond
 class ISODateTime {
 public:
     ISODateTime()
@@ -66,12 +68,26 @@ public:
     int fullYear() const { return m_year; }
     int week() const { return m_week; }
 
-    // The following six functions parse the input `src' whose length is
-    // `length', and updates some fields of this instance. The parsing starts at
+    enum SecondFormat {
+        None, // Suppress the second part and the millisecond part if they are 0.
+        Second, // Always show the second part, and suppress the millisecond part if it is 0.
+        Millisecond // Always show the second part and the millisecond part.
+    };
+
+    // Returns an ISO 8601 representation for this instance.
+    // The format argument is valid for DateTime, DateTimeLocal, and Time types.
+    String toString(SecondFormat format = None) const;
+
+    // parse*() and setMillisecondsSince*() functions are initializers for an
+    // ISODateTime instance. If these functions return false, the instance
+    // might be invalid.
+
+    // The following six functions parse the input 'src' whose length is
+    // 'length', and updates some fields of this instance. The parsing starts at
     // src[start] and examines characters before src[length].
-    // `src' `date' must be non-null. The `src' string doesn't need to be
+    // 'src' must be non-null. The 'src' string doesn't need to be
     // null-terminated.
-    // The functions return true if the parsing succeeds, and set `end' to the
+    // The functions return true if the parsing succeeds, and set 'end' to the
     // next index after the last consumed. Extra leading characters cause parse
     // failures, and the trailing extra characters don't cause parse failures.
 
@@ -87,6 +103,24 @@ public:
     bool parseDateTimeLocal(const UChar* src, unsigned length, unsigned start, unsigned& end);
     // Sets year, month, monthDay, hour, minute, second and millisecond, and adjusts timezone.
     bool parseDateTime(const UChar* src, unsigned length, unsigned start, unsigned& end);
+
+    // The following setMillisecondsSinceEpochFor*() functions take
+    // the number of milliseconds since 1970-01-01 00:00:00.000 UTC as
+    // the argument, and update all fields for the corresponding
+    // ISODateTime type. The functions return true if it succeeds, and
+    // false if they fail.
+
+    // For Date type. Updates m_year, m_month and m_monthDay.
+    bool setMillisecondsSinceEpochForDate(double ms);
+    // For DateTime type. Updates m_year, m_month, m_monthDay, m_hour, m_minute, m_second and m_millisecond.
+    bool setMillisecondsSinceEpochForDateTime(double ms);
+    // For Month type. Updates m_year and m_month.
+    bool setMillisecondsSinceEpochForMonth(double ms);
+    // For Week type. Updates m_year and m_week.
+    bool setMillisecondsSinceEpochForWeek(double ms);
+
+    // For Time type. Updates m_hour, m_minute, m_second and m_millisecond.
+    bool setMillisecondsSinceMidnight(double ms);
 
     // Returns the number of milliseconds from 1970-01-01 00:00:00 UTC.
     // For an ISODateTime initialized with parseDateTimeLocal(),
@@ -104,6 +138,11 @@ private:
     bool parseTimeZone(const UChar* src, unsigned length, unsigned start, unsigned& end);
     // Helper for millisecondsSinceEpoch().
     double millisecondsSinceEpochForTime() const;
+    // Helpers for setMillisecondsSinceEpochFor*().
+    bool setMillisecondsSinceEpochForDateInternal(double ms);
+    void setMillisecondsSinceMidnightInternal(double ms);
+    // Helper for toString().
+    String toStringForTime(SecondFormat) const;
 
     // m_weekDay values
     enum {

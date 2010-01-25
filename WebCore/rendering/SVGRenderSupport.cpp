@@ -40,8 +40,6 @@
 #include "TransformationMatrix.h"
 #include <wtf/UnusedParam.h>
 
-using namespace std;
-
 namespace WebCore {
 
 SVGRenderBase::~SVGRenderBase()
@@ -61,48 +59,6 @@ IntRect SVGRenderBase::clippedOverflowRectForRepaint(RenderObject* object, Rende
     return repaintRect;
 }
 
-static void getSVGShadowExtent(ShadowData* shadow, int& top, int& right, int& bottom, int& left)
-{
-    top = 0;
-    right = 0;
-    bottom = 0;
-    left = 0;
-
-    int blurAndSpread = shadow->blur + shadow->spread;
-
-    top = min(top, shadow->y - blurAndSpread);
-    right = max(right, shadow->x + blurAndSpread);
-    bottom = max(bottom, shadow->y + blurAndSpread);
-    left = min(left, shadow->x - blurAndSpread);
-}
-
-void SVGRenderBase::inflateForShadow(RenderStyle* style, IntRect& repaintRect) const
-{
-    ASSERT(style);
-    if (!style)
-        return;
-
-    ShadowData* shadow = style->svgStyle()->shadow();
-    if (!shadow)
-        return;
-
-    int shadowTop;
-    int shadowRight;
-    int shadowBottom;
-    int shadowLeft;
-    getSVGShadowExtent(shadow, shadowTop, shadowRight, shadowBottom, shadowLeft);
-
-    int overflowLeft = repaintRect.x() + shadowLeft;
-    int overflowRight = repaintRect.right() + shadowRight;
-    int overflowTop = repaintRect.y() + shadowTop;
-    int overflowBottom = repaintRect.bottom() + shadowBottom;
-
-    repaintRect.setX(overflowLeft);
-    repaintRect.setY(overflowTop);
-    repaintRect.setWidth(overflowRight - overflowLeft);
-    repaintRect.setHeight(overflowBottom - overflowTop);
-}
-
 void SVGRenderBase::computeRectForRepaint(RenderObject* object, RenderBoxModelObject* repaintContainer, IntRect& repaintRect, bool fixed)
 {
     // Translate to coords in our parent renderer, and then call computeRectForRepaint on our parent
@@ -113,7 +69,7 @@ void SVGRenderBase::computeRectForRepaint(RenderObject* object, RenderBoxModelOb
 void SVGRenderBase::mapLocalToContainer(const RenderObject* object, RenderBoxModelObject* repaintContainer, bool fixed , bool useTransforms, TransformState& transformState)
 {
     ASSERT(!fixed); // We should have no fixed content in the SVG rendering tree.
-    ASSERT(useTransforms); // mapping a point through SVG w/o respecting trasnforms is useless.
+    ASSERT(useTransforms); // Mapping a point through SVG w/o respecting transforms is useless.
     transformState.applyTransform(object->localToParentTransform());
     object->parent()->mapLocalToContainer(repaintContainer, fixed, useTransforms, transformState);
 }
@@ -139,18 +95,12 @@ bool SVGRenderBase::prepareToRenderSVGContent(RenderObject* object, RenderObject
     // Setup transparency layers before setting up filters!
     float opacity = style->opacity(); 
     if (opacity < 1.0f) {
-        paintInfo.context->clip(enclosingIntRect(repaintRect));
+        paintInfo.context->clip(repaintRect);
         paintInfo.context->beginTransparencyLayer(opacity);
     }
 
     if (ShadowData* shadow = svgStyle->shadow()) {
-        int xShift = shadow->x < 0 ? shadow->x : 0;
-        int yShift = shadow->y < 0 ? shadow->y :0;
-        int widthShift = shadow->x < 0 ? 0 : shadow->x;
-        int heightShift = shadow->y < 0 ? 0 : shadow->y;
-        FloatRect shadowRect = FloatRect(repaintRect.x() + xShift, repaintRect.y() + yShift,
-            repaintRect.width() + widthShift, repaintRect.height() + heightShift);
-        paintInfo.context->clip(enclosingIntRect(shadowRect));
+        paintInfo.context->clip(repaintRect);
         paintInfo.context->setShadow(IntSize(shadow->x, shadow->y), shadow->blur, shadow->color, style->colorSpace());
         paintInfo.context->beginTransparencyLayer(1.0f);
     }
@@ -283,6 +233,29 @@ FloatRect SVGRenderBase::computeContainerBoundingBox(const RenderObject* contain
     }
 
     return boundingBox;
+}
+
+void SVGRenderBase::layoutChildren(RenderObject* start, bool selfNeedsLayout)
+{
+    for (RenderObject* child = start->firstChild(); child; child = child->nextSibling()) {
+        // Only force our kids to layout if we're being asked to relayout as a result of a parent changing
+        // FIXME: We should be able to skip relayout of non-relative kids when only bounds size has changed
+        // that's a possible future optimization using LayoutState
+        // http://bugs.webkit.org/show_bug.cgi?id=15391
+        bool needsLayout = selfNeedsLayout;
+        if (!needsLayout) {
+            if (SVGElement* element = child->node()->isSVGElement() ? static_cast<SVGElement*>(child->node()) : 0) {
+                if (element->isStyled())
+                    needsLayout = static_cast<SVGStyledElement*>(element)->hasRelativeValues();
+            }
+        }
+
+        if (needsLayout)
+            child->setNeedsLayout(true, false);
+
+        child->layoutIfNeeded();
+        ASSERT(!child->needsLayout());
+    }
 }
 
 FloatRect SVGRenderBase::filterBoundingBoxForRenderer(const RenderObject* object) const

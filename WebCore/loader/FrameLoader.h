@@ -253,7 +253,7 @@ public:
     void dispatchDocumentElementAvailable();
 
     void ownerElementSandboxFlagsChanged() { updateSandboxFlags(); }
-    
+
     bool isSandboxed(SandboxFlags mask) const { return m_sandboxFlags & mask; }
     SandboxFlags sandboxFlags() const { return m_sandboxFlags; }
 
@@ -482,6 +482,8 @@ private:
     bool m_unloadEventBeingDispatched;
     bool m_isComplete;
     bool m_isLoadingMainResource;
+
+    RefPtr<SerializedScriptValue> m_pendingStateObject;
 
     KURL m_URL;
     KURL m_workingURL;

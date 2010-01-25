@@ -26,7 +26,7 @@
 #ifndef RUNTIME_ARRAY_H_
 #define RUNTIME_ARRAY_H_
 
-#include "runtime.h"
+#include "Bridge.h"
 #include <runtime/JSGlobalObject.h>
 
 namespace JSC {
@@ -35,7 +35,7 @@ class RuntimeArray : public JSObject {
 public:
     RuntimeArray(ExecState*, Bindings::Array*);
 
-    virtual void getOwnPropertyNames(ExecState*, PropertyNameArray&);
+    virtual void getOwnPropertyNames(ExecState*, PropertyNameArray&, EnumerationMode mode = ExcludeDontEnumProperties);
     virtual bool getOwnPropertySlot(ExecState *, const Identifier&, PropertySlot&);
     virtual bool getOwnPropertySlot(ExecState *, unsigned, PropertySlot&);
     virtual bool getOwnPropertyDescriptor(ExecState *, const Identifier&, PropertyDescriptor&);

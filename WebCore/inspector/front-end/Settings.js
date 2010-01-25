@@ -37,7 +37,6 @@ var Preferences = {
     minScriptsSidebarWidth: 200,
     styleRulesExpandedState: {},
     showMissingLocalizedStrings: false,
-    heapProfilerPresent: false,
     samplingCPUProfiler: false,
     showColorNicknames: true
 }
@@ -68,6 +67,7 @@ WebInspector.Settings.prototype = {
         this._installSetting("lastViewedScriptFile", "last-viewed-script-file");
         this._installSetting("showInheritedComputedStyleProperties", "show-inherited-computed-style-properties", false);
         this._installSetting("showUserAgentStyles", "show-user-agent-styles", true);
+        this._installSetting("resourceViewTab", "resource-view-tab", "headers");
         this.dispatchEventToListeners("loaded");
     },
 

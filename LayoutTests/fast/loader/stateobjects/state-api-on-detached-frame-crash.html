@@ -1,0 +1,20 @@
+<html>
+<script>
+
+if (window.layoutTestController)
+    layoutTestController.dumpAsText();
+
+function runTest()
+{
+    var ifr = frames[0];
+    document.body.removeChild(document.getElementsByTagName("iframe")[0])
+    ifr.history.replaceState("foo", "bar");
+    ifr.history.pushState("fu", "barred");
+}
+
+</script>
+<body onload="runTest();">
+<iframe src="about:blank">
+</iframe>
+</body>
+</html>

@@ -37,11 +37,8 @@
 #include "HTMLCollection.h"
 #include "HTMLIFrameElement.h"
 #include "HTMLNames.h"
-
 #include "V8Binding.h"
-#include "V8CustomBinding.h"
 #include "V8Proxy.h"
-
 #include <wtf/RefPtr.h>
 #include <wtf/StdLibExtras.h>
 
@@ -57,9 +54,9 @@ v8::Handle<v8::Boolean> V8HTMLDocument::namedPropertyDeleter(v8::Local<v8::Strin
     if (key != all)
         return deletionNotHandledByInterceptor();
 
-    ASSERT(info.Holder()->InternalFieldCount() == V8Custom::kHTMLDocumentInternalFieldCount);
-    v8::Local<v8::Value> marker = info.Holder()->GetInternalField(V8Custom::kHTMLDocumentMarkerIndex);
-    info.Holder()->SetInternalField(V8Custom::kHTMLDocumentShadowIndex, marker);
+    ASSERT(info.Holder()->InternalFieldCount() == V8HTMLDocument::internalFieldCount);
+    v8::Local<v8::Value> marker = info.Holder()->GetInternalField(V8HTMLDocument::markerIndex);
+    info.Holder()->SetInternalField(V8HTMLDocument::shadowIndex, marker);
     return v8::True();
 }
 
@@ -73,14 +70,14 @@ v8::Handle<v8::Value> V8HTMLDocument::namedPropertyGetter(v8::Local<v8::String> 
     // been temporarily shadowed and we return the value.
     DEFINE_STATIC_LOCAL(const AtomicString, all, ("all"));
     if (key == all) {
-        ASSERT(info.Holder()->InternalFieldCount() == V8Custom::kHTMLDocumentInternalFieldCount);
-        v8::Local<v8::Value> marker = info.Holder()->GetInternalField(V8Custom::kHTMLDocumentMarkerIndex);
-        v8::Local<v8::Value> value = info.Holder()->GetInternalField(V8Custom::kHTMLDocumentShadowIndex);
+        ASSERT(info.Holder()->InternalFieldCount() == V8HTMLDocument::internalFieldCount);
+        v8::Local<v8::Value> marker = info.Holder()->GetInternalField(V8HTMLDocument::markerIndex);
+        v8::Local<v8::Value> value = info.Holder()->GetInternalField(V8HTMLDocument::shadowIndex);
         if (marker != value)
             return value;
     }
 
-    HTMLDocument* htmlDocument = V8DOMWrapper::convertDOMWrapperToNode<HTMLDocument>(info.Holder());
+    HTMLDocument* htmlDocument = V8HTMLDocument::toNative(info.Holder());
 
     // Fast case for named elements that are not there.
     if (!htmlDocument->hasNamedItem(key.impl()) && !htmlDocument->hasExtraNamedItem(key.impl()))
@@ -119,7 +116,7 @@ static String writeHelperGetString(const v8::Arguments& args)
 v8::Handle<v8::Value> V8HTMLDocument::writeCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.HTMLDocument.write()");
-    HTMLDocument* htmlDocument = V8DOMWrapper::convertDOMWrapperToNode<HTMLDocument>(args.Holder());
+    HTMLDocument* htmlDocument = V8HTMLDocument::toNative(args.Holder());
     Frame* frame = V8Proxy::retrieveFrameForCallingContext();
     htmlDocument->write(writeHelperGetString(args), frame ? frame->document() : NULL);
     return v8::Undefined();
@@ -128,7 +125,7 @@ v8::Handle<v8::Value> V8HTMLDocument::writeCallback(const v8::Arguments& args)
 v8::Handle<v8::Value> V8HTMLDocument::writelnCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.HTMLDocument.writeln()");
-    HTMLDocument* htmlDocument = V8DOMWrapper::convertDOMWrapperToNode<HTMLDocument>(args.Holder());
+    HTMLDocument* htmlDocument = V8HTMLDocument::toNative(args.Holder());
     Frame* frame = V8Proxy::retrieveFrameForCallingContext();
     htmlDocument->writeln(writeHelperGetString(args), frame ? frame->document() : NULL);
     return v8::Undefined();
@@ -137,7 +134,7 @@ v8::Handle<v8::Value> V8HTMLDocument::writelnCallback(const v8::Arguments& args)
 v8::Handle<v8::Value> V8HTMLDocument::openCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.HTMLDocument.open()");
-    HTMLDocument* htmlDocument = V8DOMWrapper::convertDOMWrapperToNode<HTMLDocument>(args.Holder());
+    HTMLDocument* htmlDocument = V8HTMLDocument::toNative(args.Holder());
 
     if (args.Length() > 2) {
         if (Frame* frame = htmlDocument->frame()) {
@@ -179,7 +176,7 @@ v8::Handle<v8::Value> V8HTMLDocument::allAccessorGetter(v8::Local<v8::String> na
     INC_STATS("DOM.HTMLDocument.all._get");
     v8::HandleScope scope;
     v8::Handle<v8::Object> holder = info.Holder();
-    HTMLDocument* htmlDocument = V8DOMWrapper::convertDOMWrapperToNode<HTMLDocument>(holder);
+    HTMLDocument* htmlDocument = V8HTMLDocument::toNative(holder);
     return V8DOMWrapper::convertToV8Object(V8ClassIndex::HTMLCOLLECTION, htmlDocument->all());
 }
 
@@ -187,8 +184,8 @@ void V8HTMLDocument::allAccessorSetter(v8::Local<v8::String> name, v8::Local<v8:
 {
     INC_STATS("DOM.HTMLDocument.all._set");
     v8::Handle<v8::Object> holder = info.Holder();
-    ASSERT(info.Holder()->InternalFieldCount() == V8Custom::kHTMLDocumentInternalFieldCount);
-    info.Holder()->SetInternalField(V8Custom::kHTMLDocumentShadowIndex, value);
+    ASSERT(info.Holder()->InternalFieldCount() == V8HTMLDocument::internalFieldCount);
+    info.Holder()->SetInternalField(V8HTMLDocument::shadowIndex, value);
 }
 
 } // namespace WebCore

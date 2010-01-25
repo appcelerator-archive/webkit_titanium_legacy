@@ -8,8 +8,8 @@
     <style type="text/css" media="screen">
         #box {
             position: relative;
-            height: 200px;
-            width: 200px;
+            height: 20px;
+            width: 20px;
             background-color: #9bb;
             -webkit-animation-name: horiz, vert;
             -webkit-animation-duration: 1s;
@@ -20,7 +20,7 @@
          
          @-webkit-keyframes horiz {
             from { left: 0px; }
-            to { left: 300px; }
+            to { left:300px; }
          }
          @-webkit-keyframes vert {
             from { top: 0px; }
@@ -32,8 +32,8 @@
         
         const expectedValues = [
           // [animation-name, time, element-id, property, expected-value, tolerance]
-          [null, 0.75, "box", "left", 150, 30],
-          [null, 0.75, "box", "top", 225, 30],
+          [null, 0.75, "box", "left", 150, 40],
+          [null, 0.75, "box", "top", 225, 40],
         ];
 
         function removeAnim()

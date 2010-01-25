@@ -533,7 +533,8 @@ NEVER_INLINE HandlerInfo* Interpreter::throwException(CallFrame*& callFrame, JSV
 
     if (Debugger* debugger = callFrame->dynamicGlobalObject()->debugger()) {
         DebuggerCallFrame debuggerCallFrame(callFrame, exceptionValue);
-        debugger->exception(debuggerCallFrame, codeBlock->ownerExecutable()->sourceID(), codeBlock->lineNumberForBytecodeOffset(callFrame, bytecodeOffset));
+        bool hasHandler = codeBlock->handlerForBytecodeOffset(bytecodeOffset);
+        debugger->exception(debuggerCallFrame, codeBlock->ownerExecutable()->sourceID(), codeBlock->lineNumberForBytecodeOffset(callFrame, bytecodeOffset), hasHandler);
     }
 
     // If we throw in the middle of a call instruction, we need to notify
@@ -1044,23 +1045,27 @@ NEVER_INLINE void Interpreter::tryCacheGetByID(CallFrame* callFrame, CodeBlock* 
         ASSERT(slot.slotBase().isObject());
 
         JSObject* baseObject = asObject(slot.slotBase());
+        size_t offset = slot.cachedOffset();
 
         // Since we're accessing a prototype in a loop, it's a good bet that it
         // should not be treated as a dictionary.
-        if (baseObject->structure()->isDictionary())
+        if (baseObject->structure()->isDictionary()) {
             baseObject->flattenDictionaryObject();
+            offset = baseObject->structure()->get(propertyName);
+        }
 
         ASSERT(!baseObject->structure()->isUncacheableDictionary());
 
         vPC[0] = getOpcode(op_get_by_id_proto);
         vPC[5] = baseObject->structure();
-        vPC[6] = slot.cachedOffset();
+        vPC[6] = offset;
 
         codeBlock->refStructures(vPC);
         return;
     }
 
-    size_t count = normalizePrototypeChain(callFrame, baseValue, slot.slotBase());
+    size_t offset = slot.cachedOffset();
+    size_t count = normalizePrototypeChain(callFrame, baseValue, slot.slotBase(), propertyName, offset);
     if (!count) {
         vPC[0] = getOpcode(op_get_by_id_generic);
         return;
@@ -1070,7 +1075,7 @@ NEVER_INLINE void Interpreter::tryCacheGetByID(CallFrame* callFrame, CodeBlock* 
     vPC[4] = structure;
     vPC[5] = structure->prototypeChain(callFrame);
     vPC[6] = count;
-    vPC[7] = slot.cachedOffset();
+    vPC[7] = offset;
     codeBlock->refStructures(vPC);
 }
 

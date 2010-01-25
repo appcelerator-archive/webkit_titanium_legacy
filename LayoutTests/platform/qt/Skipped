@@ -190,15 +190,17 @@ http/tests/xmlhttprequest/svg-created-by-xhr-disallowed-in-dashboard.html
 http/tests/misc/favicon-loads-with-images-disabled.html
 
 # Missing layoutTestController.setCustomPolicyDelegate()
+fast/loader/onload-policy-ignore-for-frame.html
 http/tests/misc/policy-delegate-called-twice.html
 http/tests/misc/redirect-to-external-url.html
 http/tests/security/feed-urls-from-remote.html
 
+# Missing layoutTestController.setWillSendRequestReturnsNull()
+fast/loader/onload-willSendRequest-null-for-frame.html
+fast/loader/onload-willSendRequest-null-for-script.html
+
 # Missing layoutTestController.setWillSendRequestReturnsNullOnRedirect()
 http/tests/misc/will-send-request-returns-null-on-redirect.html
-
-# Missing layoutTestController.setXSSAuditorEnabled()
-http/tests/security/xssAuditor
 
 # Missing layoutTestController.evaluateScriptInIsolatedWorld()
 http/tests/security/isolatedWorld
@@ -207,18 +209,21 @@ http/tests/security/isolatedWorld
 http/tests/security/mixedContent
 http/tests/cache/subresource-failover-to-network.html
 
-# Missing layoutTestController.setUserStyleSheetLocation() and layoutTestController.setUserStyleSheetEnabled()
-http/tests/security/local-user-CSS-from-remote.html
-
 # Missing layoutTestController.evaluateInWebInspector()
+# https://bugs.webkit.org/show_bug.cgi?id=33096
 inspector/cookie-resource-match.html
 inspector/elements-img-tooltip.html
 inspector/elements-panel-selection-on-refresh.html
+inspector/inspected-objects-not-overriden.html
 inspector/timeline-event-dispatch.html
 inspector/timeline-network-resource.html
+inspector/elements-panel-rewrite-href.html
 
 # Missing layoutTestController.setSmartInsertDeleteEnabled()
 editing/selection/doubleclick-beside-cr-span.html
+
+# Missing eventSender.textZoomIn() (and textZoomOut)
+svg/custom/text-zoom.xhtml
 # ============================================================================= #
 
 # ------- missing eventSender.beginDragWithFiles
@@ -255,9 +260,6 @@ fast/images/icon-decoding.html
 
 # ------- missing private browsing support?
 plugins/private-browsing-mode.html
-
-# ------- missing japanese font support
-fast/text/international/japanese-kana-letters.html
 
 # ------- missing ruby annotation support for japanese fonts
 fast/ruby/ruby-empty-rt.html
@@ -519,11 +521,11 @@ fast/text/midword-break-after-breakable-char.html
 fast/text/textIteratorNilRenderer.html
 fast/text/international/002.html
 
-plugins/destroy-during-npp-new.html
 plugins/embed-attributes-setting.html
 plugins/get-url-that-the-resource-load-delegate-will-disallow.html
 plugins/get-url-with-blank-target.html
 plugins/mouse-events.html
+plugins/mouse-events-fixedpos.html
 plugins/open-and-close-window-with-plugin.html
 
 security/block-test.html
@@ -1232,7 +1234,6 @@ fast/loader/stop-provisional-loads.html
 # Skip tests with metrics for now
 animations/animation-drt-api.html
 animations/animation-drt-api-multiple-keyframes.html
-css2.1/css1_forward_compatible_parsing.html
 css2.1/t010403-shand-border-00-c.html
 css2.1/t010403-shand-font-00-b.html
 css2.1/t010403-shand-font-01-b.html
@@ -2513,6 +2514,7 @@ fast/css/continuationCrash.html
 fast/css/counters/counter-text-security.html
 fast/css/counters/counter-text-transform.html
 fast/css/create_element_align.xhtml
+fast/css/css1_forward_compatible_parsing.html
 fast/css/css3-modsel-22.html
 fast/css/css3-nth-child.html
 fast/css/css-imports.html
@@ -4851,6 +4853,7 @@ http/tests/globalhistory
 inspector/console-dir.html
 inspector/console-dirxml.html
 inspector/console-format.html
+inspector/console-log-before-inspector-open.html
 inspector/console-tests.html
 inspector/elements-panel-structure.html
 inspector/evaluate-in-frontend.html
@@ -4931,6 +4934,9 @@ http/tests/security/javascriptURL/xss-ALLOWED-to-javascript-url-window-open.html
 http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-subframe.html
 http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-window-open.html
 http/tests/security/originHeader/origin-header-for-empty.html
+
+# XSSAuditor test that times out. See https://bugs.webkit.org/show_bug.cgi?id=33460.
+http/tests/security/xssAuditor/malformed-HTML.html
 
 # Skip xmlhttprequest tests
 http/tests/xmlhttprequest/XMLHttpRequestException.html
@@ -5019,10 +5025,6 @@ fast/css/namespaces/namespaces-empty.xml
 # https://bugs.webkit.org/show_bug.cgi?id=31626
 fast/dom/javascript-url-crash-function.html
 fast/dom/location-new-window-no-crash.html
-fast/dom/Document/early-document-access.html
-fast/dom/Window/window-early-properties.html
-fast/events/open-window-from-another-frame.html
-fast/events/popup-blocking-click-in-iframe.html
 inspector/console-clear.html
 http/tests/misc/set-window-opener-to-null.html
 http/tests/security/aboutBlank/xss-DENIED-set-opener.html
@@ -5068,11 +5070,6 @@ http/tests/navigation/parsed-iframe-dynamic-form-back-entry.html
 # The bug with this test is tracked under https://bugs.webkit.org/show_bug.cgi?id=32521
 http/tests/xmlhttprequest/access-control-basic-denied-preflight-cache.html
 
-# Bug 32519 -  mouseEvent fires mutiple times in 
-#              LayoutTests/svg/custom/use-instanceRoot-as-event-target.xhtml
-# https://bugs.webkit.org/show_bug.cgi?id=32519
-svg/custom/use-instanceRoot-as-event-target.xhtml
-
 # Missing variables:
 # SVGAltGlyphElement, SVGAnimateElement, SVGAnimateColorElement, SVGAnimateTransformElement
 # SVGFontElement, SVGGlyphElement, SVGMissingGlyphElement, SVGFontFaceElement, SVGFontFaceSrcElement
@@ -5090,3 +5087,26 @@ fast/forms/slider-thumb-shared-style.html
 fast/forms/slider-thumb-stylability.html
 fast/forms/slider-zoomed.html
 fast/forms/slider-mouse-events.html
+
+# Just needs pixel and rendering results generated by someone with this platform:
+fast/css/non-standard-checkbox-size.html
+
+# eventSender missing touchCancel() and cancelTouchPoint()
+fast/events/touch/send-oncancel-event.html
+
+# REGRESSION (r53450) - skipped until fix
+# https://bugs.webkit.org/show_bug.cgi?id=33834
+css1/box_properties/acid_test.html
+fast/forms/textarea-scrollbar-height.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=33303
+# fast/frames/set-unloaded-frame-location.html timed out on Qt Linux Release Build Bot
+# It caused by the previously test, so skipped it until fix.
+fast/frames/sandboxed-iframe-navigation-windowopen.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=34004
+# [Qt] http/tests/misc/slow-loading-mask.html timed out.
+http/tests/misc/slow-loading-mask.html
+
+# skip Geolocation tests
+fast/dom/Window/window-properties-geolocation.html

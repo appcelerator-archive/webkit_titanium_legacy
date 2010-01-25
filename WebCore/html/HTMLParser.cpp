@@ -65,6 +65,8 @@ using namespace HTMLNames;
 
 static const unsigned cMaxRedundantTagDepth = 20;
 static const unsigned cResidualStyleMaxDepth = 200;
+static const unsigned cResidualStyleIterationLimit = 5;
+
 
 static const int minBlockLevelTagPriority = 3;
 
@@ -138,11 +140,12 @@ HTMLParser::HTMLParser(HTMLDocument* doc, bool reportErrors)
     , m_reportErrors(reportErrors)
     , m_handlingResidualStyleAcrossBlocks(false)
     , m_inStrayTableContent(0)
+    , m_scriptingPermission(FragmentScriptingAllowed)
     , m_parserQuirks(m_document->page() ? m_document->page()->chrome()->client()->createHTMLParserQuirks() : 0)
 {
 }
 
-HTMLParser::HTMLParser(DocumentFragment* frag)
+HTMLParser::HTMLParser(DocumentFragment* frag, FragmentScriptingPermission scriptingPermission)
     : m_document(frag->document())
     , m_current(frag)
     , m_didRefCurrent(true)
@@ -156,6 +159,7 @@ HTMLParser::HTMLParser(DocumentFragment* frag)
     , m_reportErrors(false)
     , m_handlingResidualStyleAcrossBlocks(false)
     , m_inStrayTableContent(0)
+    , m_scriptingPermission(scriptingPermission)
     , m_parserQuirks(m_document->page() ? m_document->page()->chrome()->client()->createHTMLParserQuirks() : 0)
 {
     if (frag)
@@ -275,7 +279,8 @@ PassRefPtr<Node> HTMLParser::parseToken(Token* t)
     // set attributes
     if (n->isHTMLElement()) {
         HTMLElement* e = static_cast<HTMLElement*>(n.get());
-        e->setAttributeMap(t->attrs.get());
+        if (m_scriptingPermission == FragmentScriptingAllowed || t->tagName != scriptTag)
+            e->setAttributeMap(t->attrs.get(), m_scriptingPermission);
 
         // take care of optional close tags
         if (e->endTagRequirement() == TagStatusOptional)
@@ -1125,8 +1130,10 @@ void HTMLParser::handleResidualStyleCloseTagAcrossBlocks(HTMLStackElem* elem)
     bool finished = false;
     bool strayTableContent = elem->strayTableContent;
 
+    unsigned iterationCount = 0;
+
     m_handlingResidualStyleAcrossBlocks = true;
-    while (!finished) {
+    while (!finished && (iterationCount++ < cResidualStyleIterationLimit)) {
         // Find the outermost element that crosses over to a higher level. If there exists another higher-level
         // element, we will do another pass, until we have corrected the innermost one.
         ExceptionCode ec = 0;

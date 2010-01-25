@@ -67,6 +67,7 @@ extern NSString *WebElementIsContentEditableKey; // NSNumber indicating whether 
 
 // other WebElementDictionary keys
 extern NSString *WebElementLinkIsLiveKey;        // NSNumber of BOOL indictating whether the link is live or not
+extern NSString *WebElementIsInScrollBarKey;
 
 // One of the subviews of the WebView entered compositing mode.
 extern NSString *_WebViewDidStartAcceleratedCompositingNotification;
@@ -507,6 +508,8 @@ Could be worth adding to the API.
     @discussion Suspends or resumes all running animations and transitions in the page.
 */
 - (void)setCSSAnimationsSuspended:(BOOL)suspended;
+
++ (void)_setDomainRelaxationForbidden:(BOOL)forbidden forURLScheme:(NSString *)scheme;
 
 @end
 

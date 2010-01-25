@@ -780,6 +780,13 @@ public:
     virtual HRESULT STDMETHODCALLTYPE restartHaltedPluginForNode(IDOMNode*);
     virtual HRESULT STDMETHODCALLTYPE hasPluginForNodeBeenHalted(IDOMNode*, BOOL*);
 
+    virtual HRESULT STDMETHODCALLTYPE setGeolocationProvider(IWebGeolocationProvider* locationProvider);
+    virtual HRESULT STDMETHODCALLTYPE geolocationProvider(IWebGeolocationProvider** locationProvider);
+    virtual HRESULT STDMETHODCALLTYPE geolocationDidChangePosition(IWebGeolocationPosition* position);
+    virtual HRESULT STDMETHODCALLTYPE geolocationDidFailWithError(IWebError* error);
+
+    virtual HRESULT STDMETHODCALLTYPE setDomainRelaxationForbiddenForURLScheme(BOOL forbidden, BSTR scheme);
+
     // WebView
     bool shouldUseEmbeddedView(const WebCore::String& mimeType) const;
 
@@ -953,6 +960,7 @@ protected:
     COMPtr<WebInspector> m_webInspector;
     WebInspectorClient *m_webInspectorClient;
     COMPtr<IWebPluginHalterDelegate> m_pluginHalterDelegate;
+    COMPtr<IWebGeolocationProvider> m_geolocationProvider;
 
     bool m_userAgentOverridden;
     bool m_useBackForwardList;

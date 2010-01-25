@@ -47,7 +47,6 @@ namespace WebCore {
 using namespace SVGNames;
 
 char SVGStyledElementIdentifier[] = "SVGStyledElement";
-static HashSet<const SVGStyledElement*>* gElementsWithInstanceUpdatesBlocked = 0;
 
 void mapAttributeToCSSProperty(HashMap<AtomicStringImpl*, int>* propertyNameToIdMap, const QualifiedName& attrName)
 {
@@ -59,6 +58,7 @@ void mapAttributeToCSSProperty(HashMap<AtomicStringImpl*, int>* propertyNameToId
 SVGStyledElement::SVGStyledElement(const QualifiedName& tagName, Document* doc)
     : SVGElement(tagName, doc)
     , m_className(this, HTMLNames::classAttr)
+    , m_instanceUpdatesBlocked(false)
 {
 }
 
@@ -221,7 +221,7 @@ void SVGStyledElement::invalidateResources()
     Document* document = this->document();
 
     if (document->parsing())
-        return; 
+        return;
 
 #if ENABLE(FILTERS)
     SVGResourceFilter* filter = getFilterById(document, svgStyle->filter(), object);
@@ -258,8 +258,6 @@ void SVGStyledElement::invalidateResourcesInAncestorChain() const
 void SVGStyledElement::childrenChanged(bool changedByParser, Node* beforeChange, Node* afterChange, int childCountDelta)
 {
     SVGElement::childrenChanged(changedByParser, beforeChange, afterChange, childCountDelta);
-    if (document()->parsing())
-        return;
 
     // Invalidate all SVGElementInstances associated with us
     SVGElementInstance::invalidateAllInstancesOfElement(this);
@@ -301,19 +299,6 @@ void SVGStyledElement::detach()
 {
     SVGResource::removeClient(this);
     SVGElement::detach();
-}
-
-void SVGStyledElement::setInstanceUpdatesBlocked(bool blockUpdates)
-{
-    if (blockUpdates) {
-        if (!gElementsWithInstanceUpdatesBlocked)
-            gElementsWithInstanceUpdatesBlocked = new HashSet<const SVGStyledElement*>;
-        gElementsWithInstanceUpdatesBlocked->add(this);
-    } else {
-        ASSERT(gElementsWithInstanceUpdatesBlocked);
-        ASSERT(gElementsWithInstanceUpdatesBlocked->contains(this));
-        gElementsWithInstanceUpdatesBlocked->remove(this);
-    }
 }
     
 }

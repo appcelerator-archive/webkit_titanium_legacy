@@ -1,3 +1,3820 @@
+2010-01-25  Yury Semikhatsky  <yurys@chromium.org>
+
+        Unreviewed. Add new inspector test added in r53807 to skip
+        list on qt platform.
+
+        * platform/qt/Skipped:
+
+2010-01-25  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Timothy Hatcher.
+
+        Test that Web Inspector doesn't change methods declared by the inspected
+        page.
+        https://bugs.webkit.org/show_bug.cgi?id=34089
+
+        * inspector/inspected-objects-not-overriden-expected.txt: Added.
+        * inspector/inspected-objects-not-overriden.html: Added.
+
+2010-01-25  Philippe Normand  <pnormand@igalia.com>
+
+        Rubber-stamped by Xan Lopez.
+
+        [Gtk] media/video-reverse-play-duration.html fails on and off on Gtk buildbots
+        https://bugs.webkit.org/show_bug.cgi?id=34086
+
+        * platform/gtk/Skipped: Skipping the test, requires investigation
+        on the failure.
+
+2010-01-25  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Update inspector test expectations. Line number and source
+        name are present only in Chromium when console message is
+        logged before document load is completed.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34078
+
+        * platform/chromium/inspector/console-log-before-inspector-open-expected.txt: Added.
+        * platform/gtk/inspector/console-log-before-inspector-open-expected.txt: Copied from LayoutTests/inspector/console-log-before-inspector-open-expected.txt.
+        * platform/mac/inspector/console-log-before-inspector-open-expected.txt: Copied from LayoutTests/inspector/console-log-before-inspector-open-expected.txt.
+        * platform/win/inspector/console-log-before-inspector-open-expected.txt: Renamed from LayoutTests/inspector/console-log-before-inspector-open-expected.txt.
+
+2010-01-24  Roland Steiner  <rolandsteiner@chromium.org>
+
+        build fix: rubber-stamped by Eric Seidel.
+
+        Fix expected baselines for ruby layout tests on Windows.
+
+        * platform/win/fast/ruby/ruby-empty-rt-expected.txt:
+        * platform/win/fast/ruby/ruby-length-expected.txt:
+        * platform/win/fast/ruby/ruby-run-break-expected.txt:
+        * platform/win/fast/ruby/ruby-runs-expected.txt:
+        * platform/win/fast/ruby/ruby-runs-spans-expected.txt:
+        * platform/win/fast/ruby/ruby-simple-expected.txt:
+        * platform/win/fast/ruby/ruby-simple-rp-expected.txt:
+        * platform/win/fast/ruby/ruby-trailing-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.txt:
+
+2010-01-24  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Media element duration changes to zero after playing in reverse
+        https://bugs.webkit.org/show_bug.cgi?id=34041
+
+        * media/video-reverse-play-duration-expected.txt: Added.
+        * media/video-reverse-play-duration.html: Added.
+
+2010-01-25  Roland Steiner  <rolandsteiner@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Bug 28420 - Re-enable ruby Windows layout tests
+        (https://bugs.webkit.org/show_bug.cgi?id=28420, patch 5b)
+
+        After creating new Latin-character-only layout tests for ruby
+        (https://bugs.webkit.org/show_bug.cgi?id=31865) and resolving the issue
+        that caused layout tests to fail then due to the addition of the ruby
+        layout tests (cf. https://bugs.webkit.org/show_bug.cgi?id=31200, problem
+        not actually caused by ruby), the ruby layout tests should als be
+        un-skipped for the Windows platform.
+
+        * platform/win/Skipped:
+
+2010-01-24  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Content with heavily nested residual style is so slow, it seems like a hang
+        https://bugs.webkit.org/show_bug.cgi?id=34059
+        <rdar://problem/7292906>
+
+        Test case for the above bug fix.
+
+        * fast/parser/residual-style-hang-expected.txt: Added.
+        * fast/parser/residual-style-hang.html: Added.
+
+2010-01-24  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Improve portability of listbox-selection-2.html
+        https://bugs.webkit.org/show_bug.cgi?id=33994
+
+        - Convert to dumpAsText().
+        - Determine the height of an item at runtime
+
+        * fast/forms/listbox-selection-2-expected.txt: Added.
+        * fast/forms/listbox-selection-2.html:
+        * fast/forms/script-tests/listbox-selection-2.js
+        * platform/mac/fast/forms/listbox-selection-2-expected.checksum: Removed.
+        * platform/mac/fast/forms/listbox-selection-2-expected.png: Removed.
+        * platform/mac/fast/forms/listbox-selection-2-expected.txt: Removed.
+
+2010-01-24  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate setter support for type=week.
+        https://bugs.webkit.org/show_bug.cgi?id=33986
+
+        Add setter tests to input-valueasdate-datetime.js, and update the
+        expectation.
+
+        * fast/forms/input-valueasdate-week-expected.txt:
+        * fast/forms/script-tests/input-valueasdate-week.js:
+
+2010-01-24  Eric Carlson  <eric.carlson@apple.com>
+
+        No review, build fix.
+
+        Only log the first 'timeupdate' event from audio-delete-while-slider-thumb-clicked.html
+        as the number fired can vary according to how long it takes to run the test.
+
+        * media/audio-delete-while-slider-thumb-clicked.html:
+
+2010-01-24  Eric Seidel  <eric@webkit.org>
+
+        No review.
+
+        Middle clicking the primary scroll bars on Chromium Linux triggers a paste event
+        https://bugs.webkit.org/show_bug.cgi?id=33062
+
+        * platform/gtk/Skipped:
+         - This new test fails on Gtk for unknown reasons.
+         - Skipping for now to make the bots green, until a Gtk person can look.
+
+2010-01-24  Simon Fraser  <simon.fraser@apple.com>
+
+        No review.
+
+        Fix incorrect layout test that I checked in earlier.
+
+        * platform/mac/compositing/reflections/load-video-in-reflection-expected.checksum:
+        * platform/mac/compositing/reflections/load-video-in-reflection-expected.png:
+        * platform/mac/compositing/reflections/load-video-in-reflection-expected.txt:
+
+2010-01-24  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34047
+        <rdar://problem/7573699>
+        Media element "endedPlayback" logic doesn't match spec
+
+        * media/video-timeupdate-reverse-play-expected.txt: Added.
+        * media/video-timeupdate-reverse-play.html: Added.
+
+2010-01-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Video that loads inside reflection doesn't get reflected
+        https://bugs.webkit.org/show_bug.cgi?id=34046
+        
+        Testcase for a video loading inside a reflection.
+
+        * compositing/reflections/load-video-in-reflection.html: Added.
+        * platform/mac/compositing/reflections/load-video-in-reflection-expected.checksum: Added.
+        * platform/mac/compositing/reflections/load-video-in-reflection-expected.png: Added.
+        * platform/mac/compositing/reflections/load-video-in-reflection-expected.txt: Added.
+
+2010-01-23  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Implement support for FileList cloning in postMessage
+        https://bugs.webkit.org/show_bug.cgi?id=34048
+
+        Add test for passing a FileList through postMessage, and 
+        correct testing already present to test what it was meant
+        to be.
+
+        * fast/dom/Window/window-postmessage-clone-expected.txt:
+        * fast/dom/Window/window-postmessage-clone.html:
+
+2010-01-23  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        <rdar://problem/7569820> svg/custom/text-zoom.xhtml fails on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=34006
+
+        * platform/win/svg/custom/text-zoom-expected.txt: Removed.
+
+2010-01-23  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        Qt DRT: respect window.close() and window.closed()
+        
+        Qt DRT needs to maintain a correct count of open windows
+        for windowCount(). It also needs to delete windows that
+        have been closed by window.close().
+        
+        This fixes the following tests:
+        
+        plugins/destroy-during-npp-new.html
+        fast/dom/Document/early-document-access.html
+        fast/dom/Window/window-early-properties.html
+        fast/events/open-window-from-another-frame.html
+        fast/events/popup-blocking-click-in-iframe.html
+        
+        https://bugs.webkit.org/show_bug.cgi?id=32953
+
+        * platform/qt/Skipped:
+
+2010-01-23  Yury Semikhatsky  <yurys@chromium.org>
+
+        Unreviewed. Add new inspector test added in r53766 to skipi
+        list on qt platform.
+
+        * platform/qt/Skipped:
+
+2010-01-23  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Inject inspector script directly into the inspected context. All the
+        communication between the script and the frontend is serialized into
+        JSON strings. It allows to get rid of object quarantines in Web Inspector.
+
+        Test that web inspector doesn't crash when opening if there are messages in
+        the console. Refactor test case due to InjectedScriptAccess changes.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32554
+
+        * inspector/console-log-before-inspector-open-expected.txt: Added.
+        * inspector/console-log-before-inspector-open.html: Added.
+        * inspector/styles-iframe.html:
+
+2010-01-22  Alex Milowski  <alex@milowski.com>
+
+        Reviewed by David Hyatt.
+
+        Updated tests due to stylesheet changes.
+
+        * platform/mac/mathml/presentation/sub-expected.checksum:
+        * platform/mac/mathml/presentation/sub-expected.png:
+        * platform/mac/mathml/presentation/sub-expected.txt:
+        * platform/mac/mathml/presentation/sup-expected.checksum:
+        * platform/mac/mathml/presentation/sup-expected.png:
+        * platform/mac/mathml/presentation/sup-expected.txt:
+        * platform/mac/mathml/presentation/tables-expected.checksum:
+        * platform/mac/mathml/presentation/tables-expected.png:
+        * platform/mac/mathml/presentation/tables-expected.txt:
+
+2010-01-22  Garret Kelly  <gdk@chromium.org>
+
+        Reviewed by David Levin.
+
+        Fixing svg/custom/stroke-width-click.svg to not cause the double-click
+        handler to fire on certain platforms (chromium, for one). Chromium,
+        Leopard, and GTK all agree on the calculated extents of the shape, so I'm
+        disabling this test on mac-tiger and re-enabling it on mac-leopard and
+        updating the expected file to reflect the current state of the test.
+        https://bugs.webkit.org/show_bug.cgi?id=33865
+
+        * platform/mac-leopard/Skipped:
+        * platform/mac-tiger/Skipped:
+        * svg/custom/stroke-width-click-expected.txt:
+        * svg/custom/stroke-width-click.svg:
+
+2010-01-22  James Robinson  <jamesr@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Adds tests for the 'selected' attribute of <option>s
+        https://bugs.webkit.org/show_bug.cgi?id=32641
+
+        HTMLOptionElement_selected2 checks that the selected attribute is up to date immediately after the <select>
+        parsed.  HTMLOptionElement_selected3 does the same, but checks immediately prior to the </select>.
+
+        Also changes the expectation for add-remove-option-modification-event to reflect that we now pass.
+
+        * fast/forms/HTMLOptionElement_selected-expected.txt:
+        * fast/forms/HTMLOptionElement_selected.html:
+        * fast/forms/HTMLOptionElement_selected2-expected.txt: Added.
+        * fast/forms/HTMLOptionElement_selected2.html: Added.
+        * fast/forms/HTMLOptionElement_selected3-expected.txt: Added.
+        * fast/forms/HTMLOptionElement_selected3.html: Added.
+        * fast/forms/add-remove-option-modification-event-expected.txt:
+
+2010-01-22  Steve VanDeBogart  <vandebo@chromium.org>
+
+        Reviewed by David Levin.
+
+        A new test to check that middle clicking on the primary scroll bars
+        does not trigger a paste event.
+        https://bugs.webkit.org/show_bug.cgi?id=33062
+
+        * scrollbars/scrollbar-middleclick-nopaste-expected.txt: Added.
+        * scrollbars/scrollbar-middleclick-nopaste.html: Added.
+
+2010-01-22  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Unreviewed. Updated platform-specific result to account for
+        changes done in r53722.
+
+        * platform/gtk/fast/dom/Window/window-property-descriptors-expected.txt:
+
+2010-01-22  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Simon Fraser.
+
+        Checking in platform-specific results for test that is failing
+        because of an additional single pixel in size - the test passes,
+        when testing manually.
+
+        * platform/gtk/svg/custom/text-zoom-expected.txt: Added.
+
+2010-01-22  Simon Fraser  <simon.fraser@apple.com>
+
+        No review.
+
+        Commit missing test result.
+
+        * fast/dom/Window/webkitConvertPointUpdateLayout-expected.txt: Added.
+
+2010-01-22  Dmitry Titov  <dimich@chromium.org>
+
+        Fix tests, unreviewed. Adding expectations file missing from r53739
+
+        * fast/dom/Window/webkitConvertPointUpdateLayout-expected.txt: Added.
+
+2010-01-22  Steve Falkenburg  <sfalken@apple.com>
+
+        Build fix. Add missing comma.
+
+        * fast/dom/Window/window-properties.html:
+
+2010-01-22  Steve Falkenburg  <sfalken@apple.com>
+
+        Skip fast/dom/Window/window-properties-geolocation.html
+        until https://bugs.webkit.org/show_bug.cgi?id=34025 is landed.
+
+        * platform/mac/Skipped:
+        * platform/win/Skipped:
+
+2010-01-22  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34024
+        Layout tests don't easily allow Geolocation to be on in only a subset of platforms
+
+        * fast/dom/Window/window-properties-geolocation-expected.txt: Added.
+        * fast/dom/Window/window-properties-geolocation.html: Copied from fast/dom/Window/window-properties.html.
+        Moved Geolocation property testing here.
+        * fast/dom/Window/window-properties.html: Exclude Geolocation from testing. Moved to window-properties-geolocation.html.
+        * fast/dom/navigator-detached-no-crash.html: Exclude Geolocation from output.
+        * fast/dom/script-tests/prototype-inheritance-2.js: Exclude Geolocation.
+        * platform/gtk/fast/dom/Window/window-properties-expected.txt: Removed Geolocation properties from expected results.
+        * platform/gtk/fast/dom/navigator-detached-no-crash-expected.txt: Removed. Gtk results now match baseline.
+        * platform/gtk/fast/dom/prototype-inheritance-2-expected.txt: Removed Geolocation properties from expected results.
+        * platform/qt/Skipped: Skip Geolocation tests. Not yet available in Qt.
+
+2010-01-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        REGRESSION (r53110): Find My iPhone message dialog is offset from original position once it gets focus
+        https://bugs.webkit.org/show_bug.cgi?id=33821
+        
+        Testcase with various configurations of fixed position inside compositing layers.
+
+        * compositing/geometry/fixed-in-composited.html: Added.
+        * platform/mac/compositing/geometry/fixed-in-composited-expected.checksum: Added.
+        * platform/mac/compositing/geometry/fixed-in-composited-expected.png: Added.
+        * platform/mac/compositing/geometry/fixed-in-composited-expected.txt: Added.
+
+2010-01-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        webkitConvertPointFromNodeToPage doesn't take into account most recent transform style
+        https://bugs.webkit.org/show_bug.cgi?id=34023
+        
+        Testcase that changes style just before calling webkitConvertPointFromNodeToPage.
+        
+        * fast/dom/Window/webkitConvertPointUpdateLayout.html: Added.
+
+2010-01-22  Dmitry Titov  <dimich@chromium.org>
+
+        Not reviewed, fixes one issue with window-property-descriptors test.
+
+        * fast/dom/Window/script-tests/window-property-descriptors.js: Don't dump the property that only appears in debug build, it will fail tests in debug.
+
+2010-01-22  Jian Li  <jianli@chromium.org>
+
+        No review. Updated Qt layout tests due to r53722.
+
+        * platform/qt/fast/dom/Window/window-properties-expected.txt:
+        * platform/qt/fast/dom/Window/window-property-descriptors-expected.txt:
+        * platform/qt/fast/dom/prototype-inheritance-expected.txt:
+        * platform/qt/fast/js/global-constructors-expected.txt:
+
+2010-01-22  Jian Li  <jianli@chromium.org>
+
+        No review. Build fix.
+        Updated the newly added test to count the change from r53722.
+
+        * fast/dom/Window/window-property-descriptors-expected.txt:
+
+2010-01-22  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        [Qt] Platform dependent expected files added for tests introduced in r53656,
+        because these tests pass. Compared to png files.
+
+        * platform/qt/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.txt: Added.
+        * platform/qt/svg/custom/relative-sized-use-on-symbol-expected.txt: Added.
+
+2010-01-22  Peter Kasting  <pkasting@google.com>
+
+        Not reviewed, test fix.
+
+        Update a layout test for change in page scroll size.
+        https://bugs.webkit.org/show_bug.cgi?id=32595
+
+        * fast/events/scrollbar-double-click-expected.txt:
+
+2010-01-22  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Not reviewed. Fix comment in the a SVG <use> testcase, it should say "green rectangles" instead of "blue rectangles", as noticed by Csaba Osztrogonác.
+
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.checksum:
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.png:
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.txt:
+        * svg/custom/relative-sized-shadow-tree-content-with-symbol.xhtml:
+
+2010-01-22  Jian Li  <jianli@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Updated the affected tests due to adding BlobConstructor to DOMWindow.
+        https://bugs.webkit.org/show_bug.cgi?id=33982
+
+        * fast/dom/Window/window-properties-expected.txt:
+        * fast/dom/prototype-inheritance-2-expected.txt:
+        * fast/dom/prototype-inheritance-expected.txt:
+        * fast/js/global-constructors-expected.txt:
+
+2010-01-22  Jian Li  <jianli@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Add test for new attributes introduced in File and Blob interfaces.
+        https://bugs.webkit.org/show_bug.cgi?id=33980
+
+        * editing/pasteboard/file-input-files-access-expected.txt:
+        * editing/pasteboard/script-tests/file-input-files-access.js:
+
+2010-01-22  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34008
+        Assertion failure in KURL::setProtocol when running DOM Fuzzer
+
+        * fast/dom/Window/invalid-protocol-expected.txt: Added.
+        * fast/dom/Window/invalid-protocol.html: Added.
+        * fast/dom/Window/script-tests/invalid-protocol.js: Added.
+
+2010-01-22  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Adele Peterson.
+
+        Fix for the failing test on qt buildbot.
+        This tests had been added as part of the patch for https://bugs.webkit.org/show_bug.cgi?id=33970
+
+        * editing/pasteboard/paste-noscript-svg-expected.txt:
+        * editing/resources/svgcontent.xhtml:
+
+2010-01-22  Adam Roben  <aroben@apple.com>
+
+        Check in expected failure results for text-zoom.xhtml on Windows
+
+        Fixing this test is covered by <http://webkit.org/b/34006>.
+
+        Rubber-stamped by Dan Bernstein.
+
+        * platform/win/svg/custom/text-zoom-expected.txt: Added.
+
+2010-01-22  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] http/tests/misc/slow-loading-mask.html timed out.
+        https://bugs.webkit.org/show_bug.cgi?id=34004
+
+        * platform/qt/Skipped: http/tests/misc/slow-loading-mask.html skipped.
+
+2010-01-22  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        incorrect results for css2.1 layout tests that use setTimeout in body onload event
+        https://bugs.webkit.org/show_bug.cgi?id=17557
+
+        * css2.1/README.txt: Added.
+        * css2.1/t1204-increment-00-c-o.html-disabled: Renamed from LayoutTests/css2.1/t1204-increment-00-c-o.html.
+        * css2.1/t1204-increment-01-c-o.html-disabled: Renamed from LayoutTests/css2.1/t1204-increment-01-c-o.html.
+        * css2.1/t1204-increment-02-c-o.html-disabled: Renamed from LayoutTests/css2.1/t1204-increment-02-c-o.html.
+        * css2.1/t1204-reset-00-c-o.html-disabled: Renamed from LayoutTests/css2.1/t1204-reset-00-c-o.html.
+        * css2.1/t1204-reset-01-c-o.html-disabled: Renamed from LayoutTests/css2.1/t1204-reset-01-c-o.html.
+        * css2.1/t1204-reset-02-c-o.html-disabled: Renamed from LayoutTests/css2.1/t1204-reset-02-c-o.html.
+        * fast/css/counters/counter-increment-000-expected.txt: Renamed from LayoutTests/fast/css/counters/t1204-increment-00-c-o-expected.txt.
+        * fast/css/counters/counter-increment-000.html: Renamed from LayoutTests/fast/css/counters/t1204-increment-00-c-o.html.
+        * fast/css/counters/counter-increment-001-expected.txt: Renamed from LayoutTests/fast/css/counters/t1204-increment-01-c-o-expected.txt.
+        * fast/css/counters/counter-increment-001.html: Renamed from LayoutTests/fast/css/counters/t1204-increment-01-c-o.html.
+        * fast/css/counters/counter-reset-001-expected.txt: Added.
+        * fast/css/counters/counter-reset-001.html: Added.
+        * platform/mac/css2.1/t1204-increment-00-c-o-expected.checksum: Removed.
+        * platform/mac/css2.1/t1204-increment-00-c-o-expected.png: Removed.
+        * platform/mac/css2.1/t1204-increment-00-c-o-expected.txt: Removed.
+        * platform/mac/css2.1/t1204-increment-01-c-o-expected.checksum: Removed.
+        * platform/mac/css2.1/t1204-increment-01-c-o-expected.png: Removed.
+        * platform/mac/css2.1/t1204-increment-01-c-o-expected.txt: Removed.
+        * platform/mac/css2.1/t1204-increment-02-c-o-expected.checksum: Removed.
+        * platform/mac/css2.1/t1204-increment-02-c-o-expected.png: Removed.
+        * platform/mac/css2.1/t1204-increment-02-c-o-expected.txt: Removed.
+        * platform/mac/css2.1/t1204-reset-00-c-o-expected.checksum: Removed.
+        * platform/mac/css2.1/t1204-reset-00-c-o-expected.png: Removed.
+        * platform/mac/css2.1/t1204-reset-00-c-o-expected.txt: Removed.
+        * platform/mac/css2.1/t1204-reset-01-c-o-expected.checksum: Removed.
+        * platform/mac/css2.1/t1204-reset-01-c-o-expected.png: Removed.
+        * platform/mac/css2.1/t1204-reset-01-c-o-expected.txt: Removed.
+        * platform/mac/css2.1/t1204-reset-02-c-o-expected.checksum: Removed.
+        * platform/mac/css2.1/t1204-reset-02-c-o-expected.png: Removed.
+        * platform/mac/css2.1/t1204-reset-02-c-o-expected.txt: Removed.
+        * platform/qt/css2.1/t1204-increment-00-c-o-expected.txt: Removed.
+        * platform/qt/css2.1/t1204-increment-01-c-o-expected.txt: Removed.
+        * platform/qt/css2.1/t1204-increment-02-c-o-expected.txt: Removed.
+        * platform/qt/css2.1/t1204-reset-00-c-o-expected.txt: Removed.
+        * platform/qt/css2.1/t1204-reset-01-c-o-expected.txt: Removed.
+        * platform/qt/css2.1/t1204-reset-02-c-o-expected.txt: Removed.
+
+2010-01-22  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] Skip test introduced in r53684 because of missing eventSender.textZoomIn()
+
+        * platform/qt/Skipped: svg/custom/text-zoom.xhtml skipped.
+
+2010-01-22  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed trivial fix.
+
+        [Qt] css1_forward_compatible_parsing.html moved from css2.1 to fast/css by r53664.
+
+        * platform/qt/Skipped: path fixed.
+
+2010-01-22  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Split websocket/tests/bad-sub-protocol.html
+        https://bugs.webkit.org/show_bug.cgi?id=33646
+
+        * websocket/tests/bad-sub-protocol-control-chars-expected.txt: Added.
+        * websocket/tests/bad-sub-protocol-control-chars.html: Added.
+        * websocket/tests/bad-sub-protocol-empty-expected.txt: Added.
+        * websocket/tests/bad-sub-protocol-empty.html: Added.
+        * websocket/tests/bad-sub-protocol-expected.txt: Removed.
+        * websocket/tests/bad-sub-protocol-non-ascii-expected.txt: Added.
+        * websocket/tests/bad-sub-protocol-non-ascii.html: Added.
+        * websocket/tests/bad-sub-protocol.html: Removed.
+        * websocket/tests/script-tests/bad-sub-protocol-control-chars.js: Added.
+        * websocket/tests/script-tests/bad-sub-protocol-empty.js: Added.
+        * websocket/tests/script-tests/bad-sub-protocol-non-ascii.js: Added.
+        * websocket/tests/script-tests/bad-sub-protocol.js: Removed.
+
+2010-01-22  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Improve portability of listbox-deselect-scroll.html
+        https://bugs.webkit.org/show_bug.cgi?id=33989
+
+        - Convert the test to dumpAsTest
+        - Use eventSender.mouseDown(0, ['addSelectionKey'])
+        - Avoid hard-coded line-heights.
+
+        * fast/forms/listbox-deselect-scroll-expected.txt: Added.
+        * fast/forms/listbox-deselect-scroll.html:
+        * fast/forms/script-tests/listbox-deselect-scroll.js: Added.
+        * platform/mac/fast/forms/listbox-deselect-scroll-expected.checksum: Removed.
+        * platform/mac/fast/forms/listbox-deselect-scroll-expected.png: Removed.
+        * platform/mac/fast/forms/listbox-deselect-scroll-expected.txt: Removed.
+
+2010-01-22  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Darin Adler.
+
+        <rdar://problem/7568696> Zoom applied to embedded SVG incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=33988
+
+        * svg/custom/text-zoom-expected.checksum: Added.
+        * svg/custom/text-zoom-expected.png: Added.
+        * svg/custom/text-zoom-expected.txt: Added.
+        * svg/custom/text-zoom.xhtml: Added.
+
+2010-01-21  Tony Chang  <tony@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=25501
+        Remove empty font tags when applying a style to a content editable
+        region.
+
+        * editing/execCommand/change-font.html: Added.
+        * editing/execCommand/change-font-expected.txt: Added.
+
+2010-01-21  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        Move fast/websockets into websocket/tests
+        https://bugs.webkit.org/show_bug.cgi?id=32258
+
+        * fast/websockets: Removed.
+        * websocket/tests/script-tests/websocket-event-target.js: Copied from LayoutTests/fast/websockets/script-tests/websocket-event-target.js.
+        * websocket/tests/websocket-event-target-expected.txt: Copied from LayoutTests/fast/websockets/websocket-event-target-expected.txt.
+        * websocket/tests/websocket-event-target.html: Copied from LayoutTests/fast/websockets/websocket-event-target.html.
+
+2010-01-21  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        history.back() for same-document history traversals isn't synchronous as the specification states.
+        <rdar://problem/7535011> and https://bugs.webkit.org/show_bug.cgi?id=33538
+
+        The change in loading behavior is well covered via modifications to these previous tests:
+
+        * fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll.html:
+        * fast/loader/stateobjects/pushstate-with-fragment-urls-and-hashchange-expected.txt:
+        * fast/loader/stateobjects/pushstate-with-fragment-urls-and-hashchange.html:
+        * fast/loader/stateobjects/state-api-on-detached-frame-crash-expected.txt:
+        * fast/loader/stateobjects/state-api-on-detached-frame-crash.html:
+
+2010-01-21  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate setter support for type=datetime.
+        https://bugs.webkit.org/show_bug.cgi?id=33939
+
+        Add setter tests to input-valueasdate-datetime.js, and update the
+        expectation.
+
+        Note: the expectation file contains some FAIL lines. They are
+        intentional because they test a unimplemented feature.
+
+        * fast/forms/input-valueasdate-datetime-expected.txt:
+        * fast/forms/script-tests/input-valueasdate-datetime.js:
+
+2010-01-21  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        3 tests for CSS are misplaced
+        https://bugs.webkit.org/show_bug.cgi?id=33942
+
+        * css2.1/atrule_longest_match-expected.txt: Removed.
+        * css2.1/atrule_longest_match.html: Removed.
+        * css2.1/bogus-color-span.html: Removed.
+        * css2.1/css1_forward_compatible_parsing.html: Removed.
+        * fast/css/atrule_longest_match-expected.txt: Copied from LayoutTests/css2.1/atrule_longest_match-expected.txt.
+        * fast/css/atrule_longest_match.html: Copied from LayoutTests/css2.1/atrule_longest_match.html.
+        * fast/css/bogus-color-span.html: Copied from LayoutTests/css2.1/bogus-color-span.html.
+        * fast/css/css1_forward_compatible_parsing.html: Copied from LayoutTests/css2.1/css1_forward_compatible_parsing.html.
+        * platform/mac/css2.1/bogus-color-span-expected.checksum: Removed.
+        * platform/mac/css2.1/bogus-color-span-expected.png: Removed.
+        * platform/mac/css2.1/bogus-color-span-expected.txt: Removed.
+        * platform/mac/css2.1/css1_forward_compatible_parsing-expected.checksum: Removed.
+        * platform/mac/css2.1/css1_forward_compatible_parsing-expected.png: Removed.
+        * platform/mac/css2.1/css1_forward_compatible_parsing-expected.txt: Removed.
+        * platform/mac/fast/css/bogus-color-span-expected.checksum: Copied from LayoutTests/platform/mac/css2.1/bogus-color-span-expected.checksum.
+        * platform/mac/fast/css/bogus-color-span-expected.png: Copied from LayoutTests/platform/mac/css2.1/bogus-color-span-expected.png.
+        * platform/mac/fast/css/bogus-color-span-expected.txt: Copied from LayoutTests/platform/mac/css2.1/bogus-color-span-expected.txt.
+        * platform/mac/fast/css/css1_forward_compatible_parsing-expected.checksum: Copied from LayoutTests/platform/mac/css2.1/css1_forward_compatible_parsing-expected.checksum.
+        * platform/mac/fast/css/css1_forward_compatible_parsing-expected.png: Copied from LayoutTests/platform/mac/css2.1/css1_forward_compatible_parsing-expected.png.
+        * platform/mac/fast/css/css1_forward_compatible_parsing-expected.txt: Copied from LayoutTests/platform/mac/css2.1/css1_forward_compatible_parsing-expected.txt.
+        * platform/qt/css2.1/bogus-color-span-expected.txt: Removed.
+        * platform/qt/css2.1/css1_forward_compatible_parsing-expected.txt: Removed.
+        * platform/qt/fast/css/bogus-color-span-expected.txt: Copied from LayoutTests/platform/qt/css2.1/bogus-color-span-expected.txt.
+        * platform/qt/fast/css/css1_forward_compatible_parsing-expected.txt: Copied from LayoutTests/platform/qt/css2.1/css1_forward_compatible_parsing-expected.txt.
+
+2010-01-21  Beth Dakin  <bdakin@apple.com>
+
+        Rubber-stamped by Eric Seidel.
+
+        Skipping this until issues mentioned in https://bugs.webkit.org/show_bug.cgi?id=33923 are resolved.
+
+        * platform/mac/Skipped:
+
+2010-01-21  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Script tags are copied and pasted, making cross-domain attacks possible.
+        https://bugs.webkit.org/show_bug.cgi?id=33970
+
+        * editing/pasteboard/paste-noscript-svg-expected.txt: Added.
+        * editing/pasteboard/paste-noscript-svg.html: Added.
+        * editing/pasteboard/paste-visible-script-expected.txt: Added.
+        * editing/pasteboard/paste-visible-script.html: Added.
+        * editing/resources/svgcontent.xhtml: Added.
+
+2010-01-21  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Dirk Schulze.
+
+        <use> with % lengths does not update on window resize
+        https://bugs.webkit.org/show_bug.cgi?id=14639
+
+        Fix reaction on window size changes for relative sized elements within <symbol> elements.
+
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.checksum: Added.
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.png: Added.
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-with-symbol-expected.txt: Added.
+        * platform/mac/svg/custom/relative-sized-use-on-symbol-expected.checksum: Added.
+        * platform/mac/svg/custom/relative-sized-use-on-symbol-expected.png: Added.
+        * platform/mac/svg/custom/relative-sized-use-on-symbol-expected.txt: Added.
+        * platform/mac/svg/custom/use-dynamic-append-expected.txt:
+        * platform/mac/svg/custom/use-recursion-4-expected.txt:
+        * platform/mac/svg/hixie/error/017-expected.txt:
+        * svg/custom/relative-sized-shadow-tree-content-with-symbol.xhtml: Added.
+        * svg/custom/relative-sized-use-on-symbol.xhtml: Added.
+        * svg/custom/use-dynamic-append.svg: Fix bug in testcase, which prevents pixel tests to detect regressions.
+
+2010-01-21  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Adam Roben.
+
+        Added platform specific (incorrect) results for plugins/mouse-events* for Windows,
+        and removed mouse-events from the Windows Skipped list. The landing of correct results
+        for these tests is being tracked by <http://webkit.org/b/33973>.
+
+        * platform/win/Skipped: Removed plugins/mouse-events from the Skipped List.
+        * platform/win/plugins: Added.
+        * platform/win/plugins/mouse-events-expected.txt: Added.
+        * platform/win/plugins/mouse-events-fixedpos-expected.txt: Added.
+
+2010-01-21  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        -webkit-mask-box-image draws a box while loading
+        https://bugs.webkit.org/show_bug.cgi?id=33979
+        <rdar://problem/7378662>
+        
+        http test that uses a CGI to trickle in a mask image.
+
+        * http/tests/misc/resources/slow-png-load.pl: Added.
+        * http/tests/misc/resources/mask.png: Added.
+        * http/tests/misc/slow-loading-mask.html: Added.
+        * platform/mac/http/tests/misc/slow-loading-mask-expected.checksum: Added.
+        * platform/mac/http/tests/misc/slow-loading-mask-expected.png: Added.
+        * platform/mac/http/tests/misc/slow-loading-mask-expected.txt: Added.
+
+2010-01-21  Simon Fraser  <simon.fraser@apple.com>
+
+        No review
+
+        Skip plugins/mouse-events-fixedpos.html on gtk, since it requires a special test plugin.
+
+        * platform/gtk/Skipped:
+
+2010-01-21  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Test for https://bugs.webkit.org/show_bug.cgi?id=33923 REGRESSION 
+        (Safari 4): AXValueChanged no longer sent for text area scrollbars
+        -and corresponding-
+        <rdar://problem/6942686>
+
+        * platform/mac/accessibility/change-notification-on-scroll-expected.txt: Added.
+        * platform/mac/accessibility/change-notification-on-scroll.html: Added.
+
+2010-01-21  Simon Fraser  <simon.fraser@apple.com>
+
+        No review
+
+        Skip plugins/mouse-events-fixedpos.html on Qt, since it requires a special test plugin.
+
+        * platform/qt/Skipped:
+
+2010-01-21  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        [Chromium] Implement texSubImage2D taking WebGLArray
+        https://bugs.webkit.org/show_bug.cgi?id=33932
+
+        * fast/canvas/webgl/tex-sub-image-2d-expected.txt: Added.
+        * fast/canvas/webgl/tex-sub-image-2d.html: Added.
+
+2010-01-20  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Hit testing on composited plugins is broken
+        https://bugs.webkit.org/show_bug.cgi?id=33927
+        <rdar://problem/7559069>
+
+        Testcase for hit testing on a fixed-position plugin after scrolling.
+        
+        * plugins/mouse-events-fixedpos-expected.txt: Added.
+        * plugins/mouse-events-fixedpos.html: Added.
+
+2010-01-21  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] add setDomainRelaxationForbiddenForURLScheme in Qt DRT
+        https://bugs.webkit.org/show_bug.cgi?id=33945
+
+        * platform/qt/Skipped:
+
+2010-01-21  Philippe Normand  <pnormand@igalia.com>
+
+        Rubber-stamped by Eric Carlson.
+
+        Start the test when the video element loads, which is less prone
+        to occasional cases where document.load is fired after video.load.
+
+        * media/video-source-error-no-candidate.html:
+        * media/video-source-error-no-candidate-expected.txt:
+
+2010-01-21  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Intermittent crash when media element is adopted by another document
+        https://bugs.webkit.org/show_bug.cgi?id=33919
+        rdar://problem/7557527
+
+        This test does not always crash the un-patched version of WebKit because
+        the crash is so timing-dependant.
+
+        * media/adopt-node-crash-expected.txt: Added.
+        * media/adopt-node-crash.html: Added.
+
+2010-01-21  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        No review, rolling out 53615 as it causes two
+        crashes on the bot.
+
+        * platform/qt/Skipped:
+
+2010-01-21  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Simon Hausmann.
+
+        Qt DRT: respect window.close() and window.closed()
+
+        Qt DRT needs to maintain a correct count of open windows
+        for windowCount(). It also needs to delete windows that
+        have been closed by window.close().
+
+        This fixes the following tests:
+
+        plugins/destroy-during-npp-new.html
+        fast/dom/Document/early-document-access.html
+        fast/dom/Window/window-early-properties.html
+        fast/events/open-window-from-another-frame.html
+        fast/events/popup-blocking-click-in-iframe.html
+
+        https://bugs.webkit.org/show_bug.cgi?id=32953
+
+        * platform/qt/Skipped:
+
+2010-01-20  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Eric Carlson.
+
+        [Gtk] media/video-currentTime-set.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=33897
+
+        Refactored the test to use the "seeked" event.
+
+        * media/video-currentTime-set-expected.txt:
+        * media/video-currentTime-set.html:
+        * platform/gtk/Skipped:
+
+2010-01-21  Kent Tamura  <tkent@chromium.org>
+
+        Unreviewed. Fix incorrect close tags.
+
+        * fast/html/script-tests/article-element.js:
+        * fast/html/script-tests/aside-element.js:
+        * fast/html/script-tests/footer-element.js:
+        * fast/html/script-tests/header-element.js:
+        * fast/html/script-tests/section-element.js:
+
+2010-01-20  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Stylesheet href property shows redirected URL unlike other browsers
+        https://bugs.webkit.org/show_bug.cgi?id=33683
+
+        Test whether the href property of style sheets contains the original or
+        final URL of the redirect chain that lead to the style sheet.
+
+        I couldn't figure out how to test the XSLStyleSheet parts of this
+        change.  There didn't seem to be DOM bindings for the href property
+        here.  If I missed it, please let me know.
+
+        * http/tests/security/stylesheet-href-redirect-expected.txt: Added.
+        * http/tests/security/stylesheet-href-redirect.html: Added.
+
+2010-01-21  Kent Tamura  <tkent@chromium.org>
+
+        Unreviewed. Fix a FAIL test by a wrong input.
+
+        * fast/forms/input-valueasdate-date-expected.txt:
+        * fast/forms/script-tests/input-valueasdate-date.js:
+
+2010-01-21  Roland Steiner  <rolandsteiner@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Bug 31865 - Re-do ruby layout tests to use only Latin characters
+        (https://bugs.webkit.org/show_bug.cgi?id=31865, first patch)
+
+        Re-did pixel layout tests for ruby since non-Latin scripts apparently
+        cause issues on other platforms.
+        
+        * fast/ruby/ruby-empty-rt.html:
+        * fast/ruby/ruby-length.html:
+        * fast/ruby/ruby-run-break.html:
+        * fast/ruby/ruby-runs-spans.html:
+        * fast/ruby/ruby-runs.html:
+        * fast/ruby/ruby-simple-rp.html:
+        * fast/ruby/ruby-simple.html:
+        * fast/ruby/ruby-trailing.html:
+        * fast/ruby/rubyDOM-insert-rt.html:
+        * fast/ruby/rubyDOM-insert-text1.html:
+        * fast/ruby/rubyDOM-insert-text2.html:
+        * fast/ruby/rubyDOM-insert-text3.html:
+        * fast/ruby/rubyDOM-remove-rt1.html:
+        * fast/ruby/rubyDOM-remove-rt2.html:
+        * fast/ruby/rubyDOM-remove-text1.html:
+        * fast/ruby/rubyDOM-remove-text2.html:
+
+        * platform/mac/fast/ruby/ruby-empty-rt-expected.checksum:
+        * platform/mac/fast/ruby/ruby-empty-rt-expected.png:
+        * platform/mac/fast/ruby/ruby-empty-rt-expected.txt:
+        * platform/mac/fast/ruby/ruby-length-expected.checksum:
+        * platform/mac/fast/ruby/ruby-length-expected.png:
+        * platform/mac/fast/ruby/ruby-length-expected.txt:
+        * platform/mac/fast/ruby/ruby-run-break-expected.checksum:
+        * platform/mac/fast/ruby/ruby-run-break-expected.png:
+        * platform/mac/fast/ruby/ruby-run-break-expected.txt:
+        * platform/mac/fast/ruby/ruby-runs-expected.checksum:
+        * platform/mac/fast/ruby/ruby-runs-expected.png:
+        * platform/mac/fast/ruby/ruby-runs-expected.txt:
+        * platform/mac/fast/ruby/ruby-runs-spans-expected.checksum:
+        * platform/mac/fast/ruby/ruby-runs-spans-expected.png:
+        * platform/mac/fast/ruby/ruby-runs-spans-expected.txt:
+        * platform/mac/fast/ruby/ruby-simple-expected.checksum:
+        * platform/mac/fast/ruby/ruby-simple-expected.png:
+        * platform/mac/fast/ruby/ruby-simple-expected.txt:
+        * platform/mac/fast/ruby/ruby-simple-rp-expected.checksum:
+        * platform/mac/fast/ruby/ruby-simple-rp-expected.png:
+        * platform/mac/fast/ruby/ruby-simple-rp-expected.txt:
+        * platform/mac/fast/ruby/ruby-trailing-expected.checksum:
+        * platform/mac/fast/ruby/ruby-trailing-expected.png:
+        * platform/mac/fast/ruby/ruby-trailing-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-insert-rt-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-insert-rt-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-insert-rt-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-insert-text1-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-insert-text1-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-insert-text1-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-insert-text2-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-insert-text2-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-insert-text2-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-insert-text3-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-insert-text3-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-insert-text3-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-remove-rt1-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-remove-rt1-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-remove-rt1-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-remove-rt2-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-remove-rt2-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-remove-rt2-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-remove-text1-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-remove-text1-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-remove-text1-expected.txt:
+        * platform/mac/fast/ruby/rubyDOM-remove-text2-expected.checksum:
+        * platform/mac/fast/ruby/rubyDOM-remove-text2-expected.png:
+        * platform/mac/fast/ruby/rubyDOM-remove-text2-expected.txt:
+
+2010-01-20  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by David Levin.
+
+        http/tests/xmlhttprequest/cross-origin-cookie-storage.html failed on Snow Leopard Intel Release Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33742
+
+        * platform/mac-snowleopard/Skipped: Skip this for now to keep the bots green.
+
+2010-01-20  Daniel Bates  <dbates@webkit.org>
+
+        No review, rolling out 53591.
+        http://trac.webkit.org/changeset/53591
+        https://bugs.webkit.org/show_bug.cgi?id=29564
+
+        Rolling out the change committed in change set 53591
+        <http://trac.webkit.org/changeset/53591> because it caused
+        a regression of test /fast/replaced/table-percent-height.html
+        on the Qt bot.
+
+        * fast/css/button-height-expected.txt: Removed.
+        * fast/css/button-height.html: Removed.
+
+2010-01-20  Daniel Bates  <dbates@webkit.org>
+
+        No review, rolling out 53594.
+        http://trac.webkit.org/changeset/53594
+        https://bugs.webkit.org/show_bug.cgi?id=33936
+
+        Note, there still is an issue on GTK related to the rendering of 
+        button heights. But we are rolling out this change since
+        we're going to rollout the change committed in change set 53591
+        <http://trac.webkit.org/changeset/53591> because r53591 caused a
+        regression.
+
+        * platform/gtk/Skipped:
+
+2010-01-20  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate setter support for type=date.
+        https://bugs.webkit.org/show_bug.cgi?id=33911
+
+        Add setter tests to input-valueasdate-date.js, and update the
+        expectation.
+
+        * fast/forms/input-valueasdate-date-expected.txt:
+        * fast/forms/script-tests/input-valueasdate-date.js:
+
+2010-01-20  Ben Murdoch  <benm@google.com>
+
+        Reviewed by Simon Hausmann.
+
+        Touch Events are not sent to iframes
+        https://bugs.webkit.org/show_bug.cgi?id=33894
+
+        Testcase to verify that touch events are sent to iframes when the main frame document does not have any touch event listeners installed.
+
+        * fast/events/touch/resources: Added.
+        * fast/events/touch/resources/touch-inside-iframe2.html: Added.
+        * fast/events/touch/touch-inside-iframe-expected.txt: Added.
+        * fast/events/touch/touch-inside-iframe.html: Added.
+
+2010-01-20  Michael Nordman  <michaeln@google.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Remove an assertion that is not valid in some detached iframes cases.
+        https://bugs.webkit.org/show_bug.cgi?id=33827
+
+        * http/tests/appcache/detached-iframe-expected.txt: Added.
+        * http/tests/appcache/detached-iframe.html: Added.
+
+2010-01-20  Daniel Bates  <dbates@webkit.org>
+
+        Unreviewed. Add failing test fast/css/button-height.html
+        to GTK Skipped file as we need to look into this.
+        See bug #33936 for more details.
+
+        * platform/gtk/Skipped:
+
+2010-01-20  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        WebSocket: Request-URI should not be empty when no tralling slash in host
+        https://bugs.webkit.org/show_bug.cgi?id=33689
+
+        * websocket/tests/handler_map.txt: Added.
+          use websocket/tests/echo-location_wsh.py to handle request for
+          ws://127.0.0.1:8880
+        * websocket/tests/script-tests/url-no-trailing-slash.js: Added.
+        * websocket/tests/url-no-trailing-slash-expected.txt: Added.
+        * websocket/tests/url-no-trailing-slash.html: Added.
+
+2010-01-20  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Tor Arne Vestbø.
+
+        https://bugs.webkit.org/show_bug.cgi?id=29564
+        
+        Tests that the user-specified height for <button>- and <input type="button">-
+        elements are honored, if appropriate for the platform and context.
+
+        * fast/css/button-height-expected.txt: Added.
+        * fast/css/button-height.html: Added.
+
+2010-01-20  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Crash in Page::backForwardList when using History object from a detached window
+        <rdar://problem/7556252> and https://bugs.webkit.org/show_bug.cgi?id=33828
+
+        * fast/loader/stateobjects/state-api-on-detached-frame-crash-expected.txt: Added.
+        * fast/loader/stateobjects/state-api-on-detached-frame-crash.html: Added.
+
+2010-01-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33930
+        Crash in JSDOMWindowBase::crossDomainAccessErrorMessage when accessing a detached sandboxed frame
+
+        * http/tests/security/detached-sandboxed-frame-access-expected.txt: Added.
+        * http/tests/security/detached-sandboxed-frame-access.html: Added.
+
+2010-01-20  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Not reviewed. Re-skip svg/custom/use-instanceRoot-event-bubbling.xhtml on Gtk bot, still fails. Though the other platforms are fixed.
+        Reopened bug 33835.
+
+        * platform/gtk/Skipped:
+
+2010-01-20  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        REGRESSION(r53514?): fast/canvas/webgl/texImage2DImageDataTest.html fails on Leopard Release Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33893
+
+        * platform/mac-leopard/Skipped: Skip the test for now.
+
+2010-01-20  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Rubber-stamped by Eric Seidel.
+
+        Add Leopard specific pixel test results where needed, most just show marginal 1px diffs, or even invisible changes,
+        only the filter test changed, but it visually looks the same - must be a Cg difference to the Snow Leopard baseline.
+        Now the pixel tests pass again with --tolerance 0 on my Leopard machine.
+
+        * platform/mac-leopard/svg/W3C-SVG-1.1/pservers-grad-17-b-expected.checksum:
+        * platform/mac-leopard/svg/W3C-SVG-1.1/pservers-grad-17-b-expected.png:
+        * platform/mac-leopard/svg/css/circle-in-mask-with-shadow-expected.checksum: Added.
+        * platform/mac-leopard/svg/css/circle-in-mask-with-shadow-expected.png: Added.
+        * platform/mac-leopard/svg/css/composite-shadow-example-expected.checksum:
+        * platform/mac-leopard/svg/css/composite-shadow-example-expected.png:
+        * platform/mac-leopard/svg/css/composite-shadow-with-opacity-expected.checksum: Added.
+        * platform/mac-leopard/svg/css/composite-shadow-with-opacity-expected.png: Added.
+        * platform/mac-leopard/svg/css/css-box-min-width-expected.checksum: Added.
+        * platform/mac-leopard/svg/css/css-box-min-width-expected.png: Added.
+        * platform/mac-leopard/svg/css/mask-with-shadow-expected.checksum: Added.
+        * platform/mac-leopard/svg/css/mask-with-shadow-expected.png: Added.
+        * platform/mac-leopard/svg/custom/container-opacity-clip-viewBox-expected.checksum: Added.
+        * platform/mac-leopard/svg/custom/container-opacity-clip-viewBox-expected.png: Added.
+        * platform/mac-leopard/svg/custom/js-update-bounce-expected.checksum: Added.
+        * platform/mac-leopard/svg/custom/js-update-bounce-expected.png: Added.
+        * platform/mac-leopard/svg/custom/svg-fonts-in-html-expected.checksum: Added.
+        * platform/mac-leopard/svg/custom/svg-fonts-in-html-expected.png: Added.
+        * platform/mac-leopard/svg/filters: Added.
+        * platform/mac-leopard/svg/filters/shadow-on-rect-with-filter-expected.checksum: Added.
+        * platform/mac-leopard/svg/filters/shadow-on-rect-with-filter-expected.png: Added.
+        * platform/mac/svg/custom/transformedMaskFails-expected.checksum: Added.
+
+2010-01-20  Chris Fleizach  <cfleizach@apple.com>
+
+        Reviewed by Beth Dakin.
+
+        WAI-ARIA popup buttons spoken as simply 'button'
+        https://bugs.webkit.org/show_bug.cgi?id=33922
+
+        * platform/mac/accessibility/aria-popup-expected.txt: Added.
+        * platform/mac/accessibility/aria-popup.html: Added.
+
+2010-01-20  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        [Qt] Platform dependent expected files added for tests introduced in r53476,
+        because these tests pass. Compared to png files.
+
+        * platform/qt/fast/fast-mobile-scrolling/fixed-position-element-expected.txt: Added.
+        * platform/qt/fast/fast-mobile-scrolling/no-fixed-position-elements-expected.txt: Added.
+
+2010-01-20  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        [Qt] Platform dependent expected files added for tests introduced in r53446,
+        because these tests pass. Compared to png files.
+
+        * platform/qt/svg/custom/relative-sized-deep-shadow-tree-content-expected.txt: Added.
+        * platform/qt/svg/custom/relative-sized-shadow-tree-content-expected.txt: Added.
+
+2010-01-20  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: accSelect() is not implemented
+
+        https://bugs.webkit.org/show_bug.cgi?id=33918
+        <rdar://problem/7436861>
+
+        Reviewed by Darin Adler.
+
+        * platform/win/accessibility/selection-and-focus-expected.txt: Added.
+        * platform/win/accessibility/selection-and-focus.html: Added.
+
+2010-01-19  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Alexey Proskuryakov. 
+
+        svg/custom/use-instanceRoot-event-bubbling.xhtml is flakey
+        https://bugs.webkit.org/show_bug.cgi?id=33835
+
+        mouseEvent fires mutiple times in svg/custom/use-instanceRoot-as-event-target.xhtml
+        https://bugs.webkit.org/show_bug.cgi?id=32519
+
+        Stabilize <use> scripting support - use tests are reliable now (tested using --repeach-each 50 --random -p)
+        Reenable the tests in question on gtk / qt / win. mac was only affected from time to time (always reproducable using --repeat-each 50 though.)
+
+        * platform/gtk/Skipped: Unskip use-instanceRoot-event-listeners.xhtml / use-instanceRoot-event-bubbling.xhtml / use-instanceRoot-as-event-target.xhtml
+        * platform/qt/Skipped: Unskip use-instanceRoot-as-event-target.xhtml
+        * platform/win/Skipped: Ditto.
+        * svg/custom/resources/use-instanceRoot-event-bubbling.js:
+        (eventHandler): No need anymore to rely on a 100ms timeout.
+        * svg/custom/resources/use-instanceRoot-event-listeners.js:
+        (eventHandler): Ditto.
+        * svg/custom/use-instanceRoot-as-event-target-expected.txt:
+        * svg/custom/use-instanceRoot-as-event-target.xhtml: Rewrote test - we don't need to work around shadow tree reclone issues anymore.
+        * svg/custom/use-instanceRoot-event-listener-liveness-expected.txt: Added.
+        * svg/custom/use-instanceRoot-event-listener-liveness.xhtml: Added.
+
+2010-01-20  David Levin  <levin@chromium.org>
+
+        No review, rolling out r53552.
+        http://trac.webkit.org/changeset/53552
+        https://bugs.webkit.org/show_bug.cgi?id=32554
+
+        Caused lots of fast/profile test failures.
+
+        * inspector/console-log-before-inspector-open-expected.txt: Removed.
+        * inspector/console-log-before-inspector-open.html: Removed.
+        * inspector/styles-iframe.html:
+
+2010-01-20  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Inject inspector script directly into the inspected context. All the
+        communication between the script and the frontend is serialized into
+        JSON strings. It allows to get rid of object quarantines in Web Inspector.
+
+        Test that web inspector doesn't crash when opening if there are messages in
+        the console. Refactor test case due to InjectedScriptAccess changes.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32554
+
+        * inspector/console-log-before-inspector-open-expected.txt: Added.
+        * inspector/console-log-before-inspector-open.html: Added.
+        * inspector/styles-iframe.html:
+
+2010-01-20  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate setter support for type=time.
+        https://bugs.webkit.org/show_bug.cgi?id=33825
+
+        Add setter tests to input-valueasdate-time.js, and update the
+        expectation.
+
+        Note: the expectation file contains some FAIL lines. They are
+        intentional because they test a unimplemented feature.
+
+        * fast/forms/input-valueasdate-time-expected.txt:
+        * fast/forms/script-tests/input-valueasdate-time.js:
+
+2010-01-20  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Darin Adler.
+
+        [Gtk] media/video-play-pause-exception.html is flacky
+        https://bugs.webkit.org/show_bug.cgi?id=33900
+
+        Refactored the test to use the pause event instead of a timer.
+        * media/video-play-pause-exception.html:
+        * platform/gtk/Skipped:
+
+2010-01-20  Ben Murdoch  <benm@google.com>
+
+        Reviewed by Simon Hausmann.
+
+        The touchcancel event is not supported.
+        https://bugs.webkit.org/show_bug.cgi?id=33598
+
+        Test for the oncancel event.
+
+        * fast/events/script-tests/send-oncancel-event.js: Added.
+        (touchcancelHandler):
+        * fast/events/touch/send-oncancel-event-expected.txt: Added.
+        * fast/events/touch/send-oncancel-event.html: Added.
+        * platform/qt/Skipped: Add send-oncancel-event to the Qt Skipped list as there is not support for that type of event on Qt yet.
+
+2010-01-20  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] fast/frames/set-unloaded-frame-location.html timed out on Qt Linux Release Build Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33303
+
+        It caused by the previously test, so skipped it until fix.
+
+        * platform/qt/Skipped: fast/frames/sandboxed-iframe-navigation-windowopen.html skipped.
+
+2010-01-20  Roland Steiner  <rolandsteiner@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Bug 28420 - Re-enable fast/ruby layout tests after the issue with mixedContent was fixed.
+        (https://bugs.webkit.org/show_bug.cgi?id=28420, patch 5a)
+
+        cf. https://bugs.webkit.org/show_bug.cgi?id=31200
+
+        * platform/mac/Skipped:
+
+2010-01-20  Roland Steiner  <rolandsteiner@chromium.org>
+
+        Reviewed by Dan Bernstein.
+
+        Bug 33266 - WebCore::InlineFlowBox::determineSpacingForFlowBoxes ReadAV@NULL (43c64e8abbda6766e5f5edbd254c2d57)
+        (https://bugs.webkit.org/show_bug.cgi?id=33266)
+        
+        Layout tests for ruby with malformed HTML.
+        Split up in individual tests, as well ass added a single combined test
+        (whose resulting render tree is probably completely different from what
+        you'd expect), since that combined test showed additional issues not
+        covered by the individual tests.
+
+        * fast/ruby/ruby-illegal-1-expected.txt: Added.
+        * fast/ruby/ruby-illegal-1.html: Added.
+        * fast/ruby/ruby-illegal-2-expected.txt: Added.
+        * fast/ruby/ruby-illegal-2.html: Added.
+        * fast/ruby/ruby-illegal-3-expected.txt: Added.
+        * fast/ruby/ruby-illegal-3.html: Added.
+        * fast/ruby/ruby-illegal-4-expected.txt: Added.
+        * fast/ruby/ruby-illegal-4.html: Added.
+        * fast/ruby/ruby-illegal-5-expected.txt: Added.
+        * fast/ruby/ruby-illegal-5.html: Added.
+        * fast/ruby/ruby-illegal-6-expected.txt: Added.
+        * fast/ruby/ruby-illegal-6.html: Added.
+        * fast/ruby/ruby-illegal-7-expected.txt: Added.
+        * fast/ruby/ruby-illegal-7.html: Added.
+        * fast/ruby/ruby-illegal-combined-expected.txt: Added.
+        * fast/ruby/ruby-illegal-combined.html: Added.
+        * fast/ruby/ruby-illegal-expected.txt: Removed.
+        * fast/ruby/ruby-illegal.html: Removed.
+        * fast/ruby/rubyDOM-insert-rt-block-1-expected.txt: Added.
+        * fast/ruby/rubyDOM-insert-rt-block-1.html: Added.
+        * fast/ruby/rubyDOM-insert-rt-block-2-expected.txt: Added.
+        * fast/ruby/rubyDOM-insert-rt-block-2.html: Added.
+        * fast/ruby/rubyDOM-insert-rt-block-3-expected.txt: Added.
+        * fast/ruby/rubyDOM-insert-rt-block-3.html: Added.
+        * fast/ruby/rubyDOM-remove-rt-block-1-expected.txt: Added.
+        * fast/ruby/rubyDOM-remove-rt-block-1.html: Added.
+        * fast/ruby/rubyDOM-remove-rt-block-2-expected.txt: Added.
+        * fast/ruby/rubyDOM-remove-rt-block-2.html: Added.
+        * fast/ruby/rubyDOM-remove-rt-block-3-expected.txt: Added.
+        * fast/ruby/rubyDOM-remove-rt-block-3.html: Added.
+
+2010-01-17  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: The child <option> elements of a non-multiple <select> are not
+        exposed
+
+        https://bugs.webkit.org/show_bug.cgi?id=33773
+        <rdar://problem/7550556>
+
+        Reviewed by Alice Liu.
+
+        * platform/win/accessibility/single-select-children-expected.txt: Added.
+        * platform/win/accessibility/single-select-children.html: Added.
+
+2010-01-19  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Support reflections on WebGL
+        https://bugs.webkit.org/show_bug.cgi?id=33754
+
+        Testcase for WebGL with a reflection.
+        
+        * compositing/webgl/webgl-reflection.html: Added.
+        * platform/mac/compositing/webgl/webgl-reflection-expected.checksum: Added.
+        * platform/mac/compositing/webgl/webgl-reflection-expected.png: Added.
+        * platform/mac/compositing/webgl/webgl-reflection-expected.txt: Added.
+
+2010-01-19  Carol Szabo  <carol.szabo@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Another crazy counters bug
+        https://bugs.webkit.org/show_bug.cgi?id=11031
+        Added tests for dynamic DOM changes affecting counters.
+
+        * fast/css/counters/counter-increment-002.html: Added.
+        * fast/css/counters/counter-reset-000.html: Added.
+        * fast/css/counters/counter-reset-002.html: Added.
+        * fast/css/counters/counter-increment-002-expected.txt: Added.
+        * fast/css/counters/counter-reset-000-expected.txt: Added.
+        * fast/css/counters/counter-reset-002-expected.txt: Added.
+
+2010-01-19  Alexey Proskuryakov  <ap@apple.com>
+
+        Land correct expected results - forgot to update them after changing test output.
+
+        * fast/dom/Attr/child-nodes-cache-expected.txt:
+
+2010-01-19  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        More flaky animation/transitions tests
+        https://bugs.webkit.org/show_bug.cgi?id=33872
+
+        Undo my previous changes decreasing test times. This ended up
+        increasing flakiness.
+
+        * animations/change-one-anim-expected.txt:
+        * animations/change-one-anim.html:
+        * animations/combo-transform-translate+scale.html:
+        * transitions/shorthand-border-transitions-expected.txt:
+        * transitions/shorthand-border-transitions.html:
+
+2010-01-19  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33850
+        Attr.childNodes does not get updated after DOM mutations
+
+        * fast/dom/Attr/child-nodes-cache-expected.txt: Added.
+        * fast/dom/Attr/child-nodes-cache.html: Added.
+
+2010-01-19  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Some composited reflections incorrectly positioned
+        https://bugs.webkit.org/show_bug.cgi?id=33856
+        
+        New testcases for reflection positioning when adding outline, which affects the compositing
+        layer geometry.
+
+        * compositing/reflections/nested-reflection-transformed2.html: Added.
+        * compositing/reflections/reflection-positioning2.html: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transformed2-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transformed2-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transformed2-expected.txt: Added.
+        * platform/mac/compositing/reflections/reflection-positioning2-expected.checksum: Added.
+        * platform/mac/compositing/reflections/reflection-positioning2-expected.png: Added.
+        * platform/mac/compositing/reflections/reflection-positioning2-expected.txt: Added.
+
+2010-01-19  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Simon Fraser.
+
+        REGRESSION: Infinite recursion in Position::getInlineBoxAndOffset()
+        https://bugs.webkit.org/show_bug.cgi?id=33864
+        <rdar://problem/7552959>
+
+        * editing/selection/selection-applet-expected.txt: Added.
+        * editing/selection/selection-applet.html: Added.
+
+2010-01-15  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        LayoutTests/animations/play-state.html and LayoutTests/transitions/cancel-transition.html are still flaky
+        https://bugs.webkit.org/show_bug.cgi?id=33748
+
+        * animations/play-state-expected.txt:
+        * animations/play-state.html:
+        Undo my previous change of decreasing the length of the test. I think that made it more flaky.
+        Also increase the tolerance.
+
+        * transitions/cancel-transition.html:
+        Undo my previous change of moving the setTimeout. It was correct where it was.
+        Added a comment to make it more clear. The tolerances were increased since then though,
+        so this test should no longer be flaky after this.
+
+2010-01-19  Jaime Yap  <jaimeyap@google.com>
+
+        Reviewed by Pavel Feldman.
+
+        Test changes to accomodate refactor of TimelineRecordFactory and InspectorTimelineAgent to
+        support reporting data when closing a record.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33853
+
+        * inspector/timeline-layout-expected.txt:
+        * inspector/timeline-parse-html-expected.txt:
+        * inspector/timeline-recalculate-styles-expected.txt:
+
+2010-01-19  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Adam Roben.
+
+        error events don't fire if no <source> elements passed to media engine
+        https://bugs.webkit.org/show_bug.cgi?id=33855
+
+        * media/video-source-error-no-candidate-expected.txt: Added.
+        * media/video-source-error-no-candidate.html: Added.
+
+2010-01-19  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Adam Roben.
+
+        video.networkState remains NETWORK_LOADING indefinitely when no <source> element was able to be loaded
+        https://bugs.webkit.org/show_bug.cgi?id=33744
+
+        * media/video-source-none-supported-expected.txt: Added.
+        * media/video-source-none-supported.html: Added.
+
+2010-01-19  Daniel Bates  <dbates@rim.com>
+
+        Reviewed by Adam Treat.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33408
+
+        Tests that fixed background images are ignored when there are no
+        fixed elements on a page and honored otherwise.
+
+        Note, includes expected failure results for the test
+        fast/fast-mobile-scrolling/no-fixed-position-elements.html, since
+        the Mac and Windows ports do not support FAST_MOBILE_SCROLLING.
+
+        * fast/fast-mobile-scrolling: Added.
+        * fast/fast-mobile-scrolling/fixed-position-element.html: Added.
+        * fast/fast-mobile-scrolling/no-fixed-position-elements.html: Added.
+        * platform/mac/fast/fast-mobile-scrolling: Added.
+        * platform/mac/fast/fast-mobile-scrolling/fixed-position-element-expected.checksum: Added.
+        * platform/mac/fast/fast-mobile-scrolling/fixed-position-element-expected.png: Added.
+        * platform/mac/fast/fast-mobile-scrolling/fixed-position-element-expected.txt: Added.
+        * platform/mac/fast/fast-mobile-scrolling/no-fixed-position-elements-expected.checksum: Added.
+        * platform/mac/fast/fast-mobile-scrolling/no-fixed-position-elements-expected.png: Added.
+        Expected failure result since the Mac port does not enable FAST_MOBILE_SCROLLING.
+        * platform/mac/fast/fast-mobile-scrolling/no-fixed-position-elements-expected.txt: Added.
+        Expected failure result since the Mac port does not enable FAST_MOBILE_SCROLLING.
+
+2010-01-19  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Crash in Page::backForwardList when using History object from a detached window
+        <rdar://problem/7556252> and https://bugs.webkit.org/show_bug.cgi?id=33828
+
+        * fast/loader/stateobjects/state-api-on-detached-frame-crash-expected.txt: Added.
+        * fast/loader/stateobjects/state-api-on-detached-frame-crash.html: Added.
+
+2010-01-19  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by NOBODY (build fix).
+
+        Revert r53467. Browser crashes on opening inspector if there
+        are messages in console.
+
+        * inspector/styles-iframe.html:
+
+2010-01-19  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Inject inspector script directly into the inspected context. All the
+        communication between the script and the frontend is serialized into
+        JSON strings. It allows to get rid of object quarantines in Web Inspector.
+
+        Refactor test case due to InjectedScriptAccess changes.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32554
+
+        * inspector/styles-iframe.html:
+ 
+2010-01-19  MORITA Hajime  <morrita@gmail.com>
+
+        Reviewed by Shinichiro Hamaji.
+
+        [Chromium] layout_test on linux fails on doubleclick-beside-cr-span.html
+        
+        Place larger margins before clicking position to grab certain words
+        instead of clicking blank, whitespaces or tabs before that words. 
+        Note that widths of rendered tab characters are hard to predict,
+        So such margins are particularly helpful with them.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=33769
+
+        * editing/selection/doubleclick-beside-cr-span.html:
+          Fix to compute click position using actual character width.
+
+2010-01-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] REGRESSION (r53450): 3 tests fail on Qt bot
+        https://bugs.webkit.org/show_bug.cgi?id=33834
+
+        * platform/qt/Skipped:
+         - css1/box_properties/acid_test.html skipped.
+         - fast/forms/textarea-scrollbar-height.html skipped.
+        * platform/qt/css1/font_properties/font-expected.txt: updated.
+
+2010-01-19  Xan Lopez  <xlopez@igalia.com>
+
+        svg/custom/use-instanceRoot-event-bubbling.xhtml is flakey
+        https://bugs.webkit.org/show_bug.cgi?id=33835
+
+        Skip flakey test.
+
+        * platform/gtk/Skipped:
+
+2010-01-19  Xan Lopez  <xlopez@igalia.com>
+
+        New baseline for failing test.
+
+        * platform/gtk/fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.txt: Copied from LayoutTests/platform/qt/fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.txt.
+
+2010-01-19  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        REGRESSION (52082): Crash on worker thread when reloading http://radnan.public.iastate.edu/procedural/
+        https://bugs.webkit.org/show_bug.cgi?id=33826
+        
+        Added a test for this edge case.
+
+        * fast/workers/resources/worker-gc2.js: Added.
+        (Dummy):
+        * fast/workers/worker-gc2.html: Added.
+
+2010-01-19  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by NOBODY (build fix).
+
+        Reverting r53455, breaks 2 javascriptcore tests.
+
+        * fast/workers/resources/worker-gc2.js: Removed.
+        * fast/workers/worker-gc2.html: Removed.
+
+2010-01-19  Geoffrey Garen  <ggaren@apple.com>
+
+        Forgot to add this test result.
+
+        * fast/workers/worker-gc2-expected.txt: Added.
+
+2010-01-19  Xan Lopez  <xlopez@igalia.com>
+
+        Skip tests generating new results.
+
+        * platform/gtk/Skipped:
+
+2010-01-18  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        REGRESSION (52082): Crash on worker thread when reloading http://radnan.public.iastate.edu/procedural/
+        https://bugs.webkit.org/show_bug.cgi?id=33826
+        
+        Added a test for this edge case.
+
+        * fast/workers/resources/worker-gc2.js: Added.
+        (Dummy):
+        * fast/workers/worker-gc2.html: Added.
+
+2010-01-18  Daniel Bates  <dbates@webkit.org>
+
+        https://bugs.webkit.org/show_bug.cgi?id=33089
+
+        Unreviewed. Add expected results for Windows.
+
+        * platform/win/fast/lists/w3-css3-list-styles-alphabetic-expected.txt: Added.
+
+2010-01-18  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33089
+
+        Tests that all of the alphabetic CSS3 list-style-types are supported.
+
+        * fast/lists/w3-css3-list-styles-alphabetic.html: Added.
+        * platform/mac/fast/lists/w3-css3-list-styles-alphabetic-expected.txt: Added.
+
+2010-01-18  Dan Bernstein  <mitz@apple.com>
+
+        Rubber-stamped by Sam Weinig.
+
+        <rdar://problem/7476957> REGRESSION (r49567): Business widget list does not line up: too tall due to line height rounding change
+
+        Reverted r49567, but left in the test added in that revision, now with a failing result.
+
+        * css1/font_properties/font.html:
+        * fast/css/line-height-rounding-expected.txt:
+        * platform/mac/css1/font_properties/font-expected.txt:
+        * platform/mac/css2.1/t090501-c414-flt-ln-00-d-expected.txt:
+        * platform/mac/css2.1/t090501-c414-flt-ln-01-d-g-expected.txt:
+        * platform/mac/css2.1/t090501-c414-flt-ln-02-d-expected.txt:
+        * platform/mac/css2.1/t090501-c414-flt-ln-03-d-expected.txt:
+        * platform/mac/svg/custom/scrolling-embedded-svg-file-image-repaint-problem-expected.checksum:
+        * platform/mac/svg/custom/scrolling-embedded-svg-file-image-repaint-problem-expected.txt:
+        * platform/mac/svg/custom/svg-fonts-in-html-expected.checksum:
+        * platform/mac/svg/custom/svg-fonts-in-html-expected.txt:
+
+2010-01-18  Yuzo Fujishima  <yuzo@google.com>
+
+        Reviewed by Darin Adler.
+
+        Skip an error after invalid blocks in a CSS expression.
+        https://bugs.webkit.org/show_bug.cgi?id=33650
+
+        * fast/css/parsing-error-recovery.html:
+
+2010-01-18  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Dirk Schulze.
+
+        Rewrite SVG <use> support in a modern-fashion
+        https://bugs.webkit.org/show_bug.cgi?id=33776
+
+        Update some test results, after rewriting <use> support.
+
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-40-t-expected.txt:
+        * platform/mac/svg/custom/relative-sized-deep-shadow-tree-content-expected.checksum: Added.
+        * platform/mac/svg/custom/relative-sized-deep-shadow-tree-content-expected.png: Added.
+        * platform/mac/svg/custom/relative-sized-deep-shadow-tree-content-expected.txt: Added.
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-expected.checksum: Added.
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-expected.png: Added.
+        * platform/mac/svg/custom/relative-sized-shadow-tree-content-expected.txt: Added.
+        * platform/mac/svg/custom/use-events-crash-expected.txt:
+        * platform/mac/svg/custom/use-on-disallowed-foreign-object-1-expected.txt:
+        * platform/mac/svg/custom/use-on-disallowed-foreign-object-3-expected.txt:
+        * platform/mac/svg/custom/use-on-non-svg-namespaced-element-expected.txt:
+        * platform/mac/svg/custom/use-recursion-1-expected.txt:
+        * platform/mac/svg/custom/use-recursion-2-expected.txt:
+        * platform/mac/svg/custom/use-recursion-3-expected.txt:
+        * platform/mac/svg/custom/use-recursion-4-expected.txt:
+        * platform/mac/svg/hixie/error/017-expected.txt:
+        * platform/mac/svg/text/text-text-05-t-expected.checksum:
+        * platform/mac/svg/text/text-text-05-t-expected.png:
+        * svg/custom/relative-sized-deep-shadow-tree-content.xhtml: Added.
+        * svg/custom/relative-sized-shadow-tree-content.xhtml: Added.
+        * svg/text/text-text-05-t.svg: Remove possible race-condition, between selecting & dumping.
+
+2010-01-18  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        HTMLInputElement::valueAsDate setter support for type=month.
+        https://bugs.webkit.org/show_bug.cgi?id=33021
+
+        Add setter tests to input-valueasdate-month.js, and update the
+        expectation.
+
+        * fast/forms/input-valueasdate-expected.txt:
+        * fast/forms/input-valueasdate-month-expected.txt:
+        * fast/forms/script-tests/input-valueasdate-month.js:
+        * fast/forms/script-tests/input-valueasdate.js:
+
+2010-01-18  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Script attributes are copied and pasted, making cross-domain attacks possible (30019)
+        <rdar://problem/6008809>
+        https://bugs.webkit.org/show_bug.cgi?id=30019
+
+        * editing/pasteboard/paste-noscript-expected.txt: Added.
+        * editing/pasteboard/paste-noscript.html: Added.
+
+2010-01-18  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33815
+        Crash when using DOMTimer from a detached frame
+
+        * fast/dom/Window/timer-null-script-execution-context-expected.txt: Added.
+        * fast/dom/Window/timer-null-script-execution-context.html: Added.
+
+2010-01-18  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Tim Hatcher.
+
+        Updated Windows results after r53424.
+
+        * platform/win/fast/css/zoom-body-scroll-expected.txt: Added.
+
+2010-01-18  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Geoffrey Garen.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33813
+        <rdar://problem/7545104> Crash when using DOMApplicationCache from a destroyed frame
+
+        * http/tests/appcache/destroyed-frame-expected.txt: Added.
+        * http/tests/appcache/destroyed-frame.html: Added.
+
+2010-01-18  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Darin Adler.
+
+        REGRESSION (r53420): incomplete repaint of bottom of bugs.webkit.org comment field
+        https://bugs.webkit.org/show_bug.cgi?id=33809
+
+        * fast/repaint/trailing-floats-root-line-box-overflow-expected.checksum: Added.
+        * fast/repaint/trailing-floats-root-line-box-overflow-expected.png: Added.
+        * fast/repaint/trailing-floats-root-line-box-overflow-expected.txt: Added.
+        * fast/repaint/trailing-floats-root-line-box-overflow.html: Added.
+
+2010-01-18  Alexey Proskuryakov  <ap@apple.com>
+
+        Rubber-stamped by Adam Roben.
+
+        Change a newly added WebSocket test to work on Windows.
+
+        * websocket/tests/multiple-connections.html: Decrease the number of simultaneous connections
+        from 100 to 50. On Windows buildbot, only ~70 connections are allowed for some reason - but
+        we only need much fewer to compare to HTTP simultaneous connection limit anyway.
+
+2010-01-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] Skip test introduced in r53423 because of missing layoutTestController.setDomainRelaxationForbiddenForURLScheme()
+
+        * platform/qt/Skipped: http/tests/security/setDomainRelaxationForbiddenForURLScheme.html added.
+
+2010-01-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        [Qt] Add platform dependent expected file because of different font size.
+
+        * platform/qt/fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.txt: Copied from LayoutTests/fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.txt.
+
+2010-01-18  Timothy Hatcher  <timothy@apple.com>
+
+        Updated results for scroll position while zoomed.
+
+        <rdar://problem/6150099> Zooming should keep the page content in the same place
+
+        Rubber-stamped by Sam Weinig.
+
+        * fast/css/zoom-body-scroll-expected.txt:
+
+2010-01-18  Adam Roben  <aroben@apple.com>
+
+        Add tests for new WebKit SPI to disallow setting document.domain
+
+        Tests for <http://webkit.org/b/33806> <rdar://problem/7552837> Would
+        like API to disallow setting of document.domain for pages with certain
+        URL schemes
+
+        Reviewed by Sam Weinig.
+
+        * http/tests/security/setDomainRelaxationForbiddenForURLScheme-expected.txt: Added.
+        * http/tests/security/setDomainRelaxationForbiddenForURLScheme.html: Added.
+
+        * platform/gtk/Skipped: Skip the new test since WebKitGtk doesn't have
+        this API.
+
+2010-01-18  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Darin Adler.
+
+        <rdar://problem/6892207> REGRESSION (Safari 4): Menus at sciencedirect.com push the main article context down the page
+        <rdar://problem/7546035> Second right floated image misplacment
+        https://bugs.webkit.org/show_bug.cgi?id=33245
+
+        * fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2.html: Added.
+        * fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.checksum: Added.
+        * fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.png: Added.
+        * fast/dynamic/float-in-trailing-whitespace-after-last-line-break-2-expected.txt: Added.
+
+2010-01-18  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33804
+        Test that WebSocket is not subject to HTTP connection limit
+
+        * websocket/tests/multiple-connections-expected.txt: Added.
+        * websocket/tests/multiple-connections.html: Added.
+
+2010-01-18  Daniel Cheng  <dcheng@google.com>
+
+        Reviewed by Adam Roben
+
+        DataTransfer interface broken on Windows--types member is always
+        undefined, and getData() does not work.
+        https://bugs.webkit.org/show_bug.cgi?id=30527
+
+        * fast/events/drag-and-drop-dataTransfer-types-nocrash-expected.txt: Updated test expectations.
+        * fast/events/drag-and-drop-dataTransfer-types-nocrash.html: Added test cases.
+        * platform/win/Skipped: Re-enabled fast/events/drag-and-drop-dataTransfer-types-nocrash.html
+
+2010-01-17  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        [Qt] Platform dependent expected file added for r53388. (similar to original one, only styles differ)
+        https://bugs.webkit.org/show_bug.cgi?id=33784 (need to unify path dumping)
+
+        * platform/qt/svg/custom/transformedMaskFails-expected.txt: Added.
+
+2010-01-17  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        REGRESSION (r52449): SVG mask wrongly clipped when not at origin for recent nightly build
+        https://bugs.webkit.org/show_bug.cgi?id=33782
+
+        Testcase for a mask containing transformed elements
+
+        * platform/mac/svg/custom/transformedMaskFails-expected.png: Added.
+        * svg/custom/transformedMaskFails-expected.txt: Added.
+        * svg/custom/transformedMaskFails.svg: Added.
+
+2010-01-15  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Screen rect for <option> elements is always the zero rect
+
+        https://bugs.webkit.org/show_bug.cgi?id=33758
+
+        Reviewed by Oliver Hunt.
+
+        * platform/win/accessibility/option-element-position-and-size-expected.txt: Added.
+        * platform/win/accessibility/option-element-position-and-size.html: Added.
+
+2010-01-15  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        get_accParent should try to retrieve parent AccessibilityObject, before
+        calling upon window
+
+        https://bugs.webkit.org/show_bug.cgi?id=22893
+
+        Reviewed by Darin Adler.
+
+        * platform/win/accessibility/parent-element-expected.txt: Added.
+        * platform/win/accessibility/parent-element.html: Added.
+
+2010-01-16  Darin Adler  <darin@apple.com>
+
+        Reviewed by Oliver Hunt and Alexey Proskuryakov.
+
+        ValidityState can hold a stale pointer to control
+        https://bugs.webkit.org/show_bug.cgi?id=33729
+        rdar://problem/7545114
+
+        * fast/forms/ValidityState-removed-control-expected.txt: Added.
+        * fast/forms/ValidityState-removed-control.html: Added.
+
+2010-01-15  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33752
+        Assertion failure when getting a href attribute with prefix
+
+        * fast/dom/bad-href-attribute-expected.txt: Added.
+        * fast/dom/bad-href-attribute.html: Added.
+        * fast/dom/node-prefix-setter-namespace-exception-expected.txt: Added.
+        * fast/dom/node-prefix-setter-namespace-exception.html: Added.
+        * fast/dom/script-tests/node-prefix-setter-namespace-exception.js: Added.
+
+2010-01-16  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Darin Adler.
+
+        <rdar://problem/7536748> and https://bugs.webkit.org/show_bug.cgi?id=33571
+        History traversals to a new document do not get the popstate event
+
+        Updated existing tests to match new correct behavior.
+
+        * fast/loader/stateobjects/document-destroyed-navigate-back-expected.txt:
+        * fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll-expected.txt:
+        * fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll.html:
+        * fast/loader/stateobjects/document-destroyed-navigate-back.html:
+
+2010-01-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein and Adele Peterson.
+
+        Support reflections on composited layers
+        https://bugs.webkit.org/show_bug.cgi?id=31885
+        
+        Tests for reflections on compositing layers.
+
+        * compositing/masks/direct-image-mask.html: Added.
+        * compositing/reflections/animation-inside-reflection.html: Added.
+        * compositing/reflections/compositing-change-inside-reflection.html: Added.
+        * compositing/reflections/deeply-nested-reflections.html: Added.
+        * compositing/reflections/masked-reflection-on-composited.html: Added.
+        * compositing/reflections/nested-reflection-anchor-point.html: Added.
+        * compositing/reflections/nested-reflection-animated.html: Added.
+        * compositing/reflections/nested-reflection-mask-change.html: Added.
+        * compositing/reflections/nested-reflection-on-overflow.html: Added.
+        * compositing/reflections/nested-reflection-opacity.html: Added.
+        * compositing/reflections/nested-reflection-size-change.html: Added.
+        * compositing/reflections/nested-reflection-transformed.html: Added.
+        * compositing/reflections/nested-reflection-transition.html: Added.
+        * compositing/reflections/nested-reflection.html: Added.
+        * compositing/reflections/reflection-opacity.html: Added.
+        * compositing/reflections/reflection-ordering.html: Added.
+        * compositing/reflections/reflection-positioning.html: Added.
+        * compositing/reflections/transform-inside-reflection.html: Added.
+        * platform/mac/compositing/masks/direct-image-mask-expected.checksum: Added.
+        * platform/mac/compositing/masks/direct-image-mask-expected.png: Added.
+        * platform/mac/compositing/masks/direct-image-mask-expected.txt: Copied from LayoutTests/platform/mac/compositing/reflections/simple-composited-reflections-expected.txt.
+        * platform/mac/compositing/reflections/animation-inside-reflection-expected.checksum: Added.
+        * platform/mac/compositing/reflections/animation-inside-reflection-expected.png: Added.
+        * platform/mac/compositing/reflections/animation-inside-reflection-expected.txt: Added.
+        * platform/mac/compositing/reflections/compositing-change-inside-reflection-expected.checksum: Added.
+        * platform/mac/compositing/reflections/compositing-change-inside-reflection-expected.png: Added.
+        * platform/mac/compositing/reflections/compositing-change-inside-reflection-expected.txt: Added.
+        * platform/mac/compositing/reflections/deeply-nested-reflections-expected.checksum: Added.
+        * platform/mac/compositing/reflections/deeply-nested-reflections-expected.png: Added.
+        * platform/mac/compositing/reflections/deeply-nested-reflections-expected.txt: Added.
+        * platform/mac/compositing/reflections/masked-reflection-on-composited-expected.checksum: Added.
+        * platform/mac/compositing/reflections/masked-reflection-on-composited-expected.png: Added.
+        * platform/mac/compositing/reflections/masked-reflection-on-composited-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-anchor-point-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-anchor-point-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-anchor-point-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-animated-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-animated-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-animated-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-mask-change-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-mask-change-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-mask-change-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-on-overflow-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-on-overflow-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-on-overflow-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-opacity-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-opacity-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-opacity-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-size-change-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-size-change-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-size-change-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transformed-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transformed-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transformed-expected.txt: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transition-expected.checksum: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transition-expected.png: Added.
+        * platform/mac/compositing/reflections/nested-reflection-transition-expected.txt: Added.
+        * platform/mac/compositing/reflections/reflection-opacity-expected.checksum: Added.
+        * platform/mac/compositing/reflections/reflection-opacity-expected.png: Added.
+        * platform/mac/compositing/reflections/reflection-opacity-expected.txt: Added.
+        * platform/mac/compositing/reflections/reflection-ordering-expected.checksum: Added.
+        * platform/mac/compositing/reflections/reflection-ordering-expected.png: Added.
+        * platform/mac/compositing/reflections/reflection-ordering-expected.txt: Added.
+        * platform/mac/compositing/reflections/reflection-positioning-expected.checksum: Added.
+        * platform/mac/compositing/reflections/reflection-positioning-expected.png: Added.
+        * platform/mac/compositing/reflections/reflection-positioning-expected.txt: Added.
+        * platform/mac/compositing/reflections/transform-inside-reflection-expected.checksum: Added.
+        * platform/mac/compositing/reflections/transform-inside-reflection-expected.png: Added.
+        * platform/mac/compositing/reflections/transform-inside-reflection-expected.txt: Added.
+
+2010-01-15  Doug Muir  <dmuir@google.com>
+
+        Fix some Layout Test timeouts when run under valgrind.
+        
+        * http/tests/history/redirect-js-form-submit-0-seconds.html:
+        * http/tests/history/redirect-js-form-submit-2-seconds.html:
+        * http/tests/misc/timer-vs-loading.html:
+
+2010-01-15  Carol Szabo  <carol.szabo@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        CSS2.1 Counters not updated when new elements are inserted in the DOM.
+        https://bugs.webkit.org/show_bug.cgi?id=32884
+
+        * fast/css/counters/adding-nodes-expected.txt: Added.
+        * fast/css/counters/adding-nodes.html: Added.
+
+2010-01-15  Darin Fisher  <darin@chromium.org>
+
+        Fix flakey test.
+
+        Add a call to clearBackForwardList.
+
+        * fast/history/history-length.html:
+
+2010-01-15  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Disable page cache and add diagnostic output in the failure case.
+        https://bugs.webkit.org/show_bug.cgi?id=33749
+
+        * fast/history/history-length-expected.txt:
+        * fast/history/history-length.html: Copied from fast/history/history-length.html-disabled.
+        * fast/history/history-length.html-disabled: Removed.
+
+2010-01-15  Darin Fisher  <darin@chromium.org>
+
+        Disable this test temporarily since it is failing on all of the
+        builders.
+
+        * fast/history/history-length.html: Removed.
+        * fast/history/history-length.html-disabled: Copied from fast/history/history-length.html.
+
+2010-01-15  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Brady Eidson.
+
+        history.length does not return number of elements in history list
+        https://bugs.webkit.org/show_bug.cgi?id=24472
+
+        * fast/history/history-length-expected.txt: Added.
+        * fast/history/history-length.html: Added.
+        * fast/loader/stateobjects/document-destroyed-navigate-back-expected.txt: fix up test expectations
+        * fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll-expected.txt: fix up test expectations
+
+2010-01-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        REGRESISON: Google maps buttons not working properly
+        https://bugs.webkit.org/show_bug.cgi?id=31871
+
+        REGRESSION(r52948): JavaScript exceptions thrown on Google Maps when
+        getting directions for a second time
+        https://bugs.webkit.org/show_bug.cgi?id=33446
+        
+        Added a test for these bugs.
+
+        * fast/js/pic/undictionary-expected.txt: Added.
+        * fast/js/pic/undictionary.html: Added.
+
+2010-01-15  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        svg/custom/marker-changes.svg is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=33728
+
+        removing gratuitous setTimeout.
+
+        * svg/custom/marker-changes.svg:
+
+2010-01-15  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        transitions/shorthand-border-transitions.html is still flaky on slower bots
+        https://bugs.webkit.org/show_bug.cgi?id=33721
+
+        Increase the tolerance. The test still tests what it was meant to.
+
+        * transitions/shorthand-border-transitions.html:
+
+2010-01-14  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        animations/combo-transform-translate+scale.html failed on Snow Leopard Debug Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33461
+
+        Make test half as long. Remove a setTimeout and tweak tolerances to
+        reduce flakiness.
+
+        * animations/combo-transform-translate+scale.html:
+
+2010-01-14  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Brady Eidson.
+
+        history.pushState should clear the entire forward history
+        https://bugs.webkit.org/show_bug.cgi?id=33160
+
+        * fast/loader/stateobjects/pushstate-clears-forward-history-expected.txt: Added.
+        * fast/loader/stateobjects/pushstate-clears-forward-history.html: Added.
+
+2010-01-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Kenneth Rohde Christiansen.
+
+        REGRESSION: svg/css/circle-in-mask-with-shadow.svg failing pixel tests
+        https://bugs.webkit.org/show_bug.cgi?id=33498
+
+        After http://trac.webkit.org/changeset/53300 Qt expected files should be updated.
+
+        * platform/qt/svg/css/arrow-with-shadow-expected.txt: updated.
+        * platform/qt/svg/css/circle-in-mask-with-shadow-expected.txt: updated.
+        * platform/qt/svg/css/mask-with-shadow-expected.txt: updated.
+        * platform/qt/svg/css/path-with-shadow-expected.txt: updated.
+        * platform/qt/svg/css/stars-with-shadow-expected.txt: updated.
+        * platform/qt/svg/filters/shadow-on-rect-with-filter-expected.txt: updated.
+
+2010-01-14  Roland Steiner  <rolandsteiner@chromium.org>
+
+        Reviewed by David Levin.
+
+        Bug 31865 - Re-do ruby layout tests to use only Latin characters
+        (https://bugs.webkit.org/show_bug.cgi?id=31865)
+
+        New base-lines for the Windows platform.
+
+        * platform/win/fast/ruby/ruby-empty-rt-expected.checksum:
+        * platform/win/fast/ruby/ruby-empty-rt-expected.png:
+        * platform/win/fast/ruby/ruby-empty-rt-expected.txt:
+        * platform/win/fast/ruby/ruby-length-expected.checksum:
+        * platform/win/fast/ruby/ruby-length-expected.png:
+        * platform/win/fast/ruby/ruby-length-expected.txt:
+        * platform/win/fast/ruby/ruby-run-break-expected.checksum:
+        * platform/win/fast/ruby/ruby-run-break-expected.png:
+        * platform/win/fast/ruby/ruby-run-break-expected.txt:
+        * platform/win/fast/ruby/ruby-runs-expected.checksum:
+        * platform/win/fast/ruby/ruby-runs-expected.png:
+        * platform/win/fast/ruby/ruby-runs-expected.txt:
+        * platform/win/fast/ruby/ruby-runs-spans-expected.checksum:
+        * platform/win/fast/ruby/ruby-runs-spans-expected.png:
+        * platform/win/fast/ruby/ruby-runs-spans-expected.txt:
+        * platform/win/fast/ruby/ruby-simple-expected.checksum:
+        * platform/win/fast/ruby/ruby-simple-expected.png:
+        * platform/win/fast/ruby/ruby-simple-expected.txt:
+        * platform/win/fast/ruby/ruby-simple-rp-expected.checksum:
+        * platform/win/fast/ruby/ruby-simple-rp-expected.png:
+        * platform/win/fast/ruby/ruby-simple-rp-expected.txt:
+        * platform/win/fast/ruby/ruby-trailing-expected.checksum:
+        * platform/win/fast/ruby/ruby-trailing-expected.png:
+        * platform/win/fast/ruby/ruby-trailing-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.png:
+        * platform/win/fast/ruby/rubyDOM-insert-rt-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.png:
+        * platform/win/fast/ruby/rubyDOM-insert-text1-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.png:
+        * platform/win/fast/ruby/rubyDOM-insert-text2-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.png:
+        * platform/win/fast/ruby/rubyDOM-insert-text3-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.png:
+        * platform/win/fast/ruby/rubyDOM-remove-rt1-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.png:
+        * platform/win/fast/ruby/rubyDOM-remove-rt2-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.png:
+        * platform/win/fast/ruby/rubyDOM-remove-text1-expected.txt:
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.checksum:
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.png:
+        * platform/win/fast/ruby/rubyDOM-remove-text2-expected.txt:
+
+2010-01-14  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        animations/change-keyframes.html failed on Tiger Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33370
+
+        Increase tolerances. They're still testing the stated goal of the test.
+
+        * animations/change-keyframes.html:
+        * transitions/cancel-transition.html:
+
+2010-01-14  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Skip new test that requires new functionality in
+        DRT (layoutTestController.setWillSendRequestReturnsNull).
+
+        * platform/gtk/Skipped:
+
+2010-01-14  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Skipping test that fails intermitently - fix for the test being
+        worked on; see https://bugs.webkit.org/show_bug.cgi?id=33671.
+
+        * platform/gtk/Skipped:
+
+2010-01-13  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        LayoutTests/animations/play-state.html and LayoutTests/animations/3d/transform-origin-vs-functions.html are flaky
+        https://bugs.webkit.org/show_bug.cgi?id=33626
+
+        Speculative fixes.
+
+        * animations/3d/transform-origin-vs-functions.html:
+        Remove timeout for notifyDone and start measurement at
+        webkitAnimationStart instead of body onload.
+        * animations/play-state-expected.txt:
+        * animations/play-state.html:
+        Reduce test time in half, but keep the same tolerance level.
+
+2010-01-13  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        A few more flaky transitions/animations tests
+        https://bugs.webkit.org/show_bug.cgi?id=33642
+
+        Attempt to deflake a few more tests. Some of these are second
+        attempts. The first attempt made it less flaky, but not 100%.
+        Also, for a couple tests, make them shorter. They seemed
+        unnecessarily long.
+
+        * animations/change-one-anim-expected.txt:
+        * animations/change-one-anim.html:
+        * transitions/cancel-transition.html:
+        * transitions/mask-transitions.html:
+        * transitions/shorthand-border-transitions-expected.txt:
+        * transitions/shorthand-border-transitions.html:
+
+2010-01-14  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Tests for https://bugs.webkit.org/show_bug.cgi?id=33498 REGRESSION: 
+        svg/css/circle-in-mask-with-shadow.svg failing pixel tests
+        -and corresponding-
+        <rdar://problem/7544176>
+
+        All of these tests just needed to be updated because of small 
+        rounding differences. 
+
+        * platform/mac/fast/repaint/moving-shadow-on-container-expected.checksum:
+        * platform/mac/fast/repaint/moving-shadow-on-container-expected.png:
+        * platform/mac/fast/repaint/moving-shadow-on-container-expected.txt:
+        * platform/mac/fast/repaint/moving-shadow-on-path-expected.checksum:
+        * platform/mac/fast/repaint/moving-shadow-on-path-expected.png:
+        * platform/mac/fast/repaint/moving-shadow-on-path-expected.txt:
+        * platform/mac/svg/css/arrow-with-shadow-expected.png:
+        * platform/mac/svg/css/arrow-with-shadow-expected.txt:
+        * platform/mac/svg/css/circle-in-mask-with-shadow-expected.checksum:
+        * platform/mac/svg/css/circle-in-mask-with-shadow-expected.png:
+        * platform/mac/svg/css/circle-in-mask-with-shadow-expected.txt:
+        * platform/mac/svg/css/clippath-with-shadow-expected.png:
+        * platform/mac/svg/css/composite-shadow-example-expected.checksum:
+        * platform/mac/svg/css/composite-shadow-example-expected.png:
+        * platform/mac/svg/css/composite-shadow-example-expected.txt:
+        * platform/mac/svg/css/composite-shadow-with-opacity-expected.checksum:
+        * platform/mac/svg/css/composite-shadow-with-opacity-expected.png:
+        * platform/mac/svg/css/composite-shadow-with-opacity-expected.txt:
+        * platform/mac/svg/css/css-box-min-width-expected.checksum:
+        * platform/mac/svg/css/css-box-min-width-expected.png:
+        * platform/mac/svg/css/group-with-shadow-expected.txt:
+        * platform/mac/svg/css/mask-with-shadow-expected.txt:
+        * platform/mac/svg/css/path-with-shadow-expected.png:
+        * platform/mac/svg/css/path-with-shadow-expected.txt:
+        * platform/mac/svg/css/shadow-and-opacity-expected.txt:
+        * platform/mac/svg/css/shadow-with-large-radius-expected.txt:
+        * platform/mac/svg/css/shadow-with-negative-offset-expected.txt:
+        * platform/mac/svg/css/stars-with-shadow-expected.checksum:
+        * platform/mac/svg/css/stars-with-shadow-expected.png:
+        * platform/mac/svg/css/stars-with-shadow-expected.txt:
+        * platform/mac/svg/filters/shadow-on-rect-with-filter-expected.checksum:
+        * platform/mac/svg/filters/shadow-on-rect-with-filter-expected.png:
+        * platform/mac/svg/filters/shadow-on-rect-with-filter-expected.txt:
+
+2010-01-14  Adam Roben  <aroben@apple.com>
+
+        Add a test that shows onload still fires if a load of a <script src>
+        is cancelled by the resource load delegate
+
+        Tests for <rdar://problem/7543406> <http://webkit.org/b/33687>
+        window.onload never fires if page contains a <script src=foo> whose
+        load is cancelled by resource load delegate returning null from
+        willSendRequest
+
+        Reviewed by Dave Hyatt.
+
+        * fast/loader/onload-willSendRequest-null-for-script-expected.txt: Added.
+        * fast/loader/onload-willSendRequest-null-for-script.html: Added.
+
+        * platform/qt/Skipped: Added the new test since Qt doesn't have
+        layoutTestController.setWillSendRequestReturnsNull.
+
+2010-01-14  Stephen White  <senorblanco@chromium.org>
+
+        Reviewed by mitz@webkit.org.
+
+        New layout test added to exercise fix for bug
+        http://bugs.webkit.org/show_bug.cgi?id=28426 
+
+        * fast/gradients/crash-on-tr-expected.txt: Added.
+        * fast/gradients/crash-on-tr.html: Added.
+
+2010-01-14  Evan Stade  <estade@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Chromium Linux: don't stretch checkboxes
+        https://bugs.webkit.org/show_bug.cgi?id=28631
+
+        * fast/css/non-standard-checkbox-size.html: Added.
+        * platform/mac/fast/css/non-standard-checkbox-size-expected.checksum: Added.
+        * platform/mac/fast/css/non-standard-checkbox-size-expected.png: Added.
+        * platform/mac/fast/css/non-standard-checkbox-size-expected.txt: Added.
+        * platform/gtk/Skipped: Skipping this new test so I don't break this bot.  Just needs new results.
+        * platform/qt/Skipped: ditto
+        * platform/win/Skipped: ditto
+
+2010-01-14  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        [DnD] effectAllowed and dropEffect can be set to bogus values.
+        Fixes <https://bugs.webkit.org/show_bug.cgi?id=33635>.
+        
+        Added a test to check the handling of setting effectAllowed and
+        dropEffect to bogus values (that it gets ignored), and updated results
+        to drag-and-drop because it uses a dummy value.
+        
+        Also, fixed a few tests that broke when the default dropEffect was set to
+        none to match the spec.
+
+        * fast/events/bogus-dropEffect-effectAllowed-expected.txt: Added.
+        * fast/events/bogus-dropEffect-effectAllowed.html: Added.
+        * platform/gtk/fast/events/bogus-dropEffect-effectAllowed-expected.txt: Added.
+        * platform/qt/fast/events/bogus-dropEffect-effectAllowed.html: Added.
+
+        * fast/events/drag-and-drop-expected.txt:
+        * fast/events/drag-and-drop.html:
+        * editing/pasteboard/script-tests/files-during-page-drags.js:
+        * editing/pasteboard/get-data-text-plain-drop.html:
+        * fast/events/resources/drag-in-frames-right.html:
+        * http/tests/local/resources/send-dragged-file.js:
+        * http/tests/misc/bubble-drag-events.html:
+
+2010-01-14  Adam Roben  <aroben@apple.com>
+
+        Add new test from r53277 to the GTK+ Skipped list
+
+        * platform/gtk/Skipped:
+
+2010-01-14  Kent Hansen  <kent.hansen@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        Infinite recursion in RuntimeObjectImp::getOwnPropertyNames()
+        https://bugs.webkit.org/show_bug.cgi?id=33371
+
+        Test that Object.keys works on a plugin object.
+
+        * plugins/netscape-enumerate.html:
+
+2010-01-14  Adam Roben  <aroben@apple.com>
+
+        Add new tests from r53277 to the Qt Skipped list
+
+        * platform/qt/Skipped:
+
+2010-01-13  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Christiansen.
+
+        [Qt] DRT missing setUserStyleSheetLocation and setUserStyleSheetEnabled in LayoutTestController
+        https://bugs.webkit.org/show_bug.cgi?id=33617
+
+        * platform/qt/Skipped:
+
+2010-01-14  Adam Roben  <aroben@apple.com>
+
+        Add tests that show that onload still fires in various situations with
+        subframes
+
+        Tests for <rdar://problem/7533333> <http://webkit.org/b/33533>
+        window.onload never fires if page contains an <iframe> with a bad
+        scheme or whose load is cancelled by returning null from resource load
+        delegate's willSendRequest
+
+        Reviewed by Brady Eidson.
+
+        * fast/loader/onload-bad-scheme-for-frame-expected.txt: Added.
+        * fast/loader/onload-bad-scheme-for-frame.html: Added.
+        Tests that onload still fires when a subframe with an unrecognized
+        scheme is in the page.
+
+        * fast/loader/onload-policy-ignore-for-frame-expected.txt: Added.
+        * fast/loader/onload-policy-ignore-for-frame.html: Added.
+        Tests that onload still fires when the policy delegate says to ignore
+        the initial load of a subframe.
+
+        * fast/loader/onload-willSendRequest-null-for-frame-expected.txt: Added.
+        * fast/loader/onload-willSendRequest-null-for-frame.html: Added.
+        Tests that onload still fires when the resource load delegate returns
+        null from willSendRequest for the initial load of a subframe.
+
+        * http/tests/loading/bad-scheme-subframe-expected.txt: Updated result
+        to show that we now fire onload for the main frame in this case. (This
+        is essentially the same as onload-bad-scheme-for-frame.html, but it
+        still seems useful to have that new, more explicit, test.)
+
+2010-01-13  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Brady Eidson.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33652
+        REGRESSION: Frames stop appearing after browsing for a while
+
+        * fast/frames/cached-frame-counter-expected.txt: Added.
+        * fast/frames/cached-frame-counter.html: Added.
+
+2010-01-14  Adam Roben  <aroben@apple.com>
+
+        Fix a typo in editing/selection/inactive-selection.html
+
+        Fixes <http://webkit.org/b/33676> Exception when opening
+        editing/selection/inactive-selection.html in a browser
+
+        Reviewed by Dan Bernstein.
+
+        * editing/selection/inactive-selection.html: Remove a semicolon that
+        was making the if (window.layoutTestController) test ineffective.
+
+2010-01-13  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Xan Lopez.
+
+        [GTK] Failing media/video-seek-past-end-playing.html
+        https://bugs.webkit.org/show_bug.cgi?id=33015
+
+        * media/video-seek-past-end-playing.html: Removed the last timer of this test.
+        * platform/gtk/Skipped: Unskip test above.
+
+2010-01-14  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r53249.
+        http://trac.webkit.org/changeset/53249
+        https://bugs.webkit.org/show_bug.cgi?id=33617
+
+        This caused http/tests/security/local-user-CSS-from-
+        remote.html to fail on the Qt Release Build Bot.
+
+        * platform/qt/Skipped:
+
+2010-01-14  Eric Seidel  <eric@webkit.org>
+
+        No review, rolling out r53248.
+        http://trac.webkit.org/changeset/53248
+        https://bugs.webkit.org/show_bug.cgi?id=32641
+
+        Caused 2 tests to crash on various bots:
+        fast/dom/HTMLSelectElement/listbox-select-reset.html and
+        fast/forms/listbox-typeahead-scroll.html
+
+        * fast/forms/HTMLOptionElement_selected-expected.txt:
+        * fast/forms/HTMLOptionElement_selected.html:
+        * fast/forms/HTMLOptionElement_selected2-expected.txt: Removed.
+        * fast/forms/HTMLOptionElement_selected2.html: Removed.
+        * fast/forms/HTMLOptionElement_selected3-expected.txt: Removed.
+        * fast/forms/HTMLOptionElement_selected3.html: Removed.
+        * fast/forms/add-remove-option-modification-event-expected.txt:
+
+2010-01-14  Ben Murdoch  <benm@google.com>
+
+        Reviewed by Darin Adler.
+
+        [Android] [Qt] The document.createEvent API does not support touch events.
+        https://bugs.webkit.org/show_bug.cgi?id=33605
+
+        * fast/events/script-tests/create-touch-event.js: Added. Ensures that document.createEvent("TouchEvent") can create a TouchEvent.
+        * fast/events/touch/create-touch-event-expected.txt: Added.
+        * fast/events/touch/create-touch-event.html: Added.
+
+2010-01-14  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] DRT missing setUserStyleSheetLocation and setUserStyleSheetEnabled in LayoutTestController
+        https://bugs.webkit.org/show_bug.cgi?id=33617
+
+        * platform/qt/Skipped:
+
+2010-01-14  James Robinson  <jamesr@chromium.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Adds tests for the 'selected' attribute of <option>s
+        https://bugs.webkit.org/show_bug.cgi?id=32641
+
+        HTMLOptionElement_selected2 checks that the selected attribute is up to date immediately after the <select>
+        parsed.  HTMLOptionElement_selected3 does the same, but checks immediately prior to the </select>.
+
+        Also changes the expectation for add-remove-option-modification-event to reflect that we now pass.
+
+        * fast/forms/HTMLOptionElement_selected-expected.txt:
+        * fast/forms/HTMLOptionElement_selected.html:
+        * fast/forms/HTMLOptionElement_selected2-expected.txt: Added.
+        * fast/forms/HTMLOptionElement_selected2.html: Added.
+        * fast/forms/HTMLOptionElement_selected3-expected.txt: Added.
+        * fast/forms/HTMLOptionElement_selected3.html: Added.
+        * fast/forms/add-remove-option-modification-event-expected.txt:
+
+2010-01-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Simon Hausmann.
+
+        [Qt] Add expected files for passing new tests.
+        Compared to the mac expected files and png files.
+
+        * platform/qt/fast/backgrounds/quirks-mode-line-box-backgrounds-expected.txt: Added.
+        * platform/qt/fast/css/css3-space-in-nth-and-lang-expected.txt: Added.
+        * platform/qt/svg/custom/marker-opacity-expected.txt: Added.
+        * platform/qt/svg/custom/relative-sized-content-expected.txt: Added.
+        * platform/qt/svg/custom/text-xy-updates-SVGList-expected.txt: Added.
+        * platform/qt/svg/custom/use-on-symbol-inside-pattern-expected.txt: Added.
+        * platform/qt/transforms/2d/transform-fixed-container-expected.txt: Added.
+
+2010-01-13  Kent Hansen  <kent.hansen@nokia.com>
+
+        Reviewed by Oliver Hunt.
+
+        JSON.stringify and JSON.parse needlessly process properties in the prototype chain
+        https://bugs.webkit.org/show_bug.cgi?id=33053
+
+        Add tests that verify that properties in the prototype chain are ignored.
+
+        * fast/js/JSON-parse-expected.txt:
+        * fast/js/JSON-stringify-expected.txt:
+        * fast/js/resources/JSON-parse.js:
+        * fast/js/resources/JSON-stringify.js:
+
+2010-01-13  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Oliver Hunt.
+
+        Need to implement WebGLContextAttributes
+        https://bugs.webkit.org/show_bug.cgi?id=31169
+
+        Added the WebGLContextAttributes class and custom JavaScript
+        bindings to accept a native object as the second argument to
+        getContext("experimental-webgl") per the WebGL specification.
+        Added GraphicsContext3D::Attributes struct to isolate DOM and
+        graphics layers. Added getContextAttributes() to
+        WebGLRenderingContext. Added test case ensuring that context
+        attributes can be passed down and returned. Tested in Safari and
+        Chromium. The attributes will be hooked up to the creation of the
+        OpenGL context in bug 33416.
+
+        * fast/canvas/webgl/context-attributes-expected.txt: Added.
+        * fast/canvas/webgl/context-attributes.html: Added.
+        * fast/canvas/webgl/resources/webgl-test.js:
+        (create3DContext):
+
+2010-01-13  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Fix shadow drawing to do the correct computations using the base coordinate space
+        https://bugs.webkit.org/show_bug.cgi?id=33629
+        
+        Testcase for box- and text-shadow drawing, both into the window, and into composited layers.
+
+        * compositing/shadows/shadow-drawing.html: Added.
+        * platform/mac/compositing/shadows/shadow-drawing-expected.checksum: Added.
+        * platform/mac/compositing/shadows/shadow-drawing-expected.png: Added.
+        * platform/mac/compositing/shadows/shadow-drawing-expected.txt: Added.
+
+2010-01-13  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Not reviewed. Update Qt slave result after last SVG commit.
+
+        * platform/qt/svg/css/clippath-with-shadow-expected.txt:
+
+2010-01-13  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Oliver Hunt.
+
+        SVGClipPathElement shouldn't resolve style manually
+        https://bugs.webkit.org/show_bug.cgi?id=33647
+
+        Update baseline after introducing renderers for SVGClipPathElement.
+
+        * platform/mac/svg/W3C-SVG-1.1/masking-intro-01-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/masking-path-01-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/masking-path-02-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/masking-path-04-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/masking-path-05-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/painting-marker-02-f-expected.txt:
+        * platform/mac/svg/batik/text/textEffect2-expected.txt:
+        * platform/mac/svg/batik/text/textProperties-expected.txt:
+        * platform/mac/svg/css/clippath-with-shadow-expected.txt:
+        * platform/mac/svg/custom/clip-path-child-changes-expected.txt:
+        * platform/mac/svg/custom/clip-path-display-none-child-expected.txt:
+        * platform/mac/svg/custom/clip-path-href-changes-expected.txt:
+        * platform/mac/svg/custom/clip-path-referencing-use-expected.txt:
+        * platform/mac/svg/custom/clip-path-referencing-use2-expected.txt:
+        * platform/mac/svg/custom/clip-path-units-changes-expected.txt:
+        * platform/mac/svg/custom/clip-path-with-transform-expected.txt:
+        * platform/mac/svg/custom/empty-clip-path-expected.txt:
+        * platform/mac/svg/custom/focus-ring-expected.txt:
+        * platform/mac/svg/custom/image-with-transform-clip-filter-expected.txt:
+        * platform/mac/svg/custom/invalid-css-expected.txt:
+        * platform/mac/svg/custom/js-late-clipPath-and-object-creation-expected.txt:
+        * platform/mac/svg/custom/js-late-clipPath-creation-expected.txt:
+        * platform/mac/svg/custom/recursive-clippath-expected.txt:
+        * platform/mac/svg/custom/resource-invalidate-on-target-update-expected.txt:
+        * platform/mac/svg/custom/text-clip-expected.txt:
+        * platform/mac/svg/custom/visibility-override-clip-expected.txt:
+        * platform/mac/svg/filters/filter-clip-expected.txt:
+        * svg/custom/use-clipped-transform-expected.txt:
+
+2010-01-13  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Not reviewed. Remove six old tiger specific results, that are equal to the SL baseline now. Update one result, showing a marginal difference between Tiger/SL.
+        This is a follow-up commit for Dirks strokeBoundingBox() fixes -> should turn Tiger slave green again.
+
+        * platform/mac-tiger/svg/W3C-SVG-1.1/animate-elem-06-t-expected.checksum: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/animate-elem-06-t-expected.png: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/animate-elem-06-t-expected.txt: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/animate-elem-07-t-expected.checksum: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/animate-elem-07-t-expected.png: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/animate-elem-07-t-expected.txt: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/metadata-example-01-b-expected.txt:
+        * platform/mac-tiger/svg/W3C-SVG-1.1/paths-data-01-t-expected.checksum: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/paths-data-01-t-expected.png: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/paths-data-01-t-expected.txt: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/text-path-01-b-expected.checksum: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/text-path-01-b-expected.png: Removed.
+        * platform/mac-tiger/svg/W3C-SVG-1.1/text-path-01-b-expected.txt: Removed.
+        * platform/mac-tiger/svg/custom/control-points-for-S-and-T-expected.checksum: Removed.
+        * platform/mac-tiger/svg/custom/control-points-for-S-and-T-expected.png: Removed.
+        * platform/mac-tiger/svg/custom/control-points-for-S-and-T-expected.txt: Removed.
+        * platform/mac-tiger/svg/text/text-path-01-b-expected.checksum: Removed.
+        * platform/mac-tiger/svg/text/text-path-01-b-expected.png: Removed.
+        * platform/mac-tiger/svg/text/text-path-01-b-expected.txt: Removed.
+
+2010-01-13  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Oliver Hunt.
+
+        Window size changes are not propagated down the render tree
+        https://bugs.webkit.org/show_bug.cgi?id=33643
+
+        Add svg/custom/relative-sized-content.xhtml, verifying that we're reacting on window size changes.
+        Testcase realized by putting svg content in an absolute sized <div> and resizing that dynamically.
+        The same code path is used when propagating window size changes - we can not test that directly.
+
+        * platform/mac/svg/custom/relative-sized-content-expected.checksum: Added.
+        * platform/mac/svg/custom/relative-sized-content-expected.png: Added.
+        * platform/mac/svg/custom/relative-sized-content-expected.txt: Added.
+        * svg/custom/relative-sized-content.xhtml: Added.
+        * svg/custom/use-clipped-hit.svg: Small change to avoid a timing dependency.
+
+2010-01-13  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Unreviewed.
+
+        Enable websocket/tests/workers/worker-simple.html again.
+
+        * platform/mac/Skipped: rm websocket/tests/workers/worker-simple.html
+
+2010-01-13  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33641
+        Assertion failure in Lexer.cpp if input stream ends while in string escape
+
+        * fast/js/end-in-string-escape-expected.txt: Added.
+        * fast/js/end-in-string-escape.html: Added.
+        * fast/js/script-tests/end-in-string-escape.js: Added.
+
+2010-01-13  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: selected, selectable, extended selectable, and multiple
+        selectable states are not reported
+
+        https://bugs.webkit.org/show_bug.cgi?id=33574
+        <rdar://problem/7536826>
+
+        Reviewed by Darin Adler.
+
+        * accessibility/selection-states-expected.txt: Added.
+
+        * accessibility/selection-states.html: Added.
+
+        * platform/gtk/Skipped:
+        Add new test to skipped list due to stubbed AccessibilityUIElement
+        functions.
+
+        * platform/mac/Skipped:
+        Ditto.
+
+2010-01-13  Dumitru Daniliuc  <dumi@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Cleaning up quota-tracking.html. Removing trailing whitespaces and
+        fixing the errorFunction() to work correctly with both
+        transaction() and executeSql().
+
+        https://bugs.webkit.org/show_bug.cgi?id=33628
+
+        * storage/quota-tracking.html:
+
+2010-01-13  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Beth Dakin.
+
+        Repaint bug dragging a star shape with a dash stroke
+        https://bugs.webkit.org/show_bug.cgi?id=33406
+
+        Calculation of repaint rects for RenderPath objects was fixed. We take the
+        union of strokeBoundingBox and objectBoundingBox. Since DRT results depend
+        on the repaint rect, many results needed an update.
+        Added a new test, that makes the wrong calculation visible.
+            * js-repaint-rect-on-path-with-stroke.svg
+
+        * platform/mac/fast/repaint/moving-shadow-on-container-expected.checksum
+        * platform/mac/fast/repaint/moving-shadow-on-container-expected.txt
+        * platform/mac/fast/repaint/moving-shadow-on-path-expected.checksum
+        * platform/mac/fast/repaint/moving-shadow-on-path-expected.txt
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-06-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-07-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-08-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-83-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/metadata-example-01-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/paths-data-01-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/paths-data-02-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/paths-data-03-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/paths-data-12-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/text-path-01-b-expected.txt:
+        * platform/mac/svg/batik/text/textGlyphOrientationHorizontal-expected.txt:
+        * platform/mac/svg/batik/text/textOnPath-expected.txt:
+        * platform/mac/svg/batik/text/textOnPathSpaces-expected.txt:
+        * platform/mac/svg/batik/text/verticalText-expected.txt:
+        * platform/mac/svg/batik/text/verticalTextOnPath-expected.txt:
+        * platform/mac/svg/css/composite-shadow-example-expected.txt:
+        * platform/mac/svg/css/composite-shadow-with-opacity-expected.txt:
+        * platform/mac/svg/custom/animate-path-morphing-expected.txt:
+        * platform/mac/svg/custom/control-points-for-S-and-T-expected.txt:
+        * platform/mac/svg/custom/dasharrayOrigin-expected.txt:
+        * platform/mac/svg/custom/js-repaint-rect-on-path-with-stroke-expected.checksum: Added.
+        * platform/mac/svg/custom/js-repaint-rect-on-path-with-stroke-expected.png: Added.
+        * platform/mac/svg/custom/js-repaint-rect-on-path-with-stroke-expected.txt: Added.
+        * platform/mac/svg/custom/path-textPath-simulation-expected.txt:
+        * platform/mac/svg/text/text-path-01-b-expected.txt:
+        * svg/custom/js-repaint-rect-on-path-with-stroke.svg: Added.
+
+2010-01-13  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Adam Roben.
+
+        REGRESSION (r49268): DHTML drag not allowed unless event.dataTransfer.effectAllowed 
+        is set (differs from HTML5).
+        Fixes <https://bugs.webkit.org/show_bug.cgi?id=33607> and <rdar://7507114>.
+        
+        Updated the drag and drop test to test if effectAllowed isn't set, in addition
+        to its other tests.
+
+        * fast/events/drag-and-drop-expected.txt:
+        * fast/events/drag-and-drop.html:
+
+2010-01-13  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Beth Dakin.
+
+        This tests don't pass on Leopard but on Snow Leopard with tolereance of 0.
+        Created Leopard specific pixel test results since they do not fail.
+
+        * platform/mac-leopard/svg/css: Added.
+        * platform/mac-leopard/svg/css/composite-shadow-example-expected.checksum: Added.
+        * platform/mac-leopard/svg/css/composite-shadow-example-expected.png: Added.
+        * platform/mac-leopard/svg/css/group-with-shadow-expected.checksum: Added.
+        * platform/mac-leopard/svg/css/group-with-shadow-expected.png: Added.
+
+2010-01-13  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Beth Dakin.
+
+        Add tests to check filter, mask, clip, opacity and marker ordering
+        https://bugs.webkit.org/show_bug.cgi?id=14010
+
+        This is a follow up. The order of filter and clipping was changes in bug 14010
+        according to the Spec. Forgot to update this test.
+
+        * platform/mac/svg/custom/image-with-transform-clip-filter-expected.checksum:
+        * platform/mac/svg/custom/image-with-transform-clip-filter-expected.png:
+
+2010-01-13  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Beth Dakin.
+
+        Speed-up SVG Masking
+        https://bugs.webkit.org/show_bug.cgi?id=32738
+
+        This is a followup. The way how masks are created changed and caused
+        some results to update. Forgot to update this one.
+
+        * platform/mac/svg/custom/grayscale-gradient-mask-expected.checksum:
+        * platform/mac/svg/custom/grayscale-gradient-mask-expected.png:
+
+2010-01-13  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Unreviewed.
+
+        Add websocket/tests/workers/worker-simple.html, because it starts
+        crash after r53174
+
+        * platform/mac/Skipped: Add websocket/tests/workers/worker-simple.html
+
+2010-01-12  Fumitoshi Ukai  <ukai@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Add a test of WebSockets for shared workers
+        https://bugs.webkit.org/show_bug.cgi?id=33285
+
+        * websocket/tests/workers/resources/worker-simple.js:
+        * websocket/tests/workers/shared-worker-simple-expected.txt: Added.
+        * websocket/tests/workers/shared-worker-simple.html: Added.
+
+2010-01-12  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        position:fixed and transform on same element breaks fixed behavior
+        https://bugs.webkit.org/show_bug.cgi?id=31283
+
+        Test for transforms combined with fixed positioning.
+
+        * platform/mac/transforms/2d/transform-fixed-container-expected.checksum: Added.
+        * platform/mac/transforms/2d/transform-fixed-container-expected.png: Added.
+        * platform/mac/transforms/2d/transform-fixed-container-expected.txt: Added.
+        * transforms/2d/transform-fixed-container.html: Added.
+
+2010-01-12  Dumitru Daniliuc  <dumi@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Replacing RANDOMBLOB with ZEROBLOB, as RANDOMBLOB will soon be
+        disallowed by the authorizer.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33396
+
+        * storage/quota-tracking.html:
+
+2010-01-12  Kent Hansen  <kent.hansen@nokia.com>
+
+        Reviewed by Geoffrey Garen.
+
+        [ES5] Implement Object.getOwnPropertyNames
+        https://bugs.webkit.org/show_bug.cgi?id=32242
+
+        Add tests for Object.getOwnPropertyNames(o), both standard usage and cross origin.
+
+        * fast/js/Object-getOwnPropertyNames-expected.txt: Added.
+        * fast/js/Object-getOwnPropertyNames.html: Added.
+        * fast/js/script-tests/Object-getOwnPropertyNames.js: Added.
+        * http/tests/security/cross-frame-access-enumeration-expected.txt:
+        * http/tests/security/cross-frame-access-enumeration.html:
+
+2010-01-12  Brian Weinstein  <bweinstein@apple.com>
+
+        Add correct expected results after r53168 for GTK and Qt.
+
+        * platform/gtk/fast/block: Added.
+        * platform/gtk/fast/block/positioning: Added.
+        * platform/gtk/fast/block/positioning/absolute-positioning-no-scrollbar-expected.txt: Added.
+        * platform/qt/fast/block/positioning/absolute-positioning-no-scrollbar-expected.txt: Added.
+
+2010-01-12  Brian Weinstein  <bweinstein@apple.com>
+
+        Reviewed by Dave Hyatt.
+
+        Safari shows an unneeded horizontal scrollbar on many websites.
+        Fixes <rdar://6321041> and <http://webkit.org/b/33555>.
+        
+        Added a test that shows no scrollbar in the case where a div has no children
+        and either a width or height of 0. Also updated results for a few tests which
+        this patch causes progressions for.
+
+        * fast/block/positioning/absolute-positioning-no-scrollbar-expected.txt: Added.
+        * fast/block/positioning/absolute-positioning-no-scrollbar.html: Added.
+        * fast/block/positioning/fixed-positioning-scrollbar-bug.html:
+        * platform/mac/fast/backgrounds/repeat/negative-offset-repeat-transformed-expected.txt:
+        * platform/mac/fast/block/positioning/fixed-positioning-scrollbar-bug-expected.txt:
+
+2010-01-12  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Test for https://bugs.webkit.org/show_bug.cgi?id=33550 REGRESSION: 
+        -webkit-svg-shadow with opacity still over-clipped
+
+        * platform/mac/svg/css/shadow-and-opacity-expected.checksum: Added.
+        * platform/mac/svg/css/shadow-and-opacity-expected.png: Added.
+        * platform/mac/svg/css/shadow-and-opacity-expected.txt: Added.
+        * svg/css/shadow-and-opacity.svg: Added.
+
+2010-01-11  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Accessibility role of <select multiple> elements is wrong
+
+        https://bugs.webkit.org/show_bug.cgi?id=33522
+
+        Reviewed by Darin Adler.
+
+        * platform/win/accessibility/multiple-select-element-role-expected.txt: Added.
+        * platform/win/accessibility/multiple-select-element-role.html: Added.
+
+2010-01-12  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Nikolas Zimmermann.
+
+        Updated results for these tests which just have rounding errors.
+
+        * platform/mac/svg/css/composite-shadow-example-expected.checksum:
+        * platform/mac/svg/css/composite-shadow-example-expected.png:
+        * platform/mac/svg/css/mask-with-shadow-expected.checksum:
+        * platform/mac/svg/css/mask-with-shadow-expected.png:
+
+2010-01-12  Beth Dakin  <bdakin@apple.com>
+
+        This patch changes the name of -webkit-shadow to -webkit-svg-shadow 
+        to avoid giving a custom property an overly-general name.
+        <rdar://problem/7534590>
+
+        * fast/repaint/moving-shadow-on-container.html:
+        * fast/repaint/moving-shadow-on-path.html:
+        * platform/gtk/svg/css/getComputedStyle-basic-expected.txt:
+        * platform/mac/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/mac/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-expected.txt:
+        * platform/win/fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * svg/css/arrow-with-shadow.svg:
+        * svg/css/circle-in-mask-with-shadow.svg:
+        * svg/css/clippath-with-shadow.svg:
+        * svg/css/composite-shadow-example.html:
+        * svg/css/composite-shadow-with-opacity.html:
+        * svg/css/getComputedStyle-basic-expected.txt:
+        * svg/css/group-with-shadow.svg:
+        * svg/css/mask-with-shadow.svg:
+        * svg/css/path-with-shadow.svg:
+        * svg/css/shadow-with-large-radius.svg:
+        * svg/css/shadow-with-negative-offset.svg:
+        * svg/css/stars-with-shadow.html:
+        * svg/filters/shadow-on-filter.svg:
+        * svg/filters/shadow-on-rect-with-filter.svg:
+
+2010-01-12  Eric Carlson  <eric.carlson@apple.com>
+
+        Unreviewed, build fix.
+
+        Add media/video-poster-scale.html to GTK skipped list, it needs platform specific 
+        results (https://bugs.webkit.org/show_bug.cgi?id=33541). Fix test results on
+        OSX and Windows.
+
+        * media/video-poster-scale-expected.txt:
+        * media/video-poster-scale.html:
+        * platform/gtk/Skipped:
+
+2010-01-12  Eric Carlson  <eric.carlson@apple.com>
+
+        Unreviewed, build fix.
+
+        Update test and results after r53146.
+
+        * http/tests/security/local-video-poster-from-remote-expected.txt:
+        * http/tests/security/local-video-poster-from-remote.html:
+
+2010-01-12  Philippe Normand  <pnormand@igalia.com>
+
+        Rubber-stamped by Gustavo Noronha Silva.
+
+        [GTK] Failing media/video-seek-past-end-playing.html
+        https://bugs.webkit.org/show_bug.cgi?id=33015
+
+        * platform/gtk/Skipped: Skipping the test again, we need to kill
+        its last timer.
+
+2010-01-12  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Eric Carlson.
+
+        [GTK] Failing media/video-seek-past-end-playing.html
+        https://bugs.webkit.org/show_bug.cgi?id=33015
+
+        Listen on timeupdate event instead of waiting a fixed amount of
+        time, which is prone to test flackyness.
+
+        * media/audio-mpeg-supported.html:
+        * media/video-seek-past-end-playing.html:
+        * platform/gtk/Skipped:
+
+2010-01-12  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Darin Adler and Simon Fraser.
+
+        rdar://problem/5684062
+        https://bugs.webkit.org/show_bug.cgi?id=23094
+        Flash of white when switching from poster image to video playback
+        
+        https://bugs.webkit.org/show_bug.cgi?id=23140
+        <video> poster should scale like a video frame
+
+        * media/video-poster-expected.txt: Remove blank line at beginning of test result present
+        as a side effect of the media element using RenderImage to display the poster.
+        * media/video-poster-scale.html: New.
+        * media/video-poster-scale-expected.txt: New.
+
+2010-01-12  Tony Chang  <tony@chromium.org>
+
+        Reviewed by Maciej Stachowiak.
+
+        Add a test for a Chromium crash when loading multipart/x-mixed-replace
+        data.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31446
+
+        * http/tests/multipart/multipart-wait-before-boundary-expected.txt: Added.
+        * http/tests/multipart/multipart-wait-before-boundary.html: Added.
+        * http/tests/multipart/resources/multipart-wait-before-boundary.php: Added.
+
+2010-01-12  Petri Latvala  <petri.latvala@nomovok.com>
+
+        Reviewed by Antti Koivisto.
+
+        fast/events/touch-coords-in-zoom-and-scroll-pretty-diff.html failed on buildbot
+        https://bugs.webkit.org/show_bug.cgi?id=33465
+
+        A touchmove event is not dispatched if none of the touch points actually moved.
+        Changed the test to use touchstart instead.
+
+        * fast/events/touch/touch-coords-in-zoom-and-scroll.html:
+        * platform/qt/Skipped:
+
+2010-01-12  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        [GTK] Threading problems with some of the tests
+        https://bugs.webkit.org/show_bug.cgi?id=30814
+
+        Skip another test which is hitting the SQLiteDatabase::sqliteHandle() threading ASSERT.
+
+        * platform/gtk/Skipped:
+
+2010-01-12  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Reviewed by Simon Hausmann.
+
+        Touch event layout tests should be in their own subdirectory, so that they can be easily skipped
+        https://bugs.webkit.org/show_bug.cgi?id=33526
+
+        Tests moved from fast/events to fast/events/touch by r53125,
+        relative resource paths should be adjuted to the new location.
+
+        * fast/events/touch/basic-touch-events.html: relative paths fixed.
+        * fast/events/touch/touch-coords-in-zoom-and-scroll.html: relative paths fixed.
+
+2010-01-12  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Simon Fraser.
+
+        media/video-error-does-not-exist.html failed on Snow Leopard Release Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33434
+
+        Add another media test to the skipped list.
+        I expect these are all timing out for the same reason.
+        We just don't know the reason yet.
+
+        * platform/mac-snowleopard/Skipped:
+
+2010-01-12  Jakub Wieczorek  <faw217@gmail.com>
+
+        Reviewed by Adam Barth.
+
+        [Qt] XSL stylesheets can load documents from a different origin
+
+        https://bugs.webkit.org/show_bug.cgi?id=33423
+
+        Add two expected results for Qt:
+        QXmlQuery has a different behaviour with regard to loading failures
+        comparing to libxslt.
+
+        * platform/qt/http/tests/security/xss-DENIED-xsl-document-expected.txt:
+        * platform/qt/http/tests/security/xss-DENIED-xsl-document-redirect-expected.txt:
+
+2010-01-12  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Adam Barth.
+
+        Touch event layout tests should be in their own subdirectory, so that they can be easily skipped
+        https://bugs.webkit.org/show_bug.cgi?id=33526
+
+        * fast/events/touch/basic-touch-events-expected.txt: Renamed from LayoutTests/fast/events/basic-touch-events-expected.txt.
+        * fast/events/touch/basic-touch-events.html: Renamed from LayoutTests/fast/events/basic-touch-events.html.
+        * fast/events/touch/touch-coords-in-zoom-and-scroll-expected.txt: Renamed from LayoutTests/fast/events/touch-coords-in-zoom-and-scroll-expected.txt.
+        * fast/events/touch/touch-coords-in-zoom-and-scroll.html: Renamed from LayoutTests/fast/events/touch-coords-in-zoom-and-scroll.html.
+        * platform/gtk/Skipped:
+        * platform/mac/Skipped:
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+
+2010-01-11  Kent Tamura  <tkent@chromium.org>
+
+        Unreviewd. Remove a duplicated line in an expectation file.
+
+        * platform/mac-leopard/fast/text/find-kana-expected.txt:
+
+2010-01-11  Darin Adler  <darin@apple.com>
+
+        Try to get find-kana tests passing on Qt, Leopard, and Tiger.
+
+        * platform/mac-leopard/fast/text/find-kana-expected.txt: Expect more failures.
+        * platform/qt/fast/text/find-kana-expected.txt: Ditto.
+
+2010-01-11  Darin Adler  <darin@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        Fix handling of unusual kana sequences in search
+        https://bugs.webkit.org/show_bug.cgi?id=33506
+
+        * fast/text/find-kana-expected.txt: Updated.
+        * fast/text/script-tests/find-kana.js: Added new tests for sequences
+        that do not have composed equivalents. This is needed to test the code
+        that compares voice marks. The old test cases didn't cover the combining
+        character code path because normalizing to NFC combined all the sequences.
+        * platform/mac-leopard/fast/text/find-kana-expected.txt: Updated.
+        * platform/qt/fast/text/find-kana-expected.txt: Updated.
+
+2010-01-11  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Kevin Decker.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33455
+        Allows plugins to participate in accelerated compositing
+        
+        Change the testcase to make the embeds position: relative so that the behavior
+        of the test is not affected by whether WebCore decides to put plugins into
+        RenderLayers.
+
+        * platform/mac/plugins/embed-attributes-style-expected.checksum:
+        * platform/mac/plugins/embed-attributes-style-expected.png:
+        * platform/mac/plugins/embed-attributes-style-expected.txt:
+        * plugins/embed-attributes-style.html:
+
+2010-01-11  Dirk Schulze  <krit@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        SVG radialGradient example radial-gradient-with-outstanding-focalPoint.svg fails
+        https://bugs.webkit.org/show_bug.cgi?id=32201
+
+        * platform/mac/svg/W3C-SVG-1.1/pservers-grad-13-b-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/pservers-grad-13-b-expected.png:
+        * platform/mac/svg/custom/radial-gradient-with-outstanding-focalPoint-expected.checksum:
+        * platform/mac/svg/custom/radial-gradient-with-outstanding-focalPoint-expected.png:
+
+2010-01-11  Beth Dakin  <bdakin@apple.com>
+
+        Reviewed by Oliver Hunt.
+        
+        New tests for https://bugs.webkit.org/show_bug.cgi?id=33491 
+        REGRESSION: Many SVG -webkit-shadow tests are currently failing (in 
+        the pixel tests)
+        -and-
+        <rdar://problem/7501200>
+
+        I would like to note that this change fixes some existing layout 
+        tests as well.
+
+        * platform/mac/svg/css/shadow-with-large-radius-expected.checksum: Added.
+        * platform/mac/svg/css/shadow-with-large-radius-expected.png: Added.
+        * platform/mac/svg/css/shadow-with-large-radius-expected.txt: Added.
+        * platform/mac/svg/css/shadow-with-negative-offset-expected.checksum: Added.
+        * platform/mac/svg/css/shadow-with-negative-offset-expected.png: Added.
+        * platform/mac/svg/css/shadow-with-negative-offset-expected.txt: Added.
+        * platform/mac/svg/css/stars-with-shadow-expected.checksum:
+        * platform/mac/svg/css/stars-with-shadow-expected.png:
+        * svg/css/shadow-with-large-radius.svg: Added.
+        * svg/css/shadow-with-negative-offset.svg: Added.
+
+
+2010-01-11  Eric Seidel  <eric@webkit.org>
+
+        Rubber-stamped by Csaba Osztrogonac.
+
+        Web Inspector: External resource relative URLs cannot be navigated to from the Elements panel
+        https://bugs.webkit.org/show_bug.cgi?id=33024
+
+        * platform/qt/Skipped: Skip this new test, Qt's DRT doesn't support evaluateInWebInspector()
+
+2010-01-11  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Eric Seidel.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33411
+        
+        Missing updated test result for gtk.
+
+        * platform/gtk/editing/deleting/5115601-expected.txt:
+
+2010-01-11  Alexander Pavlov  <apavlov@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Rewrite relative URLs in the ElementsTreeOutline to make them navigable
+
+        Targets for "src" and "href" attribute values in the Elements outline tree
+        are rewritten to full URLs whenever possible.
+        https://bugs.webkit.org/show_bug.cgi?id=33024
+
+        * inspector/elements-panel-rewrite-href-expected.txt: Added.
+        * inspector/elements-panel-rewrite-href.html: Added.
+
+2010-01-11  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed trivial fix.
+
+        fast/text/international/japanese-kana-letters.html 
+        removed by r53078, so it should be removed from skiplist.
+
+        * platform/qt/Skipped: fast/text/international/japanese-kana-letters.html removed.
+
+2010-01-11  Ojan Vafai  <ojan@chromium.org>
+
+        Reviewed by Simon Fraser.
+
+        Deflake transitions and animations tests.
+        https://bugs.webkit.org/show_bug.cgi?id=30029
+        
+        The transition-end-event tests all had arbitrary timeouts. Give a consistent
+        timeout to all of them. Give a generous 1 second of buffer to avoid any possibility
+        of flakiness. If all the transitionEnd events fire before then, the test still
+        completes without waiting for the timeout.
+
+        * animations/change-keyframes.html:
+        Increase the wiggle room. It's infrequently flaky now, but it is still
+        a tad bit flaky without this extra wiggle room.
+        * transitions/repeated-firing-background-color.html:
+        Remove a gratuitous setTimeout.
+        * transitions/transition-end-event-all-properties.html:
+        * transitions/transition-end-event-attributes.html:
+        * transitions/transition-end-event-container.html:
+        * transitions/transition-end-event-helpers.js:
+        (runTransitionTest.startTest):
+        (runTransitionTest):
+        * transitions/transition-end-event-left.html:
+        * transitions/transition-end-event-multiple-01.html:
+        * transitions/transition-end-event-multiple-02.html:
+        * transitions/transition-end-event-multiple-03.html:
+        * transitions/transition-end-event-multiple-04.html:
+        * transitions/transition-end-event-nested.html:
+        * transitions/transition-end-event-set-none.html:
+        * transitions/transition-end-event-transform.html:
+        * transitions/transition-end-event-window.html:
+        * transitions/zero-duration-with-non-zero-delay-end.html:
+
+2010-01-11  Darin Adler  <darin@apple.com>
+
+        Try to get find-kana and find-russian tests passing on Qt.
+
+        * platform/qt/fast/text/find-kana-expected.txt: Copied from fast/text/find-kana-expected.txt.
+        * platform/qt/fast/text/find-russian-expected.txt: Copied from fast/text/find-russian-expected.txt.
+        Changed to expect failures because text searching does not use
+        ICU's usearch on this platform, and the non-usearch code is much
+        less capable.
+
+2010-01-11  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33482
+        Add a test for Russian text search
+
+        * fast/text/find-russian-expected.txt: Added.
+        * fast/text/find-russian.html: Added.
+        * fast/text/script-tests/find-russian.js: Added.
+
+2010-01-11  Darin Adler  <darin@apple.com>
+
+        Try to get find-kana test passing on Tiger and Leopard.
+
+        * platform/mac-leopard/fast/text/find-kana-expected.txt: Copied from fast/text/find-kana-expected.txt.
+        Changed to expect failures due to an older version of ICU on those platforms.
+
+2010-01-11  Brian Weinstein  <bweinstein@apple.com>
+
+        Updated Windows expected results after r53085.
+
+        * platform/win/editing/selection/mixed-editability-10-expected.txt:
+
+2010-01-11  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Reviewed by Adam Roben & Dirk Schulze.
+
+        svg <text> fails to update when setting x/y
+        https://bugs.webkit.org/show_bug.cgi?id=22384
+
+        Add simple tests covering SVGLengthList & SVGNumberList updates.
+
+        * platform/mac/svg/custom/text-xy-updates-SVGList-expected.checksum: Added.
+        * platform/mac/svg/custom/text-xy-updates-SVGList-expected.png: Added.
+        * platform/mac/svg/custom/text-xy-updates-SVGList-expected.txt: Added.
+        * svg/custom/text-xy-updates-SVGList.xhtml: Added.
+        * svg/dynamic-updates/SVGTextElement-svgdom-rotate-prop-expected.txt: Added.
+        * svg/dynamic-updates/SVGTextElement-svgdom-rotate-prop.html: Added.
+        * svg/dynamic-updates/script-tests/SVGTextElement-svgdom-rotate-prop.js: Added.
+        (executeTest):
+
+2010-01-08  Enrica Casucci  <enrica@apple.com>
+
+        Reviewed by Darin Adler.
+
+        Cannot focus on an empty editable span in a non editable div.
+        https://bugs.webkit.org/show_bug.cgi?id=33411
+        <rdar://problem/5982901>
+
+        * editing/deleting/6026335-expected.txt: Updated to reflect the lack of extra break element.
+        * editing/selection/mixed-editability-10-expected.txt: Updated to cover the new case.
+        * editing/selection/mixed-editability-10.html: Updated to cover the new case.
+        * platform/mac/editing/deleting/5115601-expected.txt: Updated to reflect the lack of extra break element.
+
+2010-01-08  Nate Chapin  <japhet@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Test that document.referrer is properly preserved through a redirect.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33407
+
+        * http/tests/navigation/redirect-preserves-referrer-expected.txt: Added.
+        * http/tests/navigation/redirect-preserves-referrer.html: Added.
+        * http/tests/navigation/resources/redirect-to-referrer-check.pl: Added.
+        * http/tests/navigation/resources/referrer.html: Added.
+
+2010-01-10  Darin Adler  <darin@apple.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        REGRESSION: Japanese text search ignores small vs. large and voicing mark differences
+        https://bugs.webkit.org/show_bug.cgi?id=30437
+        rdar://problem/7214058
+
+        * fast/text/international/japanese-kana-letters-expected.txt: Removed.
+        * fast/text/international/japanese-kana-letters.html: Removed.
+
+        * fast/text/find-kana-expected.txt: Added.
+        * fast/text/find-kana.html: Added.
+        * fast/text/script-tests/find-kana.js: Added.
+        This includes all the tests that were in the old test removed above, with three
+        differences:
+            1) Moved out of "international" directory because Mitz wants to phase that
+               directory out.
+            2) Added more tests to cover more cases involving things like decomposed
+               characters and different voice marks.
+            3) Used script-tests, so results list passing tests as well as failing tests.
+        We could still test even more, but this should at least cover all the lines of
+        code in the current bug fix patch.
+
+2010-01-11  Andras Becsi  <abecsi@inf.u-szeged.hu>
+
+        Rubber-stamped by Holger Hans Peter Freyther.
+
+        [Qt] Add expected files for the following passing new tests.
+        Compared to the mac expected files these only differ in svg dumping style and font metrics.
+
+        * platform/qt/fast/repaint/block-no-inflow-children-expected.txt: Added.
+        * platform/qt/fast/repaint/subtree-layoutstate-transform-expected.txt: Added.
+        * platform/qt/svg/custom/marker-referencePoint-expected.txt: Added.
+        * platform/qt/svg/custom/marker-strokeWidth-changes-expected.txt: Added.
+        * platform/qt/svg/text/selection-background-color-expected.txt: Added.
+
+2010-01-11  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed typo fix.
+
+        * platform/qt/Skipped:
+
+2010-01-11  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Rubber-stamped by Simon Hausmann.
+
+        [Qt] fast/events/touch-coords-in-zoom-and-scroll.html fails on buildbot
+        https://bugs.webkit.org/show_bug.cgi?id=33465
+
+        * platform/qt/Skipped: fast/events/touch-coords-in-zoom-and-scroll.html skipped.
+
+2010-01-11  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Rubber-stamped by Dirk Schulze.
+
+        Update SVG test baseline, after the SVG text painting changes, a while ago.
+        The differences are all below <0.1%, and only show up when running with --tolerance 0.
+
+        * platform/mac/svg/W3C-SVG-1.1/text-deco-01-b-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/text-deco-01-b-expected.png:
+        * platform/mac/svg/W3C-SVG-1.1/text-path-01-b-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/text-path-01-b-expected.png:
+        * platform/mac/svg/W3C-SVG-1.1/text-text-03-b-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/text-text-03-b-expected.png:
+        * platform/mac/svg/W3C-SVG-1.1/text-text-07-t-expected.checksum:
+        * platform/mac/svg/W3C-SVG-1.1/text-text-07-t-expected.png:
+        * platform/mac/svg/batik/text/textDecoration2-expected.checksum:
+        * platform/mac/svg/batik/text/textDecoration2-expected.png:
+        * platform/mac/svg/batik/text/textEffect3-expected.checksum:
+        * platform/mac/svg/batik/text/textEffect3-expected.png:
+        * platform/mac/svg/batik/text/textFeatures-expected.checksum:
+        * platform/mac/svg/batik/text/textFeatures-expected.png:
+        * platform/mac/svg/batik/text/textGlyphOrientationHorizontal-expected.checksum:
+        * platform/mac/svg/batik/text/textGlyphOrientationHorizontal-expected.png:
+        * platform/mac/svg/batik/text/textOnPathSpaces-expected.checksum:
+        * platform/mac/svg/batik/text/textOnPathSpaces-expected.png:
+        * platform/mac/svg/batik/text/textProperties-expected.checksum:
+        * platform/mac/svg/batik/text/textProperties-expected.png:
+        * platform/mac/svg/batik/text/textStyles-expected.checksum:
+        * platform/mac/svg/batik/text/textStyles-expected.png:
+        * platform/mac/svg/batik/text/verticalText-expected.checksum:
+        * platform/mac/svg/batik/text/verticalText-expected.png:
+        * platform/mac/svg/batik/text/verticalTextOnPath-expected.checksum:
+        * platform/mac/svg/batik/text/verticalTextOnPath-expected.png:
+        * platform/mac/svg/text/selection-background-color-expected.checksum:
+        * platform/mac/svg/text/selection-background-color-expected.png:
+        * platform/mac/svg/text/text-align-04-b-expected.checksum:
+        * platform/mac/svg/text/text-align-04-b-expected.png:
+        * platform/mac/svg/text/text-deco-01-b-expected.checksum:
+        * platform/mac/svg/text/text-deco-01-b-expected.png:
+        * platform/mac/svg/text/text-path-01-b-expected.checksum:
+        * platform/mac/svg/text/text-path-01-b-expected.png:
+        * platform/mac/svg/text/text-text-01-b-expected.checksum:
+        * platform/mac/svg/text/text-text-01-b-expected.png:
+        * platform/mac/svg/text/text-text-03-b-expected.checksum:
+        * platform/mac/svg/text/text-text-03-b-expected.png:
+        * platform/mac/svg/text/text-text-04-t-expected.checksum:
+        * platform/mac/svg/text/text-text-04-t-expected.png:
+        * platform/mac/svg/text/text-text-07-t-expected.checksum:
+        * platform/mac/svg/text/text-text-07-t-expected.png:
+        * platform/mac/svg/text/text-text-08-b-expected.checksum:
+        * platform/mac/svg/text/text-text-08-b-expected.png:
+
+2010-01-11  Kim Grönholm  <kim.gronholm@nomovok.com>
+
+        Reviewed by Antti Koivisto.
+
+        Touchevent coordinates are incorrect after page zoom and page scroll
+        https://bugs.webkit.org/show_bug.cgi?id=32899
+
+        * fast/events/touch-coords-in-zoom-and-scroll-expected.txt: Added.
+        * fast/events/touch-coords-in-zoom-and-scroll.html: Added.
+        * platform/gtk/Skipped:
+        * platform/mac/Skipped:
+        * platform/win/Skipped:
+
+2010-01-11  Tony Chang  <tony@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Have "Paste and Match Style" fire the dom paste event.
+        https://bugs.webkit.org/show_bug.cgi?id=30639
+
+        * editing/execCommand/paste-and-match-style-event.html: Added.
+
+2010-01-10  Daniel Bates  <dbates@webkit.org>
+
+        Unreviewed, fix typo.
+        
+        Fixed typo in test LayoutTests/fast/events/frame-programmatic-focus.html.
+        The word "frame" should be "iframe" in the string "<input> in frame blurred"
+        based on the context of the test. In particular, the line "<input> in iframe focused"
+        and the use of an iframe in the test.
+
+        * fast/events/frame-programmatic-focus-expected.txt: 
+        * fast/events/frame-programmatic-focus.html:
+
+2010-01-10  Daniel Bates  <dbates@webkit.org>
+
+        Rubber-stamped by Eric Seidel.
+
+        Adding XSSAuditor test http/tests/security/xssAuditor/malformed-HTML.html
+        to the Qt Skipped file as it times out. We need to look into test further.
+        See bug #33460 for more details.
+
+        * platform/qt/Skipped:
+
+2010-01-10  Kent Hansen  <kent.hansen@nokia.com>
+
+        Reviewed by Darin Adler.
+
+        RegExp.prototype.toString returns "//" for empty regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=33319
+
+        Add new test cases and adapt existing ones.
+
+        * fast/js/kde/RegExp-expected.txt:
+        * fast/js/kde/script-tests/RegExp.js:
+        * fast/js/regexp-compile-expected.txt:
+        * fast/js/script-tests/regexp-compile.js:
+        * fast/regex/non-pattern-characters-expected.txt:
+
+2010-01-10  Robert Hogan  <robert@roberthogan.net>
+
+        Reviewed by Adam Barth.
+
+        [Qt] Add enableXSSAuditor support to QWebSettings and DRT.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33419
+
+        * platform/qt/Skipped:
+
+2010-01-10  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        http/tests/messaging/cross-domain-message-event-dispatch.html failed on Gtk Linux 64-Bit Debug Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33458
+
+        Fix flakey test.  If the machine is very slow, then more than 10ms
+        might have elapsed between registering the timeout and calling
+        postMessage.  We can't be sure which order they will be called in.
+        Re-ordering the call guarantees the arrival order, even if it reduces
+        our coverage slightly.
+
+        * http/tests/messaging/cross-domain-message-event-dispatch.html:
+
+2010-01-10  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        Add defensive initialization of iframe sandbox flags
+        https://bugs.webkit.org/show_bug.cgi?id=32368
+
+        Test the mutating the allow-same-origin directive in the sandbox
+        attribute does not affect the current document (but does affect the
+        next document).
+
+        * http/tests/security/resources/sandboxed-iframe-origin-add-step1.html: Added.
+        * http/tests/security/resources/sandboxed-iframe-origin-add-step2.html: Added.
+        * http/tests/security/resources/sandboxed-iframe-origin-remove-step1.html: Added.
+        * http/tests/security/resources/sandboxed-iframe-origin-remove-step2.html: Added.
+        * http/tests/security/sandboxed-iframe-origin-add-expected.txt: Added.
+        * http/tests/security/sandboxed-iframe-origin-add.html: Added.
+        * http/tests/security/sandboxed-iframe-origin-remove-expected.txt: Added.
+        * http/tests/security/sandboxed-iframe-origin-remove.html: Added.
+
+2010-01-10  Adam Barth  <abarth@webkit.org>
+
+        Reviewed by Nikolas Zimmermann.
+
+        http/tests/security/xss-DENIED-window-open-javascript-url.html timed out on Windows Debug Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33349
+
+        Previously we were using JavaScript URLs to return to the main event
+        loop, but that is potentially unreliable because there can be only one
+        scheduled redirect in flight per frame.  Let's try using setTimeout
+        instead.  Notice that there isn't a race condition here because the
+        event loop will always dispatch the actions in the proper order.
+
+        * http/tests/security/xss-DENIED-window-open-javascript-url.html:
+
+2010-01-09  Daniel Bates  <dbates@webkit.org>
+
+        No review, rolling out r53044.
+        http://trac.webkit.org/changeset/53044
+        https://bugs.webkit.org/show_bug.cgi?id=33419
+        
+        We need to look into this some more because the Qt
+        bot is failing the XSSAuditor tests. See bug #33419
+        for more details.
+
+        * platform/qt/Skipped:
+
+2010-01-09  Daniel Bates  <dbates@webkit.org>
+
+        No review, rolling out r53045.
+        http://trac.webkit.org/changeset/53045
+        https://bugs.webkit.org/show_bug.cgi?id=33440
+
+        This fix did not resolve the issue. That is, more XSSAuditor tests are
+        failing on the Qt bot. So, we're going ultimately going to rollout the
+        change committed in change set 53044 <http://trac.webkit.org/changeset/53044>,
+        but we need to first rollout the attempted fix committed in change
+        set 53045.
+
+        * platform/qt/Skipped:
+
+2010-01-09  Daniel Bates  <dbates@webkit.org>
+
+        Rubber-stamped by Adam Barth.
+
+        Adds failing XSSAuditor tests to the Qt Skipped file
+        while we come up with a fix for them. See bug #33440
+        for more details.
+
+        * platform/qt/Skipped:
+
+2010-01-09  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33419
+
+        Removes the XSSAuditor tests from the Qt Skipped file since
+        we now can run these tests.
+
+        * platform/qt/Skipped:
+
+2010-01-09  Dan Bernstein  <mitz@apple.com>
+
+        Reviewed by Nikolas Zimmermann.
+
+        <rdar://problem/7525778> Font fallback kills SVG kerning
+        https://bugs.webkit.org/show_bug.cgi?id=33400
+
+        * platform/mac/fast/text/sticky-typesetting-features-expected.checksum: Added.
+        * platform/mac/fast/text/sticky-typesetting-features-expected.png: Added.
+        * platform/mac/fast/text/sticky-typesetting-features-expected.txt: Added.
+        * platform/mac/fast/text/sticky-typesetting-features.html: Added.
+
+2010-01-08  Simon Fraser  <simon.fraser@apple.com>
+
+        No review.
+        
+        Remove layout test that was committed by mistake.
+
+        * compositing/webgl/webgl-blending.html: Removed.
+
+2010-01-08  Simon Fraser  <simon.fraser@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        WebGL canvas paints background color twice
+        https://bugs.webkit.org/show_bug.cgi?id=33361
+        
+        New testcases for various kinds of "directly composited" elements: images, video, WebGL,
+        with background colors.
+
+        * compositing/images/direct-image-background-color.html: Added.
+        * compositing/reflections/simple-composited-reflections.html: Added.
+        * compositing/video/video-background-color.html: Added.
+        * compositing/webgl/webgl-background-color.html: Added.
+        * compositing/webgl/webgl-blending.html: Added.
+        * platform/mac/compositing/images/direct-image-background-color-expected.txt: Added.
+        * platform/mac/compositing/video/video-background-color-expected.txt: Added.
+        * platform/mac/compositing/webgl/webgl-background-color-expected.txt: Added.
+
+2010-01-08  Kenneth Russell  <kbr@google.com>
+
+        Reviewed by Dimitri Glazkov.
+
+        Passing array that is too large to set method of WebGLArrays does not throw an exception
+        https://bugs.webkit.org/show_bug.cgi?id=33352
+
+        Added needed range checks to JSC and V8 custom bindings. Expanded
+        preexisting test suite for WebGLArrays and updated its expected
+        results. Tested in WebKit and Chromium.
+
+        * fast/canvas/webgl/array-set-out-of-bounds-expected.txt: Added.
+        * fast/canvas/webgl/array-set-out-of-bounds.html: Added.
+        * fast/canvas/webgl/array-unit-tests-expected.txt:
+        * fast/canvas/webgl/array-unit-tests.html:
+
+2010-01-08  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        http/tests/xmlhttprequest/logout.html failed on Tiger Bot
+        https://bugs.webkit.org/show_bug.cgi?id=31412
+
+        * platform/mac-tiger/Skipped: After talking with Alexey, we're just gonna skip the failing test on Tiger.
+
+2010-01-08  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Dan Bernstein.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32962
+        HTML tags are wrongfully parsed when setting innerHTML of a SCRIPT element
+
+        * fast/dom/css-innerHTML-expected.txt: Added.
+        * fast/dom/css-innerHTML.html: Added.
+        * fast/dom/script-innerHTML-expected.txt: Added.
+        * fast/dom/script-innerHTML-x-expected.txt: Added.
+        * fast/dom/script-innerHTML-x.xhtml: Added.
+        * fast/dom/script-innerHTML.html: Added.
+
 2010-01-08  Dumitru Daniliuc  <dumi@chromium.org>
 
         Reviewed by Eric Seidel.

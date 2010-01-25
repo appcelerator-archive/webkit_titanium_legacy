@@ -309,7 +309,7 @@ void RenderObject::addChild(RenderObject* newChild, RenderObject* beforeChild)
         // Just add it...
         children->insertChildNode(this, newChild, beforeChild);
     }
-    
+    RenderCounter::rendererSubtreeAttached(newChild);
     if (newChild->isText() && newChild->style()->textTransform() == CAPITALIZE) {
         RefPtr<StringImpl> textToTransform = toRenderText(newChild)->originalText();
         if (textToTransform)
@@ -368,19 +368,14 @@ RenderObject* RenderObject::nextInPreOrderAfterChildren(RenderObject* stayWithin
     if (this == stayWithin)
         return 0;
 
-    RenderObject* o;
-    if (!(o = nextSibling())) {
-        o = parent();
-        while (o && !o->nextSibling()) {
-            if (o == stayWithin)
-                return 0;
-            o = o->parent();
-        }
-        if (o)
-            o = o->nextSibling();
+    const RenderObject* current = this;
+    RenderObject* next;
+    while (!(next = current->nextSibling())) {
+        current = current->parent();
+        if (!current || current == stayWithin)
+            return 0;
     }
-
-    return o;
+    return next;
 }
 
 RenderObject* RenderObject::previousInPreOrder() const
@@ -1652,21 +1647,48 @@ void RenderObject::styleWillChange(StyleDifference diff, const RenderStyle* newS
     } else
         s_affectsParentBlock = false;
 
-    if (view()->frameView()) {
-        // FIXME: A better solution would be to only invalidate the fixed regions when scrolling.  It's overkill to
-        // prevent the entire view from blitting on a scroll.
-        bool newStyleSlowScroll = newStyle && (newStyle->position() == FixedPosition || newStyle->hasFixedBackgroundImage());
-        bool oldStyleSlowScroll = m_style && (m_style->position() == FixedPosition || m_style->hasFixedBackgroundImage());
+    FrameView* frameView = view()->frameView();
+    if (frameView) {
+        bool shouldBlitOnFixedBackgroundImage = false;
+#if ENABLE(FAST_MOBILE_SCROLLING)
+        // On low-powered/mobile devices, preventing blitting on a scroll can cause noticeable delays
+        // when scrolling a page with a fixed background image. As an optimization, assuming there are
+        // no fixed positoned elements on the page, we can acclerate scrolling (via blitting) if we
+        // ignore the CSS property "background-attachment: fixed".
+        shouldBlitOnFixedBackgroundImage = true;
+#endif
+
+        bool newStyleSlowScroll = newStyle && !shouldBlitOnFixedBackgroundImage && newStyle->hasFixedBackgroundImage();
+        bool oldStyleSlowScroll = m_style && !shouldBlitOnFixedBackgroundImage && m_style->hasFixedBackgroundImage();
+
         if (oldStyleSlowScroll != newStyleSlowScroll) {
             if (oldStyleSlowScroll)
-                view()->frameView()->removeSlowRepaintObject();
+                frameView->removeSlowRepaintObject();
             if (newStyleSlowScroll)
-                view()->frameView()->addSlowRepaintObject();
+                frameView->addSlowRepaintObject();
+        }
+
+        bool newStyleHasTransform = newStyle && (newStyle->hasTransformRelatedProperty());
+        if (!newStyleHasTransform) {
+            bool newStyleHasFixedPosition = newStyle && (newStyle->position() == FixedPosition);
+            bool oldStyleHasFixedPosition = m_style && (m_style->position() == FixedPosition);
+
+            if (oldStyleHasFixedPosition != newStyleHasFixedPosition) {
+                if (newStyleHasFixedPosition)
+                    frameView->registerFixedPositionedObject(this);
+                else
+                    frameView->unregisterFixedPositionedObject(this);
+            } else {
+                // if previously had a fix position, but had a transform, which has been removed
+                bool oldStyleHasTransform = m_style && (m_style->hasTransformRelatedProperty());
+                if (oldStyleHasTransform && newStyleHasFixedPosition)
+                    frameView->registerFixedPositionedObject(this);
+            }
         }
     }
 }
 
-void RenderObject::styleDidChange(StyleDifference diff, const RenderStyle*)
+void RenderObject::styleDidChange(StyleDifference diff, const RenderStyle* oldStyle)
 {
     if (s_affectsParentBlock)
         handleDynamicFloatPositionChange();
@@ -1674,9 +1696,10 @@ void RenderObject::styleDidChange(StyleDifference diff, const RenderStyle*)
     if (!m_parent)
         return;
     
-    if (diff == StyleDifferenceLayout)
+    if (diff == StyleDifferenceLayout) {
+        RenderCounter::rendererStyleChanged(this, oldStyle, m_style.get());
         setNeedsLayoutAndPrefWidthsRecalc();
-    else if (diff == StyleDifferenceLayoutPositionedMovementOnly)
+    } else if (diff == StyleDifferenceLayoutPositionedMovementOnly)
         setNeedsPositionedMovementLayout();
 
     // Don't check for repaint here; we need to wait until the layer has been
@@ -1923,6 +1946,13 @@ bool RenderObject::isSelectionBorder() const
 
 void RenderObject::destroy()
 {
+    // unregister from the view if the object had a fixed position
+    if (m_style && m_style->position() == FixedPosition) {
+        FrameView* frameView = document()->view();
+        if (frameView)
+            frameView->unregisterFixedPositionedObject(this);
+    }
+
     // Destroy any leftover anonymous children.
     RenderObjectChildList* children = virtualChildren();
     if (children)
@@ -1930,7 +1960,7 @@ void RenderObject::destroy()
 
     // If this renderer is being autoscrolled, stop the autoscroll timer
     
-    // FIXME: RenderObject::destroy should not get called with a renderar whose document
+    // FIXME: RenderObject::destroy should not get called with a renderer whose document
     // has a null frame, so we assert this. However, we don't want release builds to crash which is why we
     // check that the frame is not null.
     ASSERT(document()->frame());
@@ -2514,14 +2544,14 @@ FloatRect RenderObject::repaintRectInLocalCoordinates() const
 
 TransformationMatrix RenderObject::localTransform() const
 {
-    return TransformationMatrix();
+    static const TransformationMatrix identity;
+    return identity;
 }
 
-TransformationMatrix RenderObject::localToParentTransform() const
+const TransformationMatrix& RenderObject::localToParentTransform() const
 {
-    // FIXME: This double virtual call indirection is temporary until I can land the
-    // rest of the of the localToParentTransform() support for SVG.
-    return localTransform();
+    static const TransformationMatrix identity;
+    return identity;
 }
 
 TransformationMatrix RenderObject::absoluteTransform() const

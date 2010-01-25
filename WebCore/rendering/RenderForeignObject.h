@@ -38,7 +38,7 @@ public:
 
     virtual void paint(PaintInfo&, int parentX, int parentY);
 
-    virtual TransformationMatrix localToParentTransform() const;
+    virtual const TransformationMatrix& localToParentTransform() const;
 
     virtual void computeRectForRepaint(RenderBoxModelObject* repaintContainer, IntRect&, bool fixed = false);
     virtual bool requiresLayer() const { return false; }
@@ -52,12 +52,15 @@ public:
     virtual bool nodeAtPoint(const HitTestRequest&, HitTestResult&, int x, int y, int tx, int ty, HitTestAction);
     virtual bool isSVGForeignObject() const { return true; }
 
+    virtual void mapLocalToContainer(RenderBoxModelObject* repaintContainer, bool fixed , bool useTransforms, TransformState& transformState) const;
+
  private:
     TransformationMatrix translationForAttributes() const;
 
     virtual TransformationMatrix localTransform() const { return m_localTransform; }
 
     TransformationMatrix m_localTransform;
+    mutable TransformationMatrix m_localToParentTransform;
 };
 
 } // namespace WebCore

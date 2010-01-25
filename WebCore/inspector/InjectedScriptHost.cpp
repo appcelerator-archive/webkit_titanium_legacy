@@ -72,6 +72,7 @@ namespace WebCore {
 
 InjectedScriptHost::InjectedScriptHost(InspectorController* inspectorController)
     : m_inspectorController(inspectorController)
+    , m_nextInjectedScriptId(1)
 {
 }
 
@@ -95,20 +96,6 @@ Node* InjectedScriptHost::nodeForId(long nodeId)
     if (InspectorDOMAgent* domAgent = inspectorDOMAgent())
         return domAgent->nodeForId(nodeId);
     return 0;
-}
-
-ScriptValue InjectedScriptHost::wrapObject(const ScriptValue& object, const String& objectGroup)
-{
-    if (m_inspectorController)
-        return m_inspectorController->wrapObject(object, objectGroup);
-    return ScriptValue();
-}
-
-ScriptValue InjectedScriptHost::unwrapObject(const String& objectId)
-{
-    if (m_inspectorController)
-        return m_inspectorController->unwrapObject(objectId);
-    return ScriptValue();
 }
 
 long InjectedScriptHost::pushNodePathToFrontend(Node* node, bool withChildren, bool selectInUI)
@@ -180,6 +167,29 @@ void InjectedScriptHost::reportDidDispatchOnInjectedScript(long callId, const St
         frontend->didDispatchOnInjectedScript(callId, result, isException);
 }
 
+ScriptObject InjectedScriptHost::injectedScriptForId(long id)
+{
+    return m_idToInjectedScript.get(id);
+}
+
+void InjectedScriptHost::discardInjectedScripts()
+{
+    m_idToInjectedScript.clear();
+}
+
+void InjectedScriptHost::releaseWrapperObjectGroup(long injectedScriptId, const String& objectGroup)
+{
+    if (injectedScriptId) {
+         ScriptObject injectedScript = m_idToInjectedScript.get(injectedScriptId);
+         if (!injectedScript.hasNoValue())
+             releaseWrapperObjectGroup(injectedScript, objectGroup);
+    } else {
+         // Iterate over all injected scripts if injectedScriptId is not specified.
+         for (IdToInjectedScriptMap::iterator it = m_idToInjectedScript.begin(); it != m_idToInjectedScript.end(); ++it)
+              releaseWrapperObjectGroup(it->second, objectGroup);
+    }
+}
+
 InspectorDOMAgent* InjectedScriptHost::inspectorDOMAgent()
 {
     if (!m_inspectorController)
@@ -192,6 +202,13 @@ InspectorFrontend* InjectedScriptHost::inspectorFrontend()
     if (!m_inspectorController)
         return 0;
     return m_inspectorController->m_frontend.get();
+}
+
+void InjectedScriptHost::releaseWrapperObjectGroup(const ScriptObject& injectedScript, const String& objectGroup)
+{
+    ScriptFunctionCall releaseFunction(injectedScript.scriptState(), injectedScript, "releaseWrapperObjectGroup");
+    releaseFunction.appendArgument(objectGroup);
+    releaseFunction.call();
 }
 
 } // namespace WebCore

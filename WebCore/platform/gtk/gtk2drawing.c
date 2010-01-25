@@ -57,55 +57,6 @@
 #define YTHICKNESS(style) (style->ythickness)
 #define WINDOW_IS_MAPPED(window) ((window) && GDK_IS_WINDOW(window) && gdk_window_is_visible(window))
 
-typedef struct GtkThemeParts_ {
-    GdkColormap* colormap;
-    GtkWidget* protoWindow;
-    GtkWidget* protoLayout;
-    GtkWidget* buttonWidget;
-    GtkWidget* toggleButtonWidget;
-    GtkWidget* buttonArrowWidget;
-    GtkWidget* checkboxWidget;
-    GtkWidget* radiobuttonWidget;
-    GtkWidget* horizScrollbarWidget;
-    GtkWidget* vertScrollbarWidget;
-    GtkWidget* spinWidget;
-    GtkWidget* hScaleWidget;
-    GtkWidget* vScaleWidget;
-    GtkWidget* entryWidget;
-    GtkWidget* comboBoxWidget;
-    GtkWidget* comboBoxButtonWidget;
-    GtkWidget* comboBoxArrowWidget;
-    GtkWidget* comboBoxSeparatorWidget;
-    GtkWidget* comboBoxEntryWidget;
-    GtkWidget* comboBoxEntryTextareaWidget;
-    GtkWidget* comboBoxEntryButtonWidget;
-    GtkWidget* comboBoxEntryArrowWidget;
-    GtkWidget* handleBoxWidget;
-    GtkWidget* toolbarWidget;
-    GtkWidget* frameWidget;
-    GtkWidget* statusbarWidget;
-    GtkWidget* progresWidget;
-    GtkWidget* tabWidget;
-    GtkWidget* tooltipWidget;
-    GtkWidget* menuBarWidget;
-    GtkWidget* menuBarItemWidget;
-    GtkWidget* menuPopupWidget;
-    GtkWidget* menuItemWidget;
-    GtkWidget* imageMenuItemWidget;
-    GtkWidget* checkMenuItemWidget;
-    GtkWidget* treeViewWidget;
-    GtkTreeViewColumn* middleTreeViewColumn;
-    GtkWidget* treeHeaderCellWidget;
-    GtkWidget* treeHeaderSortArrowWidget;
-    GtkWidget* expanderWidget;
-    GtkWidget* toolbarSeparatorWidget;
-    GtkWidget* menuSeparatorWidget;
-    GtkWidget* hpanedWidget;
-    GtkWidget* vpanedWidget;
-    GtkWidget* scrolledWindowWidget;
-} GtkThemeParts;
-
-static GHashTable *gPartsTable = NULL;
 static GtkThemeParts *gParts = NULL;
 static style_prop_t style_prop_func;
 static gboolean have_arrow_scaling;
@@ -134,6 +85,12 @@ moz_gtk_use_parts_for_drawable(GdkDrawable* drawable)
 
     gParts = parts;
     return MOZ_GTK_SUCCESS;
+=======
+void
+moz_gtk_use_theme_parts(GtkThemeParts* parts)
+{
+    gParts = parts;
+>>>>>>> ffd3ad07f5f6deb4b78dc700bef1853ffd3e53e4:WebCore/platform/gtk/gtk2drawing.c
 }
 
 /* Because we have such an unconventional way of drawing widgets, signal to the GTK theme engine
@@ -3296,15 +3253,9 @@ GtkWidget* moz_gtk_get_scrollbar_widget(void)
 void
 moz_gtk_shutdown()
 {
-    g_type_class_unref(g_type_class_peek(GTK_TYPE_ENTRY));
-
-    if (!gPartsTable)
-        return;
-
-    GList *values = g_hash_table_get_values(gPartsTable);
-    guint i = 0;
-    for (i = 0; i < g_list_length(values); i++) {
-        GtkThemeParts* part = (GtkThemeParts*) g_list_nth_data(values, i);
+    GtkWidgetClass *entry_class;
+    entry_class = g_type_class_peek(GTK_TYPE_ENTRY);
+    g_type_class_unref(entry_class);
 
         if (!part)
             continue;
@@ -3317,4 +3268,20 @@ moz_gtk_shutdown()
     g_hash_table_destroy(gPartsTable);
 
     is_initialized = FALSE;
+}
+
+void moz_gtk_destroy_theme_parts_widgets(GtkThemeParts* parts)
+{
+    if (!parts)
+        return;
+
+    if (parts->tooltipWidget) {
+        gtk_widget_destroy(parts->tooltipWidget);
+        parts->tooltipWidget = NULL;
+    }
+
+    if (parts->protoWindow) {
+        gtk_widget_destroy(parts->protoWindow);
+        parts->protoWindow = NULL;
+    }
 }

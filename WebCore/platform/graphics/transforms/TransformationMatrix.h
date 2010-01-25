@@ -43,6 +43,14 @@
 #include <wx/graphics.h>
 #endif
 
+#if PLATFORM(WIN) || (PLATFORM(QT) && OS(WINDOWS)) || (PLATFORM(WX) && OS(WINDOWS))
+#if COMPILER(MINGW)
+typedef struct _XFORM XFORM;
+#else
+typedef struct tagXFORM XFORM;
+#endif
+#endif
+
 namespace WebCore {
 
 class IntRect;
@@ -307,7 +315,7 @@ public:
     operator wxGraphicsMatrix() const;
 #endif
 
-#if PLATFORM(WIN)
+#if PLATFORM(WIN) || (PLATFORM(QT) && OS(WINDOWS)) || (PLATFORM(WX) && OS(WINDOWS))
     operator XFORM() const;
 #endif
 

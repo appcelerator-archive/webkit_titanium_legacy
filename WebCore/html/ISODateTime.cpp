@@ -31,9 +31,11 @@
 #include "config.h"
 #include "ISODateTime.h"
 
+#include "PlatformString.h"
 #include <limits.h>
 #include <wtf/ASCIICType.h>
 #include <wtf/DateMath.h>
+#include <wtf/MathExtras.h>
 
 namespace WebCore {
 
@@ -138,6 +140,13 @@ bool ISODateTime::parseYear(const UChar* src, unsigned length, unsigned start, u
     return true;
 }
 
+static bool beforeGregorianStartDate(int year, int month, int monthDay)
+{
+    return year < gregorianStartYear
+        || year == gregorianStartYear && month < gregorianStartMonth
+        || year == gregorianStartYear && month == gregorianStartMonth && monthDay < gregorianStartDay;
+}
+
 bool ISODateTime::addDay(int dayDiff)
 {
     ASSERT(m_monthDay);
@@ -178,9 +187,7 @@ bool ISODateTime::addDay(int dayDiff)
                 }
                 day = maxDayOfMonth(year, month);
             }
-            if (year < gregorianStartYear
-                    || (year == gregorianStartYear && month < gregorianStartMonth)
-                    || (year == gregorianStartYear && month == gregorianStartMonth && day < gregorianStartDay))
+            if (beforeGregorianStartDate(year, month, day))
                 return false;
         }
         m_year = year;
@@ -290,7 +297,7 @@ bool ISODateTime::parseMonth(const UChar* src, unsigned length, unsigned start, 
         return false;
     --month;
     // No support for months before Gregorian calendar.
-    if (m_year == gregorianStartYear && month < gregorianStartMonth)
+    if (beforeGregorianStartDate(m_year, month, gregorianStartDay))
         return false;
     m_month = month;
     end = index + 2;
@@ -443,6 +450,125 @@ bool ISODateTime::parseDateTime(const UChar* src, unsigned length, unsigned star
     return true;
 }
 
+static inline double positiveFmod(double value, double divider)
+{
+    double remainder = fmod(value, divider);
+    return remainder < 0 ? remainder + divider : remainder;
+}
+
+void ISODateTime::setMillisecondsSinceMidnightInternal(double msInDay)
+{
+    ASSERT(msInDay >= 0 && msInDay < msPerDay);
+    m_millisecond = static_cast<int>(fmod(msInDay, msPerSecond));
+    double value = floor(msInDay / msPerSecond);
+    m_second = static_cast<int>(fmod(value, secondsPerMinute));
+    value = floor(value / secondsPerMinute);
+    m_minute = static_cast<int>(fmod(value, minutesPerHour));
+    m_hour = static_cast<int>(value / minutesPerHour);
+}
+
+bool ISODateTime::setMillisecondsSinceEpochForDateInternal(double ms)
+{
+    m_year = msToYear(ms);
+    int yearDay = dayInYear(ms, m_year);
+    m_month = monthFromDayInYear(yearDay, isLeapYear(m_year));
+    m_monthDay = dayInMonthFromDayInYear(yearDay, isLeapYear(m_year));
+    return true;
+}
+
+bool ISODateTime::setMillisecondsSinceEpochForDate(double ms)
+{
+    m_type = Invalid;
+    if (!isfinite(ms))
+        return false;
+    if (!setMillisecondsSinceEpochForDateInternal(round(ms)))
+        return false;
+    if (beforeGregorianStartDate(m_year, m_month, m_monthDay))
+        return false;
+    m_type = Date;
+    return true;
+}
+
+bool ISODateTime::setMillisecondsSinceEpochForDateTime(double ms)
+{
+    m_type = Invalid;
+    if (!isfinite(ms))
+        return false;
+    ms = round(ms);
+    setMillisecondsSinceMidnightInternal(positiveFmod(ms, msPerDay));
+    if (!setMillisecondsSinceEpochForDateInternal(ms))
+        return false;
+    if (beforeGregorianStartDate(m_year, m_month, m_monthDay))
+        return false;
+    m_type = DateTime;
+    return true;
+}
+
+bool ISODateTime::setMillisecondsSinceEpochForMonth(double ms)
+{
+    m_type = Invalid;
+    if (!isfinite(ms))
+        return false;
+    if (!setMillisecondsSinceEpochForDateInternal(round(ms)))
+        return false;
+    // Ignore m_monthDay updated by setMillisecondsSinceEpochForDateInternal().
+    if (beforeGregorianStartDate(m_year, m_month, gregorianStartDay))
+        return false;
+    m_type = Month;
+    return true;
+}
+
+bool ISODateTime::setMillisecondsSinceMidnight(double ms)
+{
+    m_type = Invalid;
+    if (!isfinite(ms))
+        return false;
+    setMillisecondsSinceMidnightInternal(positiveFmod(round(ms), msPerDay));
+    m_type = Time;
+    return true;
+}
+
+// Offset from January 1st to Monday of the ISO 8601's first week.
+//   ex. If January 1st is Friday, such Monday is 3 days later. Returns 3.
+static int offsetTo1stWeekStart(int year)
+{
+    int offsetTo1stWeekStart = 1 - dayOfWeek(year, 0, 1);
+    if (offsetTo1stWeekStart <= -4)
+        offsetTo1stWeekStart += 7;
+    return offsetTo1stWeekStart;
+}
+
+bool ISODateTime::setMillisecondsSinceEpochForWeek(double ms)
+{
+    m_type = Invalid;
+    if (!isfinite(ms))
+        return false;
+    ms = round(ms);
+
+    m_year = msToYear(ms);
+    // We don't support gregorianStartYear. Week numbers are undefined in that year.
+    if (m_year <= gregorianStartYear)
+        return false;
+
+    int yearDay = dayInYear(ms, m_year);
+    int offset = offsetTo1stWeekStart(m_year);
+    if (yearDay < offset) {
+        // The day belongs to the last week of the previous year.
+        m_year--;
+        if (m_year <= gregorianStartYear)
+            return false;
+        m_week = maxWeekNumberInYear();
+    } else {
+        m_week = ((yearDay - offset) / 7) + 1;
+        if (m_week > maxWeekNumberInYear()) {
+            m_year++;
+            m_week = 1;
+        }
+    }
+    m_type = Week;
+    return true;
+}
+
 double ISODateTime::millisecondsSinceEpochForTime() const
 {
     ASSERT(m_type == Time || m_type == DateTime);
@@ -461,19 +587,57 @@ double ISODateTime::millisecondsSinceEpoch() const
         return dateToDaysFrom1970(m_year, m_month, 1) * msPerDay;
     case Time:
         return millisecondsSinceEpochForTime();
-    case Week: {
-        // Offset from January 1st to Monday of the ISO 8601's first week.
-        //   ex. If January 1st is Friday, such Monday is 3 days later.
-        int offsetTo1stWeekStart = 1 - dayOfWeek(m_year, 0, 1);
-        if (offsetTo1stWeekStart <= -4)
-            offsetTo1stWeekStart += 7;
-        return (dateToDaysFrom1970(m_year, 0, 1) + offsetTo1stWeekStart + (m_week - 1) * 7) * msPerDay;
-    }
+    case Week:
+        return (dateToDaysFrom1970(m_year, 0, 1) + offsetTo1stWeekStart(m_year) + (m_week - 1) * 7) * msPerDay;
     case Invalid:
         break;
     }
     ASSERT_NOT_REACHED();
     return invalidMilliseconds();
+}
+
+String ISODateTime::toStringForTime(SecondFormat format) const
+{
+    ASSERT(m_type == DateTime || m_type == DateTimeLocal || m_type == Time);
+    SecondFormat effectiveFormat = format;
+    if (m_millisecond)
+        effectiveFormat = Millisecond;
+    else if (format == None && m_second)
+        effectiveFormat = Second;
+
+    switch (effectiveFormat) {
+    default:
+        ASSERT_NOT_REACHED();
+        // Fallback to None.
+    case None:
+        return String::format("%02d:%02d", m_hour, m_minute);
+    case Second:
+        return String::format("%02d:%02d:%02d", m_hour, m_minute, m_second);
+    case Millisecond:
+        return String::format("%02d:%02d:%02d.%03d", m_hour, m_minute, m_second, m_millisecond);
+    }
+}
+
+String ISODateTime::toString(SecondFormat format) const
+{
+    switch (m_type) {
+    case Date:
+        return String::format("%04d-%02d-%02d", m_year, m_month + 1, m_monthDay);
+    case DateTime:
+        return String::format("%04d-%02d-%02dT", m_year, m_month + 1, m_monthDay)
+            + toStringForTime(format) + String("Z");
+    case Month:
+        return String::format("%04d-%02d", m_year, m_month + 1);
+    case Time:
+        return toStringForTime(format);
+    case Week:
+        return String::format("%04d-W%02d", m_year, m_week);
+    case DateTimeLocal:
+    case Invalid:
+        break;
+    }
+    ASSERT_NOT_REACHED();
+    return String("(Invalid ISODateTime)");
 }
 
 } // namespace WebCore

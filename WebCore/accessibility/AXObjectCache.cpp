@@ -37,7 +37,11 @@
 #include "AccessibilityListBox.h"
 #include "AccessibilityListBoxOption.h"
 #include "AccessibilityMediaControls.h"
+#include "AccessibilityMenuList.h"
+#include "AccessibilityMenuListPopup.h"
+#include "AccessibilityMenuListOption.h"
 #include "AccessibilityRenderObject.h"
+#include "AccessibilityScrollbar.h"
 #include "AccessibilitySlider.h"
 #include "AccessibilityTable.h"
 #include "AccessibilityTableCell.h"
@@ -141,6 +145,8 @@ AccessibilityObject* AXObjectCache::getOrCreate(RenderObject* renderer)
         RefPtr<AccessibilityObject> newObj = 0;
         if (renderer->isListBox())
             newObj = AccessibilityListBox::create(renderer);
+        else if (renderer->isMenuList())
+            newObj = AccessibilityMenuList::create(renderer);
 
         // If the node is aria role="list" or the aria role is empty and its a ul/ol/dl type (it shouldn't be a list if aria says otherwise). 
         else if (node && ((nodeIsAriaType(node, "list") || nodeIsAriaType(node, "directory"))
@@ -208,6 +214,15 @@ AccessibilityObject* AXObjectCache::getOrCreate(AccessibilityRole role)
         break;   
     case SliderThumbRole:
         obj = AccessibilitySliderThumb::create();
+        break;
+    case MenuListPopupRole:
+        obj = AccessibilityMenuListPopup::create();
+        break;
+    case MenuListOptionRole:
+        obj = AccessibilityMenuListOption::create();
+        break;
+    case ScrollBarRole:
+        obj = AccessibilityScrollbar::create();
         break;
     default:
         obj = 0;
@@ -357,31 +372,35 @@ void AXObjectCache::postNotification(RenderObject* renderer, AXNotification noti
     
     // Get an accessibility object that already exists. One should not be created here
     // because a render update may be in progress and creating an AX object can re-trigger a layout
-    RefPtr<AccessibilityObject> obj = get(renderer);
-    while (!obj && renderer) {
+    RefPtr<AccessibilityObject> object = get(renderer);
+    while (!object && renderer) {
         renderer = renderer->parent();
-        obj = get(renderer); 
+        object = get(renderer); 
     }
     
     if (!renderer)
         return;
+    
+    postNotification(object.get(), renderer->document(), notification, postToElement, postType);
+}
 
-    if (obj && !postToElement)
-        obj = obj->observableObject();
-    
-    Document* document = renderer->document();
-    if (!obj && document)
-        obj = get(document->renderer());
-    
-    if (!obj)
+void AXObjectCache::postNotification(AccessibilityObject* object, Document* document, AXNotification notification, bool postToElement, PostType postType)
+{
+    if (object && !postToElement)
+        object = object->observableObject();
+
+    if (!object && document)
+        object = get(document->renderer());
+
+    if (!object)
         return;
 
     if (postType == PostAsynchronously) {
-        m_notificationsToPost.append(make_pair(obj, notification));
+        m_notificationsToPost.append(make_pair(object, notification));
         if (!m_notificationPostTimer.isActive())
             m_notificationPostTimer.startOneShot(0);
     } else
-        postPlatformNotification(obj.get(), notification);
+        postPlatformNotification(object, notification);
 }
 
 void AXObjectCache::selectedChildrenChanged(RenderObject* renderer)

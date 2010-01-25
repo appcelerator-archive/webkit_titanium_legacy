@@ -377,6 +377,7 @@ NSString *WebElementLinkURLKey =            @"WebElementLinkURL";
 NSString *WebElementSpellingToolTipKey =    @"WebElementSpellingToolTip";
 NSString *WebElementTitleKey =              @"WebElementTitle";
 NSString *WebElementLinkIsLiveKey =         @"WebElementLinkIsLive";
+NSString *WebElementIsInScrollBarKey =      @"WebElementIsInScrollBar";
 NSString *WebElementIsContentEditableKey =  @"WebElementIsContentEditableKey";
 
 NSString *WebViewProgressStartedNotification =          @"WebProgressStartedNotification";
@@ -2332,6 +2333,11 @@ static PassOwnPtr<Vector<String> > toStringVector(NSArray* patterns)
         frame->animation()->suspendAnimations(frame->document());
     else
         frame->animation()->resumeAnimations(frame->document());
+}
+
++ (void)_setDomainRelaxationForbidden:(BOOL)forbidden forURLScheme:(NSString *)scheme
+{
+    SecurityOrigin::setDomainRelaxationForbiddenForURLScheme(forbidden, scheme);
 }
 
 @end

@@ -44,7 +44,7 @@ class UploadCommandsTest(CommandsTest):
 
     def test_assign_to_committer(self):
         tool = MockBugzillaTool()
-        expected_stderr = "Bug 75 is already assigned to foo@foo.com (None).\nBug 76 has no non-obsolete patches, ignoring.\n"
+        expected_stderr = "Bug 77 is already assigned to foo@foo.com (None).\nBug 76 has no non-obsolete patches, ignoring.\n"
         self.assert_execute_outputs(AssignToCommitter(), [], expected_stderr=expected_stderr, tool=tool)
         tool.bugs.reassign_bug.assert_called_with(42, "eric@webkit.org", "Attachment 128 was posted by a committer and has review+, assigning to Eric Seidel for commit.")
 
@@ -55,6 +55,10 @@ class UploadCommandsTest(CommandsTest):
     def test_post(self):
         expected_stderr = "Running check-webkit-style\nObsoleting 2 old patches on bug 42\n"
         self.assert_execute_outputs(Post(), [42], expected_stderr=expected_stderr)
+
+    def test_post(self):
+        expected_stderr = "Obsoleting 2 old patches on bug 42\n"
+        self.assert_execute_outputs(LandSafely(), [42], expected_stderr=expected_stderr)
 
     def test_prepare_diff_with_arg(self):
         self.assert_execute_outputs(Prepare(), [42])
@@ -71,7 +75,7 @@ class UploadCommandsTest(CommandsTest):
         tool._scm.last_svn_commit_log = lambda: "r9876 |"
         options = Mock()
         options.bug_id = 42
-        expected_stderr = "Bug: <http://example.com/42> The first bug\nRevision: 9876\nAdding comment to Bug 42.\n"
+        expected_stderr = "Bug: <http://example.com/42> Bug with two r+'d and cq+'d patches, one of which has an invalid commit-queue setter.\nRevision: 9876\nAdding comment to Bug 42.\n"
         self.assert_execute_outputs(MarkBugFixed(), [], expected_stderr=expected_stderr, tool=tool, options=options)
 
     def test_edit_changelog(self):

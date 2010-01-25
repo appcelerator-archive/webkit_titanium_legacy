@@ -33,6 +33,7 @@
 
 #include "ChildThreadDOMData.h"
 #include "MainThreadDOMData.h"
+#include "WebGLContextAttributes.h"
 #include "WebGLUniformLocation.h"
 
 namespace WebCore {
@@ -41,6 +42,10 @@ DOMData::DOMData()
     : m_delayedProcessingScheduled(false)
     , m_isMainThread(WTF::isMainThread())
     , m_owningThread(WTF::currentThread())
+{
+}
+
+DOMData::~DOMData()
 {
 }
 

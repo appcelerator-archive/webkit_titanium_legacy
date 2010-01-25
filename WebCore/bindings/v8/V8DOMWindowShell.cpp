@@ -51,7 +51,9 @@
 #include "V8DOMMap.h"
 #include "V8DOMWindow.h"
 #include "V8HiddenPropertyName.h"
+#include "V8History.h"
 #include "V8Index.h"
+#include "V8Location.h"
 #include "V8Proxy.h"
 #include "WorkerContextExecutionProxy.h"
 
@@ -95,17 +97,17 @@ static Frame* getTargetFrame(v8::Local<v8::Object> host, v8::Local<v8::Value> da
         if (window.IsEmpty())
             return target;
 
-        DOMWindow* targetWindow = V8DOMWrapper::convertToNativeObject<DOMWindow>(V8ClassIndex::DOMWINDOW, window);
+        DOMWindow* targetWindow = V8DOMWindow::toNative(window);
         target = targetWindow->frame();
         break;
     }
     case V8ClassIndex::LOCATION: {
-        History* history = V8DOMWrapper::convertToNativeObject<History>(V8ClassIndex::HISTORY, host);
+        History* history = V8History::toNative(host);
         target = history->frame();
         break;
     }
     case V8ClassIndex::HISTORY: {
-        Location* location = V8DOMWrapper::convertToNativeObject<Location>(V8ClassIndex::LOCATION, host);
+        Location* location = V8Location::toNative(host);
         target = location->frame();
         break;
     }
@@ -326,10 +328,6 @@ v8::Persistent<v8::Context> V8DOMWindowShell::createNewContext(v8::Handle<v8::Ob
     v8::Persistent<v8::ObjectTemplate> globalTemplate = V8DOMWindow::GetShadowObjectTemplate();
     if (globalTemplate.IsEmpty())
         return result;
-
-    // Install a security handler with V8.
-    globalTemplate->SetAccessCheckCallbacks(V8DOMWindow::namedSecurityCheck, V8DOMWindow::indexedSecurityCheck, v8::Integer::New(V8ClassIndex::DOMWINDOW));
-    globalTemplate->SetInternalFieldCount(V8Custom::kDOMWindowInternalFieldCount);
 
     // Used to avoid sleep calls in unload handlers.
     if (!V8Proxy::registeredExtensionWithV8(DateExtension::get()))

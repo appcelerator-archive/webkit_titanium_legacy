@@ -300,7 +300,7 @@ double HTMLInputElement::maximum() const
     formStringToDouble(getAttribute(maxAttr), &max);
     if (inputType() == RANGE) {
         // A remedy for the inconsistent min/max values for RANGE.
-        // Sets the maxmimum to the default or the minimum value.
+        // Sets the maximum to the default or the minimum value.
         double min = minimum();
         if (max < min)
             max = std::max(min, defaultMaximum);
@@ -1377,7 +1377,6 @@ void HTMLInputElement::setValue(const String& value, bool sendChangeEvent)
 double HTMLInputElement::valueAsDate() const
 {
     switch (inputType()) {
-    // valueAsDate doesn't work for the DATETIMELOCAL type according to the standard.
     case DATE:
     case DATETIME:
     case MONTH:
@@ -1388,19 +1387,84 @@ double HTMLInputElement::valueAsDate() const
             return ISODateTime::invalidMilliseconds();
         return dateTime.millisecondsSinceEpoch();
     }
-    default:
+    case BUTTON:
+    case CHECKBOX:
+    case COLOR:
+    case DATETIMELOCAL: // valueAsDate doesn't work for the DATETIMELOCAL type according to the standard.
+    case EMAIL:
+    case FILE:
+    case HIDDEN:
+    case IMAGE:
+    case ISINDEX:
+    case NUMBER:
+    case PASSWORD:
+    case RADIO:
+    case RANGE:
+    case RESET:
+    case SEARCH:
+    case SUBMIT:
+    case TELEPHONE:
+    case TEXT:
+    case URL:
         return ISODateTime::invalidMilliseconds();
     }
+    ASSERT_NOT_REACHED();
+    return ISODateTime::invalidMilliseconds();
 }
 
 void HTMLInputElement::setValueAsDate(double value, ExceptionCode& ec)
 {
-    // FIXME: This is a temporary implementation to check Date binding.
-    if (!isnan(value) && !isinf(value) && inputType() == MONTH) {
-        setValue(String("1970-01"));
+    ISODateTime dateTime;
+    bool success;
+    switch (inputType()) {
+    case DATE:
+        success = dateTime.setMillisecondsSinceEpochForDate(value);
+        break;
+    case DATETIME:
+        success = dateTime.setMillisecondsSinceEpochForDateTime(value);
+        break;
+    case MONTH:
+        success = dateTime.setMillisecondsSinceEpochForMonth(value);
+        break;
+    case TIME:
+        success = dateTime.setMillisecondsSinceMidnight(value);
+        break;
+    case WEEK:
+        success = dateTime.setMillisecondsSinceEpochForWeek(value);
+        break;
+    case BUTTON:
+    case CHECKBOX:
+    case COLOR:
+    case DATETIMELOCAL: // valueAsDate doesn't work for the DATETIMELOCAL type according to the standard.
+    case EMAIL:
+    case FILE:
+    case HIDDEN:
+    case IMAGE:
+    case ISINDEX:
+    case NUMBER:
+    case PASSWORD:
+    case RADIO:
+    case RANGE:
+    case RESET:
+    case SEARCH:
+    case SUBMIT:
+    case TELEPHONE:
+    case TEXT:
+    case URL:
+        ec = INVALID_STATE_ERR;
+        return;
+    default:
+        ASSERT_NOT_REACHED();
+        success = false;
+    }
+    if (!success) {
+        setValue(String());
         return;
     }
-    ec = INVALID_STATE_ERR;
+    // FIXME: We should specify SecondFormat.
+    // e.g. If the step value is 60, use SecondFormat::None.
+    //      If the step value is 1, use SecondFormat::Second.
+    setValue(dateTime.toString());
 }
 
 String HTMLInputElement::placeholder() const

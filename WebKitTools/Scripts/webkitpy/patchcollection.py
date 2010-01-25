@@ -37,6 +37,9 @@ class PersistentPatchCollectionDelegate:
     def status_server(self):
         raise NotImplementedError, "subclasses must implement"
 
+    def is_terminal_status(self, status):
+        raise NotImplementedError, "subclasses must implement"
+
 
 class PersistentPatchCollection:
     def __init__(self, delegate):
@@ -50,7 +53,7 @@ class PersistentPatchCollection:
         if cached:
             return cached
         status = self._status.patch_status(self._name, patch_id)
-        if status:
+        if status and self._delegate.is_terminal_status(status):
             self._status_cache[patch_id] = status
         return status
 
@@ -58,6 +61,5 @@ class PersistentPatchCollection:
         patch_ids = self._delegate.fetch_potential_patch_ids()
         for patch_id in patch_ids:
             status = self._cached_status(patch_id)
-            if not status:
+            if not status or not self._delegate.is_terminal_status(status):
                 return patch_id
-

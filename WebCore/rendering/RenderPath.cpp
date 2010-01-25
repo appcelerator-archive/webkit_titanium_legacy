@@ -69,7 +69,7 @@ RenderPath::RenderPath(SVGStyledTransformableElement* node)
 {
 }
 
-TransformationMatrix RenderPath::localToParentTransform() const
+const TransformationMatrix& RenderPath::localToParentTransform() const
 {
     return m_localTransform;
 }
@@ -121,11 +121,10 @@ FloatRect RenderPath::strokeBoundingBox() const
     if (!m_cachedLocalStrokeBBox.isEmpty())
         return m_cachedLocalStrokeBBox;
 
-    if (!style()->svgStyle()->hasStroke())
-        m_cachedLocalStrokeBBox = objectBoundingBox();
-    else {
+    m_cachedLocalStrokeBBox = objectBoundingBox();
+    if (style()->svgStyle()->hasStroke()) {
         BoundingRectStrokeStyleApplier strokeStyle(this, style());
-        m_cachedLocalStrokeBBox = m_path.strokeBoundingRect(&strokeStyle);
+        m_cachedLocalStrokeBBox.unite(m_path.strokeBoundingRect(&strokeStyle));
     }
 
     return m_cachedLocalStrokeBBox;
@@ -168,6 +167,8 @@ FloatRect RenderPath::repaintRectInLocalCoordinates() const
     rect = maskerBoundingBoxForRenderer(this);
     if (!rect.isEmpty())
         m_cachedLocalRepaintRect.intersect(rect);
+
+    style()->svgStyle()->inflateForShadow(m_cachedLocalRepaintRect);
 
     return m_cachedLocalRepaintRect;
 }
@@ -214,32 +215,39 @@ void RenderPath::paint(PaintInfo& paintInfo, int, int)
 {
     if (paintInfo.context->paintingDisabled() || style()->visibility() == HIDDEN || m_path.isEmpty())
         return;
-            
-    paintInfo.context->save();
-    paintInfo.context->concatCTM(localToParentTransform());
-
-    SVGResourceFilter* filter = 0;
 
     FloatRect boundingBox = repaintRectInLocalCoordinates();
-    if (paintInfo.phase == PaintPhaseForeground) {
-        PaintInfo savedInfo(paintInfo);
+    FloatRect nonLocalBoundingBox = m_localTransform.mapRect(boundingBox);
+    // FIXME: The empty rect check is to deal with incorrect initial clip in renderSubtreeToImage
+    // unfortunately fixing that problem is fairly complex unless we were willing to just futz the
+    // rect to something "close enough"
+    if (!nonLocalBoundingBox.intersects(paintInfo.rect) && !paintInfo.rect.isEmpty())
+        return;
 
-        if (prepareToRenderSVGContent(this, paintInfo, boundingBox, filter)) {
+    PaintInfo childPaintInfo(paintInfo);
+    childPaintInfo.context->save();
+    applyTransformToPaintInfo(childPaintInfo, m_localTransform);
+    SVGResourceFilter* filter = 0;
+
+    if (childPaintInfo.phase == PaintPhaseForeground) {
+        PaintInfo savedInfo(childPaintInfo);
+
+        if (prepareToRenderSVGContent(this, childPaintInfo, boundingBox, filter)) {
             if (style()->svgStyle()->shapeRendering() == SR_CRISPEDGES)
-                paintInfo.context->setShouldAntialias(false);
-            fillAndStrokePath(m_path, paintInfo.context, style(), this);
+                childPaintInfo.context->setShouldAntialias(false);
+            fillAndStrokePath(m_path, childPaintInfo.context, style(), this);
 
             if (static_cast<SVGStyledElement*>(node())->supportsMarkers())
-                m_markerLayoutInfo.drawMarkers(paintInfo);
+                m_markerLayoutInfo.drawMarkers(childPaintInfo);
         }
-        finishRenderSVGContent(this, paintInfo, filter, savedInfo.context);
+        finishRenderSVGContent(this, childPaintInfo, filter, savedInfo.context);
     }
 
-    if ((paintInfo.phase == PaintPhaseOutline || paintInfo.phase == PaintPhaseSelfOutline) && style()->outlineWidth())
-        paintOutline(paintInfo.context, static_cast<int>(boundingBox.x()), static_cast<int>(boundingBox.y()),
+    if ((childPaintInfo.phase == PaintPhaseOutline || childPaintInfo.phase == PaintPhaseSelfOutline) && style()->outlineWidth())
+        paintOutline(childPaintInfo.context, static_cast<int>(boundingBox.x()), static_cast<int>(boundingBox.y()),
             static_cast<int>(boundingBox.width()), static_cast<int>(boundingBox.height()), style());
     
-    paintInfo.context->restore();
+    childPaintInfo.context->restore();
 }
 
 // This method is called from inside paintOutline() since we call paintOutline()
@@ -257,7 +265,7 @@ bool RenderPath::nodeAtFloatPoint(const HitTestRequest&, HitTestResult& result, 
     if (hitTestAction != HitTestForeground)
         return false;
 
-    FloatPoint localPoint = localToParentTransform().inverse().mapPoint(pointInParent);
+    FloatPoint localPoint = m_localTransform.inverse().mapPoint(pointInParent);
 
     PointerEventsHitRules hitRules(PointerEventsHitRules::SVG_PATH_HITTESTING, style()->pointerEvents());
 

@@ -33,6 +33,7 @@
 #if !PLATFORM(WX)
 #include "BitmapInfo.h"
 #endif
+#include "Bridge.h"
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "Element.h"
@@ -63,11 +64,10 @@
 #include "PluginDatabase.h"
 #include "PluginDebug.h"
 #include "PluginPackage.h"
+#include "Settings.h"
 #include "c_instance.h"
 #include "npruntime_impl.h"
 #include "runtime_root.h"
-#include "Settings.h"
-#include "runtime.h"
 #include <runtime/JSLock.h>
 #include <runtime/JSValue.h>
 #include <wtf/ASCIICType.h>
@@ -98,7 +98,9 @@ static inline HWND windowHandleForPageClient(PlatformPageClient client)
 #if PLATFORM(QT)
     if (!client)
         return 0;
-    return client->ownerWidget()->winId();
+    if (QWidget* pluginParent = qobject_cast<QWidget*>(client->pluginParent()))
+        return pluginParent->winId();
+    return 0;
 #elif PLATFORM(WX)
     if (!client)
         return 0;

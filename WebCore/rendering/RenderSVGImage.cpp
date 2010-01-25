@@ -159,6 +159,8 @@ FloatRect RenderSVGImage::repaintRectInLocalCoordinates() const
     if (!rect.isEmpty())
         m_cachedLocalRepaintRect.intersect(rect);
 
+    style()->svgStyle()->inflateForShadow(m_cachedLocalRepaintRect);
+
     return m_cachedLocalRepaintRect;
 }
 
@@ -175,7 +177,7 @@ IntRect RenderSVGImage::clippedOverflowRectForRepaint(RenderBoxModelObject* repa
 
 void RenderSVGImage::computeRectForRepaint(RenderBoxModelObject* repaintContainer, IntRect& repaintRect, bool fixed)
 {
-    inflateForShadow(style(), repaintRect);
+    style()->svgStyle()->inflateForShadow(repaintRect);
     SVGRenderBase::computeRectForRepaint(this, repaintContainer, repaintRect, fixed);
 }
 

@@ -50,8 +50,6 @@
 
         function isEqual(actual, desired, tolerance)
         {
-            if (tolerance == undefined || tolerance == 0)
-                tolerance = defaultTolerance;
             var diff = Math.abs(actual - desired);
             return diff < tolerance;
         }
@@ -64,6 +62,7 @@
         function restartTransition()
         {
             document.getElementById("container").className = "run";
+            // The transition should restart at the beginning here. After 250 it should be halfway done.
             setTimeout("check()", 250);
         }
 
@@ -71,7 +70,7 @@
         {
             var left = parseFloat(window.getComputedStyle(document.getElementById('a')).left);
             result = "left:";
-            if (!isEqual(left, 250, 30))
+            if (!isEqual(left, 250, 50))
                 result += "<span style='color:red'>FAIL(was:" + left + ", s/b:150)</span>";
             else
                 result += "<span style='color:green'>PASS</span>";
@@ -81,7 +80,7 @@
             var transform = window.getComputedStyle(document.getElementById('b')).webkitTransform;
             transform = transform.split("(");
             transform = transform[1].split(",");
-            if (!isEqual(transform[4], 200, 30))
+            if (!isEqual(transform[4], 200, 50))
                 result += "<span style='color:red'>FAIL(was:" + transform[4] + ", s/b:50)</span>";
             else
                 result += "<span style='color:green'>PASS</span>";

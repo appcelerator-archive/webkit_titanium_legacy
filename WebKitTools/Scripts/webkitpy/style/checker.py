@@ -29,20 +29,19 @@
 
 """Front end of some style-checker modules."""
 
-# FIXME: Move more code from cpp_style to here.
-
+import codecs
 import getopt
 import os.path
 import sys
 
-import cpp_style
-import text_style
-from diff_parser import DiffParser
+from .. style_references import parse_patch
+from cpp_style import CppProcessor
+from text_style import TextProcessor
 
 
 # These defaults are used by check-webkit-style.
-DEFAULT_VERBOSITY = 1
-DEFAULT_OUTPUT_FORMAT = 'emacs'
+WEBKIT_DEFAULT_VERBOSITY = 1
+WEBKIT_DEFAULT_OUTPUT_FORMAT = 'emacs'
 
 
 # FIXME: For style categories we will never want to have, remove them.
@@ -57,7 +56,7 @@ DEFAULT_OUTPUT_FORMAT = 'emacs'
 # The _WEBKIT_FILTER_RULES are prepended to any user-specified filter
 # rules. Since by default all errors are on, only include rules that
 # begin with a - sign.
-WEBKIT_FILTER_RULES = [
+WEBKIT_DEFAULT_FILTER_RULES = [
     '-build/endif_comment',
     '-build/include_what_you_use',  # <string> for std::string
     '-build/storage_class',  # const static
@@ -158,6 +157,37 @@ STYLE_CATEGORIES = [
     ]
 
 
+# Some files should be skipped when checking style. For example,
+# WebKit maintains some files in Mozilla style on purpose to ease
+# future merges.
+#
+# Include a warning for skipped files that are less obvious.
+SKIPPED_FILES_WITH_WARNING = [
+    # The Qt API and tests do not follow WebKit style.
+    # They follow Qt style. :)
+    "gtk2drawing.c", # WebCore/platform/gtk/gtk2drawing.c
+    "gtk2drawing.h", # WebCore/platform/gtk/gtk2drawing.h
+    "JavaScriptCore/qt/api/",
+    "WebKit/gtk/tests/",
+    "WebKit/qt/Api/",
+    "WebKit/qt/tests/",
+    ]
+
+
+# Don't include a warning for skipped files that are more common
+# and more obvious.
+SKIPPED_FILES_WITHOUT_WARNING = [
+    "LayoutTests/"
+    ]
+
+
+def webkit_argument_defaults():
+    """Return the DefaultArguments instance for use by check-webkit-style."""
+    return ArgumentDefaults(WEBKIT_DEFAULT_OUTPUT_FORMAT,
+                            WEBKIT_DEFAULT_VERBOSITY,
+                            WEBKIT_DEFAULT_FILTER_RULES)
+
+
 def _create_usage(defaults):
     """Return the usage string to display for command help.
 
@@ -230,6 +260,79 @@ Syntax: %(program_name)s [--verbose=#] [--git-commit=<SingleCommit>] [--output=v
     return usage
 
 
+class CategoryFilter(object):
+
+    """Filters whether to check style categories."""
+
+    def __init__(self, filter_rules=None):
+        """Create a category filter.
+
+        This method performs argument validation but does not strip
+        leading or trailing white space.
+
+        Args:
+          filter_rules: A list of strings that are filter rules, which
+                        are strings beginning with the plus or minus
+                        symbol (+/-). The list should include any
+                        default filter rules at the beginning.
+                        Defaults to the empty list.
+
+        Raises:
+          ValueError: Invalid filter rule if a rule does not start with
+                      plus ("+") or minus ("-").
+
+        """
+        if filter_rules is None:
+            filter_rules = []
+
+        for rule in filter_rules:
+            if not (rule.startswith('+') or rule.startswith('-')):
+                raise ValueError('Invalid filter rule "%s": every rule '
+                                 'rule in the --filter flag must start '
+                                 'with + or -.' % rule)
+
+        self._filter_rules = filter_rules
+        self._should_check_category = {} # Cached dictionary of category to True/False
+
+    def __str__(self):
+        return ",".join(self._filter_rules)
+
+    # Useful for unit testing.
+    def __eq__(self, other):
+        """Return whether this CategoryFilter instance is equal to another."""
+        return self._filter_rules == other._filter_rules
+
+    # Useful for unit testing.
+    def __ne__(self, other):
+        # Python does not automatically deduce from __eq__().
+        return not (self == other)
+
+    def should_check(self, category):
+        """Return whether the category should be checked.
+
+        The rules for determining whether a category should be checked
+        are as follows. By default all categories should be checked.
+        Then apply the filter rules in order from first to last, with
+        later flags taking precedence.
+
+        A filter rule applies to a category if the string after the
+        leading plus/minus (+/-) matches the beginning of the category
+        name. A plus (+) means the category should be checked, while a
+        minus (-) means the category should not be checked.
+
+        """
+        if category in self._should_check_category:
+            return self._should_check_category[category]
+
+        should_check = True # All categories checked by default.
+        for rule in self._filter_rules:
+            if not category.startswith(rule[1:]):
+                continue
+            should_check = rule.startswith('+')
+        self._should_check_category[category] = should_check # Update cache.
+        return should_check
+
+
 # This class should not have knowledge of the flag key names.
 class ProcessorOptions(object):
 
@@ -240,16 +343,12 @@ class ProcessorOptions(object):
                      output formats are "emacs" which emacs can parse
                      and "vs7" which Microsoft Visual Studio 7 can parse.
 
-      verbosity: An integer 1-5 that restricts output to errors with a
-                 confidence score at or above this value.
+      verbosity: An integer between 1-5 inclusive that restricts output
+                 to errors with a confidence score at or above this value.
                  The default is 1, which displays all errors.
 
-      filter_rules: A list of strings that are boolean filter rules used
-                    to determine whether a style category should be checked.
-                    Each string should start with + or -. An example
-                    string is "+whitespace/indent". The list includes any
-                    prepended default filter rules. The default is the
-                    empty list, which includes all categories.
+      filter: A CategoryFilter instance. The default is the empty filter,
+              which means that all categories should be checked.
 
       git_commit: A string representing the git commit to check.
                   The default is None.
@@ -257,35 +356,75 @@ class ProcessorOptions(object):
       extra_flag_values: A string-string dictionary of all flag key-value
                          pairs that are not otherwise represented by this
                          class. The default is the empty dictionary.
+
     """
 
-    def __init__(self, output_format, verbosity=1, filter_rules=None,
+    def __init__(self, output_format="emacs", verbosity=1, filter=None,
                  git_commit=None, extra_flag_values=None):
-        if filter_rules is None:
-            filter_rules = []
+        if filter is None:
+            filter = CategoryFilter()
         if extra_flag_values is None:
             extra_flag_values = {}
 
+        if output_format not in ("emacs", "vs7"):
+            raise ValueError('Invalid "output_format" parameter: '
+                             'value must be "emacs" or "vs7". '
+                             'Value given: "%s".' % output_format)
+
+        if (verbosity < 1) or (verbosity > 5):
+            raise ValueError('Invalid "verbosity" parameter: '
+                             "value must be an integer between 1-5 inclusive. "
+                             'Value given: "%s".' % verbosity)
+
         self.output_format = output_format
         self.verbosity = verbosity
-        self.filter_rules = filter_rules
+        self.filter = filter
         self.git_commit = git_commit
         self.extra_flag_values = extra_flag_values
 
+    # Useful for unit testing.
+    def __eq__(self, other):
+        """Return whether this ProcessorOptions instance is equal to another."""
+        if self.output_format != other.output_format:
+            return False
+        if self.verbosity != other.verbosity:
+            return False
+        if self.filter != other.filter:
+            return False
+        if self.git_commit != other.git_commit:
+            return False
+        if self.extra_flag_values != other.extra_flag_values:
+            return False
 
-# FIXME: Eliminate the need for this function.
-#        Options should be passed into process_file instead.
-def set_options(options):
-    """Initialize global _CppStyleState instance.
+        return True
 
-    This needs to be called before calling process_file.
+    # Useful for unit testing.
+    def __ne__(self, other):
+        # Python does not automatically deduce from __eq__().
+        return not (self == other)
 
-    Args:
-      options: A ProcessorOptions instance.
-    """
-    cpp_style._set_output_format(options.output_format)
-    cpp_style._set_verbose_level(options.verbosity)
-    cpp_style._set_filters(options.filter_rules)
+    def should_report_error(self, category, confidence_in_error):
+        """Return whether an error should be reported.
+
+        An error should be reported if the confidence in the error
+        is at least the current verbosity level, and if the current
+        filter says that the category should be checked.
+
+        Args:
+          category: A string that is a style category.
+          confidence_in_error: An integer between 1 and 5, inclusive, that
+                               represents the application's confidence in
+                               the error. A higher number signifies greater
+                               confidence.
+
+        """
+        if confidence_in_error < self.verbosity:
+            return False
+
+        if self.filter is None:
+            return True # All categories should be checked by default.
+
+        return self.filter.should_check(category)
 
 
 # This class should not have knowledge of the flag key names.
@@ -328,8 +467,11 @@ class ArgumentPrinter(object):
 
         flags['output'] = options.output_format
         flags['verbose'] = options.verbosity
-        if options.filter_rules:
-            flags['filter'] = ','.join(options.filter_rules)
+        if options.filter:
+            # Only include the filter flag if rules are present.
+            filter_string = str(options.filter)
+            if filter_string:
+                flags['filter'] = filter_string
         if options.git_commit:
             flags['git-commit'] = options.git_commit
 
@@ -372,6 +514,7 @@ class ArgumentParser(object):
 
         Args:
           error_message: A string that is an error message to print.
+
         """
         usage = self.create_usage(self.defaults)
         self.doc_print(usage)
@@ -487,66 +630,290 @@ class ArgumentParser(object):
                              output_format)
 
         verbosity = int(verbosity)
-        if ((verbosity < 1) or (verbosity > 5)):
+        if (verbosity < 1) or (verbosity > 5):
             raise ValueError('Invalid --verbose value %s: value must '
                              'be between 1-5.' % verbosity)
 
-        for rule in filter_rules:
-            if not (rule.startswith('+') or rule.startswith('-')):
-                raise ValueError('Invalid filter rule "%s": every rule '
-                                 'rule in the --filter flag must start '
-                                 'with + or -.' % rule)
+        filter = CategoryFilter(filter_rules)
 
-        options = ProcessorOptions(output_format, verbosity, filter_rules,
+        options = ProcessorOptions(output_format, verbosity, filter,
                                    git_commit, extra_flag_values)
 
         return (filenames, options)
 
 
-def process_file(filename):
-    """Checks style for the specified file.
+# Enum-like idiom
+class FileType:
 
-    If the specified filename is '-', applies cpp_style to the standard input.
+    NONE = 1
+    # Alphabetize remaining types
+    CPP = 2
+    TEXT = 3
+
+
+class ProcessorDispatcher(object):
+
+    """Supports determining whether and how to check style, based on path."""
+
+    cpp_file_extensions = (
+        'c',
+        'cpp',
+        'h',
+        )
+
+    text_file_extensions = (
+        'css',
+        'html',
+        'idl',
+        'js',
+        'mm',
+        'php',
+        'pm',
+        'py',
+        'txt',
+        )
+
+    def _file_extension(self, file_path):
+        """Return the file extension without the leading dot."""
+        return os.path.splitext(file_path)[1].lstrip(".")
+
+    def should_skip_with_warning(self, file_path):
+        """Return whether the given file should be skipped with a warning."""
+        for skipped_file in SKIPPED_FILES_WITH_WARNING:
+            if file_path.find(skipped_file) >= 0:
+                return True
+        return False
+
+    def should_skip_without_warning(self, file_path):
+        """Return whether the given file should be skipped without a warning."""
+        for skipped_file in SKIPPED_FILES_WITHOUT_WARNING:
+            if file_path.find(skipped_file) >= 0:
+                return True
+        return False
+
+    def _file_type(self, file_path):
+        """Return the file type corresponding to the given file."""
+        file_extension = self._file_extension(file_path)
+
+        if (file_extension in self.cpp_file_extensions) or (file_path == '-'):
+            # FIXME: Do something about the comment below and the issue it
+            #        raises since cpp_style already relies on the extension.
+            #
+            # Treat stdin as C++. Since the extension is unknown when
+            # reading from stdin, cpp_style tests should not rely on
+            # the extension.
+            return FileType.CPP
+        elif ("ChangeLog" in file_path
+              or "WebKitTools/Scripts/" in file_path
+              or file_extension in self.text_file_extensions):
+            return FileType.TEXT
+        else:
+            return FileType.NONE
+
+    def _create_processor(self, file_type, file_path, handle_style_error, verbosity):
+        """Instantiate and return a style processor based on file type."""
+        if file_type == FileType.NONE:
+            processor = None
+        elif file_type == FileType.CPP:
+            file_extension = self._file_extension(file_path)
+            processor = CppProcessor(file_path, file_extension, handle_style_error, verbosity)
+        elif file_type == FileType.TEXT:
+            processor = TextProcessor(file_path, handle_style_error)
+        else:
+            raise ValueError('Invalid file type "%(file_type)s": the only valid file types '
+                             "are %(NONE)s, %(CPP)s, and %(TEXT)s."
+                             % {"file_type": file_type,
+                                "NONE": FileType.NONE,
+                                "CPP": FileType.CPP,
+                                "TEXT": FileType.TEXT})
+
+        return processor
+
+    def dispatch_processor(self, file_path, handle_style_error, verbosity):
+        """Instantiate and return a style processor based on file path."""
+        file_type = self._file_type(file_path)
+
+        processor = self._create_processor(file_type,
+                                           file_path,
+                                           handle_style_error,
+                                           verbosity)
+        return processor
+
+
+class StyleChecker(object):
+
+    """Supports checking style in files and patches.
+
+       Attributes:
+         error_count: An integer that is the total number of reported
+                      errors for the lifetime of this StyleChecker
+                      instance.
+         options: A ProcessorOptions instance that controls the behavior
+                  of style checking.
+
     """
-    if cpp_style.can_handle(filename) or filename == '-':
-        cpp_style.process_file(filename)
-    elif text_style.can_handle(filename):
-        text_style.process_file(filename)
 
+    def __init__(self, options, stderr_write=None):
+        """Create a StyleChecker instance.
 
-def process_patch(patch_string):
-    """Does lint on a single patch.
+        Args:
+          options: See options attribute.
+          stderr_write: A function that takes a string as a parameter
+                        and that is called when a style error occurs.
+                        Defaults to sys.stderr.write. This should be
+                        used only for unit tests.
 
-    Args:
-      patch_string: A string of a patch.
-    """
-    patch = DiffParser(patch_string.splitlines())
-    for filename, diff in patch.files.iteritems():
-        file_extension = os.path.splitext(filename)[1]
-        line_numbers = set()
+        """
+        if stderr_write is None:
+            stderr_write = sys.stderr.write
 
-        def error_for_patch(filename, line_number, category, confidence, message):
-            """Wrapper function of cpp_style.error for patches.
+        self._stderr_write = stderr_write
+        self.error_count = 0
+        self.options = options
 
-            This function outputs errors only if the line number
-            corresponds to lines which are modified or added.
-            """
-            if not line_numbers:
-                for line in diff.lines:
-                    # When deleted line is not set, it means that
-                    # the line is newly added.
-                    if not line[0]:
-                        line_numbers.add(line[1])
+    def _handle_style_error(self, filename, line_number, category, confidence, message):
+        """Handle the occurrence of a style error while checking.
 
-            if line_number in line_numbers:
-                cpp_style.error(filename, line_number, category, confidence, message)
+        Check whether an error should be reported. If so, increment the
+        global error count and report the error details.
 
-        if cpp_style.can_handle(filename):
-            cpp_style.process_file(filename, error=error_for_patch)
-        elif text_style.can_handle(filename):
-            text_style.process_file(filename, error=error_for_patch)
+        Args:
+          filename: The name of the file containing the error.
+          line_number: The number of the line containing the error.
+          category: A string used to describe the "category" this bug
+                    falls under: "whitespace", say, or "runtime".
+                    Categories may have a hierarchy separated by slashes:
+                    "whitespace/indent".
+          confidence: A number from 1-5 representing a confidence score
+                      for the error, with 5 meaning that we are certain
+                      of the problem, and 1 meaning that it could be a
+                      legitimate construct.
+          message: The error message.
 
+        """
+        if not self.options.should_report_error(category, confidence):
+            return
 
-def error_count():
-    """Returns the total error count."""
-    return cpp_style.error_count()
+        self.error_count += 1
+
+        if self.options.output_format == 'vs7':
+            format_string = "%s(%s):  %s  [%s] [%d]\n"
+        else:
+            format_string = "%s:%s:  %s  [%s] [%d]\n"
+
+        self._stderr_write(format_string % (filename, line_number, message,
+                                            category, confidence))
+
+    def _process_file(self, processor, file_path, handle_style_error):
+        """Process the file using the given processor."""
+        try:
+            # Support the UNIX convention of using "-" for stdin.  Note that
+            # we are not opening the file with universal newline support
+            # (which codecs doesn't support anyway), so the resulting lines do
+            # contain trailing '\r' characters if we are reading a file that
+            # has CRLF endings.
+            # If after the split a trailing '\r' is present, it is removed
+            # below. If it is not expected to be present (i.e. os.linesep !=
+            # '\r\n' as in Windows), a warning is issued below if this file
+            # is processed.
+            if file_path == '-':
+                lines = codecs.StreamReaderWriter(sys.stdin,
+                                                  codecs.getreader('utf8'),
+                                                  codecs.getwriter('utf8'),
+                                                  'replace').read().split('\n')
+            else:
+                lines = codecs.open(file_path, 'r', 'utf8', 'replace').read().split('\n')
+
+            carriage_return_found = False
+            # Remove trailing '\r'.
+            for line_number in range(len(lines)):
+                if lines[line_number].endswith('\r'):
+                    lines[line_number] = lines[line_number].rstrip('\r')
+                    carriage_return_found = True
+
+        except IOError:
+            self._stderr_write("Skipping input '%s': Can't open for reading\n" % file_path)
+            return
+
+        processor.process(lines)
+
+        if carriage_return_found and os.linesep != '\r\n':
+            # FIXME: Make sure this error also shows up when checking
+            #        patches, if appropriate.
+            #
+            # Use 0 for line_number since outputting only one error for
+            # potentially several lines.
+            handle_style_error(file_path, 0, 'whitespace/newline', 1,
+                               'One or more unexpected \\r (^M) found;'
+                               'better to use only a \\n')
+
+    def check_file(self, file_path, handle_style_error=None, process_file=None):
+        """Check style in the given file.
+
+        Args:
+          file_path: A string that is the path of the file to process.
+          handle_style_error: The function to call when a style error
+                              occurs. This parameter is meant for internal
+                              use within this class. Defaults to the
+                              style error handling method of this class.
+          process_file: The function to call to process the file. This
+                        parameter should be used only for unit tests.
+                        Defaults to the file processing method of this class.
+
+        """
+        if handle_style_error is None:
+            handle_style_error = self._handle_style_error
+
+        if process_file is None:
+            process_file = self._process_file
+
+        dispatcher = ProcessorDispatcher()
+
+        if dispatcher.should_skip_without_warning(file_path):
+            return
+        if dispatcher.should_skip_with_warning(file_path):
+            self._stderr_write('Ignoring "%s": this file is exempt from the '
+                               "style guide.\n" % file_path)
+            return
+
+        verbosity = self.options.verbosity
+        processor = dispatcher.dispatch_processor(file_path,
+                                                  handle_style_error,
+                                                  verbosity)
+        if processor is None:
+            return
+
+        process_file(processor, file_path, handle_style_error)
+
+    def check_patch(self, patch_string):
+        """Check style in the given patch.
+
+        Args:
+          patch_string: A string that is a patch string.
+
+        """
+        patch_files = parse_patch(patch_string)
+        for file_path, diff in patch_files.iteritems():
+            line_numbers = set()
+
+            def error_for_patch(file_path, line_number, category, confidence, message):
+                """Wrapper function of cpp_style.error for patches.
+
+                This function outputs errors only if the line number
+                corresponds to lines which are modified or added.
+
+                """
+                if not line_numbers:
+                    for line in diff.lines:
+                        # When deleted line is not set, it means that
+                        # the line is newly added.
+                        if not line[0]:
+                            line_numbers.add(line[1])
+
+                # FIXME: Make sure errors having line number zero are
+                #        logged -- like carriage-return errors.
+                if line_number in line_numbers:
+                    self._handle_style_error(file_path, line_number, category, confidence, message)
+
+            self.check_file(file_path, handle_style_error=error_for_patch)
+

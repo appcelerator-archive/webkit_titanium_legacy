@@ -688,10 +688,8 @@ bool CSSParser::parseValue(int propId, bool important)
         break;
 
     case CSSPropertyListStyleType:
-        // disc | circle | square | decimal | decimal-leading-zero | lower-roman |
-        // upper-roman | lower-greek | lower-alpha | lower-latin | upper-alpha |
-        // upper-latin | hebrew | armenian | georgian | cjk-ideographic | hiragana |
-        // katakana | hiragana-iroha | katakana-iroha | none | inherit
+        // See section CSS_PROP_LIST_STYLE_TYPE of file CSSValueKeywords.in
+        // for the list of supported list-style-types.
         if ((id >= CSSValueDisc && id <= CSSValueKatakanaIroha) || id == CSSValueNone)
             valid_primitive = true;
         break;
@@ -3770,8 +3768,8 @@ bool CSSParser::parseShadow(int propId, bool important)
                 // value.  Treat as invalid.
                 return false;
 #if ENABLE(SVG)
-            // -webkit-shadow does not support multiple values.
-            if (static_cast<CSSPropertyID>(propId) == CSSPropertyWebkitShadow)
+            // -webkit-svg-shadow does not support multiple values.
+            if (static_cast<CSSPropertyID>(propId) == CSSPropertyWebkitSvgShadow)
                 return false;
 #endif            
             // The value is good.  Commit it.

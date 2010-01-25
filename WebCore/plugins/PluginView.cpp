@@ -27,6 +27,7 @@
 #include "config.h"
 #include "PluginView.h"
 
+#include "Bridge.h"
 #include "Chrome.h"
 #include "Document.h"
 #include "DocumentLoader.h"
@@ -65,7 +66,6 @@
 #include "npruntime_impl.h"
 #include "runtime_root.h"
 #include "Settings.h"
-#include "runtime.h"
 #include <runtime/JSLock.h>
 #include <runtime/JSValue.h>
 #include <wtf/ASCIICType.h>
@@ -144,6 +144,9 @@ void PluginView::handleEvent(Event* event)
 {
     if (!m_plugin || m_isWindowed)
         return;
+
+    // Protect the plug-in from deletion while dispatching the event.
+    RefPtr<PluginView> protect(this);
 
     if (event->isMouseEvent())
         handleMouseEvent(static_cast<MouseEvent*>(event));
@@ -789,6 +792,7 @@ PluginView::PluginView(Frame* parentFrame, const IntSize& size, PluginPackage* p
     , m_requestTimer(this, &PluginView::requestTimerFired)
     , m_invalidateTimer(this, &PluginView::invalidateTimerFired)
     , m_popPopupsStateTimer(this, &PluginView::popPopupsStateTimerFired)
+    , m_mode(loadManually ? NP_FULL : NP_EMBED)
     , m_paramNames(0)
     , m_paramValues(0)
     , m_mimeType(mimeType)
@@ -847,8 +851,6 @@ PluginView::PluginView(Frame* parentFrame, const IntSize& size, PluginPackage* p
 #if defined(XP_MACOSX)
     memset(&m_npCgContext, 0, sizeof(m_npCgContext));
 #endif
-
-    m_mode = m_loadManually ? NP_FULL : NP_EMBED;
 
     resize(size);
 }
