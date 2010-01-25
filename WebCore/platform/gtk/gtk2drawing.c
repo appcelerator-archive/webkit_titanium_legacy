@@ -51,7 +51,6 @@
 
 #include <math.h>
 #include <string.h>
-#include <stdlib.h>
 
 #define XTHICKNESS(style) (style->xthickness)
 #define YTHICKNESS(style) (style->ythickness)
@@ -62,35 +61,10 @@ static style_prop_t style_prop_func;
 static gboolean have_arrow_scaling;
 static gboolean is_initialized;
 
-gint
-moz_gtk_use_parts_for_drawable(GdkDrawable* drawable)
-{
-    // A NULL drawable represents the default screen colormap.
-    GdkColormap* colormap = NULL;
-    if (!drawable)
-        colormap = gdk_screen_get_default_colormap(gdk_screen_get_default());
-    else
-        colormap = gdk_drawable_get_colormap(drawable);
-
-    if (!gPartsTable) {
-        gPartsTable = g_hash_table_new_full(NULL, NULL, NULL, g_free);
-    }
-
-    GtkThemeParts *parts = g_hash_table_lookup(gPartsTable, colormap);
-    if (!parts) {
-        parts = g_slice_new0(GtkThemeParts);
-        parts->colormap = colormap;
-        g_hash_table_insert(gPartsTable, colormap, parts);
-    }
-
-    gParts = parts;
-    return MOZ_GTK_SUCCESS;
-=======
 void
 moz_gtk_use_theme_parts(GtkThemeParts* parts)
 {
     gParts = parts;
->>>>>>> ffd3ad07f5f6deb4b78dc700bef1853ffd3e53e4:WebCore/platform/gtk/gtk2drawing.c
 }
 
 /* Because we have such an unconventional way of drawing widgets, signal to the GTK theme engine
@@ -862,7 +836,7 @@ moz_gtk_button_paint(GdkDrawable* drawable, GdkRectangle* rect,
 }
 
 gint
-moz_gtk_init(GdkDrawable* drawable)
+moz_gtk_init()
 {
     GtkWidgetClass *entry_class;
 
@@ -880,10 +854,6 @@ moz_gtk_init(GdkDrawable* drawable)
                              "If TRUE, the theme is able to draw the GtkEntry on non-prefilled background.",
                              FALSE,
                              G_PARAM_READWRITE));
-
-    // Default to using widget parts targeted to the current screen's colormap.
-    moz_gtk_use_parts_for_drawable(0);
-    atexit(moz_gtk_shutdown);
 
     return MOZ_GTK_SUCCESS;
 }
@@ -3250,24 +3220,16 @@ GtkWidget* moz_gtk_get_scrollbar_widget(void)
     return gParts->horizScrollbarWidget;
 }
 
-void
+gint
 moz_gtk_shutdown()
 {
     GtkWidgetClass *entry_class;
     entry_class = g_type_class_peek(GTK_TYPE_ENTRY);
     g_type_class_unref(entry_class);
 
-        if (!part)
-            continue;
-        if (part->tooltipWidget)
-            gtk_widget_destroy(part->tooltipWidget);
-        if (part->protoWindow)
-            gtk_widget_destroy(part->protoWindow);
-    }
-
-    g_hash_table_destroy(gPartsTable);
-
     is_initialized = FALSE;
+
+    return MOZ_GTK_SUCCESS;
 }
 
 void moz_gtk_destroy_theme_parts_widgets(GtkThemeParts* parts)

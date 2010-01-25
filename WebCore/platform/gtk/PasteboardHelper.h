@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2007 Luca Bruno <lethalman88@gmail.com>
  * Copyright (C) 2009 Holger Hans Peter Freyther
- * Copyright (C) 2009 Martin Robinson
+ * Copyright (C) 2009 Appcelerator, Inc.
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -30,6 +30,7 @@
 #include <wtf/RefCounted.h>
 
 typedef struct _GtkClipboard GtkClipboard;
+typedef struct _GtkSelectionData GtkSelectionData;
 typedef struct _GtkTargetList GtkTargetList;
 
 namespace WebCore {
@@ -41,23 +42,15 @@ class PasteboardHelper : public RefCounted<PasteboardHelper> {
 public:
     virtual ~PasteboardHelper() {};
 
-    virtual GtkClipboard* defaultClipboard() = 0;
-    virtual GtkClipboard* defaultClipboardForFrame(Frame*) = 0;
-    virtual GtkClipboard* primaryClipboard() = 0;
-    virtual GtkClipboard* primaryClipboardForFrame(Frame*) = 0;
+    virtual GtkClipboard* getCurrentTarget(Frame*) const = 0;
+    virtual GtkClipboard* getClipboard(Frame*) const = 0;
+    virtual GtkClipboard* getPrimary(Frame*) const = 0;
+    virtual GtkTargetList* targetList() const = 0;
+    virtual gint getWebViewTargetInfoHtml() const = 0;
     virtual void getClipboardContents(GtkClipboard*) = 0;
-    virtual void writeClipboardContents(GtkClipboard*) = 0;
-    virtual void fillSelectionData(GtkSelectionData*, guint, DataObjectGtk*) = 0;
+    virtual void writeClipboardContents(GtkClipboard*, gpointer data=0) = 0;
     virtual void fillDataObject(GtkSelectionData*, guint, DataObjectGtk*) = 0;
-    virtual GtkTargetList* fullTargetList() = 0;
-    virtual GtkTargetList* targetListForDataObject(DataObjectGtk* dataObject) = 0;
     virtual GtkTargetList* targetListForDragContext(GdkDragContext* context) = 0;
-    static bool usePrimaryClipboard();
-    static void setUsePrimaryClipboard(bool);
-    static void setHelper(PassRefPtr<PasteboardHelper>);
-    static GtkClipboard* clipboard();
-    static GtkClipboard* clipboardForFrame(Frame*);
-    static PassRefPtr<PasteboardHelper> helper();
 };
 
 }

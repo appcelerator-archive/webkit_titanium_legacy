@@ -25,14 +25,11 @@
 #include "RenderThemeGtk.h"
 
 #include "CString.h"
-#include "Chrome.h"
-#include "ChromeClient.h"
 #include "GOwnPtr.h"
 #include "GraphicsContext.h"
 #include "HTMLMediaElement.h"
 #include "HTMLNames.h"
 #include "NotImplemented.h"
-#include "Page.h"
 #include "RenderBox.h"
 #include "RenderObject.h"
 #include "TransformationMatrix.h"
@@ -158,6 +155,11 @@ RenderThemeGtk::RenderThemeGtk()
 
 RenderThemeGtk::~RenderThemeGtk()
 {
+    --mozGtkRefCount;
+
+    if (!mozGtkRefCount)
+        moz_gtk_shutdown();
+
     m_fullscreenButton.clear();
     m_muteButton.clear();
     m_unmuteButton.clear();
@@ -189,14 +191,6 @@ GtkThemeParts* RenderThemeGtk::partsForDrawable(GdkDrawable* drawable) const
     }
 
     return parts;
-}
-
-GdkDrawable* RenderThemeGtk::drawable() const
-{
-    if (!m_page)
-        return 0;
-
-    return m_page->chrome()->client()->platformPageClient()->window;
 }
 
 static bool supportsFocus(ControlPart appearance)
@@ -259,7 +253,6 @@ static void adjustMozillaStyle(const RenderThemeGtk* theme, RenderStyle* style, 
     GtkTextDirection direction = gtkTextDirection(style->direction());
     gboolean inhtml = true;
 
-    moz_gtk_use_parts_for_drawable(theme->drawable());
     if (moz_gtk_get_widget_border(type, &left, &top, &right, &bottom, direction, inhtml) != MOZ_GTK_SUCCESS)
         return;
 
@@ -359,7 +352,6 @@ static void setToggleSize(const RenderThemeGtk* theme, RenderStyle* style, Contr
     // FIXME: This is probably not correct use of indicatorSize and indicatorSpacing.
     gint indicatorSize, indicatorSpacing;
 
-    moz_gtk_use_parts_for_drawable(theme->drawable());
     switch (appearance) {
     case CheckboxPart:
         if (moz_gtk_checkbox_get_metrics(&indicatorSize, &indicatorSpacing) != MOZ_GTK_SUCCESS)

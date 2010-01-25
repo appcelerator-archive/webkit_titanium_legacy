@@ -197,10 +197,10 @@ libJavaScriptCore_la_CPPFLAGS = \
 	$(javascriptcore_cppflags)
 
 # WebKit
-nodist_EXTRA_libwebkit_1_0_la_SOURCES = \
+nodist_EXTRA_libwebkittitanium_1_0_la_SOURCES = \
 	$(webcore_built_nosources)
 
-nodist_libwebkit_1_0_la_SOURCES = \
+nodist_libwebkittitanium_1_0_la_SOURCES = \
 	$(webcore_built_sources) \
 	$(webkitgtk_built_sources)
 
@@ -209,7 +209,7 @@ libwebkittitanium_1_0_la_HEADERS = \
 	$(webkitgtk_h_api) \
 	WebKit/gtk/webkit/webkitenumtypes.h
 
-libwebkit_1_0_la_SOURCES = \
+libwebkittitanium_1_0_la_SOURCES = \
 	$(webcore_sources) \
 	$(webcoregtk_sources) \
 	$(webkitgtk_sources)
@@ -417,7 +417,7 @@ WEBKIT_GIRSOURCES += WebKit-1.0.gir
 JSCore-1.0.gir: $(srcdir)/WebKit/gtk/JSCore-1.0.gir
 	cp $(srcdir)/WebKit/gtk/JSCore-1.0.gir $(builddir)/
 
-$(WEBKIT_GIRSOURCES): $(JSCORE_GIRSOURCES) $(G_IR_SCANNER) libwebkit-1.0.la
+$(WEBKIT_GIRSOURCES): $(JSCORE_GIRSOURCES) $(G_IR_SCANNER) libwebkittitanium-1.0.la
 	$(AM_V_GEN)$(G_IR_SCANNER) -v --namespace WebKit --nsversion=1.0 \
 	     --include=GObject-2.0 \
 	     --include=Gtk-2.0 \

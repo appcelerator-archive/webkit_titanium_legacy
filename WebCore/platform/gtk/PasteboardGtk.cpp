@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2007 Holger Hans Peter Freyther
  *  Copyright (C) 2007 Alp Toker <alp@atoker.com>
- *  Copyright (C) 2009 Martin Robinson
+ *  Copyright (C) 2009 Appcelerator, Inc.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -49,30 +49,34 @@ Pasteboard::Pasteboard()
 
 Pasteboard::~Pasteboard()
 {
+    delete m_helper;
+}
+
+void Pasteboard::setHelper(PasteboardHelper* helper)
+{
+    m_helper = helper;
 }
 
 void Pasteboard::writeSelection(Range* selectedRange, bool canSmartCopyOrDelete, Frame* frame)
 {
-    GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(frame);
+    GtkClipboard* clipboard = m_helper->getClipboard(frame);
     ASSERT(clipboard);
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
 
     dataObject->setText(frame->selectedText());
     dataObject->setMarkup(createMarkup(selectedRange, 0, AnnotateForInterchange));
-    PasteboardHelper::helper()->writeClipboardContents(clipboard);
+    m_helper->writeClipboardContents(clipboard);
 }
 
 void Pasteboard::writePlainText(const String& text)
 {
-    // TODO: Is there a way to get the widget's clipboard here?
-    GtkClipboard* clipboard = PasteboardHelper::clipboard();
-    ASSERT(clipboard);
+    GtkClipboard* clipboard = gtk_clipboard_get_for_display(gdk_display_get_default(), GDK_SELECTION_CLIPBOARD);
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
 
     dataObject->setText(text);
-    PasteboardHelper::helper()->writeClipboardContents(clipboard);
+    m_helper->writeClipboardContents(clipboard);
 }
 
 void Pasteboard::writeURL(const KURL& url, const String& label, Frame* frame)
@@ -80,8 +84,7 @@ void Pasteboard::writeURL(const KURL& url, const String& label, Frame* frame)
     if (url.isEmpty())
         return;
 
-    GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(frame);
-    ASSERT(clipboard);
+    GtkClipboard* clipboard = m_helper->getClipboard(frame);
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
 
@@ -94,21 +97,19 @@ void Pasteboard::writeURL(const KURL& url, const String& label, Frame* frame)
     dataObject->setURIList(uriList);
     dataObject->setText(actualLabel);
 
-    PasteboardHelper::helper()->writeClipboardContents(clipboard);
+    m_helper->writeClipboardContents(clipboard);
 }
 
 void Pasteboard::writeImage(Node* node, const KURL&, const String&)
 {
+    GtkClipboard* clipboard = gtk_clipboard_get_for_display(gdk_display_get_default(), GDK_SELECTION_CLIPBOARD);
+
     ASSERT(node && node->renderer() && node->renderer()->isImage());
     RenderImage* renderer = toRenderImage(node->renderer());
     CachedImage* cachedImage = renderer->cachedImage();
     ASSERT(cachedImage);
     Image* image = cachedImage->image();
     ASSERT(image);
-
-    ASSERT(node->document());
-    GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(node->document()->frame());
-    ASSERT(clipboard);
 
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
@@ -117,18 +118,17 @@ void Pasteboard::writeImage(Node* node, const KURL&, const String&)
     dataObject->setImage(pixbuf);
     g_object_unref(pixbuf);
 
-    PasteboardHelper::helper()->writeClipboardContents(clipboard);
+    m_helper->writeClipboardContents(clipboard);
 }
 
 void Pasteboard::clear()
 {
-    // TODO: Is there a way to get the widget's clipboard here?
-    GtkClipboard* clipboard = PasteboardHelper::clipboard();
+    GtkClipboard* clipboard = gtk_clipboard_get_for_display(gdk_display_get_default(), GDK_SELECTION_CLIPBOARD);
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
 
     dataObject->clear();
-    PasteboardHelper::helper()->writeClipboardContents(clipboard);
+    m_helper->writeClipboardContents(clipboard);
 }
 
 bool Pasteboard::canSmartReplace()
@@ -139,18 +139,18 @@ bool Pasteboard::canSmartReplace()
 
 PassRefPtr<DocumentFragment> Pasteboard::documentFragment(Frame* frame, PassRefPtr<Range> context, bool allowPlainText, bool& chosePlainText)
 {
-    GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(frame);
+    GtkClipboard* clipboard = m_helper->getCurrentTarget(frame);
     ASSERT(clipboard);
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
-    PasteboardHelper::helper()->getClipboardContents(clipboard);
+    m_helper->getClipboardContents(clipboard);
 
     if (dataObject->hasMarkup()) {
         chosePlainText = false;
         String markup(dataObject->markup());
 
         if (!markup.isEmpty()) {
-            RefPtr<DocumentFragment> fragment = createFragmentFromMarkup(frame->document(), markup, "");
+            RefPtr<DocumentFragment> fragment = createFragmentFromMarkup(frame->document(), markup, "", FragmentScriptingNotAllowed);
             if (fragment)
                 return fragment.release();
         }
@@ -170,11 +170,11 @@ PassRefPtr<DocumentFragment> Pasteboard::documentFragment(Frame* frame, PassRefP
 
 String Pasteboard::plainText(Frame* frame)
 {
-    GtkClipboard* clipboard = PasteboardHelper::clipboardForFrame(frame);
+    GtkClipboard* clipboard = m_helper->getCurrentTarget(frame);
     ASSERT(clipboard);
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
-    PasteboardHelper::helper()->getClipboardContents(clipboard);
+    m_helper->getClipboardContents(clipboard);
 
     return dataObject->text();
 }

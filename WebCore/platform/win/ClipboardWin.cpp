@@ -308,6 +308,7 @@ static HGLOBAL createGlobalUrlFileDescriptor(const String& url, const String& ti
     return memObj;
 }
 
+
 static HGLOBAL createGlobalImageFileDescriptor(const String& url, const String& title, CachedImage* image)
 {
     ASSERT_ARG(image, image);

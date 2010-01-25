@@ -271,7 +271,7 @@ void webkit_init()
 
     PageGroup::setShouldTrackVisitedLinks(true);
 
-    PasteboardHelper::setHelper(WebKit::pasteboardHelperInstance());
+    Pasteboard::generalPasteboard()->setHelper(WebKit::pasteboardHelperInstance());
 
     iconDatabase()->setEnabled(true);
 

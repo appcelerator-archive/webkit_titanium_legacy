@@ -27,9 +27,11 @@
 #include "DataObjectGtk.h"
 #include "EditCommand.h"
 #include "Editor.h"
+#include <enchant.h>
 #include "EventNames.h"
 #include "FocusController.h"
 #include "Frame.h"
+#include <glib.h>
 #include "KeyboardCodes.h"
 #include "KeyboardEvent.h"
 #include "NotImplemented.h"
@@ -37,11 +39,7 @@
 #include "PasteboardHelperGtk.h"
 #include "PlatformKeyboardEvent.h"
 #include "markup.h"
-#include "DataObjectGtk.h"
-#include "PasteboardHelperGtk.h"
 
-#include <enchant.h>
-#include <glib.h>
 #include "webkitprivate.h"
 
 // Arbitrary depth limit for the undo stack, to keep it from using

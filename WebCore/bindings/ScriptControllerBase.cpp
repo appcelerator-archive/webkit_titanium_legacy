@@ -66,7 +66,7 @@ ScriptValue ScriptController::executeScript(const ScriptSourceCode& sourceCode)
 
 ScriptValue ScriptController::executeScript(const ScriptSourceCode& sourceCode, const String& mimeType, ScriptEvaluator *evaluator)
 {
-    if (!m_frame->script()->isEnabled() || m_frame->script()->isPaused())
+    if (!canExecuteScripts() || m_frame->script()->isPaused())
         return ScriptValue();
 
     if (!evaluator || mimeType.length() == 0)

@@ -24,7 +24,9 @@
 #include "NotImplemented.h"
 #include "RenderObject.h"
 #include "ClipboardGtk.h"
+#include "Pasteboard.h"
 #include "PasteboardHelper.h"
+#include "PasteboardHelperGtk.h"
 #include "webkitwebview.h"
 #include "webkitprivate.h"
 
@@ -77,7 +79,7 @@ void DragClient::startDrag(DragImageRef image, const IntPoint& dragImageOrigin, 
     RefPtr<DataObjectGtk> dataObject = clipboardGtk->dataObject();
     WEBKIT_WEB_VIEW_GET_PRIVATE(webView)->draggingDataObject = dataObject;
 
-    GtkTargetList* targetList = PasteboardHelper::helper()->targetListForDataObject(dataObject.get());
+    GtkTargetList* targetList = PasteboardHelperGtk::targetListForDataObject(dataObject.get());
     GdkEvent* event = gdk_event_new(GDK_BUTTON_PRESS);
     reinterpret_cast<GdkEventButton*>(event)->window = gtk_widget_get_window(GTK_WIDGET(m_webView));
     reinterpret_cast<GdkEventButton*>(event)->time = GDK_CURRENT_TIME;

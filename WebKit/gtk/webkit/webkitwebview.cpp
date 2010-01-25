@@ -10,7 +10,7 @@
  *  Copyright (C) 2009 Igalia S.L.
  *  Copyright (C) 2009 Movial Creative Technologies Inc.
  *  Copyright (C) 2009 Bobby Powers
- *  Copyright (C) 2009 Martin Robinson
+ *  Copyright (C) 2009 Appcelerator, Inc.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -544,14 +544,14 @@ static gboolean webkit_web_view_button_press_event(GtkWidget* widget, GdkEventBu
 #if PLATFORM(X11)
     /* Copy selection to the X11 selection clipboard */
     if (event->button == 2) {
-        bool primary = PasteboardHelper::usePrimaryClipboard();
-        PasteboardHelper::setUsePrimaryClipboard(true);
+        bool primary = webView->priv->usePrimaryForPaste;
+        webView->priv->usePrimaryForPaste = true;
 
         Editor* editor = webView->priv->corePage->focusController()->focusedOrMainFrame()->editor();
         result = result || editor->canPaste() || editor->canDHTMLPaste();
         editor->paste();
 
-        PasteboardHelper::setUsePrimaryClipboard(primary);
+        webView->priv->usePrimaryForPaste = primary;
     }
 #endif
 
@@ -1212,7 +1212,7 @@ static void webkit_web_view_drag_data_get(GtkWidget* widget, GdkDragContext* con
     WebKitWebViewPrivate* priv = WEBKIT_WEB_VIEW_GET_PRIVATE(webView);
     ASSERT(priv->draggingDataObject);
 
-    PasteboardHelper::helper()->fillSelectionData(selectionData, info, priv->draggingDataObject.get());
+    PasteboardHelperGtk::fillSelectionData(selectionData, info, priv->draggingDataObject.get());
 }
 
 static IntPoint lastDragGlobalPoint;
@@ -1273,7 +1273,7 @@ static gboolean webkit_web_view_drag_motion(GtkWidget* widget, GdkDragContext* c
 
         // Fetch a list of applicable targets for this drop. Only one target
         // per type will be selected to prevent unecessary data conversion.
-        GtkTargetList* targetList = PasteboardHelper::helper()->targetListForDragContext(context);
+        GtkTargetList* targetList = pasteboardHelperInstance()->targetListForDragContext(context);
         GList* list = targetList->list;
         pendingDragDataRequests = g_list_length(list);
         while (list) {
@@ -1309,7 +1309,7 @@ static void webkit_web_view_drag_data_received(GtkWidget* widget, GdkDragContext
         return;
 
     pendingDragDataRequests--;
-    PasteboardHelper::helper()->fillDataObject(selectionData, info, dataObject);
+    pasteboardHelperInstance()->fillDataObject(selectionData, info, dataObject);
 
     // Don't begin handling drag-motion events until we can notify the DragController.
     if (pendingDragDataRequests == 0) {
@@ -2776,7 +2776,7 @@ static void webkit_web_view_init(WebKitWebView* webView)
 
     gtk_drag_dest_set(GTK_WIDGET(webView), static_cast<GtkDestDefaults>(0), NULL, 0,
                       (GdkDragAction) (GDK_ACTION_COPY | GDK_ACTION_MOVE | GDK_ACTION_LINK));
-    gtk_drag_dest_set_target_list(GTK_WIDGET(webView), PasteboardHelper::helper()->fullTargetList());
+    gtk_drag_dest_set_target_list(GTK_WIDGET(webView), pasteboardHelperInstance()->targetList());
 }
 
 GtkWidget* webkit_web_view_new(void)
@@ -2819,6 +2819,11 @@ void webkit_web_view_request_download(WebKitWebView* webView, WebKitNetworkReque
         may be handled asynchronously by the application. */
     if (webkit_download_get_destination_uri(download))
         webkit_download_start(download);
+}
+
+bool webkit_web_view_use_primary_for_paste(WebKitWebView* webView)
+{
+    return webView->priv->usePrimaryForPaste;
 }
 
 void webkit_web_view_set_settings(WebKitWebView* webView, WebKitWebSettings* webSettings)
@@ -3562,15 +3567,16 @@ void webkit_web_view_set_editable(WebKitWebView* webView, gboolean flag)
  * @web_view: a #WebKitWebView
  *
  * This function returns the list of targets this #WebKitWebView can
- * provide for clipboard pasting and as a drag and drop source.
- * The targets in the list are associated with %info values from the
- * #WebKitWebViewTargetInfo enum based on their type.
+ * provide for clipboard copying and as DND source. The targets in the list are
+ * added with %info values from the #WebKitWebViewTargetInfo enum,
+ * using gtk_target_list_add() and
+ * gtk_target_list_add_text_targets().
  *
  * Return value: the #GtkTargetList of copy targets
  **/
 GtkTargetList* webkit_web_view_get_copy_target_list(WebKitWebView* webView)
 {
-    return PasteboardHelper::helper()->fullTargetList();
+    return pasteboardHelperInstance()->targetList();
 }
 
 /**
@@ -3578,15 +3584,16 @@ GtkTargetList* webkit_web_view_get_copy_target_list(WebKitWebView* webView)
  * @web_view: a #WebKitWebView
  *
  * This function returns the list of targets this #WebKitWebView can
- * provide for clipboard pasting and as a drag and drop destination.
- * The targets in the list are associated with %info values from the
- * #WebKitWebViewTargetInfo enum based on their type.
+ * provide for clipboard pasting and as DND destination. The targets in the list are
+ * added with %info values from the #WebKitWebViewTargetInfo enum,
+ * using gtk_target_list_add() and
+ * gtk_target_list_add_text_targets().
  *
  * Return value: the #GtkTargetList of paste targets
  **/
 GtkTargetList* webkit_web_view_get_paste_target_list(WebKitWebView* webView)
 {
-    return PasteboardHelper::helper()->fullTargetList();
+    return pasteboardHelperInstance()->targetList();
 }
 
 /**

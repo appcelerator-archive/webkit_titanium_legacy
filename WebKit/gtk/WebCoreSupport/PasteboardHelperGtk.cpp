@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2007 Luca Bruno <lethalman88@gmail.com>
  *  Copyright (C) 2009 Holger Hans Peter Freyther
- *  Copyright (C) 2009 Martin Robinson
+ *  Copyright (C) 2009 Appcelerator, Inc.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -37,28 +37,52 @@ static GdkAtom gdkMarkupAtom = gdk_atom_intern("text/html", FALSE);
 static GdkAtom netscapeURLAtom = gdk_atom_intern("_NETSCAPE_URL", FALSE);
 static GdkAtom uriListAtom = gdk_atom_intern("text/uri-list", FALSE);
 
-GtkClipboard* PasteboardHelperGtk::defaultClipboard()
+PasteboardHelperGtk::PasteboardHelperGtk()
+    : m_targetList(gtk_target_list_new(0, 0))
 {
-    return gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gtk_target_list_add_text_targets(m_targetList, WEBKIT_WEB_VIEW_TARGET_INFO_TEXT);
+    gtk_target_list_add(m_targetList, gdkMarkupAtom, 0, WEBKIT_WEB_VIEW_TARGET_INFO_HTML);
+    gtk_target_list_add_uri_targets(m_targetList, WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST);
+    gtk_target_list_add(m_targetList, netscapeURLAtom, 0, WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL);
 }
 
-GtkClipboard* PasteboardHelperGtk::defaultClipboardForFrame(Frame* frame)
+PasteboardHelperGtk::~PasteboardHelperGtk()
+{
+    gtk_target_list_unref(m_targetList);
+}
+
+GtkClipboard* PasteboardHelperGtk::getCurrentTarget(Frame* frame) const
 {
     WebKitWebView* webView = webkit_web_frame_get_web_view(kit(frame));
-    return gtk_widget_get_clipboard(GTK_WIDGET(webView),
+
+    if (webkit_web_view_use_primary_for_paste(webView))
+        return getPrimary(frame);
+    else
+        return getClipboard(frame);
+}
+
+GtkClipboard* PasteboardHelperGtk::getClipboard(Frame* frame) const
+{
+    WebKitWebView* webView = webkit_web_frame_get_web_view(kit(frame));
+    return gtk_widget_get_clipboard(GTK_WIDGET (webView),
                                     GDK_SELECTION_CLIPBOARD);
 }
 
-GtkClipboard* PasteboardHelperGtk::primaryClipboard()
-{
-    return gtk_clipboard_get(GDK_SELECTION_PRIMARY);
-}
-
-GtkClipboard* PasteboardHelperGtk::primaryClipboardForFrame(Frame* frame)
+GtkClipboard* PasteboardHelperGtk::getPrimary(Frame* frame) const
 {
     WebKitWebView* webView = webkit_web_frame_get_web_view(kit(frame));
-    return gtk_widget_get_clipboard(GTK_WIDGET(webView),
+    return gtk_widget_get_clipboard(GTK_WIDGET (webView),
                                     GDK_SELECTION_PRIMARY);
+}
+
+GtkTargetList* PasteboardHelperGtk::targetList() const
+{
+    return m_targetList;
+}
+
+gint PasteboardHelperGtk::getWebViewTargetInfoHtml() const
+{
+    return WEBKIT_WEB_VIEW_TARGET_INFO_HTML;
 }
 
 static Vector<KURL> urisToKURLVector(gchar** uris)
@@ -129,91 +153,6 @@ void PasteboardHelperGtk::getClipboardContents(GtkClipboard* clipboard)
     // data directly from the clipboard, but for now, don't read image data.
 }
 
-static bool settingClipboard = false;
-static void getClipboardContentsCallback(GtkClipboard* clipboard, GtkSelectionData *selectionData, guint info, gpointer data)
-{
-    DataObjectGtk* dataObject = reinterpret_cast<DataObjectGtk*>(data);
-    ASSERT(dataObject);
-    PasteboardHelper::helper()->fillSelectionData(selectionData, info, dataObject);
-}
-
-static void clearClipboardContentsCallback(GtkClipboard* clipboard, gpointer data)
-{
-    DataObjectGtk* dataObject = reinterpret_cast<DataObjectGtk*>(data);
-    ASSERT(dataObject);
-
-    // GTK will call the clear clipboard callback during
-    // gtk_clipboard_set_with_data. We don't actually want to clear
-    // the data object during that time.
-    if (!settingClipboard)
-        dataObject->clear();
-}
-
-void PasteboardHelperGtk::writeClipboardContents(GtkClipboard* clipboard)
-{
-    DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
-    GtkTargetList* list = targetListForDataObject(dataObject);
-
-    int numberOfTargets;
-    GtkTargetEntry* table = gtk_target_table_new_from_list(list, &numberOfTargets);
-
-    if (numberOfTargets > 0 && table) {
-        settingClipboard = true;
-        gtk_clipboard_set_with_data(clipboard, table, numberOfTargets,
-                                    getClipboardContentsCallback,
-                                    clearClipboardContentsCallback, dataObject);
-        settingClipboard = false;
-
-    } else
-        gtk_clipboard_clear(clipboard);
-
-    if (table)
-        gtk_target_table_free(table, numberOfTargets);
-    gtk_target_list_unref(list);
-}
-
-
-void PasteboardHelperGtk::fillSelectionData(GtkSelectionData* selectionData, guint info, DataObjectGtk* dataObject)
-{
-    if (info == WEBKIT_WEB_VIEW_TARGET_INFO_TEXT)
-        gtk_selection_data_set_text(selectionData, dataObject->text().utf8().data(), -1);
-
-    else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_HTML) {
-        gchar* markup = g_strdup(dataObject->markup().utf8().data());
-        gtk_selection_data_set(selectionData, selectionData->target, 8,
-                               reinterpret_cast<const guchar*>(markup),
-                               strlen(markup));
-        g_free(markup);
-
-    } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST) {
-        Vector<KURL> uriList(dataObject->uriList());
-        gchar** uris = g_new0(gchar*, uriList.size() + 1);
-        for (size_t i = 0; i < uriList.size(); i++)
-            uris[i] = g_strdup(uriList[i].string().utf8().data());
-
-        gtk_selection_data_set_uris(selectionData, uris);
-        g_strfreev(uris);
-
-    } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL && dataObject->hasURL()) {
-        String url(dataObject->url());
-        String result(url);
-        result.append("\n");
-
-        if (dataObject->hasText())
-            result.append(dataObject->text());
-        else
-            result.append(url);
-
-        gchar* resultData = g_strdup(result.utf8().data());
-        gtk_selection_data_set(selectionData, selectionData->target, 8,
-                               reinterpret_cast<const guchar*>(resultData),
-                               strlen(resultData));
-        g_free(resultData);
-
-    } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_IMAGE)
-        gtk_selection_data_set_pixbuf(selectionData, dataObject->image());
-}
-
 void PasteboardHelperGtk::fillDataObject(GtkSelectionData* selectionData, guint info, DataObjectGtk* dataObject)
 {
     if (info == WEBKIT_WEB_VIEW_TARGET_INFO_TEXT) {
@@ -271,20 +210,6 @@ void PasteboardHelperGtk::fillDataObject(GtkSelectionData* selectionData, guint 
     }
 }
 
-GtkTargetList* PasteboardHelperGtk::fullTargetList()
-{
-    static GtkTargetList* list = 0;
-    if (!list) {
-        list = gtk_target_list_new(0, 0);
-        gtk_target_list_add_text_targets(list, WEBKIT_WEB_VIEW_TARGET_INFO_TEXT);
-        gtk_target_list_add(list, gdkMarkupAtom, 0, WEBKIT_WEB_VIEW_TARGET_INFO_HTML);
-        gtk_target_list_add_uri_targets(list, WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST);
-        gtk_target_list_add(list, netscapeURLAtom, 0,
-                            WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL);
-    }
-    return list;
-}
-
 GtkTargetList* PasteboardHelperGtk::targetListForDataObject(DataObjectGtk* dataObject)
 {
     GtkTargetList* list = gtk_target_list_new(NULL, 0);
@@ -313,7 +238,7 @@ GtkTargetList* PasteboardHelperGtk::targetListForDragContext(GdkDragContext* con
     // to this rule is for _NETSCAPE_URL -- it can only carry one URL, so a
     // text/uri-list with multiple URLs should be preferred.
     // TODO: Should we prefer some image targets over others?
-    GtkTargetList* fullList = fullTargetList();
+    GtkTargetList* fullList = targetList();
     GtkTargetList* resultList = gtk_target_list_new(0, 0);
     bool targets[WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL + 1];
     targets[WEBKIT_WEB_VIEW_TARGET_INFO_TEXT] = false;
@@ -344,7 +269,7 @@ GtkTargetList* PasteboardHelperGtk::targetListForDragContext(GdkDragContext* con
     return resultList;
 }
 
-static void fillSelectionData(GtkSelectionData* selectionData, guint info, DataObjectGtk* dataObject)
+void PasteboardHelperGtk::fillSelectionData(GtkSelectionData* selectionData, guint info, DataObjectGtk* dataObject)
 {
     if (info == WEBKIT_WEB_VIEW_TARGET_INFO_TEXT)
         gtk_selection_data_set_text(selectionData, dataObject->text().utf8().data(), -1);
@@ -353,20 +278,31 @@ static void fillSelectionData(GtkSelectionData* selectionData, guint info, DataO
         gtk_selection_data_set(selectionData, selectionData->target, 8,
                                reinterpret_cast<const guchar*>(markup.get()),
                                strlen(markup.get()));
-    }
-}
+    } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_URI_LIST) {
+        Vector<KURL> uriList(dataObject->uriList());
+        gchar** uris = g_new0(gchar*, uriList.size() + 1);
+        for (size_t i = 0; i < uriList.size(); i++)
+            uris[i] = g_strdup(uriList[i].string().utf8().data());
 
-static GtkTargetList* targetListForDataObject(DataObjectGtk* dataObject)
-{
-    GtkTargetList* list = gtk_target_list_new(0, 0);
+        gtk_selection_data_set_uris(selectionData, uris);
+        g_strfreev(uris);
 
-    if (dataObject->hasText())
-        gtk_target_list_add_text_targets(list, WEBKIT_WEB_VIEW_TARGET_INFO_TEXT);
+    } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_NETSCAPE_URL && dataObject->hasURL()) {
+        String url(dataObject->url());
+        String result(url);
+        result.append("\n");
 
-    if (dataObject->hasMarkup())
-        gtk_target_list_add(list, gdkMarkupAtom, 0, WEBKIT_WEB_VIEW_TARGET_INFO_HTML);
+        if (dataObject->hasText())
+            result.append(dataObject->text());
+        else
+            result.append(url);
 
-    return list;
+        GOwnPtr<gchar> resultData(g_strdup(result.utf8().data()));
+        gtk_selection_data_set(selectionData, selectionData->target, 8,
+                               reinterpret_cast<const guchar*>(resultData.get()),
+                               strlen(resultData.get()));
+    } else if (info == WEBKIT_WEB_VIEW_TARGET_INFO_IMAGE)
+        gtk_selection_data_set_pixbuf(selectionData, dataObject->image());
 }
 
 static bool settingClipboard = false;
@@ -374,7 +310,7 @@ static void getClipboardContentsCallback(GtkClipboard* clipboard, GtkSelectionDa
 {
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
     ASSERT(dataObject);
-    fillSelectionData(selectionData, info, dataObject);
+    PasteboardHelperGtk::fillSelectionData(selectionData, info, dataObject);
 }
 
 static void clearClipboardContentsCallback(GtkClipboard* clipboard, gpointer data)
@@ -412,7 +348,7 @@ static void clearClipboardContentsCallback(GtkClipboard* clipboard, gpointer dat
 void PasteboardHelperGtk::writeClipboardContents(GtkClipboard* clipboard, gpointer data)
 {
     DataObjectGtk* dataObject = DataObjectGtk::forClipboard(clipboard);
-    GtkTargetList* list = targetListForDataObject(dataObject);
+    GtkTargetList* list = PasteboardHelperGtk::targetListForDataObject(dataObject);
 
     int numberOfTargets;
     GtkTargetEntry* table = gtk_target_table_new_from_list(list, &numberOfTargets);

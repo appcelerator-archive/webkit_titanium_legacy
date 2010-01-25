@@ -27,6 +27,9 @@
 #include <algorithm>
 
 typedef struct _GHashTable GHashTable;
+extern "C" void g_object_unref(void*);
+extern "C" void* g_object_ref(void*);
+extern "C" void* g_object_ref_sink(void*);
 
 namespace WTF {
 

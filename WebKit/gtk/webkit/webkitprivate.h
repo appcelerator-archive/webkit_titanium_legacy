@@ -146,6 +146,7 @@ extern "C" {
         char* iconURI;
 
         gboolean disposing;
+        gboolean usePrimaryForPaste;
 
         // These are hosted here because the DataSource object is
         // created too late in the frame loading process.
@@ -333,6 +334,9 @@ extern "C" {
 
     GSList*
     webkit_web_settings_get_spell_languages(WebKitWebView* web_view);
+
+    bool
+    webkit_web_view_use_primary_for_paste(WebKitWebView* web_view);
 
     GHashTable*
     webkit_history_items(void);

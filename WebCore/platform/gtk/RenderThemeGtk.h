@@ -30,7 +30,6 @@
 
 #include "GRefPtr.h"
 #include "RenderTheme.h"
-#include "gtkdrawing.h"
 
 typedef struct _GtkWidget GtkWidget;
 typedef struct _GtkStyle GtkStyle;
