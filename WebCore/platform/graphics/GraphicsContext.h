@@ -41,6 +41,11 @@
 typedef struct CGContext PlatformGraphicsContext;
 #elif PLATFORM(CAIRO)
 typedef struct _cairo PlatformGraphicsContext;
+#elif PLATFORM(OPENVG)
+namespace WebCore {
+class SurfaceOpenVG;
+}
+typedef class WebCore::SurfaceOpenVG PlatformGraphicsContext;
 #elif PLATFORM(QT)
 QT_BEGIN_NAMESPACE
 class QPainter;
@@ -106,6 +111,7 @@ namespace WebCore {
     const int cMisspellingLinePatternWidth = 4;
     const int cMisspellingLinePatternGapWidth = 1;
 
+    class AffineTransform;
     class Font;
     class Generator;
     class Gradient;
@@ -220,10 +226,10 @@ namespace WebCore {
         void drawImage(Image*, ColorSpace styleColorSpace, const FloatRect& destRect, const FloatRect& srcRect = FloatRect(0, 0, -1, -1),
                        CompositeOperator = CompositeSourceOver, bool useLowQualityScale = false);
         void drawTiledImage(Image*, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize,
-                       CompositeOperator = CompositeSourceOver);
+                       CompositeOperator = CompositeSourceOver, bool useLowQualityScale = false);
         void drawTiledImage(Image*, ColorSpace styleColorSpace, const IntRect& destRect, const IntRect& srcRect,
                             Image::TileRule hRule = Image::StretchTile, Image::TileRule vRule = Image::StretchTile,
-                            CompositeOperator = CompositeSourceOver);
+                            CompositeOperator = CompositeSourceOver, bool useLowQualityScale = false);
 
         void setImageInterpolationQuality(InterpolationQuality);
         InterpolationQuality imageInterpolationQuality() const;
@@ -263,6 +269,7 @@ namespace WebCore {
         void clearShadow();
 
         void drawFocusRing(const Vector<IntRect>&, int width, int offset, const Color&);
+        void drawFocusRing(const Vector<Path>&, int width, int offset, const Color&);
 
         void setLineCap(LineCap);
         void setLineDash(const DashArray&, float dashOffset);
@@ -298,7 +305,9 @@ namespace WebCore {
         void setURLForRect(const KURL&, const IntRect&);
 
         void concatCTM(const TransformationMatrix&);
+        void concatCTM(const AffineTransform&);
         TransformationMatrix getCTM() const;
+        AffineTransform getAffineCTM() const;
 
 #if OS(WINCE) && !PLATFORM(QT)
         void setBitmap(PassRefPtr<SharedBitmap>);

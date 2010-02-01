@@ -29,6 +29,9 @@
 
 #include "CString.h"
 #include "DataSourceGStreamer.h"
+#include "Document.h"
+#include "Frame.h"
+#include "FrameView.h"
 #include "GraphicsContext.h"
 #include "IntRect.h"
 #include "KURL.h"
@@ -47,6 +50,7 @@
 #include <gst/video/video.h>
 #include <limits>
 #include <math.h>
+#include <webkit/webkitwebview.h>
 #include <wtf/gtk/GOwnPtr.h>
 
 using namespace std;
@@ -131,18 +135,75 @@ void mediaPlayerPrivateSourceChangedCallback(GObject *object, GParamSpec *pspec,
 
     g_object_get(mp->m_playBin, "source", &element, NULL);
     gst_object_replace((GstObject**) &mp->m_source, (GstObject*) element);
+
+    if (element) {
+        GParamSpec* pspec = g_object_class_find_property(G_OBJECT_GET_CLASS(element), "cookies");
+
+        // First check if the source element has a cookies property
+        // of the format we expect
+        if (!pspec || pspec->value_type != G_TYPE_STRV)
+            return;
+
+        // Then get the cookies for the URI and set them
+        SoupSession* session = webkit_get_default_session();
+        SoupCookieJar* cookieJar = SOUP_COOKIE_JAR(soup_session_get_feature(session, SOUP_TYPE_COOKIE_JAR));
+
+        char* location;
+        g_object_get(element, "location", &location, NULL);
+
+        SoupURI* uri = soup_uri_new(location);
+        g_free(location);
+
+        // Let Apple web servers know we want to access their nice movie trailers.
+        if (g_str_equal(uri->host, "movies.apple.com"))
+            g_object_set(element, "user-agent", "Quicktime/7.2.0", NULL);
+
+        char* cookies = soup_cookie_jar_get_cookies(cookieJar, uri, FALSE);
+        soup_uri_free(uri);
+
+        char* cookiesStrv[] = {cookies, NULL};
+        g_object_set(element, "cookies", cookiesStrv, NULL);
+        g_free(cookies);
+
+        Frame* frame = mp->m_player->frameView() ? mp->m_player->frameView()->frame() : 0;
+        Document* document = frame ? frame->document() : 0;
+        if (document) {
+            GstStructure* extraHeaders = gst_structure_new("extra-headers",
+                                                           "Referer", G_TYPE_STRING,
+                                                           document->documentURI().utf8().data(), 0);
+            g_object_set(element, "extra-headers", extraHeaders, NULL);
+            gst_structure_free(extraHeaders);
+        }
+    }
+
     gst_object_unref(element);
 }
 
 void mediaPlayerPrivateVolumeChangedCallback(GObject *element, GParamSpec *pspec, gpointer data)
 {
+    // This is called when playbin receives the notify::volume signal.
     MediaPlayerPrivate* mp = reinterpret_cast<MediaPlayerPrivate*>(data);
     mp->volumeChanged();
 }
 
-gboolean notifyVolumeIdleCallback(MediaPlayer* mp)
+gboolean notifyVolumeIdleCallback(gpointer data)
 {
-    mp->volumeChanged();
+    MediaPlayerPrivate* mp = reinterpret_cast<MediaPlayerPrivate*>(data);
+    mp->volumeChangedCallback();
+    return FALSE;
+}
+
+void mediaPlayerPrivateMuteChangedCallback(GObject *element, GParamSpec *pspec, gpointer data)
+{
+    // This is called when playbin receives the notify::mute signal.
+    MediaPlayerPrivate* mp = reinterpret_cast<MediaPlayerPrivate*>(data);
+    mp->muteChanged();
+}
+
+gboolean notifyMuteIdleCallback(gpointer data)
+{
+    MediaPlayerPrivate* mp = reinterpret_cast<MediaPlayerPrivate*>(data);
+    mp->muteChangedCallback();
     return FALSE;
 }
 
@@ -246,7 +307,9 @@ MediaPlayerPrivate::MediaPlayerPrivate(MediaPlayer* player)
     , m_seeking(false)
     , m_playbackRate(1)
     , m_errorOccured(false)
-    , m_volumeIdleId(-1)
+    , m_volumeIdleId(0)
+    , m_mediaDuration(0.0)
+    , m_muteIdleId(0)
 {
     doGstInit();
 }
@@ -255,7 +318,12 @@ MediaPlayerPrivate::~MediaPlayerPrivate()
 {
     if (m_volumeIdleId) {
         g_source_remove(m_volumeIdleId);
-        m_volumeIdleId = -1;
+        m_volumeIdleId = 0;
+    }
+
+    if (m_muteIdleId) {
+        g_source_remove(m_muteIdleId);
+        m_muteIdleId = 0;
     }
 
     if (m_buffer)
@@ -342,6 +410,9 @@ float MediaPlayerPrivate::duration() const
 
     if (m_errorOccured)
         return 0.0;
+
+    if (m_mediaDuration)
+        return m_mediaDuration;
 
     GstFormat timeFormat = GST_FORMAT_TIME;
     gint64 timeLength = 0;
@@ -483,15 +554,19 @@ void MediaPlayerPrivate::setVolume(float volume)
     g_object_set(m_playBin, "volume", static_cast<double>(volume), NULL);
 }
 
-void MediaPlayerPrivate::volumeChanged()
+void MediaPlayerPrivate::volumeChangedCallback()
 {
-    if (m_volumeIdleId) {
-        g_source_remove(m_volumeIdleId);
-        m_volumeIdleId = -1;
-    }
-    m_volumeIdleId = g_idle_add((GSourceFunc) notifyVolumeIdleCallback, m_player);
+    double volume;
+    g_object_get(m_playBin, "volume", &volume, NULL);
+    m_player->volumeChanged(static_cast<float>(volume));
 }
 
+void MediaPlayerPrivate::volumeChanged()
+{
+    if (m_volumeIdleId)
+        g_source_remove(m_volumeIdleId);
+    m_volumeIdleId = g_idle_add((GSourceFunc) notifyVolumeIdleCallback, this);
+}
 
 void MediaPlayerPrivate::setRate(float rate)
 {
@@ -665,6 +740,11 @@ void MediaPlayerPrivate::updateStates()
         if (state == GST_STATE_PLAYING) {
             m_readyState = MediaPlayer::HaveEnoughData;
             m_paused = false;
+            if (!m_mediaDuration) {
+                float newDuration = duration();
+                if (!isinf(newDuration))
+                    m_mediaDuration = newDuration;
+            }
         } else
             m_paused = true;
 
@@ -844,12 +924,56 @@ void MediaPlayerPrivate::timeChanged()
 
 void MediaPlayerPrivate::didEnd()
 {
+    // EOS was reached but in case of reverse playback the position is
+    // not always 0. So to not confuse the HTMLMediaElement we
+    // synchronize position and duration values.
+    float now = currentTime();
+    if (now > 0)
+        m_mediaDuration = now;
+    gst_element_set_state(m_playBin, GST_STATE_PAUSED);
+
     timeChanged();
 }
 
 void MediaPlayerPrivate::durationChanged()
 {
+    // Reset cached media duration
+    m_mediaDuration = 0;
+
+    // And re-cache it if possible.
+    float newDuration = duration();
+    if (!isinf(newDuration))
+        m_mediaDuration = newDuration;
+
     m_player->durationChanged();
+}
+
+bool MediaPlayerPrivate::supportsMuting() const
+{
+    return true;
+}
+
+void MediaPlayerPrivate::setMuted(bool muted)
+{
+    if (!m_playBin)
+        return;
+
+    g_object_set(m_playBin, "mute", muted, NULL);
+}
+
+void MediaPlayerPrivate::muteChangedCallback()
+{
+    gboolean muted;
+    g_object_get(m_playBin, "mute", &muted, NULL);
+    m_player->muteChanged(static_cast<bool>(muted));
+}
+
+void MediaPlayerPrivate::muteChanged()
+{
+    if (m_muteIdleId)
+        g_source_remove(m_muteIdleId);
+
+    m_muteIdleId = g_idle_add((GSourceFunc) notifyMuteIdleCallback, this);
 }
 
 void MediaPlayerPrivate::loadingFailed(MediaPlayer::NetworkState error)
@@ -1070,6 +1194,7 @@ void MediaPlayerPrivate::createGSTPlayBin(String url)
 
     g_signal_connect(m_playBin, "notify::volume", G_CALLBACK(mediaPlayerPrivateVolumeChangedCallback), this);
     g_signal_connect(m_playBin, "notify::source", G_CALLBACK(mediaPlayerPrivateSourceChangedCallback), this);
+    g_signal_connect(m_playBin, "notify::mute", G_CALLBACK(mediaPlayerPrivateMuteChangedCallback), this);
 
     m_videoSink = webkit_video_sink_new();
 

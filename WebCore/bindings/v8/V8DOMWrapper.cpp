@@ -32,6 +32,7 @@
 #include "V8DOMWrapper.h"
 
 #include "CSSMutableStyleDeclaration.h"
+#include "DOMDataStore.h"
 #include "DOMObjectsInclude.h"
 #include "DocumentLoader.h"
 #include "FrameLoaderClient.h"
@@ -253,88 +254,6 @@ v8::Persistent<v8::FunctionTemplate> V8DOMWrapper::getTemplate(V8ClassIndex::V8W
     // Not in the cache.
     FunctionTemplateFactory factory = V8ClassIndex::GetFactory(type);
     v8::Persistent<v8::FunctionTemplate> descriptor = factory();
-    switch (type) {
-    case V8ClassIndex::MESSAGECHANNEL: {
-        descriptor->SetCallHandler(USE_CALLBACK(MessageChannelConstructor));
-        break;
-    }
-
-#if ENABLE(WORKERS)
-    case V8ClassIndex::WORKER: {
-        descriptor->SetCallHandler(USE_CALLBACK(WorkerConstructor));
-        break;
-    }
-#endif // WORKERS
-
-#if ENABLE(SHARED_WORKERS)
-    case V8ClassIndex::SHAREDWORKER: {
-        descriptor->SetCallHandler(USE_CALLBACK(SharedWorkerConstructor));
-        break;
-    }
-#endif // SHARED_WORKERS
-
-#if ENABLE(3D_CANVAS)
-    // The following objects are created from JavaScript.
-    case V8ClassIndex::WEBGLARRAYBUFFER:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLArrayBufferConstructor));
-        break;
-    case V8ClassIndex::WEBGLBYTEARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLByteArrayConstructor));
-        break;
-    case V8ClassIndex::WEBGLFLOATARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLFloatArrayConstructor));
-        break;
-    case V8ClassIndex::WEBGLINTARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLIntArrayConstructor));
-        break;
-    case V8ClassIndex::WEBGLSHORTARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLShortArrayConstructor));
-        break;
-    case V8ClassIndex::WEBGLUNSIGNEDBYTEARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLUnsignedByteArrayConstructor));
-        break;
-    case V8ClassIndex::WEBGLUNSIGNEDINTARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLUnsignedIntArrayConstructor));
-        break;
-    case V8ClassIndex::WEBGLUNSIGNEDSHORTARRAY:
-        descriptor->SetCallHandler(USE_CALLBACK(WebGLUnsignedShortArrayConstructor));
-        break;
-#endif
-    case V8ClassIndex::DOMPARSER:
-        descriptor->SetCallHandler(USE_CALLBACK(DOMParserConstructor));
-        break;
-    case V8ClassIndex::WEBKITCSSMATRIX:
-        descriptor->SetCallHandler(USE_CALLBACK(WebKitCSSMatrixConstructor));
-        break;
-    case V8ClassIndex::WEBKITPOINT:
-        descriptor->SetCallHandler(USE_CALLBACK(WebKitPointConstructor));
-        break;
-#if ENABLE(WEB_SOCKETS)
-    case V8ClassIndex::WEBSOCKET: {
-        descriptor->SetCallHandler(USE_CALLBACK(WebSocketConstructor));
-        break;
-    }
-#endif
-    case V8ClassIndex::XMLSERIALIZER:
-        descriptor->SetCallHandler(USE_CALLBACK(XMLSerializerConstructor));
-        break;
-    case V8ClassIndex::XMLHTTPREQUEST: {
-        descriptor->SetCallHandler(USE_CALLBACK(XMLHttpRequestConstructor));
-        break;
-    }
-#if ENABLE(XPATH)
-    case V8ClassIndex::XPATHEVALUATOR:
-        descriptor->SetCallHandler(USE_CALLBACK(XPathEvaluatorConstructor));
-        break;
-#endif
-#if ENABLE(XSLT)
-    case V8ClassIndex::XSLTPROCESSOR:
-        descriptor->SetCallHandler(USE_CALLBACK(XSLTProcessorConstructor));
-        break;
-#endif
-    default:
-        break;
-    }
 
     *cacheCell = descriptor;
     return descriptor;
@@ -849,6 +768,7 @@ V8ClassIndex::V8WrapperType V8DOMWrapper::htmlElementType(HTMLElement* element)
     macro(feImage, FEIMAGE) \
     macro(feMerge, FEMERGE) \
     macro(feMergeNode, FEMERGENODE) \
+    macro(feMorphology, FEMORPHOLOGY) \
     macro(feOffset, FEOFFSET) \
     macro(fePointLight, FEPOINTLIGHT) \
     macro(feSpecularLighting, FESPECULARLIGHTING) \
@@ -1048,7 +968,7 @@ v8::Handle<v8::Value> V8DOMWrapper::convertDocumentToV8Object(Document* document
     if (proxy)
         proxy->windowShell()->initContextIfNeeded();
 
-    DOMWrapperMap<Node>& domNodeMap = getDOMNodeMap();
+    DOMNodeMapping& domNodeMap = getDOMNodeMap();
     v8::Handle<v8::Object> wrapper = domNodeMap.get(document);
     if (wrapper.IsEmpty())
         return convertNewNodeToV8Object(document, proxy, domNodeMap);
@@ -1056,25 +976,39 @@ v8::Handle<v8::Value> V8DOMWrapper::convertDocumentToV8Object(Document* document
     return wrapper;
 }
 
+static v8::Handle<v8::Value> getWrapper(Node* node)
+{
+    ASSERT(WTF::isMainThread());
+    V8IsolatedContext* context = V8IsolatedContext::getEntered();
+    if (LIKELY(!context)) {
+        v8::Persistent<v8::Object>* wrapper = node->wrapper();
+        if (!wrapper)
+            return v8::Handle<v8::Value>();
+        return *wrapper;
+    }
+
+    DOMNodeMapping& domNodeMap = context->world()->domDataStore()->domNodeMap();
+    return domNodeMap.get(node);
+}
+
 v8::Handle<v8::Value> V8DOMWrapper::convertNodeToV8Object(Node* node)
 {
     if (!node)
         return v8::Null();
     
+    v8::Handle<v8::Value> wrapper = getWrapper(node);
+    if (!wrapper.IsEmpty())
+        return wrapper;
+
     Document* document = node->document();
     if (node == document)
         return convertDocumentToV8Object(document);
-    
-    DOMWrapperMap<Node>& domNodeMap = getDOMNodeMap();
-    v8::Handle<v8::Object> wrapper = domNodeMap.get(node);
-    if (wrapper.IsEmpty())
-        return convertNewNodeToV8Object(node, 0, domNodeMap);
-    
-    return wrapper;
+
+    return convertNewNodeToV8Object(node, 0, getDOMNodeMap());
 }
     
 // Caller checks node is not null.
-v8::Handle<v8::Value> V8DOMWrapper::convertNewNodeToV8Object(Node* node, V8Proxy* proxy, DOMWrapperMap<Node>& domNodeMap)
+v8::Handle<v8::Value> V8DOMWrapper::convertNewNodeToV8Object(Node* node, V8Proxy* proxy, DOMNodeMapping& domNodeMap)
 {
     if (!proxy && node->document())
         proxy = V8Proxy::retrieve(node->document()->frame());
@@ -1225,6 +1159,12 @@ v8::Handle<v8::Value> V8DOMWrapper::convertEventTargetToV8Object(EventTarget* ta
         return convertToV8Object(V8ClassIndex::DOMAPPLICATIONCACHE, domAppCache);
 #endif
 
+#if ENABLE(EVENTSOURCE)
+    EventSource* eventSource = target->toEventSource();
+    if (eventSource)
+        return convertToV8Object(V8ClassIndex::EVENTSOURCE, eventSource);
+#endif
+
     ASSERT(0);
     return notHandledByInterceptor();
 }
@@ -1288,6 +1228,22 @@ PassRefPtr<EventListener> V8DOMWrapper::getEventListener(XMLHttpRequestUpload* u
 {
     return getEventListener(upload->associatedXMLHttpRequest(), value, isAttribute, lookup);
 }
+
+#if ENABLE(EVENTSOURCE)
+PassRefPtr<EventListener> V8DOMWrapper::getEventListener(EventSource* eventSource, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup)
+{
+    if (V8Proxy::retrieve(eventSource->scriptExecutionContext()))
+        return (lookup == ListenerFindOnly) ? V8EventListenerList::findWrapper(value, isAttribute) : V8EventListenerList::findOrCreateWrapper<V8EventListener>(value, isAttribute);
+
+#if ENABLE(WORKERS)
+    WorkerContextExecutionProxy* workerContextProxy = WorkerContextExecutionProxy::retrieve();
+    if (workerContextProxy)
+        return workerContextProxy->findOrCreateEventListener(value, isAttribute, lookup == ListenerFindOnly);
+#endif
+
+    return 0;
+}
+#endif
 
 PassRefPtr<EventListener> V8DOMWrapper::getEventListener(EventTarget* eventTarget, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup)
 {

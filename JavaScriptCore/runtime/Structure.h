@@ -60,9 +60,9 @@ namespace JSC {
     public:
         friend class JIT;
         friend class StructureTransitionTable;
-        static PassRefPtr<Structure> create(JSValue prototype, const TypeInfo& typeInfo)
+        static PassRefPtr<Structure> create(JSValue prototype, const TypeInfo& typeInfo, unsigned anonymousSlotCount)
         {
-            return adoptRef(new Structure(prototype, typeInfo));
+            return adoptRef(new Structure(prototype, typeInfo, anonymousSlotCount));
         }
 
         static void startIgnoringLeaks();
@@ -75,7 +75,6 @@ namespace JSC {
         static PassRefPtr<Structure> removePropertyTransition(Structure*, const Identifier& propertyName, size_t& offset);
         static PassRefPtr<Structure> changePrototypeTransition(Structure*, JSValue prototype);
         static PassRefPtr<Structure> despecifyFunctionTransition(Structure*, const Identifier&);
-        static PassRefPtr<Structure> addAnonymousSlotsTransition(Structure*, unsigned count);
         static PassRefPtr<Structure> getterSetterTransition(Structure*);
         static PassRefPtr<Structure> toCacheableDictionaryTransition(Structure*);
         static PassRefPtr<Structure> toUncacheableDictionaryTransition(Structure*);
@@ -127,7 +126,8 @@ namespace JSC {
 
         bool hasNonEnumerableProperties() const { return m_hasNonEnumerableProperties; }
 
-        bool hasAnonymousSlots() const { return m_propertyTable && m_propertyTable->anonymousSlotCount; }
+        bool hasAnonymousSlots() const { return !!m_anonymousSlotCount; }
+        unsigned anonymousSlotCount() const { return m_anonymousSlotCount; }
         
         bool isEmpty() const { return m_propertyTable ? !m_propertyTable->keyCount : m_offset == noOffset; }
 
@@ -139,7 +139,8 @@ namespace JSC {
         void getPropertyNames(PropertyNameArray&, EnumerationMode mode);
         
     private:
-        Structure(JSValue prototype, const TypeInfo&);
+
+        Structure(JSValue prototype, const TypeInfo&, unsigned anonymousSlotCount);
         
         typedef enum { 
             NoneDictionaryKind = 0,
@@ -150,7 +151,6 @@ namespace JSC {
 
         size_t put(const Identifier& propertyName, unsigned attributes, JSCell* specificValue);
         size_t remove(const Identifier& propertyName);
-        void addAnonymousSlots(unsigned slotCount);
 
         void expandPropertyMapHashTable();
         void rehashPropertyMapHashTable();
@@ -218,9 +218,9 @@ namespace JSC {
 #else
         unsigned m_attributesInPrevious : 7;
 #endif
-        unsigned m_anonymousSlotsInPrevious : 6;
         unsigned m_specificFunctionThrashCount : 2;
-        // 4 free bits
+        unsigned m_anonymousSlotCount : 5;
+        // 5 free bits
     };
 
     inline size_t Structure::get(const Identifier& propertyName)

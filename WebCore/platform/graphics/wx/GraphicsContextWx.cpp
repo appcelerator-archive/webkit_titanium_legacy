@@ -26,6 +26,7 @@
 #include "config.h"
 #include "GraphicsContext.h"
 
+#include "AffineTransform.h"
 #include "TransformationMatrix.h"
 #include "FloatRect.h"
 #include "Font.h"
@@ -270,6 +271,11 @@ void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLef
     notImplemented();
 }
 
+void GraphicsContext::drawFocusRing(const Vector<Path>& paths, int width, int offset, const Color& color)
+{
+    // FIXME: implement
+}
+
 void GraphicsContext::drawFocusRing(const Vector<IntRect>& rects, int width, int offset, const Color& color)
 {
     if (paintingDisabled())
@@ -352,6 +358,12 @@ void GraphicsContext::canvasClip(const Path& path)
 void GraphicsContext::clipToImageBuffer(const FloatRect&, const ImageBuffer*)
 {
     notImplemented();
+}
+
+AffineTransform GraphicsContext::getAffineCTM() const
+{ 
+    notImplemented();
+    return AffineTransform();
 }
 
 TransformationMatrix GraphicsContext::getCTM() const
@@ -464,6 +476,15 @@ void GraphicsContext::setPlatformFillColor(const Color& color, ColorSpace colorS
     
     if (m_data->context)
         m_data->context->SetBrush(wxBrush(color));
+}
+
+void GraphicsContext::concatCTM(const AffineTransform& transform)
+{
+    if (paintingDisabled())
+        return;
+
+    notImplemented();
+    return;
 }
 
 void GraphicsContext::concatCTM(const TransformationMatrix& transform)

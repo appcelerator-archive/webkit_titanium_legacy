@@ -524,6 +524,7 @@ static NSString *createUserVisibleWebKitVersionString()
 
 static void WebKitInitializeApplicationCachePathIfNecessary()
 {
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
     static BOOL initialized = NO;
     if (initialized)
         return;
@@ -538,6 +539,7 @@ static void WebKitInitializeApplicationCachePathIfNecessary()
 
     cacheStorage().setCacheDirectory(cacheDir);
     initialized = YES;
+#endif
 }
 
 static bool runningLeopardMail()
@@ -554,6 +556,11 @@ static bool runningTigerMail()
     return applicationIsAppleMail();
 #endif
     return NO;    
+}
+
+static bool shouldEnableLoadDeferring()
+{
+    return !applicationIsAdobeInstaller();
 }
 
 - (void)_dispatchPendingLoadRequests
@@ -1001,7 +1008,9 @@ static bool fastDocumentTeardownEnabled()
         return;
     }
 
+#if ENABLE(VIDEO)
     [self _exitFullscreen];
+#endif
 
     if (Frame* mainFrame = [self _mainCoreFrame])
         mainFrame->loader()->detachFromParent();
@@ -1324,6 +1333,7 @@ static bool fastDocumentTeardownEnabled()
     settings->setShowRepaintCounter([preferences showRepaintCounter]);
     settings->setPluginAllowedRunTime([preferences pluginAllowedRunTime]);
     settings->setWebGLEnabled([preferences webGLEnabled]);
+    settings->setLoadDeferringEnabled(shouldEnableLoadDeferring());
 }
 
 static inline IMP getMethod(id o, SEL s)

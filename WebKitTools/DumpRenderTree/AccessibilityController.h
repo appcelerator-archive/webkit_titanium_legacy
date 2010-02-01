@@ -26,12 +26,14 @@
 #ifndef AccessibilityController_h
 #define AccessibilityController_h
 
+#include "AccessibilityUIElement.h"
 #include <JavaScriptCore/JSObjectRef.h>
+#include <string>
+#include <wtf/HashMap.h>
+#include <wtf/Platform.h>
 #if PLATFORM(WIN)
 #include <windows.h>
 #endif
-
-class AccessibilityUIElement;
 
 class AccessibilityController {
 public:
@@ -50,6 +52,9 @@ public:
 
     void resetToConsistentState();
 
+    void addNotificationListener(PlatformUIElement, JSObjectRef functionCallback);
+    void notificationReceived(PlatformUIElement, const std::string& eventName);
+
 private:
     static JSClassRef getJSClass();
 
@@ -57,6 +62,9 @@ private:
     HWINEVENTHOOK m_focusEventHook;
     HWINEVENTHOOK m_valueChangeEventHook;
     HWINEVENTHOOK m_scrollingStartEventHook;
+
+    HWINEVENTHOOK m_allEventsHook;
+    HashMap<PlatformUIElement, JSObjectRef> m_notificationListeners;
 #endif
 };
 

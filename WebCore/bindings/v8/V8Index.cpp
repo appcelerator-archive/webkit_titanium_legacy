@@ -427,6 +427,13 @@
 #include "V8SQLTransaction.h"
 #endif
 
+#if ENABLE(INDEXED_DATABASE)
+#include "V8IDBDatabaseError.h"
+#include "V8IDBDatabaseException.h"
+#include "V8IDBRequest.h"
+#include "V8IndexedDatabaseRequest.h"
+#endif
+
 #if ENABLE(XPATH)
 #include "V8XPathResult.h"
 #include "V8XPathException.h"
@@ -443,6 +450,10 @@
 #include "V8InjectedScriptHost.h"
 #include "V8InspectorBackend.h"
 #include "V8InspectorFrontendHost.h"
+#endif
+
+#if ENABLE(EVENTSOURCE)
+#include "V8EventSource.h"
 #endif
 
 // Geolocation

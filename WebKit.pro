@@ -6,11 +6,11 @@ include(WebKit.pri)
 SUBDIRS += \
         WebCore \
         WebKitTools/QtLauncher \
-        WebKit/qt/QGVLauncher \
-        WebKit/qt/tests
+        WebKit/qt/QGVLauncher
 
 !CONFIG(standalone_package) {
-    SUBDIRS += JavaScriptCore/jsc.pro
+    SUBDIRS += JavaScriptCore/jsc.pro \
+        WebKit/qt/tests
 
     !symbian: SUBDIRS += WebKitTools/DumpRenderTree/qt/DumpRenderTree.pro
 
@@ -19,6 +19,12 @@ SUBDIRS += \
         SUBDIRS += WebKitTools/DumpRenderTree/qt/TestNetscapePlugin/TestNetscapePlugin.pro
     }
 
+}
+
+build-qtscript {
+    SUBDIRS += \
+        JavaScriptCore/qt/api/QtScript.pro \
+        JavaScriptCore/qt/tests
 }
 
 include(WebKit/qt/docs/docs.pri)

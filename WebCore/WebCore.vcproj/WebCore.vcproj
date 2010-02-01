@@ -24107,6 +24107,14 @@
 					Name="transforms"
 					>
 					<File
+						RelativePath="..\platform\graphics\transforms\AffineTransform.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\platform\graphics\transforms\AffineTransform.h"
+						>
+					</File>
+					<File
 						RelativePath="..\platform\graphics\transforms\IdentityTransformOperation.h"
 						>
 					</File>
@@ -29885,6 +29893,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\html\DateComponents.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\html\DateComponents.h"
+				>
+			</File>
+			<File
 				RelativePath="..\html\DOMDataGridDataSource.cpp"
 				>
 			</File>
@@ -34081,14 +34097,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\html\ISODateTime.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\html\ISODateTime.h"
-				>
-			</File>
-			<File
 				RelativePath="..\html\MediaError.h"
 				>
 			</File>
@@ -37412,70 +37420,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="..\bindings\js\JSInspectedObjectWrapper.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug_Internal|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug_Cairo|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release_Cairo|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug_All|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\bindings\js\JSInspectedObjectWrapper.h"
-					>
-				</File>
-				<File
-					RelativePath="..\bindings\js\JSInspectorCallbackWrapper.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\bindings\js\JSInspectorCallbackWrapper.h"
-					>
-				</File>
-				<File
 					RelativePath="..\bindings\js\JSInspectorFrontendHostCustom.cpp"
 					>
 					<FileConfiguration
@@ -38541,62 +38485,6 @@
 				</File>
 				<File
 					RelativePath="..\bindings\js\JSPopStateEventCustom.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\bindings\js\JSQuarantinedObjectWrapper.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug_Internal|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug_Cairo|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release_Cairo|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug_All|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="..\bindings\js\JSQuarantinedObjectWrapper.h"
 					>
 				</File>
 				<File
@@ -40885,6 +40773,18 @@
 				>
 			</File>
 			<File
+				RelativePath="..\svg\SVGAnimatedProperty.h"
+				>
+			</File>
+			<File
+				RelativePath="..\svg\SVGAnimatedPropertySynchronizer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\svg\SVGAnimatedPropertyTraits.h"
+				>
+			</File>
+			<File
 				RelativePath="..\svg\SVGAnimatedTemplate.h"
 				>
 			</File>
@@ -40950,6 +40850,10 @@
 			</File>
 			<File
 				RelativePath="..\svg\SVGElementInstanceList.h"
+				>
+			</File>
+			<File
+				RelativePath="..\svg\SVGElementRareData.h"
 				>
 			</File>
 			<File
@@ -41714,10 +41618,6 @@
 			</File>
 			<File
 				RelativePath="..\svg\SVGZoomEvent.h"
-				>
-			</File>
-			<File
-				RelativePath="..\svg\SynchronizablePropertyController.h"
 				>
 			</File>
 			<Filter
@@ -42848,10 +42748,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\CSSSourceSyntaxHighlighter.js"
-					>
-				</File>
-				<File
 					RelativePath="..\inspector\front-end\Database.js"
 					>
 				</File>
@@ -42877,6 +42773,10 @@
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\DOMStorageItemsView.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\DOMSyntaxHighlighter.js"
 					>
 				</File>
 				<File
@@ -42928,15 +42828,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\JavaScriptSourceSyntaxHighlighter.js"
-					>
-				</File>
-				<File
-					RelativePath="..\inspector\front-end\JavaScriptTokenizer.js"
-					>
-				</File>
-				<File
 					RelativePath="..\inspector\front-end\MetricsSidebarPane.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\NativeTextViewer.js"
 					>
 				</File>
 				<File
@@ -43036,15 +42932,23 @@
 					>
 				</File>
 				<File
+					RelativePath="..\inspector\front-end\SourceCSSTokenizer.js"
+					>
+				</File>
+				<File
 					RelativePath="..\inspector\front-end\SourceFrame.js"
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\SourceFrame2.js"
+					RelativePath="..\inspector\front-end\SourceHTMLTokenizer.js"
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\SourceSyntaxHighlighter.js"
+					RelativePath="..\inspector\front-end\SourceJavaScriptTokenizer.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\SourceTokenizer.js"
 					>
 				</File>
 				<File

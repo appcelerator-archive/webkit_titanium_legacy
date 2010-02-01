@@ -51,6 +51,8 @@ namespace WebCore {
 }
 class LayoutTestController : public QObject {
     Q_OBJECT
+    Q_PROPERTY(int webHistoryItemCount READ webHistoryItemCount)
+    Q_PROPERTY(int workerThreadCount READ workerThreadCount)
 public:
     LayoutTestController(WebCore::DumpRenderTree* drt);
 
@@ -73,6 +75,9 @@ protected:
 signals:
     void done();
 
+    void showPage();
+    void hidePage();
+
 public slots:
     void maybeDump(bool ok);
     void dumpAsText() { m_textDump = true; }
@@ -82,6 +87,7 @@ public slots:
     void setCanOpenWindows() { m_canOpenWindows = true; }
     void waitUntilDone();
     QString counterValueForElementById(const QString& id);
+    int webHistoryItemCount();
     void keepWebHistory();
     void notifyDone();
     void dumpBackForwardList() { m_dumpBackForwardList = true; }
@@ -97,7 +103,7 @@ public slots:
     void provisionalLoad();
     void setCloseRemainingWindowsWhenComplete(bool = false) {}
     int windowCount();
-    void display() {}
+    void display();
     void clearBackForwardList();
     QString pathToLocalResource(const QString& url);
     void dumpTitleChanges() { m_dumpTitleChanges = true; }
@@ -136,6 +142,7 @@ public slots:
     void setUserStyleSheetLocation(const QString& url);
     void setUserStyleSheetEnabled(bool enabled);
     void setDomainRelaxationForbiddenForURLScheme(bool forbidden, const QString& scheme);
+    int workerThreadCount();
 
 private slots:
     void processWork();
@@ -158,6 +165,7 @@ private:
     QBasicTimer m_timeoutTimer;
     QWebFrame* m_topLoadingFrame;
     WebCore::DumpRenderTree* m_drt;
+    QWebHistory* m_webHistory;
 };
 
 #endif // LayoutTestControllerQt_h

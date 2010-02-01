@@ -3146,6 +3146,10 @@ void FrameLoader::tokenizerProcessedData()
 void FrameLoader::handledOnloadEvents()
 {
     m_client->dispatchDidHandleOnloadEvents();
+#if ENABLE(OFFLINE_WEB_APPLICATIONS)
+    if (documentLoader())
+        documentLoader()->applicationCacheHost()->stopDeferringEvents();
+#endif
 }
 
 void FrameLoader::frameDetached()
@@ -3692,7 +3696,7 @@ Frame* FrameLoader::findFrameForNavigation(const AtomicString& name)
 
 void FrameLoader::navigateWithinDocument(HistoryItem* item)
 {
-    ASSERT(!item->document() || item->document() == m_frame->document());
+    ASSERT(item->documentSequenceNumber() == history()->currentItem()->documentSequenceNumber());
 
     // Save user view state to the current history item here since we don't do a normal load.
     // FIXME: Does form state need to be saved here too?
@@ -3813,7 +3817,7 @@ void FrameLoader::loadItem(HistoryItem* item, FrameLoadType loadType)
     // - The HistoryItem has a history state object
     // - Navigating to an anchor within the page, with no form data stored on the target item or the current history entry,
     //   and the URLs in the frame tree match the history item for fragment scrolling.
-    bool sameDocumentNavigation = (!item->formData() && !(history()->currentItem() && history()->currentItem()->formData()) && history()->urlsMatchItem(item)) || item->document() == m_frame->document();
+    bool sameDocumentNavigation = (!item->formData() && !(history()->currentItem() && history()->currentItem()->formData()) && history()->urlsMatchItem(item)) || item->documentSequenceNumber() == history()->currentItem()->documentSequenceNumber();
 
 #if ENABLE(WML)
     // All WML decks should go through the real load mechanism, not the scroll-to-anchor code

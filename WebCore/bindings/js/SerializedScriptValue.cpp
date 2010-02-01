@@ -612,10 +612,10 @@ struct DeserializingTreeWalker : public BaseWalker {
     typedef JSObject* OutputObject;
     typedef SerializedObject::PropertyNameList PropertyList;
 
-    DeserializingTreeWalker(ExecState* exec, bool mustCopy)
+    DeserializingTreeWalker(ExecState* exec, JSGlobalObject* globalObject, bool mustCopy)
         : BaseWalker(exec)
-        , m_globalObject(exec->lexicalGlobalObject())
-        , m_isDOMGlobalObject(m_globalObject->inherits(&JSDOMGlobalObject::s_info))
+        , m_globalObject(globalObject)
+        , m_isDOMGlobalObject(globalObject->inherits(&JSDOMGlobalObject::s_info))
         , m_mustCopy(mustCopy)
     {
     }
@@ -644,14 +644,14 @@ struct DeserializingTreeWalker : public BaseWalker {
 
     JSArray* createOutputArray(unsigned length)
     {
-        JSArray* array = constructEmptyArray(m_exec);
+        JSArray* array = constructEmptyArray(m_exec, m_globalObject);
         array->setLength(length);
         return array;
     }
 
     JSObject* createOutputObject()
     {
-        return constructEmptyObject(m_exec);
+        return constructEmptyObject(m_exec, m_globalObject);
     }
 
     uint32_t length(RefPtr<SerializedArray> array)
@@ -694,11 +694,11 @@ struct DeserializingTreeWalker : public BaseWalker {
             case SerializedScriptValueData::NumberType:
                 return jsNumber(m_exec, value.asDouble());
             case SerializedScriptValueData::DateType:
-                return new (m_exec) DateInstance(m_exec, value.asDouble());
+                return new (m_exec) DateInstance(m_exec, m_globalObject->dateStructure(), value.asDouble());
             case SerializedScriptValueData::FileType:
                 if (!m_isDOMGlobalObject)
                     return jsNull();
-                return toJS(m_exec, static_cast<JSDOMGlobalObject*>(m_exec->lexicalGlobalObject()), File::create(value.asString().crossThreadString()));
+                return toJS(m_exec, static_cast<JSDOMGlobalObject*>(m_globalObject), File::create(value.asString().crossThreadString()));
             case SerializedScriptValueData::FileListType: {
                 if (!m_isDOMGlobalObject)
                     return jsNull();
@@ -707,7 +707,7 @@ struct DeserializingTreeWalker : public BaseWalker {
                 unsigned length = serializedFileList->length();
                 for (unsigned i = 0; i < length; i++)
                     result->append(File::create(serializedFileList->item(i)));
-                return toJS(m_exec, static_cast<JSDOMGlobalObject*>(m_exec->lexicalGlobalObject()), result.get());
+                return toJS(m_exec, static_cast<JSDOMGlobalObject*>(m_globalObject), result.get());
             }
             case SerializedScriptValueData::EmptyType:
                 ASSERT_NOT_REACHED();
@@ -752,15 +752,15 @@ struct DeserializingTreeWalker : public BaseWalker {
     }
 
 private:
+    void* operator new(size_t);
     JSGlobalObject* m_globalObject;
     bool m_isDOMGlobalObject;
     bool m_mustCopy;
 };
 
-JSValue SerializedScriptValueData::deserialize(ExecState* exec, bool mustCopy) const
+JSValue SerializedScriptValueData::deserialize(ExecState* exec, JSGlobalObject* global, bool mustCopy) const
 {
-    JSLock lock(SilenceAssertionsOnly);
-    DeserializingTreeWalker context(exec, mustCopy);
+    DeserializingTreeWalker context(exec, global, mustCopy);
     return walk<DeserializingTreeWalker>(context, *this);
 }
 
@@ -919,6 +919,7 @@ SerializedScriptValue::~SerializedScriptValue()
 
 PassRefPtr<SerializedScriptValue> SerializedScriptValue::create(JSContextRef originContext, JSValueRef apiValue, JSValueRef* exception)
 {
+    JSLock lock(SilenceAssertionsOnly);
     ExecState* exec = toJS(originContext);
     JSValue value = toJS(exec, apiValue);
     PassRefPtr<SerializedScriptValue> serializedValue = SerializedScriptValue::create(exec, value);
@@ -934,8 +935,9 @@ PassRefPtr<SerializedScriptValue> SerializedScriptValue::create(JSContextRef ori
 
 JSValueRef SerializedScriptValue::deserialize(JSContextRef destinationContext, JSValueRef* exception)
 {
+    JSLock lock(SilenceAssertionsOnly);
     ExecState* exec = toJS(destinationContext);
-    JSValue value = deserialize(exec);
+    JSValue value = deserialize(exec, exec->lexicalGlobalObject());
     if (exec->hadException()) {
         if (exception)
             *exception = toRef(exec, exec->exception());

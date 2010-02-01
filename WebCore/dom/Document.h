@@ -349,6 +349,7 @@ public:
         ASSERT(type >= FirstUnnamedDocumentCachedType);
         unsigned index = type - FirstUnnamedDocumentCachedType;
         ASSERT(index < NumUnnamedDocumentCachedTypes);
+        m_collectionInfo[index].checkConsistency();
         return &m_collectionInfo[index]; 
     }
 
@@ -374,7 +375,12 @@ public:
 #endif
     virtual bool isFrameSet() const { return false; }
     
-    CSSStyleSelector* styleSelector() const { return m_styleSelector; }
+    CSSStyleSelector* styleSelector()
+    { 
+        if (!m_styleSelector)
+            createStyleSelector();
+        return m_styleSelector.get();
+    }
 
     Element* getElementByAccessKey(const String& key) const;
     
@@ -478,6 +484,7 @@ public:
     
     // to get visually ordered hebrew and arabic pages right
     void setVisuallyOrdered();
+    bool visuallyOrdered() const { return m_visuallyOrdered; }
 
     void open(Document* ownerDocument = 0);
     void implicitOpen();
@@ -617,6 +624,9 @@ public:
     EventListener* getWindowAttributeEventListener(const AtomicString& eventType);
     void dispatchWindowEvent(PassRefPtr<Event>, PassRefPtr<EventTarget> = 0);
     void dispatchWindowLoadEvent();
+
+    void enqueueStorageEvent(PassRefPtr<Event>);
+    void storageEventTimerFired(Timer<Document>*);
 
     PassRefPtr<Event> createEvent(const String& eventType, ExceptionCode&);
 
@@ -904,8 +914,6 @@ public:
 
     void updateURLForPushOrReplaceState(const KURL&);
     void statePopped(SerializedScriptValue*);
-    void registerHistoryItem(HistoryItem* item);
-    void unregisterHistoryItem(HistoryItem* item);
 
     void updateSandboxFlags(); // Set sandbox flags as determined by the frame.
 
@@ -928,11 +936,12 @@ public:
     void resetWMLPageState();
     void initializeWMLPageState();
 #endif
+    
+    bool containsValidityStyleRules() const { return m_containsValidityStyleRules; }
+    void setContainsValidityStyleRules() { m_containsValidityStyleRules = true; }
 
 protected:
     Document(Frame*, bool isXHTML, bool isHTML);
-
-    void setStyleSelector(CSSStyleSelector* styleSelector) { m_styleSelector = styleSelector; }
 
     void clearXMLVersion() { m_xmlVersion = String(); }
 
@@ -967,7 +976,9 @@ private:
 
     void cacheDocumentElement() const;
 
-    CSSStyleSelector* m_styleSelector;
+    void createStyleSelector();
+
+    OwnPtr<CSSStyleSelector> m_styleSelector;
     bool m_didCalculateStyleSelector;
 
     Frame* m_frame;
@@ -1052,7 +1063,7 @@ private:
     String m_selectedStylesheetSet;
 
     bool m_loadingSheet;
-    bool visuallyOrdered;
+    bool m_visuallyOrdered;
     bool m_bParsing;
     Timer<Document> m_styleRecalcTimer;
     bool m_inStyleRecalc;
@@ -1067,6 +1078,7 @@ private:
     bool m_isDNSPrefetchEnabled;
     bool m_haveExplicitlyDisabledDNSPrefetch;
     bool m_frameElementsShouldIgnoreScrolling;
+    bool m_containsValidityStyleRules;
 
     String m_title;
     String m_rawTitle;
@@ -1182,6 +1194,9 @@ private:
 #endif
 
     bool m_usingGeolocation;
+
+    Timer<Document> m_storageEventTimer;
+    Vector<RefPtr<Event> > m_storageEventQueue;
 
 #if ENABLE(WML)
     bool m_containsWMLContent;

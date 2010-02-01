@@ -100,19 +100,9 @@ WebInspector.InspectorBackendStub.prototype = {
     {
     },
 
-
-    addResourceSourceToFrame: function(identifier, element)
+    getResourceContent: function(callId, identifier)
     {
-    },
-
-    addSourceToFrame: function(mimeType, source, element)
-    {
-        return false;
-    },
-
-    getResourceDocumentNode: function(identifier)
-    {
-        return undefined;
+        WebInspector.didGetResourceContent(callId, "");
     },
 
     highlightDOMNode: function(node)
@@ -274,6 +264,10 @@ WebInspector.InspectorBackendStub.prototype = {
     },
 
     releaseWrapperObjectGroup: function()
+    {
+    },
+
+    setInjectedScriptSource: function()
     {
     }
 }

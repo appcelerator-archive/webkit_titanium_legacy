@@ -118,7 +118,6 @@ LOCAL_SRC_FILES += \
 	bindings/js/JSHistoryCustom.cpp \
 	bindings/js/JSImageConstructor.cpp \
 	bindings/js/JSImageDataCustom.cpp \
-	bindings/js/JSInspectedObjectWrapper.cpp \
 	bindings/js/JSLazyEventListener.cpp \
 	bindings/js/JSLocationCustom.cpp \
 	bindings/js/JSMessageChannelConstructor.cpp \
@@ -186,6 +185,7 @@ LOCAL_SRC_FILES += \
 	bridge/c/c_utility.cpp \
 	bridge/jni/JNIBridge.cpp \
 	bridge/jni/JNIUtility.cpp \
+	bridge/jni/jsc/JNIBridgeJSC.cpp \
 	bridge/jni/jsc/JNIUtilityPrivate.cpp \
 	bridge/jni/jsc/JavaClassJSC.cpp \
 	bridge/jni/jsc/JavaInstanceJSC.cpp \

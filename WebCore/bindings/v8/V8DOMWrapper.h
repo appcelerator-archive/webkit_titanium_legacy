@@ -92,6 +92,7 @@ namespace WebCore {
     class StyleSheetList;
     class V8EventListener;
     class V8ObjectEventListener;
+    class V8Proxy;
 #if ENABLE(WEB_SOCKETS)
     class WebSocket;
 #endif
@@ -150,7 +151,7 @@ namespace WebCore {
             return convertNewNodeToV8Object(node, 0, getDOMNodeMap());
         }
 
-        static v8::Handle<v8::Value> convertNewNodeToV8Object(Node*, V8Proxy*, DOMWrapperMap<Node>&);
+        static v8::Handle<v8::Value> convertNewNodeToV8Object(Node*, V8Proxy*, DOMNodeMapping&);
 
         static V8ClassIndex::V8WrapperType domWrapperType(v8::Handle<v8::Object>);
 
@@ -189,6 +190,10 @@ namespace WebCore {
         static PassRefPtr<EventListener> getEventListener(WorkerContext* workerContext, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
 
         static PassRefPtr<EventListener> getEventListener(XMLHttpRequestUpload* upload, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+
+#if ENABLE(EVENTSOURCE)
+        static PassRefPtr<EventListener> getEventListener(EventSource* eventTarget, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
+#endif
 
         static PassRefPtr<EventListener> getEventListener(EventTarget* eventTarget, v8::Local<v8::Value> value, bool isAttribute, ListenerLookupType lookup);
 

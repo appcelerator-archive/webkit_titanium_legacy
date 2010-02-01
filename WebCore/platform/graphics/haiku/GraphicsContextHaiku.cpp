@@ -28,6 +28,7 @@
 #include "config.h"
 #include "GraphicsContext.h"
 
+#include "AffineTransform.h"
 #include "CString.h"
 #include "Color.h"
 #include "Font.h"
@@ -202,6 +203,11 @@ void GraphicsContext::clip(const FloatRect& rect)
 
     BRegion region(rect);
     m_data->m_view->ConstrainClippingRegion(&region);
+}
+
+void GraphicsContext::drawFocusRing(const Vector<Path>& paths, int width, int offset, const Color& color)
+{
+    // FIXME: implement
 }
 
 void GraphicsContext::drawFocusRing(const Vector<IntRect>& rects, int /* width */, int /* offset */, const Color& color)
@@ -386,6 +392,12 @@ void GraphicsContext::clipToImageBuffer(const FloatRect&, const ImageBuffer*)
     notImplemented();
 }
 
+AffineTransform GraphicsContext::getAffineCTM() const
+{
+    notImplemented();
+    return AffineTransform();
+}
+
 TransformationMatrix GraphicsContext::getCTM() const
 {
     notImplemented();
@@ -439,6 +451,14 @@ void GraphicsContext::clipOutEllipseInRect(const IntRect& rect)
 }
 
 void GraphicsContext::addInnerRoundedRectClip(const IntRect& rect, int thickness)
+{
+    if (paintingDisabled())
+        return;
+
+    notImplemented();
+}
+
+void GraphicsContext::concatCTM(const AffineTransform& transform)
 {
     if (paintingDisabled())
         return;

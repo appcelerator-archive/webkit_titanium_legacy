@@ -2261,7 +2261,6 @@ fast/events/event-listener-on-link.html
 fast/events/event-sender-mouse-moved.html
 fast/events/focusingUnloadedFrame.html
 fast/events/keydown-1.html
-fast/events/keydown-numpad-keys.html
 fast/events/label-focus.html
 fast/events/mouseout-dead-node.html
 fast/events/onload-re-entry.html
@@ -5474,6 +5473,10 @@ http/tests/security/frameNavigation/cross-origin-opener.html
 # Tests with bugs attached : Enable these tests again once these bugs are fixed.
 # ------------------
 
+# Height not honored for <input> and <button> elements.
+# See Bug #33936 - https://bugs.webkit.org/show_bug.cgi?id=33936
+fast/css/button-height.html
+
 # See Bug #27637 - https://bugs.webkit.org/show_bug.cgi?id=27637
 fast/history/saves-state-after-fragment-nav.html
 
@@ -5594,7 +5597,8 @@ http/tests/xmlhttprequest/workers/shared-worker-methods-async.html
 http/tests/loading/basic-credentials-sent-automatically.html
 
 # This port doesn't support detecting slow unload handlers.
-fast/dom/Window/slow_unload_handler.html
+fast/dom/Window/slow-unload-handler.html
+fast/dom/Window/slow-unload-handler-only-frame-is-stopped.html
 
 # Tests generating new results
 fast/table/fixed-table-with-percent-inside-percent-table.html
@@ -5779,5 +5783,5 @@ svg/custom/use-instanceRoot-event-bubbling.xhtml
 # New failure after http://trac.webkit.org/changeset/53758
 scrollbars/scrollbar-middleclick-nopaste.html
 
-# https://bugs.webkit.org/show_bug.cgi?id=34086
-media/video-reverse-play-duration.html
+# https://bugs.webkit.org/show_bug.cgi?id=34246
+fast/dom/Window/window-postmessage-clone-frames.html

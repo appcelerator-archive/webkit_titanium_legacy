@@ -32,19 +32,44 @@
 WebInspector.TextEditorHighlighter = function(textModel, damageCallback)
 {
     this._textModel = textModel;
-    this._tokenizer = new WebInspector.JavaScriptTokenizer();
 
     this._styles = [];
-    this._styles["comment"] = "rgb(0, 116, 0)";
-    this._styles["string"] = "rgb(196, 26, 22)";
-    this._styles["regex"] = "rgb(196, 26, 22)";
-    this._styles["keyword"] = "rgb(170, 13, 145)";
-    this._styles["number"] = "rgb(28, 0, 207)";
 
+    this._styles["css-comment"] = "rgb(0, 116, 0)";
+    this._styles["css-params"] = "rgb(7, 144, 154)";
+    this._styles["css-string"] = "rgb(7, 144, 154)";
+    this._styles["css-keyword"] = "rgb(7, 144, 154)";
+    this._styles["css-number"] = "rgb(50, 0, 255)";
+    this._styles["css-property"] = "rgb(200, 0, 0)";
+    this._styles["css-at-rule"] = "rgb(200, 0, 0)";
+    this._styles["css-selector"] = "rgb(0, 0, 0)";
+    this._styles["css-important"] = "rgb(200, 0, 180)";
+
+    /* Keep this in sync with inspector.css and view-source.css */
+    this._styles["html-tag"] = "rgb(136, 18, 128)";
+    this._styles["html-attr-name"] = "rgb(153, 69, 0)";
+    this._styles["html-attr-value"] = "rgb(26, 26, 166)";
+    this._styles["html-comment"] = "rgb(35, 110, 37)";
+    this._styles["html-doctype"] = "rgb(192, 192, 192)";
+
+    this._styles["javascript-comment"] = "rgb(0, 116, 0)";
+    this._styles["javascript-string"] = "rgb(196, 26, 22)";
+    this._styles["javascript-regexp"] = "rgb(196, 26, 22)";
+    this._styles["javascript-keyword"] = "rgb(170, 13, 145)";
+    this._styles["javascript-number"] = "rgb(28, 0, 207)";
+
+    this.mimeType = "text/html";
     this._damageCallback = damageCallback;    
 }
 
 WebInspector.TextEditorHighlighter.prototype = {
+    set mimeType(mimeType)
+    {
+        var tokenizer = WebInspector.SourceTokenizer.Registry.getInstance().getTokenizer(mimeType);
+        if (tokenizer)
+            this._tokenizer = tokenizer;
+    },
+
     highlight: function(endLine)
     {
         // First check if we have work to do.
@@ -146,7 +171,7 @@ WebInspector.TextEditorHighlighter.prototype = {
             this._textModel.setAttribute(i, "highlighter-state", state);
 
             var nextLineState = this._textModel.getAttribute(i + 1, "highlighter-state");
-            if (nextLineState && nextLineState.preCondition === state.postCondition) {
+            if (nextLineState && this._tokenizer.hasCondition(nextLineState.preCondition)) {
                 // Following lines are up to date, no need re-highlight.
                 this._damageCallback(startLine, i + 1);
                 return true;
@@ -163,7 +188,7 @@ WebInspector.TextEditorHighlighter.prototype = {
              var newColumn = this._tokenizer.nextToken(column);
              var tokenType = this._tokenizer.tokenType;
              if (tokenType)
-                 attributes[column] = { length: newColumn - column, style: this._styles[tokenType] };
+                 attributes[column] = { length: newColumn - column, tokenType: tokenType, style: this._styles[tokenType] };
              column = newColumn;
          } while (column < line.length)
     }

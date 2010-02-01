@@ -21,6 +21,7 @@
 #include "config.h"
 #include "GraphicsContext.h"
 
+#include "AffineTransform.h"
 #include "CharacterNames.h"
 #include "GlyphBuffer.h"
 #include "Gradient.h"
@@ -1002,6 +1003,11 @@ void GraphicsContext::clipOut(const IntRect& rect)
     ExcludeClipRect(m_data->m_dc, trRect.x(), trRect.y(), trRect.right(), trRect.bottom());
 }
 
+void GraphicsContext::drawFocusRing(const Vector<Path>& paths, int width, int offset, const Color& color)
+{
+    // FIXME: implement
+}
+
 void GraphicsContext::drawFocusRing(const Vector<IntRect>& rects, int width, int offset, const Color& color)
 {
     if (!m_data->m_opacity || paintingDisabled())
@@ -1136,6 +1142,11 @@ void GraphicsContext::beginTransparencyLayer(float opacity)
 void GraphicsContext::endTransparencyLayer()
 {
     m_data->restore();
+}
+
+void GraphicsContext::concatCTM(const AffineTransform& transform)
+{
+    m_data->concatCTM(transform);
 }
 
 void GraphicsContext::concatCTM(const TransformationMatrix& transform)
@@ -1524,6 +1535,11 @@ void GraphicsContext::fillRect(const FloatRect& r, const Gradient* gradient)
     }
 
     GradientFill(dc, tv.data(), tv.size(), mesh.data(), mesh.size(), vertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
+}
+
+AffineTransform GraphicsContext::getAffineCTM() const
+{
+    return m_data->m_transform;
 }
 
 TransformationMatrix GraphicsContext::getCTM() const

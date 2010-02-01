@@ -47,6 +47,7 @@ extern void qt_drt_setDomainRelaxationForbiddenForURLScheme(bool forbidden, cons
 
 extern void qt_drt_whiteListAccessFromOrigin(const QString& sourceOrigin, const QString& destinationProtocol, const QString& destinationHost, bool allowDestinationSubdomains);
 extern QString qt_drt_counterValueForElementById(QWebFrame* qFrame, const QString& id);
+extern int qt_drt_workerThreadCount();
 
 LayoutTestController::LayoutTestController(WebCore::DumpRenderTree* drt)
     : QObject()
@@ -71,8 +72,10 @@ void LayoutTestController::reset()
     m_topLoadingFrame = 0;
     m_waitForPolicy = false;
     m_handleErrorPages = false;
+    m_webHistory = 0;
     qt_dump_editing_callbacks(false);
     qt_dump_resource_load_callbacks(false);
+    emit hidePage();
 }
 
 void LayoutTestController::processWork()
@@ -131,9 +134,19 @@ QString LayoutTestController::counterValueForElementById(const QString& id)
     return qt_drt_counterValueForElementById(m_drt->webPage()->mainFrame(), id);
 }
 
+int LayoutTestController::webHistoryItemCount()
+{
+    if (!m_webHistory)
+        return -1;
+
+    // Subtract one here as our QWebHistory::count() includes the actual page,
+    // which is not considered in the DRT tests.
+    return m_webHistory->count() - 1;
+}
+
 void LayoutTestController::keepWebHistory()
 {
-    // FIXME: implement
+    m_webHistory = m_drt->webPage()->history();
 }
 
 void LayoutTestController::notifyDone()
@@ -163,6 +176,11 @@ void LayoutTestController::notifyDone()
 int LayoutTestController::windowCount()
 {
     return m_drt->windowCount();
+}
+
+void LayoutTestController::display()
+{
+    emit showPage();
 }
 
 void LayoutTestController::clearBackForwardList()
@@ -420,4 +438,9 @@ void LayoutTestController::setUserStyleSheetEnabled(bool enabled)
 void LayoutTestController::setDomainRelaxationForbiddenForURLScheme(bool forbidden, const QString& scheme)
 {
     qt_drt_setDomainRelaxationForbiddenForURLScheme(forbidden, scheme);
+}
+
+int LayoutTestController::workerThreadCount()
+{
+    return qt_drt_workerThreadCount();
 }

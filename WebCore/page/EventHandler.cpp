@@ -2292,9 +2292,11 @@ bool EventHandler::handleDrag(const MouseEventWithHitTestResults& event)
         return !mouseDownMayStartSelect() && !m_mouseDownMayStartAutoscroll;
     
     // We are starting a text/image/url drag, so the cursor should be an arrow
-    if (FrameView* view = m_frame->view())
+    if (FrameView* view = m_frame->view()) {
+        // FIXME <rdar://7577595>: Custom cursors aren't supported during drag and drop (default to pointer).
         view->setCursor(pointerCursor());
-    
+    }
+
     if (!dragHysteresisExceeded(event.event().pos())) 
         return true;
     
@@ -2549,8 +2551,8 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
 
     for (int i = 0; i < points.size(); ++i) {
         const PlatformTouchPoint& point = points[i];
-        IntPoint framePoint = documentPointForWindowPoint(m_frame, point.pos());
-        HitTestResult result = hitTestResultAtPoint(framePoint, /*allowShadowContent*/ false);
+        IntPoint pagePoint = documentPointForWindowPoint(m_frame, point.pos());
+        HitTestResult result = hitTestResultAtPoint(pagePoint, /*allowShadowContent*/ false);
         Node* target = result.innerNode();
 
         // Touch events should not go to text nodes
@@ -2563,17 +2565,22 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
         if (!doc->hasListenerType(Document::TOUCH_LISTENER))
             continue;
 
-        int adjustedPageX = lroundf(framePoint.x() / m_frame->pageZoomFactor());
-        int adjustedPageY = lroundf(framePoint.y() / m_frame->pageZoomFactor());
+        if (m_frame != doc->frame()) {
+            // pagePoint should always be relative to the target elements containing frame.
+            pagePoint = documentPointForWindowPoint(doc->frame(), point.pos());
+        }
 
-        RefPtr<Touch> touch = Touch::create(m_frame, target, point.id(),
+        int adjustedPageX = lroundf(pagePoint.x() / m_frame->pageZoomFactor());
+        int adjustedPageY = lroundf(pagePoint.y() / m_frame->pageZoomFactor());
+
+        RefPtr<Touch> touch = Touch::create(doc->frame(), target, point.id(),
                                             point.screenPos().x(), point.screenPos().y(),
                                             adjustedPageX, adjustedPageY);
 
         if (event.type() == TouchStart && !i) {
             m_touchEventTarget = target;
             m_firstTouchScreenPos = point.screenPos();
-            m_firstTouchPagePos = framePoint;
+            m_firstTouchPagePos = pagePoint;
         }
 
         if (point.state() == PlatformTouchPoint::TouchReleased)

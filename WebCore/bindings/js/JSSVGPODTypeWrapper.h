@@ -71,13 +71,13 @@ public:
 // GetterMethod and SetterMethod are each 12 bytes. We have to pack to a size
 // greater than or equal to that to avoid an alignment warning (C4121). 16 is
 // the next-largest size allowed for packing, so we use that.
-#pragma pack(16)
+#pragma pack(push, 16)
 #endif
 template<typename PODType, typename PODTypeCreator>
 class JSSVGDynamicPODTypeWrapper : public JSSVGPODTypeWrapper<PODType> {
 public:
     typedef PODType (PODTypeCreator::*GetterMethod)() const; 
-    typedef void (PODTypeCreator::*SetterMethod)(PODType);
+    typedef void (PODTypeCreator::*SetterMethod)(const PODType&);
 
     static PassRefPtr<JSSVGDynamicPODTypeWrapper> create(PassRefPtr<PODTypeCreator> creator, GetterMethod getter, SetterMethod setter)
     {
@@ -113,6 +113,9 @@ private:
     GetterMethod m_getter;
     SetterMethod m_setter;
 };
+#if COMPILER(MSVC)
+#pragma pack(pop)
+#endif
 
 // Represents a JS wrapper object for SVG POD types (not for SVGAnimated* classes). Any modification to the SVG POD
 // types don't cause any updates unlike JSSVGDynamicPODTypeWrapper. This class is used for return values (ie. getBBox())
@@ -175,7 +178,7 @@ private:
 // GetterMethod and SetterMethod are each 12 bytes. We have to pack to a size
 // greater than or equal to that to avoid an alignment warning (C4121). 16 is
 // the next-largest size allowed for packing, so we use that.
-#pragma pack(16)
+#pragma pack(push, 16)
 #endif
 template<typename PODType, typename ParentType>
 class JSSVGStaticPODTypeWrapperWithParent : public JSSVGPODTypeWrapper<PODType> {
@@ -226,7 +229,7 @@ public:
     typedef SVGPODListItem<PODType> PODListItemPtrType;
 
     typedef PODType (SVGPODListItem<PODType>::*GetterMethod)() const; 
-    typedef void (SVGPODListItem<PODType>::*SetterMethod)(PODType);
+    typedef void (SVGPODListItem<PODType>::*SetterMethod)(const PODType&);
 
     static PassRefPtr<JSSVGPODTypeWrapperCreatorForList> create(PassRefPtr<PODListItemPtrType> creator, const QualifiedName& attributeName)
     {
@@ -270,7 +273,7 @@ private:
 template<typename PODType, typename PODTypeCreator>
 struct PODTypeWrapperCacheInfo {
     typedef PODType (PODTypeCreator::*GetterMethod)() const; 
-    typedef void (PODTypeCreator::*SetterMethod)(PODType);
+    typedef void (PODTypeCreator::*SetterMethod)(const PODType&);
 
     // Empty value
     PODTypeWrapperCacheInfo()
@@ -310,6 +313,9 @@ struct PODTypeWrapperCacheInfo {
     GetterMethod getter;
     SetterMethod setter;
 };
+#if COMPILER(MSVC)
+#pragma pack(pop)
+#endif
 
 template<typename PODType, typename PODTypeCreator>
 struct PODTypeWrapperCacheInfoHash {
@@ -357,7 +363,7 @@ template<typename PODType, typename PODTypeCreator>
 class JSSVGDynamicPODTypeWrapperCache {
 public:
     typedef PODType (PODTypeCreator::*GetterMethod)() const; 
-    typedef void (PODTypeCreator::*SetterMethod)(PODType);
+    typedef void (PODTypeCreator::*SetterMethod)(const PODType&);
 
     typedef PODTypeWrapperCacheInfo<PODType, PODTypeCreator> CacheInfo;
     typedef PODTypeWrapperCacheInfoHash<PODType, PODTypeCreator> CacheInfoHash;

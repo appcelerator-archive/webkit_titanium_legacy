@@ -315,6 +315,8 @@ static bool shouldAddNamespaceElem(const Element* elem)
 
 static bool shouldAddNamespaceAttr(const Attribute* attr, HashMap<AtomicStringImpl*, AtomicStringImpl*>& namespaces)
 {
+    namespaces.checkConsistency();
+
     // Don't add namespace attributes twice
     if (attr->name() == XMLNSNames::xmlnsAttr) {
         namespaces.set(emptyAtom.impl(), attr->value().impl());
@@ -332,6 +334,7 @@ static bool shouldAddNamespaceAttr(const Attribute* attr, HashMap<AtomicStringIm
 
 static void appendNamespace(Vector<UChar>& result, const AtomicString& prefix, const AtomicString& ns, HashMap<AtomicStringImpl*, AtomicStringImpl*>& namespaces)
 {
+    namespaces.checkConsistency();
     if (ns.isEmpty())
         return;
         
@@ -392,6 +395,9 @@ enum RangeFullySelectsNode { DoesFullySelectNode, DoesNotFullySelectNode };
 
 static void appendStartMarkup(Vector<UChar>& result, const Node* node, const Range* range, EAnnotateForInterchange annotate, bool convertBlocksToInlines = false, HashMap<AtomicStringImpl*, AtomicStringImpl*>* namespaces = 0, RangeFullySelectsNode rangeFullySelectsNode = DoesFullySelectNode)
 {
+    if (namespaces)
+        namespaces->checkConsistency();
+
     bool documentIsHTML = node->document()->isHTMLDocument();
     switch (node->nodeType()) {
         case Node::TEXT_NODE: {
@@ -1125,6 +1131,17 @@ static void fillContainerFromString(ContainerNode* paragraph, const String& stri
         
         first = false;
     }
+}
+
+bool isPlainTextMarkup(Node *node)
+{
+    if (!node->isElementNode() || !node->hasTagName(divTag) || static_cast<Element*>(node)->attributes()->length())
+        return false;
+    
+    if (node->childNodeCount() == 1 && (node->firstChild()->isTextNode() || (node->firstChild()->firstChild())))
+        return true;
+    
+    return (node->childNodeCount() == 2 && isTabSpanTextNode(node->firstChild()->firstChild()) && node->firstChild()->nextSibling()->isTextNode());
 }
 
 PassRefPtr<DocumentFragment> createFragmentFromText(Range* context, const String& text)

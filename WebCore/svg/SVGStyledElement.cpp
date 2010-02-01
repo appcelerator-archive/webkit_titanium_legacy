@@ -34,6 +34,7 @@
 #include "RenderObject.h"
 #include "SVGElement.h"
 #include "SVGElementInstance.h"
+#include "SVGElementRareData.h"
 #include "SVGNames.h"
 #include "SVGRenderStyle.h"
 #include "SVGResourceClipper.h"
@@ -46,8 +47,6 @@ namespace WebCore {
 
 using namespace SVGNames;
 
-char SVGStyledElementIdentifier[] = "SVGStyledElement";
-
 void mapAttributeToCSSProperty(HashMap<AtomicStringImpl*, int>* propertyNameToIdMap, const QualifiedName& attrName)
 {
     int propertyId = cssPropertyID(attrName.localName());
@@ -57,8 +56,6 @@ void mapAttributeToCSSProperty(HashMap<AtomicStringImpl*, int>* propertyNameToId
 
 SVGStyledElement::SVGStyledElement(const QualifiedName& tagName, Document* doc)
     : SVGElement(tagName, doc)
-    , m_className(this, HTMLNames::classAttr)
-    , m_instanceUpdatesBlocked(false)
 {
 }
 
@@ -178,7 +175,7 @@ void SVGStyledElement::parseMappedAttribute(MappedAttribute* attr)
     // style updates (instead of StyledElement::parseMappedAttribute). We don't
     // tell StyledElement about the change to avoid parsing the class list twice
     if (attrName.matches(HTMLNames::classAttr))
-        setClassName(attr->value());
+        setClassNameBaseValue(attr->value());
     else
         // id is handled by StyledElement which SVGElement inherits from
         SVGElement::parseMappedAttribute(attr);
@@ -209,6 +206,14 @@ void SVGStyledElement::svgAttributeChanged(const QualifiedName& attrName)
 
     // Invalidate all SVGElementInstances associated with us
     SVGElementInstance::invalidateAllInstancesOfElement(this);
+}
+
+void SVGStyledElement::synchronizeProperty(const QualifiedName& attrName)
+{
+    SVGElement::synchronizeProperty(attrName);
+
+    if (attrName == anyQName() || attrName.matches(HTMLNames::classAttr))
+        synchronizeClassName();
 }
 
 void SVGStyledElement::invalidateResources()
@@ -300,7 +305,18 @@ void SVGStyledElement::detach()
     SVGResource::removeClient(this);
     SVGElement::detach();
 }
-    
+
+bool SVGStyledElement::instanceUpdatesBlocked() const
+{
+    return hasRareSVGData() && rareSVGData()->instanceUpdatesBlocked();
+}
+
+void SVGStyledElement::setInstanceUpdatesBlocked(bool value)
+{
+    if (hasRareSVGData())
+        rareSVGData()->setInstanceUpdatesBlocked(value);
+}
+
 }
 
 #endif // ENABLE(SVG)

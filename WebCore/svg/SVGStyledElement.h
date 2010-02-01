@@ -28,7 +28,6 @@
 
 namespace WebCore {
 
-    extern char SVGStyledElementIdentifier[];
     class SVGResource;
 
     void mapAttributeToCSSProperty(HashMap<AtomicStringImpl*, int>* propertyNameToIdMap, const QualifiedName& attrName);
@@ -54,6 +53,7 @@ namespace WebCore {
         virtual bool mapToEntry(const QualifiedName&, MappedAttributeEntry&) const;
         virtual void parseMappedAttribute(MappedAttribute*);
         virtual void svgAttributeChanged(const QualifiedName&);
+        virtual void synchronizeProperty(const QualifiedName&);
 
         virtual void childrenChanged(bool changedByParser = false, Node* beforeChange = 0, Node* afterChange = 0, int childCountDelta = 0);
 
@@ -65,15 +65,14 @@ namespace WebCore {
 
         virtual void detach();
 
-        bool instanceUpdatesBlocked() const { return m_instanceUpdatesBlocked; }
-        void setInstanceUpdatesBlocked(bool value) { m_instanceUpdatesBlocked = value; }
+        bool instanceUpdatesBlocked() const;
+        void setInstanceUpdatesBlocked(bool);
 
     protected: 
         static int cssPropertyIdForSVGAttributeName(const QualifiedName&);
 
     private:
-        ANIMATED_PROPERTY_DECLARATIONS(SVGStyledElement, SVGStyledElementIdentifier, HTMLNames::classAttrString, String, ClassName, className)
-        bool m_instanceUpdatesBlocked;
+        DECLARE_ANIMATED_PROPERTY(SVGStyledElement, HTMLNames::classAttr, String, ClassName, className)
     };
 
 } // namespace WebCore

@@ -85,6 +85,13 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #define WORKER_NONNODE_WRAPPER_TYPES(V)
 #endif
 
+#if ENABLE(EVENTSOURCE)
+#define EVENTSOURCE_ACTIVE_OBJECT_WRAPPER_TYPES(V)                      \
+    V(EVENTSOURCE, EventSource)
+#else
+#define EVENTSOURCE_ACTIVE_OBJECT_WRAPPER_TYPES(V)
+#endif
+
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
 #define APPLICATIONCACHE_NONNODE_WRAPPER_TYPES(V)                       \
   V(DOMAPPLICATIONCACHE, DOMApplicationCache)
@@ -321,7 +328,8 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     V(XMLHTTPREQUEST, XMLHttpRequest)                                   \
     WORKER_ACTIVE_OBJECT_WRAPPER_TYPES(V)                               \
     SHARED_WORKER_ACTIVE_OBJECT_WRAPPER_TYPES(V)                        \
-    WEBSOCKET_ACTIVE_OBJECT_WRAPPER_TYPES(V)
+    WEBSOCKET_ACTIVE_OBJECT_WRAPPER_TYPES(V)                            \
+    EVENTSOURCE_ACTIVE_OBJECT_WRAPPER_TYPES(V)
 
 // NOTE: DOM_OBJECT_TYPES is split into two halves because
 //       Visual Studio's Intellinonsense crashes when macros get
@@ -445,6 +453,16 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
 #define DOM_OBJECT_STORAGE_TYPES(V)
 #endif
 
+#if ENABLE(INDEXED_DATABASE)
+#define DOM_OBJECT_INDEXED_DATABASE_TYPES(V)                            \
+    V(IDBDATABASEERROR, IDBDatabaseError)                               \
+    V(IDBDATABASEEXCEPTION, IDBDatabaseException)                       \
+    V(IDBREQUEST, IDBRequest)                                           \
+    V(INDEXEDDATABASEREQUEST, IndexedDatabaseRequest)
+#else
+#define DOM_OBJECT_INDEXED_DATABASE_TYPES(V)
+#endif
+
 #if ENABLE(WORKERS)
 #define DOM_OBJECT_WORKERS_TYPES(V)                                     \
     V(ERROREVENT, ErrorEvent)
@@ -515,6 +533,7 @@ typedef v8::Persistent<v8::FunctionTemplate> (*FunctionTemplateFactory)();
     DOM_OBJECT_TYPES_2(V)                                               \
     DOM_OBJECT_DATABASE_TYPES(V)                                        \
     DOM_OBJECT_STORAGE_TYPES(V)                                         \
+    DOM_OBJECT_INDEXED_DATABASE_TYPES(V)                                \
     DOM_OBJECT_WORKERS_TYPES(V)                                         \
     DOM_OBJECT_3D_CANVAS_TYPES(V)                                       \
     DOM_OBJECT_XPATH_TYPES(V)                                           \

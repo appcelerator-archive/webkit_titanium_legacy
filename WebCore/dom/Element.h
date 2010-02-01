@@ -113,7 +113,7 @@ public:
     const AtomicString& getAttributeNS(const String& namespaceURI, const String& localName) const;
 
     void setAttribute(const AtomicString& name, const AtomicString& value, ExceptionCode&);
-    void setAttributeNS(const AtomicString& namespaceURI, const AtomicString& qualifiedName, const AtomicString& value, ExceptionCode&);
+    void setAttributeNS(const AtomicString& namespaceURI, const AtomicString& qualifiedName, const AtomicString& value, ExceptionCode&, FragmentScriptingPermission = FragmentScriptingAllowed);
 
     const QualifiedName& idAttributeName() const;
 
@@ -301,7 +301,7 @@ private:
     virtual void updateStyleAttribute() const { }
 
 #if ENABLE(SVG)
-    virtual void updateAnimatedSVGAttribute(const String&) const { }
+    virtual void updateAnimatedSVGAttribute(const QualifiedName&) const { }
 #endif
 
     void updateFocusAppearanceSoonAfterAttach();
@@ -358,7 +358,7 @@ inline NamedNodeMap* Element::attributes(bool readonly) const
 
 #if ENABLE(SVG)
     if (!m_areSVGAttributesValid)
-        updateAnimatedSVGAttribute(String());
+        updateAnimatedSVGAttribute(anyQName());
 #endif
 
     if (!readonly && !namedAttrMap)

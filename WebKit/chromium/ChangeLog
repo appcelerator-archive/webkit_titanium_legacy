@@ -1,3 +1,206 @@
+2010-01-29  Philippe Normand  <pnormand@igalia.com>
+
+        Reviewed by Eric Carlson.
+
+        [GTK] set playbin mute property depending on volume value
+        https://bugs.webkit.org/show_bug.cgi?id=31586
+
+        New API in MediaPlayer for mute control
+
+        * public/WebMediaPlayerClient.h:
+        * src/WebMediaPlayerClientImpl.cpp:
+        (WebKit::WebMediaPlayerClientImpl::volumeChanged):
+        (WebKit::WebMediaPlayerClientImpl::muteChanged):
+        * src/WebMediaPlayerClientImpl.h:
+
+2010-01-31  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Jeremy Orlow.
+
+        [Chromium] Fix a bug that a selected word is not recognized as a
+        spell-check source.
+        https://bugs.webkit.org/show_bug.cgi?id=33660
+
+        * src/ContextMenuClientImpl.cpp:
+        (WebKit::isASingleWord): Use wordBreakIterator(), and correctly check
+        the return value of textBreakNext().
+
+2010-01-29  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        A first step towards the Indexed Database API
+        https://bugs.webkit.org/show_bug.cgi?id=34342
+
+        Add runtime enable support for Indexed Database API.
+
+        * features.gypi:
+        * public/WebRuntimeFeatures.h:
+        * src/WebRuntimeFeatures.cpp:
+        (WebKit::WebRuntimeFeatures::enableIndexedDatabase):
+        (WebKit::WebRuntimeFeatures::isIndexedDatabaseEnabled):
+
+2010-01-29  Yury Semikhatsky  <yurys@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Add API methods for loading inspector utility scripts.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34326
+
+        * public/WebDevToolsAgentClient.h:
+        (WebKit::WebDevToolsAgentClient::injectedScriptSource):
+        (WebKit::WebDevToolsAgentClient::injectedScriptDispatcherSource):
+
+2010-01-29  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Adam Barth.
+
+        Add FrameLoaderClient::allowImages method to allow the client to
+        overrule image loading policy on a per frame basis.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34225
+
+        * public/WebFrameClient.h:
+        (WebKit::WebFrameClient::allowImages):
+        * public/WebSettings.h:
+        * src/FrameLoaderClientImpl.cpp:
+        (WebKit::FrameLoaderClientImpl::allowImages):
+        * src/FrameLoaderClientImpl.h:
+        * src/WebSettingsImpl.cpp:
+        (WebKit::WebSettingsImpl::setImagesEnabled):
+        * src/WebSettingsImpl.h:
+
+2010-01-28  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        StorageNamespaceProxy::copy() should be a no-op
+        https://bugs.webkit.org/show_bug.cgi?id=34298
+
+        The comment in the code should make clear why.
+
+        * public/WebViewClient.h:
+        * src/StorageNamespaceProxy.cpp:
+        (WebCore::StorageNamespaceProxy::copy):
+
+2010-01-28  Michael Nordman  <michaeln@google.com>
+
+        Reviewed by Alexey Proskuryakov.
+
+        ApplicationCache events should be deferred until after Document onload has fired.
+        https://bugs.webkit.org/show_bug.cgi?id=29690
+
+        * src/ApplicationCacheHost.cpp:
+        (WebCore::ApplicationCacheHost::ApplicationCacheHost): Initialize m_isDeferringEvents to true.
+        (WebCore::ApplicationCacheHost::notifyDOMApplicationCache): Depending, defer or raise the event.
+        (WebCore::ApplicationCacheHost::stopDeferringEvents): Raise any deferred events and reset the flag.
+
+2010-01-27  Aaron Boodman  <aa@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Send full URL and application id of requesting context to Chromium
+        when checking notification permissions.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34238
+
+        * public/WebDocument.h:
+        * src/WebDocument.cpp:
+        (WebKit::WebDocument::applicationID):
+        Implement applicationID() method.
+
+        * public/WebNotificationPresenter.h:
+        * src/NotificationPresenterImpl.cpp:
+        (WebKit::NotificationPresenterImpl::checkPermission):
+        * src/NotificationPresenterImpl.h:
+        Send applicationID and full URL through to Chromium.
+
+2010-01-27  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Pavel Feldman.
+
+        Expose HistoryItem::documentSequenceNumber
+        https://bugs.webkit.org/show_bug.cgi?id=34243
+
+        * public/WebHistoryItem.h:
+        * src/WebHistoryItem.cpp:
+        (WebKit::WebHistoryItem::documentSequenceNumber):
+        (WebKit::WebHistoryItem::setDocumentSequenceNumber):
+
+2010-01-26  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by David Levin.
+
+        Add methods to support running a nested modal loop outside of WebKit.
+        https://bugs.webkit.org/show_bug.cgi?id=34199
+
+        * public/WebView.h:
+        * src/WebViewImpl.cpp:
+        (WebKit::WebView::willEnterModalLoop): Create PageGroupLoadDeferrer
+        (WebKit::WebView::didExitModalLoop): Destroy PageGroupLoadDeferrer
+
+2010-01-27  Darin Fisher  <darin@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        Adding missing WebMutationEvent.cpp file to fix build bustage. 
+        https://bugs.webkit.org/show_bug.cgi?id=33882
+
+        * public/WebMutationEvent.h: Remove unnecessary constructor.
+        * src/WebEvent.cpp: Remove unnecessary include of WebMutationEvent.h.
+        * src/WebMutationEvent.cpp: Added.
+
+2010-01-27  Jay Campan  <jcampan@google.com>
+
+        Reviewed by Darin Fisher.
+
+        Adding EventListeners to the chromium API.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33882
+
+        * WebKit.gyp:
+        * public/WebEvent.h: Added.
+        * public/WebEventListener.h: Added.
+        * public/WebMutationEvent.h: Added.
+        * public/WebNode.h:
+        * public/WebString.h:
+        (WebKit::operator==):
+        (WebKit::operator!=):
+        * src/EventListenerWrapper.cpp: Added.
+        * src/EventListenerWrapper.h: Added.
+        * src/WebEvent.cpp: Added.
+        * src/WebEventListener.cpp: Added.
+        * src/WebEventListenerPrivate.cpp: Added.
+        * src/WebEventListenerPrivate.h: Added.
+        * src/WebNode.cpp:
+        (WebKit::WebNode::addEventListener):
+        (WebKit::WebNode::removeEventListener):
+        * src/WebString.cpp:
+        (WebKit::WebString::equals):
+
+2010-01-26  Yaar Schnitman  <yaar@chromium.org>
+
+        Reviewed by Darin Fisher.
+
+        Add KeyboardTest to WebKit API tests
+        https://bugs.webkit.org/show_bug.cgi?id=34178
+
+        * WebKit.gyp:
+        * tests/KeyboardTest.cpp: Added.
+
+2010-01-22  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Make storage events match the spec.
+        https://bugs.webkit.org/show_bug.cgi?id=30546
+
+        Update the storageEvent algorithm to match the change in WebCore.
+
+        * src/StorageAreaProxy.cpp:
+        (WebCore::StorageAreaProxy::storageEvent):
+
 2010-01-22  Elliot Glaysher  <erg@chromium.org>
 
         Reviewed by David Levin.

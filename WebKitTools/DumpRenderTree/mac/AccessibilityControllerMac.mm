@@ -65,3 +65,11 @@ void AccessibilityController::setLogScrollingStartEvents(bool)
 void AccessibilityController::setLogValueChangeEvents(bool)
 {
 }
+
+void AccessibilityController::addNotificationListener(PlatformUIElement, JSObjectRef)
+{
+}
+
+void AccessibilityController::notificationReceived(PlatformUIElement, const std::string&)
+{
+}

@@ -42,6 +42,7 @@ class WebCoreTextMarker;
 
 namespace WebCore {
 
+class HTMLAreaElement;
 class Node;
 class Page;
 class RenderObject;
@@ -135,6 +136,8 @@ private:
     Vector<pair<RefPtr<AccessibilityObject>, AXNotification> > m_notificationsToPost;
     void notificationPostTimerFired(Timer<AXObjectCache>*);
     
+    static AccessibilityObject* focusedImageMapUIElement(HTMLAreaElement*);
+    
     AXID getAXID(AccessibilityObject*);
     bool nodeIsAriaType(Node*, String role);
 };
@@ -149,6 +152,7 @@ inline void AXObjectCache::postNotification(RenderObject*, AXNotification, bool 
 inline void AXObjectCache::postPlatformNotification(AccessibilityObject*, AXNotification) { }
 inline void AXObjectCache::handleFocusedUIElementChanged(RenderObject*, RenderObject*) { }
 inline void AXObjectCache::handleScrolledToAnchor(const Node*) { }
+inline void AXObjectCache::contentChanged(RenderObject*) { }
 #endif
 
 }

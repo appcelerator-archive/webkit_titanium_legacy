@@ -1,3 +1,854 @@
+2010-02-01  Nate Chapin  <japhet@chromium.org>
+
+        Rubber-stamped by David Levin.
+
+        Add myself to reviewer list.
+
+        * Scripts/webkitpy/committers.py:
+
+2010-01-31  Chris Jerdonek  <cjerdonek@webkit.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        Moved style error handler code to their own classes, and
+        related refactoring. Increased unit test code coverage of
+        style error handling.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34379
+
+        * Scripts/check-webkit-style:
+          - Minor change: added error_count variable.
+
+        * Scripts/webkitpy/style/checker.py:
+          - Renamed ProcessorOptions.should_report_error() to is_reportable().
+          - In the StyleChecker class--
+            - Removed _default_style_error_handler().
+            - Added _increment_error_count().
+            - Refactored to use DefaultStyleErrorHandler and
+              PatchStyleErrorHandler constructors.
+
+        * Scripts/webkitpy/style/checker_unittest.py:
+          - In the StyleStyleCheckerTest class--
+            - Removed write_sample_error().
+            - Removed test_default_style_error_handler().
+
+        * Scripts/webkitpy/style/error_handlers.py: Added.
+          - Added DefaultStyleErrorHandler class.
+          - Added PatchStyleErrorHandler class.
+
+        * Scripts/webkitpy/style/error_handlers_unittest.py: Added.
+          - Added unit tests for DefaultStyleErrorHandler and
+            PatchStyleErrorHandler.
+
+        * Scripts/webkitpy/style/unittests.py:
+          - Added error_handlers unit tests.
+
+2010-01-29  Mark Rowe  <mrowe@apple.com>
+
+        Rubber-stamped by Stephanie Lewis.
+
+        Fix run-leaks with newer versions of the leaks tool.
+
+        * Scripts/run-leaks:
+
+2010-01-29  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Siedel.
+
+        Top-level test drivers for running the Chromium port of run-webkit-tests
+        and being able to rebaseline test results from the test bots.  The
+        files in the Scripts directory are simply wrappers around the files
+        in webkitpy/layout_tests for convenience.
+ 
+        https://bugs.webkit.org/show_bug.cgi?id=31498
+
+        * Scripts/rebaseline-chromium-webkit-tests: Added.
+        * Scripts/run-chromium-webkit-tests: Added.
+        * Scripts/webkitpy/layout_tests/rebaseline_chromium_webkit_tests.py: Added.
+        * Scripts/webkitpy/layout_tests/run_chromium_webkit_tests.py: Added.
+
+2010-01-29  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Siedel.
+
+        Add in the second block of python code for the Chromium port
+        of run-webkit-tests. These files execute different diffs to classify
+        the various types of failures from a test.
+
+        * Scripts/webkitpy/layout_tests/test_types: Added.
+        * Scripts/webkitpy/layout_tests/test_types/__init__.py: Added.
+        * Scripts/webkitpy/layout_tests/test_types/fuzzy_image_diff.py: Added.
+        * Scripts/webkitpy/layout_tests/test_types/image_diff.py: Added.
+        * Scripts/webkitpy/layout_tests/test_types/test_type_base.py: Added.
+        * Scripts/webkitpy/layout_tests/test_types/text_diff.py: Added.
+
+2010-01-29  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Siedel.
+
+        Check in the first part of the Chromium Python port of the 
+        run-webkit-tests test driver. The files under 
+        layout_tests/layout_layout constitute most of the implementation;
+        they can be roughly divided into code that parses the 
+        "test_expectations.txt" file that describes how we expect tests to
+        pass or fail, platform-specific hooks for the different Chromium 
+        ports (in platform_utils*), code for parsing the output of the
+        tests and generating results files and HTML and JSON for the
+        dashboards, auxiliary scripts for starting and stopping HTTP and
+        Web Socket servers, and then one of the actual driver files 
+        (test_shell_thread). Code for actually parsing test output for 
+        failures and the top-level driver scripts will follow shortly.
+
+        https://bugs.webkit.org/show_bug.cgi?id=31498
+
+        * Scripts/webkitpy/layout_tests: Added.
+        * Scripts/webkitpy/layout_tests/layout_package: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/__init__.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/apache_http_server.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/http_server.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/http_server_base.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/httpd2.pem: Added.
+          - scripts to start and stop apache. Note that the apache file
+            generates a conf file dynamically, and we should switch to 
+            using the same static conf file that the regular run-webkit-tests
+            uses, and we can also use the same httpd2.pem file.
+
+        * Scripts/webkitpy/layout_tests/layout_package/json_layout_results_generator.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/json_results_generator.py: Added.
+          - scripts to generate the JSON layout test dashboard and the
+            flakiness dashboard
+        * Scripts/webkitpy/layout_tests/layout_package/lighttpd.conf: Added.
+          - default configuration for LigHTTPd (used on Windows)
+        * Scripts/webkitpy/layout_tests/layout_package/metered_stream.py: Added.
+          - utility class that implements progress bars on the console to
+            be displayed while the tests are running
+        * Scripts/webkitpy/layout_tests/layout_package/path_utils.py: Added.
+          - various routines for manipulating paths and URIs
+        * Scripts/webkitpy/layout_tests/layout_package/platform_utils.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/platform_utils_linux.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/platform_utils_mac.py: Added.
+        * Scripts/webkitpy/layout_tests/layout_package/platform_utils_win.py: Added.
+          - platform-specific aspects of the drivers (binary names, paths,
+            process control, etc.)
+        * Scripts/webkitpy/layout_tests/layout_package/test_expectations.py: Added.
+          - code for parsing the 'test_expectations.txt' file to determine
+            which tests are expected to fail (and how) on which platforms
+        * Scripts/webkitpy/layout_tests/layout_package/test_failures.py: Added.
+          - code for handling different kinds of failures (generating output
+            in the results, etc.)
+        * Scripts/webkitpy/layout_tests/layout_package/test_files.py: Added.
+          - code to gather the lists of tests
+        * Scripts/webkitpy/layout_tests/layout_package/test_shell_thread.py: Added.
+          - code to actually execute tests via TestShell and process
+            the output
+        * Scripts/webkitpy/layout_tests/layout_package/websocket_server.py: Added.
+          - scripts to start and stop the pywebsocket server
+
+2010-01-29  Dirk Pranke  <dpranke@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Check in a copy of the simplejson library; it will be used by
+        the Chromium port of run-webkit-tests.
+        
+        https://bugs.webkit.org/show_bug.cgi?id=31498
+
+        * simplejson: Added.
+        * simplejson/LICENSE.txt: Added.
+        * simplejson/README.txt: Added.
+        * simplejson/__init__.py: Added.
+        * simplejson/_speedups.c: Added.
+        (ascii_escape_char):
+        (ascii_escape_unicode):
+        (ascii_escape_str):
+        (py_encode_basestring_ascii):
+        (init_speedups):
+        * simplejson/decoder.py: Added.
+        * simplejson/encoder.py: Added.
+        * simplejson/jsonfilter.py: Added.
+        * simplejson/scanner.py: Added.
+
+2010-01-29  Dirk Pranke  <dpranke@chromium.org>
+
+        No review
+
+        Add myself to the committers list
+
+        * Scripts/webkitpy/committers.py:
+
+2010-01-29  Jeremy Orlow  <jorlow@chromium.org>
+
+        Reviewed by Dimitri Glazkov.
+
+        A first step towards the Indexed Database API
+        https://bugs.webkit.org/show_bug.cgi?id=34342
+
+        Add indexed database API.
+
+        * Scripts/build-webkit:
+
+2010-01-29  Andras Becsi  <abecsi@webkit.org>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Correct openHTTPD() to print requests to stdout if run-webkit-httpd is used.
+        This fixes a regression introduced in r53559.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34336
+
+        * Scripts/webkitperl/httpd.pm:
+
+2010-01-28  Jon Honeycutt  <jhoneycutt@apple.com>
+
+        MSAA: Crash when posting a notification for a detached object
+
+        https://bugs.webkit.org/show_bug.cgi?id=34309
+        <rdar://problem/7409759>
+
+        Reviewed by Darin Adler.
+
+        * DumpRenderTree/AccessibilityController.h:
+        Declare new functions. Add new members to store the event hook and the
+        mapping of accessibility elements to their JS callbacks.
+
+        * DumpRenderTree/gtk/AccessibilityControllerGtk.cpp:
+        (AccessibilityController::notificationReceived):
+        Stubbed.
+        (AccessibilityController::addNotificationListener):
+        Stubbed.
+
+        * DumpRenderTree/mac/AccessibilityControllerMac.mm:
+        (AccessibilityController::notificationReceived):
+        Stubbed.
+        (AccessibilityController::addNotificationListener):
+        Stubbed.
+
+        * DumpRenderTree/win/AccessibilityControllerWin.cpp:
+        (AccessibilityController::AccessibilityController):
+        Initialize the event hook.
+        (AccessibilityController::~AccessibilityController):
+        Remove the event hook. Unprotect all of the JS functions that are stored
+        in the map.
+        (logEventProc):
+        Clean-up a variable.
+        (stringEvent):
+        Return a string description of the MSAA event code.
+        (notificationListenerProc):
+        Get the accessible object from the event, and query it for IAccessible.
+        Call the AccessibilityController's notificationReceived().
+        (comparableObject):
+        Use QueryService to obtain the IAccessibleComparable for the
+        IServiceProvider.
+        (AccessibilityController::notificationReceived):
+        Iterate the map of objects that have registered for notification
+        callbacks. Query each for IServiceProvider, then use comparableObject()
+        to get an IAccessibleComparable. If we find an object matching the
+        notified object, call its callback, passing the event that was received.
+        (AccessibilityController::addNotificationListener):
+        If we have not created the event hook, create it. Protect the JS
+        callback function object, and add the object and its callback to our
+        map.
+
+        * DumpRenderTree/win/AccessibilityUIElementWin.cpp:
+        (AccessibilityUIElement::addNotificationListener):
+        Call through to the AccessibilityController's addNotificationListener().
+
+        * DumpRenderTree/win/DumpRenderTreeWin.h:
+        Add an extern declaration for the shared FrameLoadDelegate extern, so we
+        can access it from AccessibilityController.
+
+        * DumpRenderTree/win/FrameLoadDelegate.h:
+        (FrameLoadDelegate::accessibilityController):
+        Return the AccessibilityController.
+
+2010-01-29  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        prepare-ChangeLog outputs useless messages for a nonexistent bug ID
+        https://bugs.webkit.org/show_bug.cgi?id=34313
+
+        * Scripts/prepare-ChangeLog:
+
+2010-01-29  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        [Qt] Separate implementation from class definition.
+
+        * QtLauncher/main.cpp:
+        (LauncherWindow::webView):
+        (LauncherWindow::LauncherWindow):
+        (LauncherWindow::~LauncherWindow):
+        (LauncherWindow::keyPressEvent):
+        (LauncherWindow::grabZoomKeys):
+        (LauncherWindow::sendTouchEvent):
+        (LauncherWindow::eventFilter):
+        (LauncherWindow::loadStarted):
+        (LauncherWindow::loadFinished):
+        (LauncherWindow::showLinkHover):
+        (LauncherWindow::zoomIn):
+        (LauncherWindow::zoomOut):
+        (LauncherWindow::resetZoom):
+        (LauncherWindow::toggleZoomTextOnly):
+        (LauncherWindow::print):
+        (LauncherWindow::screenshot):
+        (LauncherWindow::setEditable):
+        (LauncherWindow::dumpHtml):
+        (LauncherWindow::selectElements):
+        (LauncherWindow::setTouchMocking):
+        (LauncherWindow::newWindow):
+        (LauncherWindow::setupUI):
+
+2010-01-29  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        [Qt] On Maemo5, a click/touch in the location bar (when unfocused)
+        should result in all text selected.
+
+        * QtLauncher/locationedit.cpp:
+        (LocationEdit::focusInEvent):
+        * QtLauncher/locationedit.h:
+
+2010-01-29  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        [Qt] Show progress reaching 100% for loads.
+
+        * QtLauncher/locationedit.cpp:
+        (LocationEdit::LocationEdit):
+        (LocationEdit::setProgress):
+        (LocationEdit::reset):
+        (LocationEdit::paintEvent):
+        * QtLauncher/locationedit.h:
+
+2010-01-29  Andreas Kling  <andreas.kling@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Disable the QtLauncher statusbar on Maemo
+
+        https://bugs.webkit.org/show_bug.cgi?id=34330
+
+        * QtLauncher/main.cpp:
+        (LauncherWindow::showLinkHover):
+        (LauncherWindow::selectElements):
+
+2010-01-29  Andreas Kling  <andreas.kling@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Display page loading progress inside the QtLauncher location bar
+
+        https://bugs.webkit.org/show_bug.cgi?id=34210
+
+        * QtLauncher/QtLauncher.pro:
+        * QtLauncher/locationedit.cpp: Added.
+        (LocationEdit::LocationEdit):
+        (LocationEdit::setProgress):
+        (LocationEdit::paintEvent):
+        * QtLauncher/locationedit.h: Added.
+        * QtLauncher/mainwindow.cpp:
+        (MainWindow::buildUI):
+        * QtLauncher/mainwindow.h:
+
+2010-01-29  Andreas Kling  <andreas.kling@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Add support for Maemo zoom keys in QtLauncher
+
+        https://bugs.webkit.org/show_bug.cgi?id=34160
+
+        * QtLauncher/main.cpp:
+        (LauncherWindow::LauncherWindow):
+        (LauncherWindow::~LauncherWindow):
+        (LauncherWindow::keyPressEvent):
+        (LauncherWindow::grabZoomKeys):
+
+2010-01-29  Benjamin Poulain  <benjamin.poulain@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Implement the display() method of the layout test controller
+        https://bugs.webkit.org/show_bug.cgi?id=34258
+
+        * DumpRenderTree/qt/DumpRenderTreeQt.cpp:
+        (WebCore::DumpRenderTree::DumpRenderTree):
+        (WebCore::DumpRenderTree::showPage):
+        (WebCore::DumpRenderTree::hidePage):
+        * DumpRenderTree/qt/DumpRenderTreeQt.h:
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::reset):
+        (LayoutTestController::display):
+        * DumpRenderTree/qt/LayoutTestControllerQt.h:
+
+2010-01-28  Kevin Ollivier  <kevino@theolliviers.com>
+
+        [wx] Build fix for MSW, use ThreadingWin.cpp as the Windows pthreads implementation
+        implements pthread_t in a way that makes it impossible to check its validity,
+        which is needed by ThreadingPthreads.cpp.
+
+        * DumpRenderTree/wscript:
+        * wx/build/settings.py:
+
+2010-01-28  Andras Becsi  <abecsi@webkit.org>
+
+        Adding myself to the committer list. No review needed.
+
+        * Scripts/webkitpy/committers.py:
+
+2010-01-28  Hayato Ito  <hayato@chromium.org>
+
+        Reviewed by David Levin.
+
+        Remove NULL char from input JS file because 'grep' fails if the file contains NULL char.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34252
+
+        * Scripts/make-script-test-wrappers:
+
+2010-01-28  Kevin Ollivier  <kevino@theolliviers.com>
+
+        [wx] Build fix after removal of the zlib image decoder.
+
+        * wx/build/settings.py:
+
+2010-01-28  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] Unreviewed, roll out r54000.
+
+        * DumpRenderTree/qt/DumpRenderTreeQt.cpp:
+        (WebCore::DumpRenderTree::DumpRenderTree):
+        * DumpRenderTree/qt/DumpRenderTreeQt.h:
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::reset):
+        * DumpRenderTree/qt/LayoutTestControllerQt.h:
+        (LayoutTestController::display):
+
+2010-01-28  Benjamin Poulain  <benjamin.poulain@nokia.com>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] Implement the display() method of the layout test controller
+        https://bugs.webkit.org/show_bug.cgi?id=34258
+
+        * DumpRenderTree/qt/DumpRenderTreeQt.cpp:
+        (WebCore::DumpRenderTree::DumpRenderTree):
+        (WebCore::DumpRenderTree::showPage):
+        (WebCore::DumpRenderTree::hidePage):
+        * DumpRenderTree/qt/DumpRenderTreeQt.h:
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::reset):
+        (LayoutTestController::display):
+        * DumpRenderTree/qt/LayoutTestControllerQt.h:
+
+2010-01-28  Chris Jerdonek  <cjerdonek@webkit.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        Eliminated the filename parameter from functions in
+        check-webkit-style's cpp.py where it is no longer used.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34249
+
+        * Scripts/webkitpy/style/processors/cpp.py:
+          - Reduced number of occurrences of "filename" variable from
+            approximately 200 to 120.
+
+        * Scripts/webkitpy/style/processors/cpp_unittest.py:
+          - Refactored unit tests as necessary to accommodate changes to cpp.py.
+          - Fixed bug in CppStyleTestBase.perform_include_what_you_use()
+            where the incorrect file extension was getting passed to
+            cpp_style.check_language().
+
+2010-01-28  Chris Jerdonek  <cjerdonek@webkit.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        In check-webkit-style, eliminated the dependency of
+        processors/cpp_unittest.py on checker.py.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34205
+
+        * Scripts/webkitpy/style/checker.py:
+          - Addressed FIXME by removing STYLE_CATEGORIES data.
+          - Added style_categories().
+
+        * Scripts/webkitpy/style/checker_unittest.py:
+          - Minor changes.
+
+        * Scripts/webkitpy/style/processors/cpp.py:
+          - Added categories attribute to CppProcessor class (data
+            was originally checker.STYLE_CATEGORIES).
+
+        * Scripts/webkitpy/style/processors/cpp_unittest.py:
+          - Addressed FIXME by eliminating "import" from checker.py.
+
+2010-01-28  Anton Muhin  <antonm@chromium.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        Improve treatment of conditions and rest of the line for if, else, switch and alikes
+        https://bugs.webkit.org/show_bug.cgi?id=34173
+
+        * Scripts/webkitpy/style/cpp_style.py:
+        * Scripts/webkitpy/style/cpp_style_unittest.py:
+
+2010-01-28  Joe Mason  <jmason@rim.com>
+
+        Reviewed by Adam Barth.
+
+        Limit login retries to 5
+        https://bugs.webkit.org/show_bug.cgi?id=34193
+
+        * Scripts/webkitpy/bugzilla.py:
+
+2010-01-27  Martin Robinson  <mrobinson@webkit.org>
+
+        Adding myself to the committer list. No review necessary.
+
+        * Scripts/webkitpy/committers.py:
+
+2010-01-27  George Wright  <gwright@rim.com>
+
+        Reviewed by Adam Treat.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34216
+
+        Add missing include for wtf/Platform.h
+
+        * DumpRenderTree/AccessibilityController.h:
+
+2010-01-27  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] DRT Provide worker thread ability to track counters
+        https://bugs.webkit.org/show_bug.cgi?id=34221
+
+        Implement workerThreadCount() in LayoutTestController of Qt DRT
+
+        Tests:
+        fast/workers/dedicated-worker-lifecycle.html
+        fast/workers/shared-worker-frame-lifecycle.html
+        fast/workers/shared-worker-lifecycle.html
+        fast/workers/worker-lifecycle.html
+
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::workerThreadCount):
+        * DumpRenderTree/qt/LayoutTestControllerQt.h:
+
+2010-01-27  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        [Qt] QtLauncher refactoring:
+
+        Make the LauncherWindow depend less on the view, so that more
+        code can be shared in near future.
+
+        * QtLauncher/main.cpp:
+        (LauncherWindow::sendTouchEvent):
+        (LauncherWindow::loadFinished):
+        (LauncherWindow::zoomIn):
+        (LauncherWindow::zoomOut):
+        (LauncherWindow::resetZoom):
+        (LauncherWindow::toggleZoomTextOnly):
+        (LauncherWindow::dumpHtml):
+        (LauncherWindow::selectElements):
+        (LauncherWindow::setupUI):
+
+2010-01-27  Kinuko Yasuda  <kinuko@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Correctly handle the KeyLocation argument that has been introduced
+        recently to test location-dependent key events in EventSender.keyDown.
+        http://bugs.webkit.org/show_bug.cgi?id=28247
+
+        Test: fast/events/keydown-numpad-keys.html
+
+        * DumpRenderTree/gtk/EventSender.cpp:
+        (keyDownCallback):
+
+2010-01-27  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        [Qt] QtLauncher refactoring:
+
+        Move out code from the MainWindow (renamed to LauncherWindow)
+        that is not depending on the view, and add it to a new class
+        called MainWindow.
+
+        * QtLauncher/QtLauncher.pro:
+        * QtLauncher/main.cpp:
+        (LauncherWindow::LauncherWindow):
+        (LauncherWindow::eventFilter):
+        (LauncherWindow::loadStarted):
+        (LauncherWindow::loadFinished):
+        (LauncherWindow::newWindow):
+        (LauncherWindow::setupUI):
+        (WebPage::createWindow):
+        (main):
+        * QtLauncher/mainwindow.cpp: Added.
+        (MainWindow::MainWindow):
+        (MainWindow::buildUI):
+        (MainWindow::page):
+        (MainWindow::setAddressUrl):
+        (MainWindow::addCompleterEntry):
+        (MainWindow::load):
+        (MainWindow::changeLocation):
+        (MainWindow::openFile):
+        * QtLauncher/mainwindow.h: Added.
+
+2010-01-27  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        [Qt] QtLauncher, coding style fixes.
+
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow):
+        (MainWindow::sendTouchEvent):
+        (MainWindow::eventFilter):
+        (MainWindow::loadURL):
+        (MainWindow::setupUI):
+        (WebPage::createPlugin):
+
+2010-01-27  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann.
+
+        [Qt] QtLauncher refactoring, separating the webview and
+        adding a QGraphicsWebView based version.
+
+        * QtLauncher/QtLauncher.pro:
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow):
+        * QtLauncher/webpage.h:
+        * QtLauncher/webview.cpp: Added.
+        (createContextMenu):
+        (WebViewGraphicsBased::mousePressEvent):
+        (WebViewTraditional::mousePressEvent):
+        (WebViewGraphicsBased::contextMenuEvent):
+        (WebViewTraditional::contextMenuEvent):
+        * QtLauncher/webview.h: Added.
+        (WebViewGraphicsBased::WebViewGraphicsBased):
+        (WebViewTraditional::WebViewTraditional):
+
+2010-01-27  Alexander Pavlov  <apavlov@chromium.org>
+
+        Adding myself as committer. No review necessary.
+
+        * Scripts/webkitpy/committers.py:
+
+2010-01-27  Eric Seidel  <eric@webkit.org>
+
+        Reviewed by Darin Adler.
+
+        webkit-patch needs an open-bugs command
+        https://bugs.webkit.org/show_bug.cgi?id=30793
+
+        * Scripts/test-webkitpy: import OpenBugsTest
+        * Scripts/webkit-patch: import OpenBugs
+        * Scripts/webkitpy/commands/download_unittest.py: don't import unittest
+        * Scripts/webkitpy/commands/early_warning_system_unittest.py: ditto
+        * Scripts/webkitpy/commands/queries_unittest.py: ditto
+        * Scripts/webkitpy/commands/queues_unittest.py: ditto
+        * Scripts/webkitpy/commands/upload_unittest.py: ditto
+        * Scripts/webkitpy/mock_bugzillatool.py: log when user.open_url is called.
+
+2010-01-27  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann
+
+        [Qt] QtLauncher refactoring, separating utility methods.
+
+        * QtLauncher/QtLauncher.pro:
+        * QtLauncher/main.cpp:
+        * QtLauncher/utils.cpp: Added.
+        (urlFromUserInput):
+        * QtLauncher/utils.h: Added.
+
+2010-01-27  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Rubberstamped by Simon Hausmann
+
+        [Qt] Refactor the code in the QtLauncher dealing with HTTP proxy.
+
+        * QtLauncher/main.cpp:
+        (MainWindow::MainWindow):
+        * QtLauncher/webpage.cpp:
+        (WebPage::WebPage):
+        (WebPage::applyProxy):
+        * QtLauncher/webpage.h:
+
+2010-01-26  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Corrects debug build of DumpRenderTree on Windows.
+
+        * DumpRenderTree/qt/DumpRenderTree.pro:
+
+2010-01-26  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34070
+
+        Moves the try/catch for OSError exceptions in Executive.run_command
+        to Credentials.read_credentials() so that the unit test
+        webkitpy.scm_unittest.SCMClassTests.test_error_handlers can
+        assert that Executive.run_command throws an OSError exception.
+
+        * Scripts/webkitpy/credentials.py:
+        * Scripts/webkitpy/executive.py: Moved try/catch for OSError to
+        method Credentials.read_credentials().
+        * Scripts/webkitpy/executive_unittest.py: Removed tests that no longer
+        apply: test_run_command_with_bad_command_check_return_code and
+        test_run_command_with_bad_command_check_calls_error_handler. Added new
+        test to assert that run_command throws OSError exceptions.
+
+2010-01-26  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] DRT WebHistory support
+        https://bugs.webkit.org/show_bug.cgi?id=34167
+
+        * DumpRenderTree/qt/LayoutTestControllerQt.cpp:
+        (LayoutTestController::reset):
+        (LayoutTestController::webHistoryItemCount):
+        (LayoutTestController::keepWebHistory):
+        * DumpRenderTree/qt/LayoutTestControllerQt.h:
+
+2010-01-26  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        [Win] Add modifiers parameter support to Windows DumpRenderTree
+        https://bugs.webkit.org/show_bug.cgi?id=34068
+
+        Add support for functional name modifiers; "addSelectionKey" and
+        "rangeSelectionKey", and modifiers parameter to eventSender.mouseDown()
+        and eventSender.mouseUp().
+        This change is similar to r53498 for Mac.
+        
+        * DumpRenderTree/win/EventSender.cpp:
+        (buildModifierFlags): New function to set MK_CONTROL or MK_SHIFT to WPARAM.
+        (mouseDownCallback): Call buidlModifiersFlags().
+        (mouseUpCallback): ditto.
+        (keyDownCallback): Add support for "addSelectionkey" and "rangeSelectionKey".
+
+2010-01-26  Chris Jerdonek  <cjerdonek@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        The Python autoinstall cache directory now only gets created
+        in the directory containing autoinstall.py.
+
+        https://bugs.webkit.org/show_bug.cgi?id=33365
+
+        * Scripts/webkitpy/autoinstall.py:
+          - Also added a README file to the cache directory saying
+            where it came from.
+
+2010-01-26  Chris Jerdonek  <cjerdonek@webkit.org>
+
+        Reviewed by Eric Seidel.
+
+        Moved the check-webkit-style processors into a new
+        webkitpy/style/processors directory.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34060
+
+        * Scripts/webkitpy/style/checker.py:
+        * Scripts/webkitpy/style/checker_unittest.py:
+        * Scripts/webkitpy/style/cpp_style.py: Removed.
+        * Scripts/webkitpy/style/cpp_style_unittest.py: Removed.
+        * Scripts/webkitpy/style/processors: Added.
+        * Scripts/webkitpy/style/processors/__init__.py: Added.
+        * Scripts/webkitpy/style/processors/cpp.py: Copied from WebKitTools/Scripts/webkitpy/style/cpp_style.py.
+        * Scripts/webkitpy/style/processors/cpp_unittest.py: Copied from WebKitTools/Scripts/webkitpy/style/cpp_style_unittest.py.
+        * Scripts/webkitpy/style/processors/text.py: Copied from WebKitTools/Scripts/webkitpy/style/text_style.py.
+        * Scripts/webkitpy/style/processors/text_unittest.py: Copied from WebKitTools/Scripts/webkitpy/style/text_style_unittest.py.
+        * Scripts/webkitpy/style/text_style.py: Removed.
+        * Scripts/webkitpy/style/text_style_unittest.py: Removed.
+        * Scripts/webkitpy/style/unittests.py:
+
+2010-01-26  Kevin Ollivier  <kevino@theolliviers.com>
+
+        [wx] Build fix, make sure stub function returns a value.
+
+        * DumpRenderTree/wx/LayoutTestControllerWx.cpp:
+        (LayoutTestController::counterValueForElementById):
+
+2010-01-26  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Windows build references non-existent include paths
+        https://bugs.webkit.org/show_bug.cgi?id=34175
+
+        * DumpRenderTree/win/DumpRenderTree.vcproj:
+        * DumpRenderTree/win/ImageDiff.vcproj:
+        * DumpRenderTree/win/TestNetscapePlugin/TestNetscapePlugin.vcproj:
+
+2010-01-26  Kenneth Rohde Christiansen  <kenneth@webkit.org>
+
+        Reviewed by Ariya Hidayat.
+
+        [Qt] Separating out the UrlLoader from the QtLauncher in it's
+        own implementation and header file.
+
+        * QtLauncher/main.cpp:
+        (main):
+        * QtLauncher/urlloader.cpp: Added.
+        (UrlLoader::UrlLoader):
+        (UrlLoader::loadNext):
+        (UrlLoader::init):
+        (UrlLoader::getUrl):
+        * QtLauncher/urlloader.h: Added.
+
+2010-01-25  Chris Jerdonek  <cjerdonek@webkit.org>
+
+        Reviewed by Shinichiro Hamaji.
+
+        Refactored check-webkit-style by removing the file path
+        parameter from the style error handler functions.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34031
+
+        * Scripts/webkitpy/style/checker.py:
+          - Added _default_style_error_handler() to StyleChecker class.
+          - Moved handle_style_error() to inside _default_style_error_handler().
+
+        * Scripts/webkitpy/style/checker_unittest.py:
+          - Removed file path from calls to error handler.
+
+        * Scripts/webkitpy/style/cpp_style.py:
+          - Removed file path from calls to error handler.
+
+        * Scripts/webkitpy/style/cpp_style_unittest.py:
+          - Removed file path from calls to error handler.
+
+        * Scripts/webkitpy/style/text_style.py:
+          - Removed file path from calls to error handler.
+
+        * Scripts/webkitpy/style/text_style_unittest.py:
+          - Removed file path from calls to error handler.
+
+2010-01-25  Jeremy Orlow  <jorlow@chromium.org>
+
+        Adding myself as reviewer.  No review necessary.
+
+        * Scripts/webkitpy/committers.py:
+
 2010-01-25  Chris Jerdonek  <cjerdonek@webkit.org>
 
         Reviewed by Adam Barth.

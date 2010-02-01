@@ -65,6 +65,9 @@ public:
     WEBKIT_API static void enableGeolocation(bool);
     WEBKIT_API static bool isGeolocationEnabled();
 
+    WEBKIT_API static void enableIndexedDatabase(bool);
+    WEBKIT_API static bool isIndexedDatabaseEnabled();
+
 private:
     WebRuntimeFeatures();
 };

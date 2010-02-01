@@ -60,12 +60,10 @@ SVGUseElement::SVGUseElement(const QualifiedName& tagName, Document* doc)
     , SVGLangSpace()
     , SVGExternalResourcesRequired()
     , SVGURIReference()
-    , m_x(this, SVGNames::xAttr, LengthModeWidth)
-    , m_y(this, SVGNames::yAttr, LengthModeHeight)
-    , m_width(this, SVGNames::widthAttr, LengthModeWidth)
-    , m_height(this, SVGNames::heightAttr, LengthModeHeight)
-    , m_href(this, XLinkNames::hrefAttr)
-    , m_externalResourcesRequired(this, SVGNames::externalResourcesRequiredAttr, false)
+    , m_x(LengthModeWidth)
+    , m_y(LengthModeHeight)
+    , m_width(LengthModeWidth)
+    , m_height(LengthModeHeight)
     , m_isPendingResource(false)
     , m_needsShadowTreeRecreation(false)
 {
@@ -174,6 +172,34 @@ void SVGUseElement::svgAttributeChanged(const QualifiedName& attrName)
         || SVGStyledTransformableElement::isKnownAttribute(attrName)) {
         invalidateShadowTree();
     }
+}
+
+void SVGUseElement::synchronizeProperty(const QualifiedName& attrName)
+{
+    SVGStyledTransformableElement::synchronizeProperty(attrName);
+
+    if (attrName == anyQName()) {
+        synchronizeX();
+        synchronizeY();
+        synchronizeWidth();
+        synchronizeHeight();
+        synchronizeExternalResourcesRequired();
+        synchronizeHref();
+        return;
+    }
+
+    if (attrName == SVGNames::xAttr)
+        synchronizeX();
+    else if (attrName == SVGNames::yAttr)
+        synchronizeY();
+    else if (attrName == SVGNames::widthAttr)
+        synchronizeWidth();
+    else if (attrName == SVGNames::heightAttr)
+        synchronizeHeight();
+    else if (SVGExternalResourcesRequired::isKnownAttribute(attrName))
+        synchronizeExternalResourcesRequired();
+    else if (SVGURIReference::isKnownAttribute(attrName))
+        synchronizeHref();
 }
 
 static void updateContainerSize(SVGUseElement* useElement, SVGElementInstance* targetInstance)
@@ -329,11 +355,11 @@ void dumpInstanceTree(unsigned int& depth, String& text, SVGElementInstance* tar
     for (unsigned int i = 0; i < depth; ++i)
         text += "  ";
 
-    HashSet<SVGElementInstance*> elementInstances = element->instancesForElement();
+    const HashSet<SVGElementInstance*>& elementInstances = element->instancesForElement();
     text += String::format("Corresponding element is associated with %i instance(s):\n", elementInstances.size());
 
-    HashSet<SVGElementInstance*>::iterator end = elementInstances.end();
-    for (HashSet<SVGElementInstance*>::iterator it = elementInstances.begin(); it != end; ++it) {
+    const HashSet<SVGElementInstance*>::const_iterator end = elementInstances.end();
+    for (HashSet<SVGElementInstance*>::const_iterator it = elementInstances.begin(); it != end; ++it) {
         for (unsigned int i = 0; i < depth; ++i)
             text += "  ";
 

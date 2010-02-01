@@ -18,7 +18,6 @@ svg/batik/filters/feTile.svg
 http/tests/appcache
 http/tests/webarchive
 http/tests/globalhistory
-http/tests/history
 http/tests/incremental
 http/tests/media
 http/tests/webarchive
@@ -224,6 +223,9 @@ editing/selection/doubleclick-beside-cr-span.html
 
 # Missing eventSender.textZoomIn() (and textZoomOut)
 svg/custom/text-zoom.xhtml
+
+# Missing eventSender.beginDragWithFiles()
+fast/dom/Window/window-postmessage-clone-frames.html
 # ============================================================================= #
 
 # ------- missing eventSender.beginDragWithFiles
@@ -1464,16 +1466,10 @@ css2.1/t120403-visibility-00-c.html
 css2.1/t1204-implied-00-b.html
 css2.1/t1204-implied-01-c.html
 css2.1/t1204-implied-02-d.html
-css2.1/t1204-increment-00-c-o.html
-css2.1/t1204-increment-01-c-o.html
-css2.1/t1204-increment-02-c-o.html
 css2.1/t1204-multiple-00-c.html
 css2.1/t1204-multiple-01-c.html
 css2.1/t1204-order-00-c.html
 css2.1/t1204-order-01-d.html
-css2.1/t1204-reset-00-c-o.html
-css2.1/t1204-reset-01-c-o.html
-css2.1/t1204-reset-02-c-o.html
 css2.1/t1204-root-e.html
 css2.1/t1401-c531-color-00-a.html
 css2.1/t1402-c45-bg-canvas-00-b.html
@@ -4822,12 +4818,6 @@ loader/go-back-to-different-window-size.html
 # This port doesn't support Geolocation.
 fast/dom/Geolocation
 
-# Missing DRT ability to track worker thread counts
-fast/workers/dedicated-worker-lifecycle.html
-fast/workers/shared-worker-frame-lifecycle.html
-fast/workers/shared-worker-lifecycle.html
-fast/workers/worker-lifecycle.html
-
 # Missing DRT ability to set accept cookie policy
 http/tests/xmlhttprequest/cross-origin-cookie-storage.html
 
@@ -4844,7 +4834,8 @@ http/tests/loading/basic-credentials-sent-automatically.html
 http/tests/loading/basic-auth-resend-wrong-credentials.html
 
 # This port doesn't support detecting slow unload handlers.
-fast/dom/Window/slow_unload_handler.html
+fast/dom/Window/slow-unload-handler.html
+fast/dom/Window/slow-unload-handler-only-frame-is-stopped.html
 
 # This port doesn't have a global history delegate yet
 http/tests/globalhistory
@@ -4963,9 +4954,6 @@ http/tests/xmlhttprequest/state-after-network-error.html
 http/tests/xmlhttprequest/workers/methods-async.html
 http/tests/xmlhttprequest/workers/methods.html
 http/tests/xmlhttprequest/workers/shared-worker-methods-async.html
-
-# Missing SocketStreamHandle implementation
-websocket/tests
 
 # Need rebaseline: https://bugs.webkit.org/show_bug.cgi?id=26830
 fast/multicol/single-line.html
@@ -5110,3 +5098,14 @@ http/tests/misc/slow-loading-mask.html
 
 # skip Geolocation tests
 fast/dom/Window/window-properties-geolocation.html
+
+# skip failing history tests
+# https://bugs.webkit.org/show_bug.cgi?id=34167
+http/tests/history/redirect-301.pl
+http/tests/history/redirect-302.pl
+http/tests/history/redirect-303.pl
+http/tests/history/redirect-307.pl
+
+# small caps vs. normal text
+# https://bugs.webkit.org/show_bug.cgi?id=34286
+css2.1/t1505-c524-font-var-00-b.html

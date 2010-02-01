@@ -35,8 +35,10 @@ import os.path
 import sys
 
 from .. style_references import parse_patch
-from cpp_style import CppProcessor
-from text_style import TextProcessor
+from error_handlers import DefaultStyleErrorHandler
+from error_handlers import PatchStyleErrorHandler
+from processors.cpp import CppProcessor
+from processors.text import TextProcessor
 
 
 # These defaults are used by check-webkit-style.
@@ -80,83 +82,6 @@ WEBKIT_DEFAULT_FILTER_RULES = [
     ]
 
 
-# FIXME: The STYLE_CATEGORIES show up in both file types cpp_style.py
-#        and text_style.py. Break this list into possibly overlapping
-#        sub-lists, and store each sub-list in the corresponding .py
-#        file. The file style.py can obtain the master list by taking
-#        the union. This will allow the unit tests for each file type
-#        to check that all of their respective style categories are
-#        represented -- without having to reference style.py or be
-#        aware of the existence of other file types.
-#
-# We categorize each style rule we print.  Here are the categories.
-# We want an explicit list so we can display a full list to the user.
-# If you add a new error message with a new category, add it to the list
-# here!  cpp_style_unittest.py should tell you if you forget to do this.
-STYLE_CATEGORIES = [
-    'build/class',
-    'build/deprecated',
-    'build/endif_comment',
-    'build/forward_decl',
-    'build/header_guard',
-    'build/include',
-    'build/include_order',
-    'build/include_what_you_use',
-    'build/namespaces',
-    'build/printf_format',
-    'build/storage_class',
-    'build/using_std',
-    'legal/copyright',
-    'readability/braces',
-    'readability/casting',
-    'readability/check',
-    'readability/comparison_to_zero',
-    'readability/constructors',
-    'readability/control_flow',
-    'readability/fn_size',
-    'readability/function',
-    'readability/multiline_comment',
-    'readability/multiline_string',
-    'readability/naming',
-    'readability/null',
-    'readability/streams',
-    'readability/todo',
-    'readability/utf8',
-    'runtime/arrays',
-    'runtime/casting',
-    'runtime/explicit',
-    'runtime/init',
-    'runtime/int',
-    'runtime/invalid_increment',
-    'runtime/max_min_macros',
-    'runtime/memset',
-    'runtime/printf',
-    'runtime/printf_format',
-    'runtime/references',
-    'runtime/rtti',
-    'runtime/sizeof',
-    'runtime/string',
-    'runtime/threadsafe_fn',
-    'runtime/virtual',
-    'whitespace/blank_line',
-    'whitespace/braces',
-    'whitespace/comma',
-    'whitespace/comments',
-    'whitespace/declaration',
-    'whitespace/end_of_line',
-    'whitespace/ending_newline',
-    'whitespace/indent',
-    'whitespace/labels',
-    'whitespace/line_length',
-    'whitespace/newline',
-    'whitespace/operators',
-    'whitespace/parens',
-    'whitespace/semicolon',
-    'whitespace/tab',
-    'whitespace/todo',
-    ]
-
-
 # Some files should be skipped when checking style. For example,
 # WebKit maintains some files in Mozilla style on purpose to ease
 # future merges.
@@ -179,6 +104,12 @@ SKIPPED_FILES_WITH_WARNING = [
 SKIPPED_FILES_WITHOUT_WARNING = [
     "LayoutTests/"
     ]
+
+
+def style_categories():
+    """Return the set of all categories used by check-webkit-style."""
+    # If other processors had categories, we would take their union here.
+    return CppProcessor.categories
 
 
 def webkit_argument_defaults():
@@ -403,10 +334,10 @@ class ProcessorOptions(object):
         # Python does not automatically deduce from __eq__().
         return not (self == other)
 
-    def should_report_error(self, category, confidence_in_error):
-        """Return whether an error should be reported.
+    def is_reportable(self, category, confidence_in_error):
+        """Return whether an error is reportable.
 
-        An error should be reported if the confidence in the error
+        An error is reportable if the confidence in the error
         is at least the current verbosity level, and if the current
         filter says that the category should be checked.
 
@@ -526,7 +457,8 @@ class ArgumentParser(object):
     def _exit_with_categories(self):
         """Exit and print the style categories and default filter rules."""
         self.doc_print('\nAll categories:\n')
-        for category in sorted(STYLE_CATEGORIES):
+        categories = style_categories()
+        for category in sorted(categories):
             self.doc_print('    ' + category + '\n')
 
         self.doc_print('\nDefault filter rules**:\n')
@@ -771,38 +703,9 @@ class StyleChecker(object):
         self.error_count = 0
         self.options = options
 
-    def _handle_style_error(self, filename, line_number, category, confidence, message):
-        """Handle the occurrence of a style error while checking.
-
-        Check whether an error should be reported. If so, increment the
-        global error count and report the error details.
-
-        Args:
-          filename: The name of the file containing the error.
-          line_number: The number of the line containing the error.
-          category: A string used to describe the "category" this bug
-                    falls under: "whitespace", say, or "runtime".
-                    Categories may have a hierarchy separated by slashes:
-                    "whitespace/indent".
-          confidence: A number from 1-5 representing a confidence score
-                      for the error, with 5 meaning that we are certain
-                      of the problem, and 1 meaning that it could be a
-                      legitimate construct.
-          message: The error message.
-
-        """
-        if not self.options.should_report_error(category, confidence):
-            return
-
+    def _increment_error_count(self):
+        """Increment the total count of reported errors."""
         self.error_count += 1
-
-        if self.options.output_format == 'vs7':
-            format_string = "%s(%s):  %s  [%s] [%d]\n"
-        else:
-            format_string = "%s:%s:  %s  [%s] [%d]\n"
-
-        self._stderr_write(format_string % (filename, line_number, message,
-                                            category, confidence))
 
     def _process_file(self, processor, file_path, handle_style_error):
         """Process the file using the given processor."""
@@ -854,16 +757,18 @@ class StyleChecker(object):
           file_path: A string that is the path of the file to process.
           handle_style_error: The function to call when a style error
                               occurs. This parameter is meant for internal
-                              use within this class. Defaults to the
-                              style error handling method of this class.
+                              use within this class. Defaults to a
+                              DefaultStyleErrorHandler instance.
           process_file: The function to call to process the file. This
                         parameter should be used only for unit tests.
                         Defaults to the file processing method of this class.
 
         """
         if handle_style_error is None:
-            handle_style_error = self._handle_style_error
-
+            handle_style_error = DefaultStyleErrorHandler(file_path,
+                                     self.options,
+                                     self._increment_error_count,
+                                     self._stderr_write)
         if process_file is None:
             process_file = self._process_file
 
@@ -894,26 +799,11 @@ class StyleChecker(object):
         """
         patch_files = parse_patch(patch_string)
         for file_path, diff in patch_files.iteritems():
-            line_numbers = set()
+            style_error_handler = PatchStyleErrorHandler(diff,
+                                      file_path,
+                                      self.options,
+                                      self._increment_error_count,
+                                      self._stderr_write)
 
-            def error_for_patch(file_path, line_number, category, confidence, message):
-                """Wrapper function of cpp_style.error for patches.
-
-                This function outputs errors only if the line number
-                corresponds to lines which are modified or added.
-
-                """
-                if not line_numbers:
-                    for line in diff.lines:
-                        # When deleted line is not set, it means that
-                        # the line is newly added.
-                        if not line[0]:
-                            line_numbers.add(line[1])
-
-                # FIXME: Make sure errors having line number zero are
-                #        logged -- like carriage-return errors.
-                if line_number in line_numbers:
-                    self._handle_style_error(file_path, line_number, category, confidence, message)
-
-            self.check_file(file_path, handle_style_error=error_for_patch)
+            self.check_file(file_path, style_error_handler)
 

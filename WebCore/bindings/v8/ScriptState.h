@@ -44,11 +44,6 @@ namespace WebCore {
 
     class ScriptState : public Noncopyable {
     public:
-        ScriptState() { }
-        ScriptState(Frame* frame);
-        ScriptState(Frame* frame, v8::Handle<v8::Context> context);
-        ~ScriptState();
-
         bool hadException() { return !m_exception.IsEmpty(); }
         void setException(v8::Local<v8::Value> exception)
         {
@@ -56,17 +51,35 @@ namespace WebCore {
         }
         v8::Local<v8::Value> exception() { return m_exception; }
 
-        Frame* frame() const { return m_frame; }
         v8::Local<v8::Context> context() const
         {
             return v8::Local<v8::Context>::New(m_context);
         }
 
+        static ScriptState* forContext(v8::Local<v8::Context>);
+        static ScriptState* current();
+
+    protected:
+        ScriptState() { }
+        ~ScriptState();
+
     private:
+        friend ScriptState* mainWorldScriptState(Frame*);
+        explicit ScriptState(v8::Handle<v8::Context>);
+
+        static void weakReferenceCallback(v8::Persistent<v8::Value> object, void* parameter);
+
         v8::Local<v8::Value> m_exception;
-        Frame* m_frame;
         v8::Persistent<v8::Context> m_context;
     };
+
+    class EmptyScriptState : public ScriptState {
+    public:
+        EmptyScriptState() : ScriptState() { }
+        ~EmptyScriptState() { }
+    };
+
+    ScriptState* mainWorldScriptState(Frame*);
 
     ScriptState* scriptStateFromNode(DOMWrapperWorld*, Node*);
     ScriptState* scriptStateFromPage(DOMWrapperWorld*, Page*);

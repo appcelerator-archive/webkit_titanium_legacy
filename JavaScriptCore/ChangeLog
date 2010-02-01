@@ -1,3 +1,643 @@
+2010-02-01  Oliver Hunt  <oliver@apple.com>
+
+        Windows build fix, update exports file (again)
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2010-02-01  Oliver Hunt  <oliver@apple.com>
+
+        Windows build fix, update exports file
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2010-01-31  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        JSC is failing to propagate anonymous slot count on some transitions
+        https://bugs.webkit.org/show_bug.cgi?id=34321
+
+        Remove secondary Structure constructor, and make Structure store a copy
+        of the number of anonymous slots directly so saving an immediate allocation
+        of a property map for all structures with anonymous storage, which also
+        avoids the leaked property map on new property transition in the original
+        version of this patch.
+
+        We need to propagate the the anonymous slot count otherwise we can end up
+        with a structure recording incorrect information about the available and
+        needed space for property storage, or alternatively incorrectly reusing
+        some slots.
+
+        * JavaScriptCore.exp:
+        * runtime/Structure.cpp:
+        (JSC::Structure::Structure):
+        (JSC::Structure::materializePropertyMap):
+        (JSC::Structure::addPropertyTransition):
+        (JSC::Structure::changePrototypeTransition):
+        (JSC::Structure::despecifyFunctionTransition):
+        (JSC::Structure::getterSetterTransition):
+        (JSC::Structure::toDictionaryTransition):
+        (JSC::Structure::flattenDictionaryStructure):
+        (JSC::Structure::copyPropertyTable):
+        (JSC::Structure::put):
+        (JSC::Structure::remove):
+        (JSC::Structure::insertIntoPropertyMapHashTable):
+        (JSC::Structure::createPropertyMapHashTable):
+        * runtime/Structure.h:
+        (JSC::Structure::create):
+        (JSC::Structure::hasAnonymousSlots):
+        (JSC::Structure::anonymousSlotCount):
+
+2010-01-31  Patrick Gansterer  <paroga@paroga.com>
+
+        Reviewed by Darin Adler.
+
+        Buildfix for WinCE + style fixes (TLS_OUT_OF_INDEXES is not defined).
+        https://bugs.webkit.org/show_bug.cgi?id=34380
+
+        * wtf/ThreadSpecific.h:
+
+2010-01-31  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        [Windows] Fix a bug of round() with huge integral numbers
+        https://bugs.webkit.org/show_bug.cgi?id=34297
+
+        Fix a bug that round() for huge integral numbers returns incorrect
+        results. For example, round(8639999913600001) returns
+        8639999913600002 without this change though the double type can
+        represent 8639999913600001 precisely.
+
+        Math.round() of JavaScript has a similar problem. But this change
+        doesn't fix it because Math.round() doesn't use round() of
+        MathExtra.h.
+
+        * wtf/MathExtras.h:
+        (round): Avoid to do "num + 0.5" or "num - 0.5".
+        (roundf): Fixed similarly.
+        (llround): Calls round().
+        (llroundf): Calls roundf().
+        (lround): Calls round().
+        (lroundf): Calls roundf().
+
+2010-01-29  Mark Rowe  <mrowe@apple.com>
+
+        Sort Xcode projects.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+
+2010-01-29  Mark Rowe  <mrowe@apple.com>
+
+        Fix the Mac build.
+
+        Disable ENABLE_INDEXED_DATABASE since it is "completely non-functional".
+
+        As the comment in FeatureDefines.xcconfig notes, the list of feature defines
+        needs to be kept in sync across the various files.  The default values also
+        need to be kept in sync between these files and build-webkit.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2010-01-29  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Rubber-stamped by Maciej Stachowiak.
+
+        Fix the ARM build.
+
+        * runtime/JSNumberCell.h:
+        (JSC::JSNumberCell::createStructure): Call the right Structure::create overload.
+
+2010-01-28  Kevin Ollivier  <kevino@theolliviers.com>
+
+        [wx] Build fix for MSW, use ThreadingWin.cpp as the Windows pthreads implementation
+        implements pthread_t in a way that makes it impossible to check its validity,
+        which is needed by ThreadingPthreads.cpp.
+
+        * wscript:
+
+2010-01-28  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Gavin Barraclough.
+
+        DOM Objects shouldn't all require custom mark functions
+        https://bugs.webkit.org/show_bug.cgi?id=34291
+
+        Make getAnonymousValue const-friendly
+
+        * runtime/JSObject.h:
+        (JSC::JSObject::getAnonymousValue):
+
+2010-01-28  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Gavin Barraclough.
+
+        Simplify anonymous slot implementation
+        https://bugs.webkit.org/show_bug.cgi?id=34282
+
+        A class must now specify the number of slots it needs at construction time
+        rather than later on with a transition.  This makes many things simpler,
+        we no longer need to need an additional transition on object creation to
+        add the anonymous slots, and we remove the need for a number of transition
+        type checks. 
+
+        * API/JSCallbackConstructor.h:
+        (JSC::JSCallbackConstructor::createStructure):
+        * API/JSCallbackFunction.h:
+        (JSC::JSCallbackFunction::createStructure):
+        * API/JSCallbackObject.h:
+        (JSC::JSCallbackObject::createStructure):
+        * JavaScriptCore.exp:
+        * debugger/DebuggerActivation.h:
+        (JSC::DebuggerActivation::createStructure):
+        * runtime/Arguments.h:
+        (JSC::Arguments::createStructure):
+        * runtime/BooleanObject.h:
+        (JSC::BooleanObject::createStructure):
+        * runtime/DateInstance.h:
+        (JSC::DateInstance::createStructure):
+        * runtime/DatePrototype.h:
+        (JSC::DatePrototype::createStructure):
+        * runtime/FunctionPrototype.h:
+        (JSC::FunctionPrototype::createStructure):
+        * runtime/GetterSetter.h:
+        (JSC::GetterSetter::createStructure):
+        * runtime/GlobalEvalFunction.h:
+        (JSC::GlobalEvalFunction::createStructure):
+        * runtime/InternalFunction.h:
+        (JSC::InternalFunction::createStructure):
+        * runtime/JSAPIValueWrapper.h:
+        (JSC::JSAPIValueWrapper::createStructure):
+        * runtime/JSActivation.h:
+        (JSC::JSActivation::createStructure):
+        * runtime/JSArray.h:
+        (JSC::JSArray::createStructure):
+        * runtime/JSByteArray.cpp:
+        (JSC::JSByteArray::createStructure):
+        * runtime/JSCell.h:
+        (JSC::JSCell::createDummyStructure):
+        * runtime/JSFunction.h:
+        (JSC::JSFunction::createStructure):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::createStructure):
+        * runtime/JSNotAnObject.h:
+        (JSC::JSNotAnObject::createStructure):
+        * runtime/JSONObject.h:
+        (JSC::JSONObject::createStructure):
+        * runtime/JSObject.h:
+        (JSC::JSObject::createStructure):
+        (JSC::JSObject::putAnonymousValue):
+        (JSC::JSObject::getAnonymousValue):
+        * runtime/JSPropertyNameIterator.h:
+        (JSC::JSPropertyNameIterator::createStructure):
+        * runtime/JSStaticScopeObject.h:
+        (JSC::JSStaticScopeObject::createStructure):
+        * runtime/JSString.h:
+        (JSC::Fiber::createStructure):
+        * runtime/JSVariableObject.h:
+        (JSC::JSVariableObject::createStructure):
+        * runtime/JSWrapperObject.h:
+        (JSC::JSWrapperObject::createStructure):
+        (JSC::JSWrapperObject::JSWrapperObject):
+        * runtime/MathObject.h:
+        (JSC::MathObject::createStructure):
+        * runtime/NumberConstructor.h:
+        (JSC::NumberConstructor::createStructure):
+        * runtime/NumberObject.h:
+        (JSC::NumberObject::createStructure):
+        * runtime/RegExpConstructor.h:
+        (JSC::RegExpConstructor::createStructure):
+        * runtime/RegExpObject.h:
+        (JSC::RegExpObject::createStructure):
+        * runtime/StringObject.h:
+        (JSC::StringObject::createStructure):
+        * runtime/StringObjectThatMasqueradesAsUndefined.h:
+        (JSC::StringObjectThatMasqueradesAsUndefined::createStructure):
+        * runtime/Structure.cpp:
+        (JSC::Structure::~Structure):
+        (JSC::Structure::materializePropertyMap):
+        * runtime/Structure.h:
+        (JSC::Structure::create):
+        (JSC::Structure::anonymousSlotCount):
+        * runtime/StructureTransitionTable.h:
+
+2010-01-27  Oliver Hunt  <oliver@apple.com>
+
+        Windows build fix.
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.def:
+
+2010-01-27  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        MessageEvent.data should deserialize in the context of the MessageEvent's global object
+        https://bugs.webkit.org/show_bug.cgi?id=34227
+
+        Add logic to allow us to create an Object, Array, or Date instance
+        so we can create them in the context of a specific global object,
+        rather than just using the current lexical global object.
+
+        * JavaScriptCore.exp:
+        * runtime/DateInstance.cpp:
+        (JSC::DateInstance::DateInstance):
+        * runtime/DateInstance.h:
+        * runtime/JSGlobalObject.h:
+        (JSC::constructEmptyObject):
+        (JSC::constructEmptyArray):
+
+2010-01-27  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34150
+        WebKit needs a mechanism to catch stale HashMap entries
+
+        It is very difficult to catch stale pointers that are HashMap keys - since a pointer's hash
+        is just its value, it is very unlikely that any observable problem is reproducible.
+
+        This extends hash table consistency checks to check that pointers are referencing allocated
+        memory blocks, and makes it possible to invoke the checks explicitly (it is not feasible
+        to enable CHECK_HASHTABLE_CONSISTENCY by default, because that affects performance too much).
+
+        * wtf/HashMap.h: (WTF::::checkConsistency): Call through to HashTable implementation. We can
+        add similar calls to HashSet and HashCountedSet, but I haven't seen hard to debug problems
+        with those yet.
+
+        * wtf/HashSet.h: (WTF::::remove): The version of checkTableConsistency that's guarded by
+        CHECK_HASHTABLE_CONSISTENCY is now called internalCheckTableConsistency().
+
+        * wtf/HashTable.h:
+        (WTF::HashTable::internalCheckTableConsistency):
+        (WTF::HashTable::internalCheckTableConsistencyExceptSize):
+        (WTF::HashTable::checkTableConsistencyExceptSize):
+        Expose checkTableConsistency() even if CHECK_HASHTABLE_CONSISTENCY is off.
+        (WTF::::add): Updated for checkTableConsistency renaming.
+        (WTF::::addPassingHashCode): Ditto.
+        (WTF::::removeAndInvalidate): Ditto.
+        (WTF::::remove): Ditto.
+        (WTF::::rehash): Ditto.
+        (WTF::::checkTableConsistency): The assertion for !shouldExpand() was not correct - this
+        function returns true for tables with m_table == 0.
+        (WTF::::checkTableConsistencyExceptSize): Call checkValueConsistency for key. Potentially,
+        we could do the same for values.
+
+        * wtf/HashTraits.h:
+        (WTF::GenericHashTraits::checkValueConsistency): An empty function that can be overridden
+        to add checks. Currently, the only override is for pointer hashes.
+
+        * wtf/RefPtrHashMap.h: (WTF::::remove): Updated for checkTableConsistency renaming.
+
+2010-01-27  Anton Muhin  <antonm@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Remove trailing \ from inline function code
+        https://bugs.webkit.org/show_bug.cgi?id=34223
+
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMThumbImmediate::countLeadingZerosPartial):
+
+2010-01-27  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Eric Seidel.
+
+        [BREWMP] Port WTF's randomNumber
+        https://bugs.webkit.org/show_bug.cgi?id=33566
+
+        Use GETRAND to generate 4 byte random byte sequence to implement
+        weakRandomNumber. Create a secure random number generator with
+        AEECLSID_RANDOM to implement randomNumber.
+
+        * wtf/RandomNumber.cpp:
+        (WTF::weakRandomNumber):
+        (WTF::randomNumber):
+
+2010-01-27  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Eric Seidel.
+
+        [BREWMP] Port getCPUTime
+        https://bugs.webkit.org/show_bug.cgi?id=33572
+
+        Use GETUPTIMEMS which returns a continuously and
+        linearly increasing millisecond timer from the time the device
+        was powered on. This function is enough to implement getCPUTime.
+
+        * runtime/TimeoutChecker.cpp:
+        (JSC::getCPUTime):
+
+2010-01-27  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Oliver Hunt.
+
+        [BREWMP] Add MarkStack fastMalloc implementation for platforms without VirtualAlloc or mmap.
+        https://bugs.webkit.org/show_bug.cgi?id=33582
+
+        Use fastMalloc and fastFree to implement MarkStack::allocateStack and
+        MarkStack::releaseStack for platforms without page level allocation.
+
+        * runtime/MarkStack.h:
+        (JSC::MarkStack::MarkStackArray::shrinkAllocation):
+        * runtime/MarkStackNone.cpp: Added.
+        (JSC::MarkStack::initializePagesize):
+        (JSC::MarkStack::allocateStack):
+        (JSC::MarkStack::releaseStack):
+
+2010-01-27  Kwang Yul Seo  <skyul@company100.net>
+
+        Reviewed by Eric Seidel.
+
+        [BREWMP] Don't use time function
+        https://bugs.webkit.org/show_bug.cgi?id=33577
+
+        Calling time(0) in BREW devices causes a crash because time
+        is not properly ported in most devices. Cast currentTime() to
+        time_t to get the same result as time(0).
+
+        * wtf/DateMath.cpp:
+        (WTF::calculateUTCOffset):
+
+2010-01-27  Alexey Proskuryakov  <ap@apple.com>
+
+        Revert r53899 (HashMap<AtomicStringImpl*, Value> key checks) and subsequent build fixes,
+        because they make SVG tests crash in release builds.
+
+        * wtf/HashMap.h:
+        (WTF::::remove):
+        * wtf/HashSet.h:
+        (WTF::::remove):
+        * wtf/HashTable.h:
+        (WTF::::add):
+        (WTF::::addPassingHashCode):
+        (WTF::::removeAndInvalidate):
+        (WTF::::remove):
+        (WTF::::rehash):
+        (WTF::::checkTableConsistency):
+        (WTF::::checkTableConsistencyExceptSize):
+        * wtf/HashTraits.h:
+        (WTF::GenericHashTraits::emptyValue):
+        (WTF::):
+        * wtf/RefPtrHashMap.h:
+        (WTF::::remove):
+
+2010-01-26  Alexey Proskuryakov  <ap@apple.com>
+
+        More Windows build fixing.
+
+        * wtf/HashTraits.h: _msize takes void*, remove const qualifier from type.
+
+2010-01-26  Alexey Proskuryakov  <ap@apple.com>
+
+        Windows build fix.
+
+        * wtf/HashTraits.h: Include malloc.h for _msize().
+
+2010-01-26  Alexey Proskuryakov  <ap@apple.com>
+
+        Build fix.
+
+        * wtf/HashTable.h: (WTF::HashTable::checkTableConsistencyExceptSize): Remove const from a
+        static (empty) version of this function.
+
+2010-01-26  Alexey Proskuryakov  <ap@apple.com>
+
+        Reviewed by Darin Adler.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34150
+        WebKit needs a mechanism to catch stale HashMap entries
+
+        It is very difficult to catch stale pointers that are HashMap keys - since a pointer's hash
+        is just its value, it is very unlikely that any observable problem is reproducible.
+
+        This extends hash table consistency checks to check that pointers are referencing allocated
+        memory blocks, and makes it possible to invoke the checks explicitly (it is not feasible
+        to enable CHECK_HASHTABLE_CONSISTENCY by default, because that affects performance too much).
+
+        * wtf/HashMap.h: (WTF::::checkConsistency): Call through to HashTable implementation. We can
+        add similar calls to HashSet and HashCountedSet, but I haven't seen hard to debug problems
+        with those yet.
+
+        * wtf/HashSet.h: (WTF::::remove): The version of checkTableConsistency that's guarded by
+        CHECK_HASHTABLE_CONSISTENCY is now called internalCheckTableConsistency().
+
+        * wtf/HashTable.h:
+        (WTF::HashTable::internalCheckTableConsistency):
+        (WTF::HashTable::internalCheckTableConsistencyExceptSize):
+        (WTF::HashTable::checkTableConsistencyExceptSize):
+        Expose checkTableConsistency() even if CHECK_HASHTABLE_CONSISTENCY is off.
+        (WTF::::add): Updated for checkTableConsistency renaming.
+        (WTF::::addPassingHashCode): Ditto.
+        (WTF::::removeAndInvalidate): Ditto.
+        (WTF::::remove): Ditto.
+        (WTF::::rehash): Ditto.
+        (WTF::::checkTableConsistency): The assertion for !shouldExpand() was not correct - this
+        function returns true for tables with m_table == 0.
+        (WTF::::checkTableConsistencyExceptSize): Call checkValueConsistency for key. Potentially,
+        we could do the same for values.
+
+        * wtf/HashTraits.h:
+        (WTF::GenericHashTraits::checkValueConsistency): An empty function that can be overridden
+        to add checks. Currently, the only override is for pointer hashes.
+
+        * wtf/RefPtrHashMap.h: (WTF::::remove): Updated for checkTableConsistency renaming.
+
+2010-01-26  Lyon Chen  <liachen@rim.com>
+
+        Reviewed by Maciej Stachowiak.
+
+        Opcode.h use const void* for Opcode cause error #1211 for RVCT compiler
+        https://bugs.webkit.org/show_bug.cgi?id=33902
+
+        * bytecode/Opcode.h:
+
+2010-01-26  Steve Falkenburg  <sfalken@apple.com>
+
+        Reviewed by Oliver Hunt.
+
+        Windows build references non-existent include paths
+        https://bugs.webkit.org/show_bug.cgi?id=34175
+
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCore.vcproj:
+        * JavaScriptCore.vcproj/JavaScriptCore/JavaScriptCoreCommon.vsprops:
+        * JavaScriptCore.vcproj/WTF/WTFCommon.vsprops:
+        * JavaScriptCore.vcproj/jsc/jscCommon.vsprops:
+        * JavaScriptCore.vcproj/testapi/testapi.vcproj:
+        * JavaScriptCore.vcproj/testapi/testapiCommon.vsprops:
+
+2010-01-26  Oliver Hunt  <oliver@apple.com>
+
+        Reviewed by Geoffrey Garen.
+
+        Using JavaScriptCore API with a webkit vended context can result in slow script dialog
+        https://bugs.webkit.org/show_bug.cgi?id=34172
+
+        Make the APIShim correctly increment and decrement the timeout
+        entry counter.
+
+        * API/APIShims.h:
+        (JSC::APIEntryShimWithoutLock::APIEntryShimWithoutLock):
+        (JSC::APIEntryShimWithoutLock::~APIEntryShimWithoutLock):
+        (JSC::APICallbackShim::APICallbackShim):
+        (JSC::APICallbackShim::~APICallbackShim):
+
+2010-01-26  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        [Qt] Fix compilation of QtScript with non-gcc compilers
+
+        Variable length stack arrays are a gcc extension. Use QVarLengthArray
+        as a more portable solution that still tries to allocate on the stack
+        first.
+
+        * qt/api/qscriptvalue_p.h:
+        (QScriptValuePrivate::call):
+
+2010-01-26  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Fix the build on platforms without JIT support.
+
+        The JIT support should be determined at compile-time via wtf/Platform.h
+
+        * qt/api/QtScript.pro:
+
+2010-01-26  Jedrzej Nowacki  <jedrzej.nowacki@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        First steps of the QtScript API.
+        
+        Two new classes were created; QScriptEngine and QScriptValue.
+        The first should encapsulate a javascript context and the second a script
+        value.
+        
+        This API is still in development, so it isn't compiled by default.
+        To trigger compilation, pass --qmakearg="CONFIG+=build-qtscript" to
+        build-webkit.
+
+        https://bugs.webkit.org/show_bug.cgi?id=32565
+
+        * qt/api/QtScript.pro: Added.
+        * qt/api/qscriptconverter_p.h: Added.
+        (QScriptConverter::toString):
+        * qt/api/qscriptengine.cpp: Added.
+        (QScriptEngine::QScriptEngine):
+        (QScriptEngine::~QScriptEngine):
+        (QScriptEngine::evaluate):
+        (QScriptEngine::collectGarbage):
+        * qt/api/qscriptengine.h: Added.
+        * qt/api/qscriptengine_p.cpp: Added.
+        (QScriptEnginePrivate::QScriptEnginePrivate):
+        (QScriptEnginePrivate::~QScriptEnginePrivate):
+        (QScriptEnginePrivate::evaluate):
+        * qt/api/qscriptengine_p.h: Added.
+        (QScriptEnginePrivate::get):
+        (QScriptEnginePrivate::collectGarbage):
+        (QScriptEnginePrivate::makeJSValue):
+        (QScriptEnginePrivate::context):
+        * qt/api/qscriptvalue.cpp: Added.
+        (QScriptValue::QScriptValue):
+        (QScriptValue::~QScriptValue):
+        (QScriptValue::isValid):
+        (QScriptValue::isBool):
+        (QScriptValue::isBoolean):
+        (QScriptValue::isNumber):
+        (QScriptValue::isNull):
+        (QScriptValue::isString):
+        (QScriptValue::isUndefined):
+        (QScriptValue::isError):
+        (QScriptValue::isObject):
+        (QScriptValue::isFunction):
+        (QScriptValue::toString):
+        (QScriptValue::toNumber):
+        (QScriptValue::toBool):
+        (QScriptValue::toBoolean):
+        (QScriptValue::toInteger):
+        (QScriptValue::toInt32):
+        (QScriptValue::toUInt32):
+        (QScriptValue::toUInt16):
+        (QScriptValue::call):
+        (QScriptValue::engine):
+        (QScriptValue::operator=):
+        (QScriptValue::equals):
+        (QScriptValue::strictlyEquals):
+        * qt/api/qscriptvalue.h: Added.
+        (QScriptValue::):
+        * qt/api/qscriptvalue_p.h: Added.
+        (QScriptValuePrivate::):
+        (QScriptValuePrivate::get):
+        (QScriptValuePrivate::QScriptValuePrivate):
+        (QScriptValuePrivate::isValid):
+        (QScriptValuePrivate::isBool):
+        (QScriptValuePrivate::isNumber):
+        (QScriptValuePrivate::isNull):
+        (QScriptValuePrivate::isString):
+        (QScriptValuePrivate::isUndefined):
+        (QScriptValuePrivate::isError):
+        (QScriptValuePrivate::isObject):
+        (QScriptValuePrivate::isFunction):
+        (QScriptValuePrivate::toString):
+        (QScriptValuePrivate::toNumber):
+        (QScriptValuePrivate::toBool):
+        (QScriptValuePrivate::toInteger):
+        (QScriptValuePrivate::toInt32):
+        (QScriptValuePrivate::toUInt32):
+        (QScriptValuePrivate::toUInt16):
+        (QScriptValuePrivate::equals):
+        (QScriptValuePrivate::strictlyEquals):
+        (QScriptValuePrivate::assignEngine):
+        (QScriptValuePrivate::call):
+        (QScriptValuePrivate::engine):
+        (QScriptValuePrivate::context):
+        (QScriptValuePrivate::value):
+        (QScriptValuePrivate::object):
+        (QScriptValuePrivate::inherits):
+        (QScriptValuePrivate::isJSBased):
+        (QScriptValuePrivate::isNumberBased):
+        (QScriptValuePrivate::isStringBased):
+        * qt/api/qtscriptglobal.h: Added.
+        * qt/tests/qscriptengine/qscriptengine.pro: Added.
+        * qt/tests/qscriptengine/tst_qscriptengine.cpp: Added.
+        (tst_QScriptEngine::tst_QScriptEngine):
+        (tst_QScriptEngine::~tst_QScriptEngine):
+        (tst_QScriptEngine::init):
+        (tst_QScriptEngine::cleanup):
+        (tst_QScriptEngine::collectGarbage):
+        (tst_QScriptEngine::evaluate):
+        * qt/tests/qscriptvalue/qscriptvalue.pro: Added.
+        * qt/tests/qscriptvalue/tst_qscriptvalue.cpp: Added.
+        (tst_QScriptValue::tst_QScriptValue):
+        (tst_QScriptValue::~tst_QScriptValue):
+        (tst_QScriptValue::init):
+        (tst_QScriptValue::cleanup):
+        (tst_QScriptValue::ctor):
+        (tst_QScriptValue::toString_data):
+        (tst_QScriptValue::toString):
+        (tst_QScriptValue::copyConstructor_data):
+        (tst_QScriptValue::copyConstructor):
+        (tst_QScriptValue::assignOperator_data):
+        (tst_QScriptValue::assignOperator):
+        (tst_QScriptValue::dataSharing):
+        (tst_QScriptValue::constructors_data):
+        (tst_QScriptValue::constructors):
+        (tst_QScriptValue::call):
+        * qt/tests/tests.pri: Added.
+        * qt/tests/tests.pro: Added.
+
+2010-01-25  Dmitry Titov  <dimich@chromium.org>
+
+        Reviewed by David Levin.
+
+        Fix Chromium Linux tests: the pthread functions on Linux produce segfault if they receive 0 thread handle.
+        After r53714, we can have 0 thread handles passed to pthread_join and pthread_detach if corresponding threads
+        were already terminated and their threadMap entries cleared.
+        Add a 0 check.
+
+        * wtf/ThreadingPthreads.cpp:
+        (WTF::waitForThreadCompletion):
+        (WTF::detachThread):
+
 2010-01-24  Laszlo Gombos  <laszlo.1.gombos@nokia.com>
 
         Reviewed by Maciej Stachowiak.

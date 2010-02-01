@@ -67,9 +67,37 @@ var WebInspector = {
     get platform()
     {
         if (!("_platform" in this))
-            this._platform = InspectorFrontendHost.platform();
+            this._platform = this._detectPlatform();
 
         return this._platform;
+    },
+
+    _detectPlatform: function()
+    {
+        const userAgent = navigator.userAgent;
+        var nativePlatform = InspectorFrontendHost.platform();
+
+        if (nativePlatform === "windows") {
+            var match = userAgent.match(/Windows NT (\d+)\.(?:\d+)/);
+            if (match && match[1] >= 6)
+                return WebInspector.OS.WindowsVistaOrLater;
+            return WebInspector.OS.Windows;
+        } else if (nativePlatform === "mac") {
+            var match = userAgent.match(/Mac OS X\s*(?:(\d+)_(\d+))?/);
+            if (!match || match[1] != 10)
+                return WebInspector.OS.MacSnowLeopard;
+            switch (Number(match[2])) {
+                case 4:
+                    return WebInspector.OS.MacTiger;
+                case 5:
+                    return WebInspector.OS.MacLeopard;
+                case 6:
+                default:
+                    return WebInspector.OS.MacSnowLeopard;
+            }
+        }
+
+        return nativePlatform;
     },
 
     get port()
@@ -387,6 +415,14 @@ var WebInspector = {
     }
 }
 
+WebInspector.OS = {
+    Windows: "windows",
+    WindowsVistaOrLater: "windows-vista-or-later",
+    MacTiger: "mac-tiger",
+    MacLeopard: "mac-leopard",
+    MacSnowLeopard: "mac-snowleopard"
+}
+
 WebInspector.loaded = function()
 {
     InspectorBackend.setInjectedScriptSource("(" + injectedScriptConstructor + ");");
@@ -693,6 +729,20 @@ WebInspector.documentKeyDown = function(event)
                 index = (index + 1) % this.panelOrder.length;
                 this.panelOrder[index].toolbarItem.click();
                 event.preventDefault();
+            }
+
+            break;
+
+        case "U+0041": // A key
+            if (isMac)
+                var shouldShowAuditsPanel = event.metaKey && !event.shiftKey && !event.ctrlKey && event.altKey;
+            else
+                var shouldShowAuditsPanel = event.ctrlKey && !event.shiftKey && !event.metaKey && event.altKey;
+
+            if (shouldShowAuditsPanel) {
+                if (!this.panels.audits)
+                    this.panels.audits = new WebInspector.AuditsPanel();
+                this.currentPanel = this.panels.audits;
             }
 
             break;

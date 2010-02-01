@@ -71,15 +71,6 @@ WebInspector.InspectorFrontendHostStub.prototype = {
     {
     },
 
-    addResourceSourceToFrame: function(identifier, element)
-    {
-    },
-
-    addSourceToFrame: function(mimeType, source, element)
-    {
-        return false;
-    },
-
     loaded: function()
     {
     },
@@ -95,6 +86,10 @@ WebInspector.InspectorFrontendHostStub.prototype = {
     },
 
     windowUnloading: function()
+    {
+    },
+
+    copyText: function()
     {
     }
 }

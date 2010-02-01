@@ -69,6 +69,7 @@
 #include "HTMLElementFactory.h"
 #include "HTMLFrameOwnerElement.h"
 #include "HTMLHeadElement.h"
+#include "HTMLIFrameElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLLinkElement.h"
 #include "HTMLMapElement.h"
@@ -353,6 +354,7 @@ Document::Document(Frame* frame, bool isXHTML, bool isHTML)
     , m_styleSheets(StyleSheetList::create(this))
     , m_styleRecalcTimer(this, &Document::styleRecalcTimerFired)
     , m_frameElementsShouldIgnoreScrolling(false)
+    , m_containsValidityStyleRules(false)
     , m_title("")
     , m_rawTitle("")
     , m_titleSetExplicitly(false)
@@ -388,6 +390,7 @@ Document::Document(Frame* frame, bool isXHTML, bool isHTML)
     , m_normalWorldWrapperCache(0)
 #endif
     , m_usingGeolocation(false)
+    , m_storageEventTimer(this, &Document::storageEventTimerFired)
 #if ENABLE(WML)
     , m_containsWMLContent(false)
 #endif
@@ -407,7 +410,7 @@ Document::Document(Frame* frame, bool isXHTML, bool isHTML)
     
     m_docLoader = new DocLoader(this);
 
-    visuallyOrdered = false;
+    m_visuallyOrdered = false;
     m_bParsing = false;
     m_wellFormed = false;
 
@@ -428,7 +431,6 @@ Document::Document(Frame* frame, bool isXHTML, bool isHTML)
 
     m_gotoAnchorNeededAfterStylesheetsLoad = false;
  
-    m_styleSelector = 0;
     m_didCalculateStyleSelector = false;
     m_pendingStylesheets = 0;
     m_ignorePendingStylesheets = false;
@@ -472,6 +474,9 @@ void Document::removedLastRef()
         m_titleElement = 0;
         m_documentElement = 0;
 
+        // removeAllChildren() doesn't always unregister IDs, do it upfront to avoid having stale references in the map.
+        m_elementsById.clear();
+
         removeAllChildren();
 
         deleteAllValues(m_markers);
@@ -513,7 +518,6 @@ Document::~Document()
 
     m_tokenizer.clear();
     m_document = 0;
-    delete m_styleSelector;
     m_docLoader.clear();
 
     m_renderArena.clear();
@@ -795,6 +799,9 @@ PassRefPtr<Node> Document::adoptNode(PassRefPtr<Node> source, ExceptionCode& ec)
             break;
         }       
         default:
+            if (source->hasTagName(iframeTag))
+                static_cast<HTMLIFrameElement*>(source.get())->setRemainsAliveOnRemovalFromTree(attached());
+
             if (source->parentNode())
                 source->parentNode()->removeChild(source.get(), ec);
     }
@@ -877,6 +884,8 @@ Element* Document::getElementById(const AtomicString& elementId) const
 {
     if (elementId.isEmpty())
         return 0;
+
+    m_elementsById.checkConsistency();
 
     Element* element = m_elementsById.get(elementId.impl());
     if (element)
@@ -1069,6 +1078,8 @@ void Document::addElementById(const AtomicString& elementId, Element* element)
 
 void Document::removeElementById(const AtomicString& elementId, Element* element)
 {
+    m_elementsById.checkConsistency();
+
     if (m_elementsById.get(elementId.impl()) == element)
         m_elementsById.remove(elementId.impl());
     else
@@ -1334,32 +1345,7 @@ void Document::recalcStyle(StyleChange change)
         // style selector may set this again during recalc
         m_hasNodesWithPlaceholderStyle = false;
         
-        RefPtr<RenderStyle> documentStyle = RenderStyle::create();
-        documentStyle->setDisplay(BLOCK);
-        documentStyle->setVisuallyOrdered(visuallyOrdered);
-        documentStyle->setZoom(frame()->pageZoomFactor());
-        m_styleSelector->setStyle(documentStyle);
-    
-        FontDescription fontDescription;
-        fontDescription.setUsePrinterFont(printing());
-        if (Settings* settings = this->settings()) {
-            fontDescription.setRenderingMode(settings->fontRenderingMode());
-            if (printing() && !settings->shouldPrintBackgrounds())
-                documentStyle->setForceBackgroundsToWhite(true);
-            const AtomicString& stdfont = settings->standardFontFamily();
-            if (!stdfont.isEmpty()) {
-                fontDescription.firstFamily().setFamily(stdfont);
-                fontDescription.firstFamily().appendFamily(0);
-            }
-            fontDescription.setKeywordSize(CSSValueMedium - CSSValueXxSmall + 1);
-            m_styleSelector->setFontSize(fontDescription, m_styleSelector->fontSizeForKeyword(CSSValueMedium, inCompatMode(), false));
-        }
-
-        documentStyle->setFontDescription(fontDescription);
-        documentStyle->font().update(m_styleSelector->fontSelector());
-        if (inCompatMode())
-            documentStyle->setHtmlHacks(true); // enable html specific rendering tricks
-
+        RefPtr<RenderStyle> documentStyle = CSSStyleSelector::styleForDocument(this);
         StyleChange ch = diff(documentStyle.get(), renderer()->style());
         if (renderer() && ch != NoChange)
             renderer()->setStyle(documentStyle.release());
@@ -1476,6 +1462,15 @@ void Document::updateLayoutIgnorePendingStylesheets()
     m_ignorePendingStylesheets = oldIgnore;
 }
 
+void Document::createStyleSelector()
+{
+    bool matchAuthorAndUserStyles = true;
+    if (Settings* docSettings = settings())
+        matchAuthorAndUserStyles = docSettings->authorAndUserStylesEnabled();
+    m_styleSelector.set(new CSSStyleSelector(this, m_styleSheets.get(), m_mappedElementSheet.get(), pageUserSheet(), pageGroupUserSheets(), 
+                                             !inCompatMode(), matchAuthorAndUserStyles));
+}
+
 void Document::attach()
 {
     ASSERT(!attached());
@@ -1490,14 +1485,6 @@ void Document::attach()
 #if USE(ACCELERATED_COMPOSITING)
     renderView()->didMoveOnscreen();
 #endif
-
-    if (!m_styleSelector) {
-        bool matchAuthorAndUserStyles = true;
-        if (Settings* docSettings = settings())
-            matchAuthorAndUserStyles = docSettings->authorAndUserStylesEnabled();
-        m_styleSelector = new CSSStyleSelector(this, m_styleSheets.get(), m_mappedElementSheet.get(), pageUserSheet(), pageGroupUserSheets(), 
-                                               !inCompatMode(), matchAuthorAndUserStyles);
-    }
 
     recalcStyle(Force);
 
@@ -1531,6 +1518,17 @@ void Document::detach()
         FrameView* view = m_frame->view();
         if (view)
             view->detachCustomScrollbars();
+
+#if ENABLE(TOUCH_EVENTS)
+        Page* ownerPage = page();
+        if (ownerPage && (m_frame == ownerPage->mainFrame())) {
+            // Inform the Chrome Client that it no longer needs to
+            // foward touch events to WebCore as the document is being
+            // destroyed. It may start again if a subsequent page
+            // registers a touch event listener.
+            ownerPage->chrome()->client()->needTouchEvents(false);
+        }
+#endif
     }
 
     // indicate destruction mode,  i.e. attached() but renderer == 0
@@ -1546,12 +1544,6 @@ void Document::detach()
 
     if (render)
         render->destroy();
-    
-    HashSet<RefPtr<HistoryItem> > associatedHistoryItems;
-    associatedHistoryItems.swap(m_associatedHistoryItems);
-    HashSet<RefPtr<HistoryItem> >::iterator end = associatedHistoryItems.end();
-    for (HashSet<RefPtr<HistoryItem> >::iterator i = associatedHistoryItems.begin(); i != end; ++i)
-        (*i)->documentDetached(this);
     
     // This is required, as our Frame might delete itself as soon as it detaches
     // us. However, this violates Node::detach() semantics, as it's never
@@ -1631,7 +1623,7 @@ AXObjectCache* Document::axObjectCache() const
 
 void Document::setVisuallyOrdered()
 {
-    visuallyOrdered = true;
+    m_visuallyOrdered = true;
     if (renderer())
         renderer()->style()->setVisuallyOrdered(true);
 }
@@ -2648,10 +2640,7 @@ void Document::recalcStyleSelector()
 
     m_styleSheets->swap(sheets);
 
-    // Create a new style selector
-    delete m_styleSelector;
-    m_styleSelector = new CSSStyleSelector(this, m_styleSheets.get(), m_mappedElementSheet.get(), 
-                                           pageUserSheet(), pageGroupUserSheets(), !inCompatMode(), matchAuthorAndUserStyles);
+    m_styleSelector.clear();
     m_didCalculateStyleSelector = true;
 }
 
@@ -2993,6 +2982,25 @@ void Document::dispatchWindowLoadEvent()
     domWindow->dispatchLoadEvent();
 }
 
+void Document::enqueueStorageEvent(PassRefPtr<Event> storageEvent)
+{
+    m_storageEventQueue.append(storageEvent);
+    if (!m_storageEventTimer.isActive())
+        m_storageEventTimer.startOneShot(0);
+}
+
+void Document::storageEventTimerFired(Timer<Document>*)
+{
+    ASSERT(!m_storageEventTimer.isActive());
+    Vector<RefPtr<Event> > storageEventQueue;
+    storageEventQueue.swap(m_storageEventQueue);
+
+    typedef Vector<RefPtr<Event> >::const_iterator Iterator;
+    Iterator end = storageEventQueue.end();
+    for (Iterator it = storageEventQueue.begin(); it != end; ++it)
+        dispatchWindowEvent(*it);
+}
+
 PassRefPtr<Event> Document::createEvent(const String& eventType, ExceptionCode& ec)
 {
     RefPtr<Event> event;
@@ -3072,11 +3080,16 @@ void Document::addListenerTypeIfNeeded(const AtomicString& eventType)
         addListenerType(TRANSITIONEND_LISTENER);
     else if (eventType == eventNames().beforeloadEvent)
         addListenerType(BEFORELOAD_LISTENER);
+#if ENABLE(TOUCH_EVENTS)
     else if (eventType == eventNames().touchstartEvent
              || eventType == eventNames().touchmoveEvent
              || eventType == eventNames().touchendEvent
-             || eventType == eventNames().touchcancelEvent)
+             || eventType == eventNames().touchcancelEvent) {
         addListenerType(TOUCH_LISTENER);
+        if (Page* page = this->page())
+            page->chrome()->client()->needTouchEvents(true);
+    }
+#endif
 }
 
 CSSStyleDeclaration* Document::getOverrideStyle(Element*, const String&)
@@ -3332,6 +3345,8 @@ void Document::removeImageMap(HTMLMapElement* imageMap)
     if (!name.impl())
         return;
 
+    m_imageMapsByName.checkConsistency();
+
     ImageMapsByName::iterator it = m_imageMapsByName.find(name.impl());
     if (it != m_imageMapsByName.end() && it->second == imageMap)
         m_imageMapsByName.remove(it);
@@ -3344,6 +3359,7 @@ HTMLMapElement *Document::getImageMap(const String& url) const
     int hashPos = url.find('#');
     String name = (hashPos < 0 ? url : url.substring(hashPos + 1)).impl();
     AtomicString mapName = isHTMLDocument() ? name.lower() : name;
+    m_imageMapsByName.checkConsistency();
     return m_imageMapsByName.get(mapName.impl());
 }
 
@@ -4149,6 +4165,7 @@ CollectionCache* Document::nameCollectionInfo(CollectionType type, const AtomicS
     NamedCollectionMap::iterator iter = map.find(name.impl());
     if (iter == map.end())
         iter = map.add(name.impl(), new CollectionCache).first;
+    iter->second->checkConsistency();
     return iter->second;
 }
 
@@ -4472,18 +4489,6 @@ void Document::statePopped(SerializedScriptValue* stateObject)
         dispatchWindowEvent(PopStateEvent::create(stateObject));
     else
         m_pendingStateObject = stateObject;
-}
-
-void Document::registerHistoryItem(HistoryItem* item)
-{
-    ASSERT(!m_associatedHistoryItems.contains(item));
-    m_associatedHistoryItems.add(item);
-}
-
-void Document::unregisterHistoryItem(HistoryItem* item)
-{
-    ASSERT(m_associatedHistoryItems.contains(item) || m_associatedHistoryItems.isEmpty());
-    m_associatedHistoryItems.remove(item);
 }
 
 void Document::updateSandboxFlags()

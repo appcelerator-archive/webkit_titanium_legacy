@@ -37,8 +37,10 @@
 #include <qwebpage.h>
 
 class WebPage : public QWebPage {
+    Q_OBJECT
+
 public:
-    WebPage(QWidget* parent) : QWebPage(parent) {}
+    WebPage(QObject* parent = 0);
 
     virtual QWebPage* createWindow(QWebPage::WebWindowType);
     virtual QObject* createPlugin(const QString&, const QUrl&, const QStringList&, const QStringList&);
@@ -49,6 +51,9 @@ public:
 
 public slots:
     void openUrlInDefaultBrowser(const QUrl& url = QUrl());
+
+private:
+    void applyProxy();
 };
 
 #endif

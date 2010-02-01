@@ -343,7 +343,6 @@ webcore_sources += \
 	WebCore/accessibility/AccessibilityTableRow.cpp \
 	WebCore/accessibility/AccessibilityTableRow.h \
 	WebCore/bindings/js/CachedScriptSourceProvider.h \
-	WebCore/bindings/js/DOMObjectWithSVGContext.h \
 	WebCore/bindings/js/GCController.cpp \
 	WebCore/bindings/js/GCController.h \
 	WebCore/bindings/js/JSAttrCustom.cpp \
@@ -423,10 +422,6 @@ webcore_sources += \
 	WebCore/bindings/js/JSImageDataCustom.cpp \
 	WebCore/bindings/js/JSInjectedScriptHostCustom.cpp \
 	WebCore/bindings/js/JSInspectorFrontendHostCustom.cpp \
-	WebCore/bindings/js/JSInspectedObjectWrapper.cpp \
-	WebCore/bindings/js/JSInspectedObjectWrapper.h \
-	WebCore/bindings/js/JSInspectorCallbackWrapper.cpp \
-	WebCore/bindings/js/JSInspectorCallbackWrapper.h \
 	WebCore/bindings/js/JSJavaScriptCallFrameCustom.cpp \
 	WebCore/bindings/js/JSLazyEventListener.cpp \
 	WebCore/bindings/js/JSLazyEventListener.h \
@@ -454,8 +449,6 @@ webcore_sources += \
 	WebCore/bindings/js/JSPluginElementFunctions.cpp \
 	WebCore/bindings/js/JSPluginElementFunctions.h \
 	WebCore/bindings/js/JSPopStateEventCustom.cpp \
-	WebCore/bindings/js/JSQuarantinedObjectWrapper.cpp \
-	WebCore/bindings/js/JSQuarantinedObjectWrapper.h \
 	WebCore/bindings/js/JSStorageCustom.h \
 	WebCore/bindings/js/JSStyleSheetCustom.cpp \
 	WebCore/bindings/js/JSStyleSheetListCustom.cpp \
@@ -496,6 +489,7 @@ webcore_sources += \
 	WebCore/bindings/js/ScriptState.cpp \
 	WebCore/bindings/js/ScriptState.h \
 	WebCore/bindings/js/ScriptString.h \
+	WebCore/bindings/js/ScriptWrappable.h \
 	WebCore/bindings/js/ScriptValue.cpp \
 	WebCore/bindings/js/ScriptValue.h \
 	WebCore/bindings/js/SerializedScriptValue.cpp \
@@ -518,6 +512,7 @@ webcore_sources += \
 	WebCore/bridge/jni/JNIBridge.h \
 	WebCore/bridge/jni/JNIUtility.h \
 	WebCore/bridge/jni/jni_jsobject.h \
+	WebCore/bridge/jni/jsc/JNIBridgeJSC.h \
 	WebCore/bridge/jni/jsc/JavaClassJSC.h \
 	WebCore/bridge/jni/jsc/JavaInstanceJSC.h \
 	WebCore/bridge/jsc/BridgeJSC.h \
@@ -985,6 +980,8 @@ webcore_sources += \
 	WebCore/html/DataGridColumnList.cpp \
 	WebCore/html/DataGridColumnList.h \
 	WebCore/html/DataGridDataSource.h \
+	WebCore/html/DateComponents.cpp \
+	WebCore/html/DateComponents.h \
 	WebCore/html/DOMDataGridDataSource.cpp \
 	WebCore/html/DOMDataGridDataSource.h \
 	WebCore/html/File.cpp \
@@ -1156,8 +1153,6 @@ webcore_sources += \
 	WebCore/html/HTMLUListElement.h \
 	WebCore/html/HTMLViewSourceDocument.cpp \
 	WebCore/html/HTMLViewSourceDocument.h \
-	WebCore/html/ISODateTime.cpp \
-	WebCore/html/ISODateTime.h \
 	WebCore/html/ImageData.cpp \
 	WebCore/html/ImageData.h \
 	WebCore/html/MediaError.h \
@@ -1606,6 +1601,8 @@ webcore_sources += \
 	WebCore/platform/graphics/UnitBezier.h \
 	WebCore/platform/graphics/WidthIterator.cpp \
 	WebCore/platform/graphics/WidthIterator.h \
+	WebCore/platform/graphics/transforms/AffineTransform.cpp \
+	WebCore/platform/graphics/transforms/AffineTransform.h \
 	WebCore/platform/graphics/transforms/IdentityTransformOperation.h \
 	WebCore/platform/graphics/transforms/MatrixTransformOperation.cpp \
 	WebCore/platform/graphics/transforms/MatrixTransformOperation.h \
@@ -3027,6 +3024,8 @@ webcore_sources += \
 	WebCore/svg/SVGAnimatedPoints.cpp \
 	WebCore/svg/SVGAnimatedPoints.h \
 	WebCore/svg/SVGAnimatedProperty.h \
+	WebCore/svg/SVGAnimatedPropertySynchronizer.h \
+	WebCore/svg/SVGAnimatedPropertyTraits.h \
 	WebCore/svg/SVGAnimatedTemplate.h \
 	WebCore/svg/SVGAnimationElement.cpp \
 	WebCore/svg/SVGAnimationElement.h \
@@ -3054,6 +3053,7 @@ webcore_sources += \
 	WebCore/svg/SVGElementInstance.h \
 	WebCore/svg/SVGElementInstanceList.cpp \
 	WebCore/svg/SVGElementInstanceList.h \
+	WebCore/svg/SVGElementRareData.h \
 	WebCore/svg/SVGEllipseElement.cpp \
 	WebCore/svg/SVGEllipseElement.h \
 	WebCore/svg/SVGException.h \
@@ -3276,9 +3276,6 @@ webcore_sources += \
 	WebCore/svg/SVGZoomAndPan.h \
 	WebCore/svg/SVGZoomEvent.cpp \
 	WebCore/svg/SVGZoomEvent.h \
-	WebCore/svg/SynchronizablePropertyController.cpp \
-	WebCore/svg/SynchronizablePropertyController.h \
-	WebCore/svg/SynchronizableTypeWrapper.h \
 	WebCore/svg/animation/SMILTime.cpp \
 	WebCore/svg/animation/SMILTime.h \
 	WebCore/svg/animation/SMILTimeContainer.cpp \
