@@ -78,8 +78,15 @@ v8::Handle<v8::Value> WindowSetTimeoutImpl(const v8::Arguments& args, bool singl
     if (argumentCount < 1)
         return v8::Undefined();
 
-    v8::Handle<v8::Value> function = args[0];
+    DOMWindow* imp = V8DOMWindow::toNative(args.Holder());
+    ScriptExecutionContext* scriptContext = static_cast<ScriptExecutionContext*>(imp->document());
 
+    if (!scriptContext) {
+        V8Proxy::setDOMException(INVALID_ACCESS_ERR);
+        return v8::Undefined();
+    }
+
+    v8::Handle<v8::Value> function = args[0];
     WebCore::String functionString;
     if (!function->IsFunction()) {
         if (function->IsString())
@@ -104,14 +111,7 @@ v8::Handle<v8::Value> WindowSetTimeoutImpl(const v8::Arguments& args, bool singl
     if (argumentCount >= 2)
         timeout = args[1]->Int32Value();
 
-    DOMWindow* imp = V8DOMWindow::toNative(args.Holder());
-
     if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), true))
-        return v8::Undefined();
-
-    ScriptExecutionContext* scriptContext = static_cast<ScriptExecutionContext*>(imp->document());
-
-    if (!scriptContext)
         return v8::Undefined();
 
     int id;
@@ -923,6 +923,39 @@ bool V8DOMWindow::indexedSecurityCheck(v8::Local<v8::Object> host, uint32_t inde
         return true;
 
     return V8BindingSecurity::canAccessFrame(V8BindingState::Only(), target, false);
+}
+
+v8::Handle<v8::Value> toV8(DOMWindow* window)
+{
+    if (!window)
+        return v8::Null();
+    // Initializes environment of a frame, and return the global object
+    // of the frame.
+    Frame* frame = window->frame();
+    if (!frame)
+        return v8::Handle<v8::Object>();
+
+    // Special case: Because of evaluateInIsolatedWorld() one DOMWindow can have
+    // multiple contexts and multiple global objects associated with it. When
+    // code running in one of those contexts accesses the window object, we
+    // want to return the global object associated with that context, not
+    // necessarily the first global object associated with that DOMWindow.
+    v8::Handle<v8::Context> currentContext = v8::Context::GetCurrent();
+    v8::Handle<v8::Object> currentGlobal = currentContext->Global();
+    v8::Handle<v8::Object> windowWrapper = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, currentGlobal);
+    if (!windowWrapper.IsEmpty()) {
+        if (V8DOMWindow::toNative(windowWrapper) == window)
+            return currentGlobal;
+    }
+
+    // Otherwise, return the global object associated with this frame.
+    v8::Handle<v8::Context> context = V8Proxy::context(frame);
+    if (context.IsEmpty())
+        return v8::Handle<v8::Object>();
+
+    v8::Handle<v8::Object> global = context->Global();
+    ASSERT(!global.IsEmpty());
+    return global;
 }
 
 } // namespace WebCore

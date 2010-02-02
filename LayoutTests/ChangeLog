@@ -1,3 +1,257 @@
+2010-02-02  Adam Roben  <aroben@apple.com>
+
+        Stop skipping some tests that were failing due to buggy versions of
+        CFNetwork
+
+        Rubber-stamped by Eric Carlson.
+
+        * platform/win/Skipped:
+
+2010-02-02  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] fast/frames/set-unloaded-frame-location.html timed out on Qt Linux Release Build Bot
+        https://bugs.webkit.org/show_bug.cgi?id=33303
+
+        fast/frames/sandboxed-iframe-navigation-windowopen.html made fast/frames/set-unloaded-frame-location.html
+        time out, but now it works correctly, so we can unskip the test.
+
+        * platform/qt/Skipped: fast/frames/sandboxed-iframe-navigation-windowopen.html unskipped.
+
+2010-02-01  Brian Weinstein  <bweinstein@apple.com>
+
+        Check in new expected results for a test that has been failing on Windows
+        since it was originally landed. This appears to be a font issue, but commenting
+        on bug <https://bugs.webkit.org/show_bug.cgi?id=34234> to make sure.
+
+        * platform/win/fast/text/international/hebrew-vowels-expected.txt: Added.
+
+2010-02-01  Dmitry Titov  <dimich@chromium.org>
+
+        Not reviewed, revert r54194 that fails new test on Qt and Chromium.
+        https://bugs.webkit.org/show_bug.cgi?id=34382
+
+        * fast/frames/iframe-reparenting-new-page-expected.txt: Removed.
+        * fast/frames/iframe-reparenting-new-page.html: Removed.
+        * fast/frames/resources/iframe-reparenting-new-page-1.html: Removed.
+        * fast/frames/resources/iframe-reparenting-new-page-2.html: Removed.
+        * fast/frames/resources/iframe-reparenting-new-page-iframe.html: Removed.
+        * fast/frames/script-tests/TEMPLATE.html: Removed.
+        * fast/frames/script-tests/iframe-reparenting-new-page.js: Removed.
+
+2010-02-01  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Eric Seidel.
+
+        Provide a way to get page number with layoutTestController
+        https://bugs.webkit.org/show_bug.cgi?id=33840
+
+        * platform/gtk/Skipped:
+        * platform/mac/Skipped:
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+        * printing/page-break-always-expected.txt: Added.
+        * printing/page-break-always.html: Added.
+        * printing/pageNumerForElementById-expected.txt: Added.
+        * printing/pageNumerForElementById.html: Added.
+        * printing/script-tests/TEMPLATE.html: Added.
+        * printing/script-tests/page-break-always.js: Added.
+        (createParagraph):
+        * printing/script-tests/pageNumerForElementById.js: Added.
+        (createParagraph):
+
+2010-02-01  Daniel Bates  <dbates@webkit.org>
+
+        Reviewed by Adam Barth.
+
+        https://bugs.webkit.org/show_bug.cgi?id=27312
+
+        Tests that the header "X-XSS-Protection: full-block" leads to a full page block
+        when an XSS attack is detected.
+
+        * http/tests/security/xssAuditor/full-block-base-href-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-base-href.html: Added.
+        * http/tests/security/xssAuditor/full-block-get-from-iframe-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-get-from-iframe.html: Added.
+        * http/tests/security/xssAuditor/full-block-iframe-javascript-url-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-iframe-javascript-url.html: Added.
+        * http/tests/security/xssAuditor/full-block-iframe-no-inherit-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-iframe-no-inherit.php: Added.
+        * http/tests/security/xssAuditor/full-block-javascript-link-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-javascript-link.html: Added.
+        * http/tests/security/xssAuditor/full-block-link-onclick-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-link-onclick.html: Added.
+        * http/tests/security/xssAuditor/full-block-object-tag-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-object-tag.html: Added.
+        * http/tests/security/xssAuditor/full-block-post-from-iframe-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-post-from-iframe.html: Added.
+        * http/tests/security/xssAuditor/full-block-script-tag-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-script-tag-with-source-expected.txt: Added.
+        * http/tests/security/xssAuditor/full-block-script-tag-with-source.html: Added.
+        * http/tests/security/xssAuditor/full-block-script-tag.html: Added.
+        * http/tests/security/xssAuditor/malformed-xss-protection-header-expected.txt: Added.
+        * http/tests/security/xssAuditor/malformed-xss-protection-header.html: Added.
+        * http/tests/security/xssAuditor/resources/echo-head-base-href.pl: Modified to optionally
+        enable full page blocking.
+        * http/tests/security/xssAuditor/resources/echo-intertag-click-and-notify.pl: Ditto.
+        * http/tests/security/xssAuditor/resources/echo-intertag.pl: Ditto.
+        * http/tests/security/xssAuditor/resources/utilities.js:
+        (checkIfFrameLocationMatchesURLAndCallDone): Added.
+        (sendRequestFromIFrame): Modified to optionally call callback function when done.
+
+2010-02-01  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Dmitry Titov.
+
+        Convert textarea-rows-cols.html to dumpAsText()
+        https://bugs.webkit.org/show_bug.cgi?id=34074
+
+        Remove checks for the size of scrollbar as scrollbar doesn't
+        appear on Windows.
+
+        * fast/forms/script-tests/textarea-rows-cols.js:
+        * fast/forms/textarea-rows-cols-expected.txt:
+
+2010-02-01  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Date.UTC() should apply TimeClip operation.
+        https://bugs.webkit.org/show_bug.cgi?id=34461
+
+        Add tests for corner cases of Date.UTC().
+
+        * fast/js/date-utc-timeclip-expected.txt: Added.
+        * fast/js/date-utc-timeclip.html: Added.
+        * fast/js/script-tests/date-utc-timeclip.js: Added.
+
+2010-02-01  Kent Tamura  <tkent@chromium.org>
+
+        Unreviewed. Add two more test cases which I forgot to add in r54197.
+        https://bugs.webkit.org/show_bug.cgi?id=34462
+
+        * fast/js/math-expected.txt:
+        * fast/js/script-tests/math.js:
+
+2010-02-01  Kent Tamura  <tkent@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        Fix a bug that Math.round() retunrs incorrect results for huge integers
+        https://bugs.webkit.org/show_bug.cgi?id=34462
+
+        * fast/js/math-expected.txt:
+        * fast/js/script-tests/math.js: Add test cases for Math.round() for huge numbers.
+
+2010-02-01  Dmitry Titov  <dimich@chromium.org>
+
+        Reviewed by David Levin.
+
+        When a live iframe element is moved between pages, it still depends on the old page.
+        https://bugs.webkit.org/show_bug.cgi?id=34382
+
+        * fast/frames/iframe-reparenting-new-page-expected.txt: Added.
+        * fast/frames/iframe-reparenting-new-page.html: Added.
+        * fast/frames/resources/iframe-reparenting-new-page-1.html: Added.
+        * fast/frames/resources/iframe-reparenting-new-page-2.html: Added.
+        * fast/frames/resources/iframe-reparenting-new-page-iframe.html: Added.
+
+2010-02-01  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Tim Hatcher.
+
+        Add common IRC ports to port blocking.
+        <rdar://problem/7593895> and https://bugs.webkit.org/show_bug.cgi?id=34451
+        * platform/mac-tiger/security/block-test-expected.txt:
+        * platform/mac/security/block-test-expected.txt:
+        * security/block-test.html:
+
+2010-02-01  Gavin Barraclough  <barraclough@apple.com>
+
+        Reviewed by Sam Weinig.
+
+        Bug 34346 - With JSC bindings, make processingUserGesture work with events in Isolated Worlds
+
+        * http/tests/security/isolatedWorld/resources/userGestureEvents-second-window.html: Added.
+        * http/tests/security/isolatedWorld/userGestureEvents-expected.txt: Added.
+        * http/tests/security/isolatedWorld/userGestureEvents.html: Added.
+
+2010-02-01  Shinichiro Hamaji  <hamaji@chromium.org>
+
+        Reviewed by Darin Adler.
+
+        REGRESSION: editing/selection/doubleclick-beside-cr-span.html times out on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=34069
+
+        Make the sleep time shorter as this test timed out on Windows bot.
+
+        * editing/selection/doubleclick-beside-cr-span.html:
+
+2010-02-01  Diego Gonzalez  <diego.gonzalez@openbossa.org>
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        [Qt] DRT Provide global flag ability
+        https://bugs.webkit.org/show_bug.cgi?id=34418
+
+        Add the globalFlag property to the Qt LayoutTestController to allow
+        cross-domain indications.
+
+        * platform/qt/Skipped:
+
+2010-02-01  Brian Weinstein  <bweinstein@apple.com>
+
+        Rubber-stamped by Oliver Hunt.
+
+        Check in (failing) expected results for fast/dom/Window/window-postmessage-clone-frames.
+        This fails because of <rdar://problem/5230396> eventSender.beginDragWithFiles is unimplemented.
+
+        * platform/win/fast/dom/Window/window-postmessage-clone-frames-expected.txt: Added.
+
+2010-02-01  Eric Carlson  <eric.carlson@apple.com>
+
+        No review, build fix.
+
+        https://bugs.webkit.org/show_bug.cgi?id=34447
+        http/tests/media/video-referer.html fails on Windows
+
+        * platform/win/Skipped:
+
+2010-02-01  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Qt] Unreviewed trivial fix.
+        Platform dependent expected file updated after r54143.
+
+        * platform/qt/fast/dom/Window/window-properties-expected.txt:
+
+2010-02-01  Brady Eidson  <beidson@apple.com>
+
+        Reviewed by Adele Peterson.
+
+        Crash in Safari opening new tabs to "same page"
+        <rdar://problem/7593857> and https://bugs.webkit.org/show_bug.cgi?id=34444
+
+        * fast/loader/crash-copying-backforwardlist-expected.txt: Added.
+        * fast/loader/crash-copying-backforwardlist.html: Added.
+        * platform/gtk/Skipped:
+        * platform/qt/Skipped:
+        * platform/win/Skipped:
+
+2010-02-01  Eric Carlson  <eric.carlson@apple.com>
+
+        Reviewed by Adele Peterson.
+
+        Fullscreen API should be on HTMLVideoElement
+        https://bugs.webkit.org/show_bug.cgi?id=34438
+
+        Update fullscreen tests now that <audio> doesn't have fullscreen API.
+
+        * fast/dom/Window/window-properties-expected.txt:
+        * media/media-fullscreen-inline-expected.txt:
+        * media/media-fullscreen-not-in-document-expected.txt:
+        * media/media-fullscreen.js:
+        (buttonClickHandler):
+        (canplaythrough):
+
 2010-02-01  Ben Murdoch  <benm@google.com>
 
         Reviewed by Darin Adler.
