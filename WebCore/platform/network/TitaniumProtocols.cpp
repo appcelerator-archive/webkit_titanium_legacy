@@ -35,7 +35,7 @@ KURL TitaniumProtocols::NormalizeURL(KURL url)
     // artistic or just wrong.
     char* buffer = new char[4096];
     NormalizeCallback(url.string().utf8().data(), buffer, 4096);
-    KURL normalizedURL(KURL(), buffer);
+    KURL normalizedURL(KURL(), String::fromUTF8(buffer));
     delete [] buffer;
 
     return normalizedURL;
@@ -51,7 +51,7 @@ KURL TitaniumProtocols::URLToFileURL(KURL url)
     // artistic or just wrong.
     char* buffer = new char[4096];
     URLCallback(url.string().utf8().data(), buffer, 4096);
-    KURL fileURL(KURL(), buffer);
+    KURL fileURL(KURL(), String::fromUTF8(buffer));
     delete [] buffer;
 
     return fileURL;
