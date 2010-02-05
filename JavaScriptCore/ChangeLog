@@ -1,4 +1,5 @@
 <<<<<<< HEAD:JavaScriptCore/ChangeLog
+<<<<<<< HEAD:JavaScriptCore/ChangeLog
 2010-02-04  Jedrzej Nowacki  <jedrzej.nowacki@nokia.com>
 
         Reviewed by Simon Hausmann.
@@ -764,6 +765,8 @@
         (JSC::APICallbackShim::APICallbackShim):
         (JSC::APICallbackShim::~APICallbackShim):
 
+=======
+>>>>>>> 92a2ac9... 2010-01-26  Oliver Hunt  <oliver@apple.com>:JavaScriptCore/ChangeLog
 2010-01-26  Simon Hausmann  <simon.hausmann@nokia.com>
 
         [Qt] Fix compilation of QtScript with non-gcc compilers
