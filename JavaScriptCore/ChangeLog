@@ -1,3 +1,4 @@
+<<<<<<< HEAD:JavaScriptCore/ChangeLog
 2010-02-04  Jedrzej Nowacki  <jedrzej.nowacki@nokia.com>
 
         Reviewed by Simon Hausmann.
@@ -2378,6 +2379,8 @@
         * runtime/Identifier.cpp:
         (JSC::createIdentifierTableSpecificCallback):
 
+=======
+>>>>>>> 71d8c41... Build fix:JavaScriptCore/ChangeLog
 2010-01-05  Gavin Barraclough  <barraclough@apple.com>
 
         Reviewed by Sam Weinig.
