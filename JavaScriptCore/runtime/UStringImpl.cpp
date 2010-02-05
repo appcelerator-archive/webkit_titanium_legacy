@@ -64,7 +64,7 @@ UStringImpl::~UStringImpl()
     ASSERT(!isStatic());
     checkConsistency();
 
-    if (isIdentifier())
+    if (identifierTable())
         Identifier::remove(this);
 
     if (bufferOwnership() != BufferInternal) {

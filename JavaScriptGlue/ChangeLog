@@ -1,3 +1,4 @@
+<<<<<<< HEAD:JavaScriptGlue/ChangeLog
 2010-01-28  Oliver Hunt  <oliver@apple.com>
 
         Reviewed by Gavin Barraclough.
@@ -64,6 +65,8 @@
         * UserObjectImp.cpp:
         (UserObjectImp::callAsFunction):
 
+=======
+>>>>>>> 7888c92... https://bugs.webkit.org/show_bug.cgi?id=33236:JavaScriptGlue/ChangeLog
 2010-01-04  Gavin Barraclough <barraclough@apple.com>
 
         Reviewed by Sam Weinig.

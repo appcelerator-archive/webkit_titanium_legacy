@@ -346,6 +346,7 @@ SOURCES += \
     bindings/js/ScriptEventListener.cpp \
     bindings/js/ScriptFunctionCall.cpp \
     bindings/js/ScriptObject.cpp \
+    bindings/js/ScriptProfiler.cpp \
     bindings/js/ScriptState.cpp \
     bindings/js/ScriptValue.cpp \
     bindings/js/ScheduledAction.cpp \
@@ -663,6 +664,7 @@ SOURCES += \
     html/PreloadScanner.cpp \
     html/ValidityState.cpp \
     inspector/ConsoleMessage.cpp \
+    inspector/InjectedScript.cpp \
     inspector/InjectedScriptHost.cpp \
     inspector/InspectorBackend.cpp \
     inspector/InspectorController.cpp \
@@ -1354,6 +1356,7 @@ HEADERS += \
     html/TimeRanges.h \
     html/ValidityState.h \
     inspector/ConsoleMessage.h \
+    inspector/InjectedScript.h \
     inspector/InjectedScriptHost.h \
     inspector/InspectorBackend.h \
     inspector/InspectorController.h \
@@ -2661,7 +2664,19 @@ SOURCES += \
 
 include($$PWD/../WebKit/qt/Api/headers.pri)
 HEADERS += $$WEBKIT_API_HEADERS
-!CONFIG(standalone_package) {
+CONFIG(standalone_package) {
+
+    !symbian {
+        target.path = $$[QT_INSTALL_LIBS]
+        INSTALLS += target
+    }
+
+    include($$PWD/../include/QtWebKit/headers.pri)
+    headers.files = $$SYNCQT.HEADER_FILES $$SYNCQT.HEADER_CLASSES
+    headers.path = $$[QT_INSTALL_HEADERS]/QtWebKit
+    INSTALLS += headers
+
+} else {
     target.path = $$[QT_INSTALL_LIBS]
     headers.files = $$WEBKIT_API_HEADERS
     headers.path = $$[QT_INSTALL_HEADERS]/QtWebKit

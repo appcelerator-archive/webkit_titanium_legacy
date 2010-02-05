@@ -20933,6 +20933,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\page\PrintContext.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\page\PrintContext.h"
+				>
+			</File>
+			<File
 				RelativePath="..\page\Screen.cpp"
 				>
 			</File>
@@ -42554,6 +42562,14 @@
 			</File>
 			<File
 				RelativePath="..\inspector\ConsoleMessage.h"
+				>
+			</File>
+			<File
+				RelativePath="..\inspector\InjectedScript.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\inspector\InjectedScript.h"
 				>
 			</File>
 			<File
