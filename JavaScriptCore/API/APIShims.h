@@ -34,7 +34,6 @@ namespace JSC {
 class APIEntryShimWithoutLock {
 protected:
     APIEntryShimWithoutLock(JSGlobalData* globalData, bool registerThread)
-        : m_entryIdentifierTable(setCurrentIdentifierTable(globalData->identifierTable))
     {
         if (registerThread)
             globalData->heap.registerThread();
@@ -42,11 +41,7 @@ protected:
 
     ~APIEntryShimWithoutLock()
     {
-        setCurrentIdentifierTable(m_entryIdentifierTable);
     }
-
-private:
-    IdentifierTable* m_entryIdentifierTable;
 };
 
 class APIEntryShim : public APIEntryShimWithoutLock {
@@ -73,21 +68,17 @@ class APICallbackShim {
 public:
     APICallbackShim(ExecState* exec)
         : m_dropAllLocks(exec)
-        , m_globalData(&exec->globalData())
     {
-        resetCurrentIdentifierTable();
     }
 
     ~APICallbackShim()
     {
-        setCurrentIdentifierTable(m_globalData->identifierTable);
     }
 
 private:
     JSLock::DropAllLocks m_dropAllLocks;
-    JSGlobalData* m_globalData;
 };
 
 }
 
-#endif
+#endif // APIShims_h

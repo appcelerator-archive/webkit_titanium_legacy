@@ -75,7 +75,7 @@ JSValue UserObjectImp::callAsFunction(ExecState *exec, JSObject *thisObj, const 
 
         JSUserObject* jsResult;
         { // scope
-            JSGlueAPICallback apiCallback(exec);
+            JSLock::DropAllLocks dropLocks(exec);
 
             // getCallData should have guarded against a NULL fJSUserObject.
             assert(fJSUserObject);

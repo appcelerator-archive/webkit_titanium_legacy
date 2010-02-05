@@ -45,10 +45,10 @@
 #include "JSNotAnObject.h"
 #include "JSPropertyNameIterator.h"
 #include "JSStaticScopeObject.h"
+#include "Parser.h"
 #include "Lexer.h"
 #include "Lookup.h"
 #include "Nodes.h"
-#include "Parser.h"
 
 #if ENABLE(JSC_MULTIPLE_THREADS)
 #include <wtf/Threading.h>
@@ -194,17 +194,9 @@ JSGlobalData::~JSGlobalData()
     delete clientData;
 }
 
-PassRefPtr<JSGlobalData> JSGlobalData::createNonDefault()
+PassRefPtr<JSGlobalData> JSGlobalData::create(bool isShared)
 {
-    return adoptRef(new JSGlobalData(false));
-}
-
-PassRefPtr<JSGlobalData> JSGlobalData::create()
-{
-    JSGlobalData* globalData = new JSGlobalData(false);
-    setDefaultIdentifierTable(globalData->identifierTable);
-    setCurrentIdentifierTable(globalData->identifierTable);
-    return adoptRef(globalData);
+    return adoptRef(new JSGlobalData(isShared));
 }
 
 PassRefPtr<JSGlobalData> JSGlobalData::createLeaked()
@@ -224,7 +216,7 @@ JSGlobalData& JSGlobalData::sharedInstance()
 {
     JSGlobalData*& instance = sharedInstanceInternal();
     if (!instance) {
-        instance = new JSGlobalData(true);
+        instance = create(true).releaseRef();
 #if ENABLE(JSC_MULTIPLE_THREADS)
         instance->makeUsableFromMultipleThreads();
 #endif

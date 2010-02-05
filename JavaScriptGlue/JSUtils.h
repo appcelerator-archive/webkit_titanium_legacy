@@ -34,7 +34,6 @@
 #include <JavaScriptCore/Collector.h>
 #include <JavaScriptCore/JSValue.h>
 #include <JavaScriptCore/Completion.h>
-#include <JavaScriptCore/Identifier.h>
 #include <JavaScriptCore/JSLock.h>
 #include <JavaScriptCore/JSObject.h>
 #include <JavaScriptCore/JSGlobalObject.h>
@@ -77,23 +76,5 @@ enum {
     kJSUserObjectDataTypeCFType
 };
 
-class JSGlueAPIEntry {
-public:
-    JSGlueAPIEntry();
-    ~JSGlueAPIEntry();
-
-private:
-    JSLock m_lock;
-    IdentifierTable* m_storedIdentifierTable;
-};
-
-class JSGlueAPICallback {
-public:
-    JSGlueAPICallback(ExecState*);
-    ~JSGlueAPICallback();
-
-private:
-    JSLock::DropAllLocks m_dropLocks;
-};
 
 #endif
