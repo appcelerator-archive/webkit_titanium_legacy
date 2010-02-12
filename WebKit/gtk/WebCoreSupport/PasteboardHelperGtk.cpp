@@ -362,12 +362,13 @@ void PasteboardHelperGtk::writeClipboardContents(GtkClipboard* clipboard, gpoint
         // is called. Balanced in both getClipboardContentsCallback and
         // clearClipboardContentsCallback.
         WebKitWebView* webView = static_cast<WebKitWebView*>(data);
-        g_object_ref(webView);
+        if (webView)
+            g_object_ref(webView);
 
         gboolean succeeded = gtk_clipboard_set_with_data(clipboard, table, numberOfTargets,
                                                          getClipboardContentsCallback,
                                                          clearClipboardContentsCallback, data);
-        if (!succeeded)
+        if (!succeeded && webView)
             g_object_unref(webView);
 
         settingClipboardDataObject = 0;
