@@ -922,30 +922,30 @@ static void queryInfoCallback(GObject* source, GAsyncResult* res, gpointer)
         return;
     }
 
+    response.setMimeType(g_file_info_get_content_type(info));
+    response.setExpectedContentLength(g_file_info_get_size(info));
+
     if (d->m_titaniumURL) {
         KURL url = d->m_request.url();
         KURL normalized(TitaniumProtocols::NormalizeURL(url));
-        if (strcmp(normalized.string().utf8().data(), url.string().utf8().data())) {
-
+        if (!equalIgnoringFragmentIdentifier(normalized, url)) {
             response.setURL(url);
-            response.setHTTPStatusCode(200);
+            response.setHTTPStatusCode(301);
             response.setHTTPStatusText("Permanently Moved");
             response.setHTTPHeaderField("Location", normalized.string().utf8().data());
+            client->didReceiveResponse(handle.get(), response);
 
             ResourceRequest newRequest = handle->request();
             newRequest.setURL(normalized);
             if (d->client())
                 d->client()->willSendRequest(handle.get(), newRequest, response);
-
-        } else {
-            response.setURL(KURL(KURL(), d->m_titaniumURL));
-            response.setHTTPStatusCode(200);
-            response.setHTTPStatusText("OK");
         }
-    }
 
-    response.setMimeType(g_file_info_get_content_type(info));
-    response.setExpectedContentLength(g_file_info_get_size(info));
+        response.setURL(normalized);
+        response.setHTTPStatusCode(200);
+        response.setHTTPStatusText("OK");
+        response.setTextEncodingName("UTF-8");
+    }
 
     GTimeVal tv;
     g_file_info_get_modification_time(info, &tv);
