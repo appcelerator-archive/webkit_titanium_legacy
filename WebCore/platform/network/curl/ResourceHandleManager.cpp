@@ -205,26 +205,25 @@ static size_t writeCallback(void* ptr, size_t size, size_t nmemb, void* data)
         KURL titaniumURL = KURL(KURL(), d->m_titaniumURL);
         KURL normalized(TitaniumProtocols::NormalizeURL(titaniumURL));
 
-        if (equalIgnoringFragmentIdentifier(normalized, titaniumURL)) {
-            d->m_response.setURL(titaniumURL);
-            d->m_response.setHTTPStatusCode(200);
-            d->m_response.setHTTPStatusText("OK");
-            if (d->client())
-                d->client()->didReceiveResponse(job, d->m_response);
+        if (!equalIgnoringFragmentIdentifier(normalized, url)) {
+            response.setURL(url);
+            response.setHTTPStatusCode(301);
+            response.setHTTPStatusText("Permanently Moved");
+            response.setHTTPHeaderField("Location", normalized.string().utf8().data());
+            client->didReceiveResponse(handle.get(), response);
 
-       } else {
-            d->m_response.setURL(titaniumURL);
-            d->m_response.setHTTPStatusCode(200);
-            d->m_response.setHTTPStatusText("Permanently Moved");
-            d->m_response.setHTTPHeaderField("Location", normalized.string().utf8().data());
-
-            ResourceRequest newRequest = job->request();
+            ResourceRequest newRequest = handle->request();
             newRequest.setURL(normalized);
-            if (d->client()) {
-                d->client()->didReceiveResponse(job, d->m_response);
-                d->client()->willSendRequest(job, newRequest, d->m_response);
-            }
+            if (d->client())
+                d->client()->willSendRequest(handle.get(), newRequest, response);
         }
+
+        response.setURL(normalized);
+        response.setHTTPStatusCode(200);
+        response.setHTTPStatusText("OK");
+        response.setTextEncodingName("UTF-8");
+        if (d->client())
+            d->client()->didReceiveResponse(job, d->m_response);
 
         free(d->m_titaniumURL);
         d->m_titaniumURL = 0;
