@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009, 2010 Sebastian Dröge <sebastian.droege@collabora.co.uk>
+ *  Copyright (C) 2009 Sebastian Dröge <sebastian.droege@collabora.co.uk>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -79,10 +79,6 @@ struct _WebKitWebSrcPrivate {
     gchar* iradioGenre;
     gchar* iradioUrl;
     gchar* iradioTitle;
-
-    // TRUE if appsrc's version is >= 0.10.27, see
-    // https://bugzilla.gnome.org/show_bug.cgi?id=609423
-    gboolean haveAppSrc27;
 };
 
 enum {
@@ -113,7 +109,7 @@ static void webKitWebSrcNeedDataCb(GstAppSrc* appsrc, guint length, gpointer use
 static void webKitWebSrcEnoughDataCb(GstAppSrc* appsrc, gpointer userData);
 static gboolean webKitWebSrcSeekDataCb(GstAppSrc* appsrc, guint64 offset, gpointer userData);
 
-static void webKitWebSrcStop(WebKitWebSrc* src, bool seeking);
+static void webKitWebSrcStop(WebKitWebSrc* src, bool resetRequestedOffset);
 
 static GstAppSrcCallbacks appsrcCallbacks = {
     webKitWebSrcNeedDataCb,
@@ -226,9 +222,6 @@ static void webkit_web_src_init(WebKitWebSrc* src,
         return;
     }
 
-    GstElementFactory* factory = GST_ELEMENT_FACTORY(GST_ELEMENT_GET_CLASS(priv->appsrc)->elementfactory);
-    priv->haveAppSrc27 = gst_plugin_feature_check_version(GST_PLUGIN_FEATURE(factory), 0, 10, 27);
-
     gst_bin_add(GST_BIN(src), GST_ELEMENT(priv->appsrc));
 
     targetpad = gst_element_get_static_pad(GST_ELEMENT(priv->appsrc), "src");
@@ -245,20 +238,7 @@ static void webkit_web_src_init(WebKitWebSrc* src,
     // GStreamer to handle.
     gst_app_src_set_max_bytes(priv->appsrc, 512 * 1024);
 
-    // Emit the need-data signal if the queue contains less
-    // than 20% of data. Without this the need-data signal
-    // is emitted when the queue is empty, we then dispatch
-    // the soup message unpausing to the main loop and from
-    // there unpause the soup message. This already takes
-    // quite some time and libsoup even needs some more time
-    // to actually provide data again. If we do all this
-    // already if the queue is 20% empty, it's much more
-    // likely that libsoup already provides new data before
-    // the queue is really empty.
-    if (priv->haveAppSrc27)
-        g_object_set(priv->appsrc, "min-percent", 20, NULL);
-
-    webKitWebSrcStop(src, false);
+    webKitWebSrcStop(src, true);
 }
 
 static void webKitWebSrcFinalize(GObject* object)
@@ -316,7 +296,7 @@ static void webKitWebSrcGetProperty(GObject* object, guint propID, GValue* value
 }
 
 
-static void webKitWebSrcStop(WebKitWebSrc* src, bool seeking)
+static void webKitWebSrcStop(WebKitWebSrc* src, bool resetRequestedOffset)
 {
     WebKitWebSrcPrivate* priv = src->priv;
 
@@ -355,19 +335,15 @@ static void webKitWebSrcStop(WebKitWebSrc* src, bool seeking)
     g_free(priv->iradioTitle);
     priv->iradioTitle = 0;
 
-    if (priv->appsrc) {
+    if (priv->appsrc)
         gst_app_src_set_caps(priv->appsrc, 0);
-        if (!seeking)
-            gst_app_src_set_size(priv->appsrc, -1);
-    }
 
     priv->offset = 0;
+    priv->size = 0;
     priv->seekable = FALSE;
 
-    if (!seeking) {
-        priv->size = 0;
+    if (resetRequestedOffset)
         priv->requestedOffset = 0;
-    }
 
     GST_DEBUG_OBJECT(src, "Stopped request");
 }
@@ -458,7 +434,7 @@ static GstStateChangeReturn webKitWebSrcChangeState(GstElement* element, GstStat
         break;
     case GST_STATE_CHANGE_PAUSED_TO_READY:
         GST_DEBUG_OBJECT(src, "PAUSED->READY");
-        webKitWebSrcStop(src, false);
+        webKitWebSrcStop(src, true);
         break;
     default:
         break;
@@ -582,7 +558,7 @@ static void webKitWebSrcEnoughDataCb(GstAppSrc* appsrc, gpointer userData)
 
 static gboolean webKitWebSrcSeekMainCb(WebKitWebSrc* src)
 {
-    webKitWebSrcStop(src, true);
+    webKitWebSrcStop(src, false);
     webKitWebSrcStart(src);
 
     return FALSE;
@@ -641,8 +617,7 @@ void StreamingClient::didReceiveResponse(ResourceHandle*, const ResourceResponse
     // If we seeked we need 206 == PARTIAL_CONTENT
     if (priv->requestedOffset && response.httpStatusCode() != 206) {
         GST_ELEMENT_ERROR(m_src, RESOURCE, READ, (0), (0));
-        gst_app_src_end_of_stream(priv->appsrc);
-        webKitWebSrcStop(m_src, false);
+        webKitWebSrcStop(m_src, true);
         return;
     }
 
@@ -650,12 +625,6 @@ void StreamingClient::didReceiveResponse(ResourceHandle*, const ResourceResponse
     if (length > 0) {
         length += priv->requestedOffset;
         gst_app_src_set_size(priv->appsrc, length);
-        if (!priv->haveAppSrc27) {
-            gst_segment_set_duration(&GST_BASE_SRC(priv->appsrc)->segment, GST_FORMAT_BYTES, length);
-            gst_element_post_message(GST_ELEMENT(priv->appsrc),
-                                     gst_message_new_duration(GST_OBJECT(priv->appsrc),
-                                                              GST_FORMAT_BYTES, length));
-        }
     }
 
     priv->size = length >= 0 ? length : 0;
