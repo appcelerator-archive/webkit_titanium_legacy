@@ -146,6 +146,11 @@ void QWEBKIT_EXPORT qt_drt_run(bool b)
     QWebPagePrivate::drtRun = b;
 }
 
+void QWEBKIT_EXPORT qt_drt_setFrameSetFlatteningEnabled(QWebPage* page, bool enabled)
+{
+    QWebPagePrivate::core(page)->settings()->setFrameSetFlatteningEnabled(enabled);
+}
+
 void QWEBKIT_EXPORT qt_webpage_setGroupName(QWebPage* page, const QString& groupName)
 {
     page->handle()->page->setGroupName(groupName);
@@ -155,6 +160,40 @@ QString QWEBKIT_EXPORT qt_webpage_groupName(QWebPage* page)
 {
     return page->handle()->page->groupName();
 }
+
+#if ENABLE(INSPECTOR)
+void QWEBKIT_EXPORT qt_drt_webinspector_executeScript(QWebPage* page, long callId, const QString& script)
+{
+    if (!page->handle()->page->inspectorController())
+        return;
+    page->handle()->page->inspectorController()->evaluateForTestInFrontend(callId, script);
+}
+
+void QWEBKIT_EXPORT qt_drt_webinspector_close(QWebPage* page)
+{
+    if (!page->handle()->page->inspectorController())
+        return;
+    page->handle()->page->inspectorController()->close();
+}
+
+void QWEBKIT_EXPORT qt_drt_webinspector_show(QWebPage* page)
+{
+    if (!page->handle()->page->inspectorController())
+        return;
+    page->handle()->page->inspectorController()->show();
+}
+
+void QWEBKIT_EXPORT qt_drt_setTimelineProfilingEnabled(QWebPage* page, bool enabled)
+{
+    InspectorController* controller = page->handle()->page->inspectorController();
+    if (!controller)
+        return;
+    if (enabled)
+        controller->startTimelineProfiler();
+    else
+        controller->stopTimelineProfiler();
+}
+#endif
 
 class QWebPageWidgetClient : public QWebPageClient {
 public:
@@ -442,6 +481,11 @@ QWebPagePrivate::~QWebPagePrivate()
 #endif
     delete settings;
     delete page;
+}
+
+WebCore::Page* QWebPagePrivate::core(QWebPage* page)
+{
+    return page->d->page;
 }
 
 bool QWebPagePrivate::acceptNavigationRequest(QWebFrame *frame, const QNetworkRequest &request, QWebPage::NavigationType type)
@@ -1944,6 +1988,8 @@ bool QWebPage::shouldInterruptJavaScript()
 
     If the view associated with the web page is a QWebView object, then the default implementation forwards
     the request to QWebView's createWindow() function; otherwise it returns a null pointer.
+
+    If \a type is WebModalDialog, the application must call setWindowModality(Qt::ApplicationModal) on the new window.
 
     \sa acceptNavigationRequest()
 */

@@ -24,6 +24,7 @@
 #if ENABLE(SVG)
 #include "SVGSVGElement.h"
 
+#include "AffineTransform.h"
 #include "CSSHelper.h"
 #include "CSSPropertyNames.h"
 #include "Document.h"
@@ -48,7 +49,6 @@
 #include "SVGZoomEvent.h"
 #include "ScriptEventListener.h"
 #include "SelectionController.h"
-#include "TransformationMatrix.h"
 #include <wtf/StdLibExtras.h>
 
 namespace WebCore {
@@ -119,7 +119,7 @@ FloatRect SVGSVGElement::viewport() const
     }
     float w = width().value(this);
     float h = height().value(this);
-    TransformationMatrix viewBox = viewBoxToViewTransform(w, h);
+    AffineTransform viewBox = viewBoxToViewTransform(w, h);
     double wDouble = w;
     double hDouble = h;
     viewBox.map(_x, _y, _x, _y);
@@ -187,16 +187,19 @@ SVGViewSpec* SVGSVGElement::currentView() const
 
 float SVGSVGElement::currentScale() const
 {
-    if (document() && parentNode() == document())
-        return document()->frame() ? document()->frame()->zoomFactor() : 1;
+    // Only the page zoom factor is relevant for SVG
+    if (Frame* frame = document()->frame())
+        return frame->pageZoomFactor();
     return m_scale;
 }
 
 void SVGSVGElement::setCurrentScale(float scale)
 {
-    if (document() && parentNode() == document()) {
-        if (document()->frame())
-            document()->frame()->setZoomFactor(scale, true);
+    if (Frame* frame = document()->frame()) {
+        // Calling setCurrentScale() on the outermost <svg> element in a standalone SVG document
+        // is allowed to change the page zoom factor, influencing the document size, scrollbars etc.
+        if (parentNode() == document())
+            frame->setZoomFactor(scale, false);
         return;
     }
 
@@ -414,9 +417,9 @@ FloatPoint SVGSVGElement::createSVGPoint()
     return FloatPoint();
 }
 
-TransformationMatrix SVGSVGElement::createSVGMatrix()
+AffineTransform SVGSVGElement::createSVGMatrix()
 {
-    return TransformationMatrix();
+    return AffineTransform();
 }
 
 FloatRect SVGSVGElement::createSVGRect()
@@ -429,26 +432,26 @@ SVGTransform SVGSVGElement::createSVGTransform()
     return SVGTransform();
 }
 
-SVGTransform SVGSVGElement::createSVGTransformFromMatrix(const TransformationMatrix& matrix)
+SVGTransform SVGSVGElement::createSVGTransformFromMatrix(const AffineTransform& matrix)
 {
     return SVGTransform(matrix);
 }
 
-TransformationMatrix SVGSVGElement::getCTM() const
+AffineTransform SVGSVGElement::getCTM() const
 {
-    TransformationMatrix mat;
+    AffineTransform mat;
     if (!isOutermostSVG())
         mat.translate(x().value(this), y().value(this));
 
     if (attributes()->getAttributeItem(SVGNames::viewBoxAttr)) {
-        TransformationMatrix viewBox = viewBoxToViewTransform(width().value(this), height().value(this));
+        AffineTransform viewBox = viewBoxToViewTransform(width().value(this), height().value(this));
         mat = viewBox * mat;
     }
 
     return mat;
 }
 
-TransformationMatrix SVGSVGElement::getScreenCTM() const
+AffineTransform SVGSVGElement::getScreenCTM() const
 {
     document()->updateLayoutIgnorePendingStylesheets();
     FloatPoint rootLocation;
@@ -464,11 +467,11 @@ TransformationMatrix SVGSVGElement::getScreenCTM() const
             rootLocation.move(x().value(this), y().value(this));
     }
     
-    TransformationMatrix mat = SVGStyledLocatableElement::getScreenCTM();
+    AffineTransform mat = SVGStyledLocatableElement::getScreenCTM();
     mat.translate(rootLocation.x(), rootLocation.y());
 
     if (attributes()->getAttributeItem(SVGNames::viewBoxAttr)) {
-        TransformationMatrix viewBox = viewBoxToViewTransform(width().value(this), height().value(this));
+        AffineTransform viewBox = viewBoxToViewTransform(width().value(this), height().value(this));
         mat = viewBox * mat;
     }
 
@@ -538,7 +541,7 @@ bool SVGSVGElement::isOutermostSVG() const
     return !parentNode()->isSVGElement();
 }
 
-TransformationMatrix SVGSVGElement::viewBoxToViewTransform(float viewWidth, float viewHeight) const
+AffineTransform SVGSVGElement::viewBoxToViewTransform(float viewWidth, float viewHeight) const
 {
     FloatRect viewBoxRect;
     if (useCurrentView()) {
@@ -547,7 +550,7 @@ TransformationMatrix SVGSVGElement::viewBoxToViewTransform(float viewWidth, floa
     } else
         viewBoxRect = viewBox();
 
-    TransformationMatrix ctm = SVGFitToViewBox::viewBoxToViewTransform(viewBoxRect, preserveAspectRatio(), viewWidth, viewHeight);
+    AffineTransform ctm = SVGFitToViewBox::viewBoxToViewTransform(viewBoxRect, preserveAspectRatio(), viewWidth, viewHeight);
     if (useCurrentView() && currentView())
         return currentView()->transform()->concatenate().matrix() * ctm;
 

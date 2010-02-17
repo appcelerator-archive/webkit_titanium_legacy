@@ -128,6 +128,7 @@ public:
     void clearTruncation();
 
     void adjustRectForColumns(IntRect&) const;
+    virtual void adjustForColumns(IntSize&, const IntPoint&) const;
 
     void addContinuationWithOutline(RenderInline*);
 
@@ -137,6 +138,9 @@ public:
     // This function is a convenience helper for creating an anonymous block that inherits its
     // style from this RenderBlock.
     RenderBlock* createAnonymousBlock(bool isFlexibleBox = false) const;
+
+    static void appendRunsForObject(int start, int end, RenderObject*, InlineBidiResolver&);    
+    static bool requiresLineBox(const InlineIterator&, bool isLineEmpty = true, bool previousLineBrokeCleanly = true);
 
 protected:
     void moveChildTo(RenderObject* to, RenderObjectChildList* toChildList, RenderObject* child);

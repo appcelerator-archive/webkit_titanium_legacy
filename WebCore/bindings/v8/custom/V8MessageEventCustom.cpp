@@ -35,8 +35,8 @@
 #include "SerializedScriptValue.h"
 
 #include "V8Binding.h"
-#include "V8CustomBinding.h"
 #include "V8DOMWindow.h"
+#include "V8MessagePort.h"
 #include "V8MessagePortCustom.h"
 #include "V8Proxy.h"
 
@@ -53,7 +53,7 @@ v8::Handle<v8::Value> V8MessageEvent::portsAccessorGetter(v8::Local<v8::String> 
 
     v8::Local<v8::Array> portArray = v8::Array::New(ports->size());
     for (size_t i = 0; i < ports->size(); ++i)
-        portArray->Set(v8::Integer::New(i), V8DOMWrapper::convertToV8Object(V8ClassIndex::MESSAGEPORT, (*ports)[i].get()));
+        portArray->Set(v8::Integer::New(i), toV8((*ports)[i].get()));
 
     return portArray;
 }
@@ -72,7 +72,7 @@ v8::Handle<v8::Value> V8MessageEvent::initMessageEventCallback(const v8::Argumen
     DOMWindow* sourceArg = 0;
     if (args[6]->IsObject()) {
         v8::Handle<v8::Object> wrapper = v8::Handle<v8::Object>::Cast(args[6]);
-        v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, wrapper);
+        v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), wrapper);
         if (!window.IsEmpty())
             sourceArg = V8DOMWindow::toNative(window);
     }

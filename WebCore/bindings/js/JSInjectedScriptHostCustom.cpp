@@ -43,6 +43,7 @@
 #include "ExceptionCode.h"
 #include "Frame.h"
 #include "FrameLoader.h"
+#include "InjectedScript.h"
 #include "InjectedScriptHost.h"
 #include "InspectorController.h"
 #include "InspectorResource.h"
@@ -52,6 +53,7 @@
 #include "Node.h"
 #include "Page.h"
 #if ENABLE(DOM_STORAGE)
+#include "SerializedScriptValue.h"
 #include "Storage.h"
 #include "JSStorage.h"
 #endif
@@ -60,6 +62,7 @@
 #include <parser/SourceCode.h>
 #include <runtime/JSArray.h>
 #include <runtime/JSLock.h>
+#include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
 
 #if ENABLE(JAVASCRIPT_DEBUGGER)
@@ -194,20 +197,39 @@ JSValue JSInjectedScriptHost::selectDOMStorage(ExecState*, const ArgList& args)
 }
 #endif
 
-ScriptObject InjectedScriptHost::injectedScriptFor(ScriptState* scriptState)
+JSValue JSInjectedScriptHost::reportDidDispatchOnInjectedScript(ExecState* exec, const ArgList& args)
+{
+    if (args.size() < 3)
+        return jsUndefined();
+    
+    if (!args.at(0).isInt32())
+        return jsUndefined();
+    int callId = args.at(0).asInt32();
+    
+    RefPtr<SerializedScriptValue> result(SerializedScriptValue::create(exec, args.at(1)));
+    
+    bool isException;
+    if (!args.at(2).getBoolean(isException))
+        return jsUndefined();
+    impl()->reportDidDispatchOnInjectedScript(callId, result.get(), isException);
+    return jsUndefined();
+}
+
+InjectedScript InjectedScriptHost::injectedScriptFor(ScriptState* scriptState)
 {
     JSLock lock(SilenceAssertionsOnly);
     JSDOMGlobalObject* globalObject = static_cast<JSDOMGlobalObject*>(scriptState->lexicalGlobalObject());
     JSObject* injectedScript = globalObject->injectedScript();
     if (injectedScript)
-        return ScriptObject(scriptState, injectedScript);
+        return InjectedScript(ScriptObject(scriptState, injectedScript));
 
     ASSERT(!m_injectedScriptSource.isEmpty());
     ScriptObject injectedScriptObject = createInjectedScript(m_injectedScriptSource, this, scriptState, m_nextInjectedScriptId);
     globalObject->setInjectedScript(injectedScriptObject.jsObject());
-    m_idToInjectedScript.set(m_nextInjectedScriptId, injectedScriptObject);
+    InjectedScript result(injectedScriptObject);
+    m_idToInjectedScript.set(m_nextInjectedScriptId, result);
     m_nextInjectedScriptId++;
-    return injectedScriptObject;
+    return result;
 }
 
 } // namespace WebCore

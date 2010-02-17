@@ -220,6 +220,19 @@ QString QWEBKIT_EXPORT qt_drt_counterValueForElementById(QWebFrame* qFrame, cons
     return QString();
 }
 
+int QWEBKIT_EXPORT qt_drt_pageNumberForElementById(QWebFrame* qFrame, const QString& id, float width, float height)
+{
+    Frame* frame = QWebFramePrivate::core(qFrame);
+    if (!frame)
+        return -1;
+
+    Element* element = frame->document()->getElementById(AtomicString(id));
+    if (!element)
+        return -1;
+
+    return PrintContext::pageNumberForElement(element, FloatSize(width, height));
+}
+
 // Suspend active DOM objects in this frame.
 void QWEBKIT_EXPORT qt_suspendActiveDOMObjects(QWebFrame* qFrame)
 {
@@ -1124,6 +1137,17 @@ void QWebFrame::setScrollPosition(const QPoint &pos)
     int dx = pos.x() - current.x();
     int dy = pos.y() - current.y();
     scroll(dx, dy);
+}
+
+/*!
+  \since 4.7
+  Scrolls the frame to the given \a anchor name.
+*/
+void QWebFrame::scrollToAnchor(const QString& anchor)
+{
+    FrameView *view = d->frame->view();
+    if (view)
+        view->scrollToAnchor(anchor);
 }
 
 /*!

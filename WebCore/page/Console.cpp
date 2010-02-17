@@ -41,11 +41,9 @@
 #include "PageGroup.h"
 #include "PlatformString.h"
 
-#if ENABLE(JAVASCRIPT_DEBUGGER)
-#include <profiler/Profiler.h>
-#endif
-
 #include "ScriptCallStack.h"
+#include "ScriptProfile.h"
+#include "ScriptProfiler.h"
 #include <stdio.h>
 #include <wtf/UnusedParam.h>
 
@@ -316,7 +314,7 @@ String Console::lastWMLErrorMessage() const
 
 #if ENABLE(JAVASCRIPT_DEBUGGER)
 
-void Console::profile(const JSC::UString& title, ScriptCallStack* callStack)
+void Console::profile(const String& title, ScriptCallStack* callStack)
 {
     Page* page = this->page();
     if (!page)
@@ -329,15 +327,15 @@ void Console::profile(const JSC::UString& title, ScriptCallStack* callStack)
         return;
 #endif
 
-    JSC::UString resolvedTitle = title;
-    if (title.isNull())   // no title so give it the next user initiated profile title.
+    String resolvedTitle = title;
+    if (title.isNull()) // no title so give it the next user initiated profile title.
 #if ENABLE(INSPECTOR)
         resolvedTitle = controller->getCurrentUserInitiatedProfileName(true);
 #else
         resolvedTitle = "";
 #endif
 
-    JSC::Profiler::profiler()->startProfiling(callStack->state(), resolvedTitle);
+    ScriptProfiler::start(callStack->state(), resolvedTitle);
 
 #if ENABLE(INSPECTOR)
     const ScriptCallFrame& lastCaller = callStack->at(0);
@@ -345,13 +343,10 @@ void Console::profile(const JSC::UString& title, ScriptCallStack* callStack)
 #endif
 }
 
-void Console::profileEnd(const JSC::UString& title, ScriptCallStack* callStack)
+void Console::profileEnd(const String& title, ScriptCallStack* callStack)
 {
     Page* page = this->page();
     if (!page)
-        return;
-
-    if (!this->page())
         return;
 
 #if ENABLE(INSPECTOR)
@@ -360,7 +355,7 @@ void Console::profileEnd(const JSC::UString& title, ScriptCallStack* callStack)
         return;
 #endif
 
-    RefPtr<JSC::Profile> profile = JSC::Profiler::profiler()->stopProfiling(callStack->state(), title);
+    RefPtr<ScriptProfile> profile = ScriptProfiler::stop(callStack->state(), title);
     if (!profile)
         return;
 

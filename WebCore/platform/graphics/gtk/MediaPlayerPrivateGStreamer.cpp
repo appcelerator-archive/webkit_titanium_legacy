@@ -32,6 +32,7 @@
 #include "Document.h"
 #include "Frame.h"
 #include "FrameView.h"
+#include "GOwnPtrGtk.h"
 #include "GraphicsContext.h"
 #include "IntRect.h"
 #include "KURL.h"
@@ -42,6 +43,7 @@
 #include "SecurityOrigin.h"
 #include "TimeRanges.h"
 #include "VideoSinkGStreamer.h"
+#include "WebKitWebSourceGStreamer.h"
 #include "Widget.h"
 
 #include <gst/gst.h>
@@ -56,6 +58,17 @@
 using namespace std;
 
 namespace WebCore {
+
+static int greatestCommonDivisor(int a, int b)
+{
+    while (b) {
+        int temp = a;
+        a = b;
+        b = temp % b;
+    }
+
+    return ABS(a);
+}
 
 gboolean mediaPlayerPrivateMessageCallback(GstBus* bus, GstMessage* message, gpointer data)
 {
@@ -131,52 +144,17 @@ gboolean mediaPlayerPrivateMessageCallback(GstBus* bus, GstMessage* message, gpo
 void mediaPlayerPrivateSourceChangedCallback(GObject *object, GParamSpec *pspec, gpointer data)
 {
     MediaPlayerPrivate* mp = reinterpret_cast<MediaPlayerPrivate*>(data);
-    GstElement* element;
+    GOwnPtr<GstElement> element;
 
-    g_object_get(mp->m_playBin, "source", &element, NULL);
-    gst_object_replace((GstObject**) &mp->m_source, (GstObject*) element);
+    g_object_get(mp->m_playBin, "source", &element.outPtr(), NULL);
+    gst_object_replace((GstObject**) &mp->m_source, (GstObject*) element.get());
 
-    if (element) {
-        GParamSpec* pspec = g_object_class_find_property(G_OBJECT_GET_CLASS(element), "cookies");
-
-        // First check if the source element has a cookies property
-        // of the format we expect
-        if (!pspec || pspec->value_type != G_TYPE_STRV)
-            return;
-
-        // Then get the cookies for the URI and set them
-        SoupSession* session = webkit_get_default_session();
-        SoupCookieJar* cookieJar = SOUP_COOKIE_JAR(soup_session_get_feature(session, SOUP_TYPE_COOKIE_JAR));
-
-        char* location;
-        g_object_get(element, "location", &location, NULL);
-
-        SoupURI* uri = soup_uri_new(location);
-        g_free(location);
-
-        // Let Apple web servers know we want to access their nice movie trailers.
-        if (g_str_equal(uri->host, "movies.apple.com"))
-            g_object_set(element, "user-agent", "Quicktime/7.2.0", NULL);
-
-        char* cookies = soup_cookie_jar_get_cookies(cookieJar, uri, FALSE);
-        soup_uri_free(uri);
-
-        char* cookiesStrv[] = {cookies, NULL};
-        g_object_set(element, "cookies", cookiesStrv, NULL);
-        g_free(cookies);
-
+    if (WEBKIT_IS_WEB_SRC(element.get())) {
         Frame* frame = mp->m_player->frameView() ? mp->m_player->frameView()->frame() : 0;
-        Document* document = frame ? frame->document() : 0;
-        if (document) {
-            GstStructure* extraHeaders = gst_structure_new("extra-headers",
-                                                           "Referer", G_TYPE_STRING,
-                                                           document->documentURI().utf8().data(), 0);
-            g_object_set(element, "extra-headers", extraHeaders, NULL);
-            gst_structure_free(extraHeaders);
-        }
-    }
 
-    gst_object_unref(element);
+        if (frame)
+            webKitWebSrcSetFrame(WEBKIT_WEB_SRC(element.get()), frame);
+    }
 }
 
 void mediaPlayerPrivateVolumeChangedCallback(GObject *element, GParamSpec *pspec, gpointer data)
@@ -261,12 +239,15 @@ static bool doGstInit()
     if (!gstInitialized) {
         GOwnPtr<GError> error;
         gstInitialized = gst_init_check(0, 0, &error.outPtr());
-        if (!gstInitialized)
+        if (!gstInitialized) {
             LOG_VERBOSE(Media, "Could not initialize GStreamer: %s",
                         error ? error->message : "unknown error occurred");
-        else
+        } else {
             gst_element_register(0, "webkitmediasrc", GST_RANK_PRIMARY,
                                  WEBKIT_TYPE_DATA_SRC);
+            gst_element_register(0, "webkitwebsrc", GST_RANK_PRIMARY + 100,
+                                 WEBKIT_TYPE_WEB_SRC);
+        }
 
     }
     return gstInitialized;
@@ -503,30 +484,60 @@ IntSize MediaPlayerPrivate::naturalSize() const
     if (!hasVideo())
         return IntSize();
 
+    GstPad* pad = gst_element_get_static_pad(m_videoSink, "sink");
+    if (!pad)
+        return IntSize();
+
+    int width = 0, height = 0;
+    GstCaps* caps = GST_PAD_CAPS(pad);
+    int pixelAspectRatioNumerator, pixelAspectRatioDenominator;
+    int displayWidth, displayHeight, displayAspectRatioGCD;
+    int originalWidth = 0, originalHeight = 0;
+
     // TODO: handle possible clean aperture data. See
     // https://bugzilla.gnome.org/show_bug.cgi?id=596571
     // TODO: handle possible transformation matrix. See
     // https://bugzilla.gnome.org/show_bug.cgi?id=596326
-    int width = 0, height = 0;
-    if (GstPad* pad = gst_element_get_static_pad(m_videoSink, "sink")) {
-        GstCaps* caps = GST_PAD_CAPS(pad);
-        gfloat pixelAspectRatio;
-        gint pixelAspectRatioNumerator, pixelAspectRatioDenominator;
 
-        if (!GST_IS_CAPS(caps) || !gst_caps_is_fixed(caps)
-            || !gst_video_format_parse_caps(caps, 0, &width, &height)
-            || !gst_video_parse_caps_pixel_aspect_ratio(caps, &pixelAspectRatioNumerator,
-                                                        &pixelAspectRatioDenominator)) {
-            gst_object_unref(GST_OBJECT(pad));
-            return IntSize();
-        }
-
-        pixelAspectRatio = (gfloat) pixelAspectRatioNumerator / (gfloat) pixelAspectRatioDenominator;
-        width *= pixelAspectRatio;
-        height /= pixelAspectRatio;
+    // Get the video PAR and original size.
+    if (!GST_IS_CAPS(caps) || !gst_caps_is_fixed(caps)
+        || !gst_video_format_parse_caps(caps, 0, &originalWidth, &originalHeight)
+        || !gst_video_parse_caps_pixel_aspect_ratio(caps, &pixelAspectRatioNumerator,
+                                                    &pixelAspectRatioDenominator)) {
         gst_object_unref(GST_OBJECT(pad));
+        return IntSize();
     }
 
+    gst_object_unref(GST_OBJECT(pad));
+
+    LOG_VERBOSE(Media, "Original video size: %dx%d", originalWidth, originalHeight);
+    LOG_VERBOSE(Media, "Pixel aspect ratio: %d/%d", pixelAspectRatioNumerator, pixelAspectRatioDenominator);
+
+    // Calculate DAR based on PAR and video size.
+    displayWidth = originalWidth * pixelAspectRatioNumerator;
+    displayHeight = originalHeight * pixelAspectRatioDenominator;
+
+    // Divide display width and height by their GCD to avoid possible overflows.
+    displayAspectRatioGCD = greatestCommonDivisor(displayWidth, displayHeight);
+    displayWidth /= displayAspectRatioGCD;
+    displayHeight /= displayAspectRatioGCD;
+
+    // Apply DAR to original video size. This is the same behavior as in xvimagesink's setcaps function.
+    if (!(originalHeight % displayHeight)) {
+        LOG_VERBOSE(Media, "Keeping video original height");
+        width = gst_util_uint64_scale_int(originalHeight, displayWidth, displayHeight);
+        height = originalHeight;
+    } else if (!(originalWidth % displayWidth)) {
+        LOG_VERBOSE(Media, "Keeping video original width");
+        height = gst_util_uint64_scale_int(originalWidth, displayHeight, displayWidth);
+        width = originalWidth;
+    } else {
+        LOG_VERBOSE(Media, "Approximating while keeping original video height");
+        width = gst_util_uint64_scale_int(originalHeight, displayWidth, displayHeight);
+        height = originalHeight;
+    }
+
+    LOG_VERBOSE(Media, "Natural size: %dx%d", width, height);
     return IntSize(width, height);
 }
 

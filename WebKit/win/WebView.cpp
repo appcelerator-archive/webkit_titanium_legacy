@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008 Apple, Inc.  All rights reserved.
+ * Copyright (C) 2006, 2007, 2008, 2009, 2010 Apple, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,7 +24,6 @@
  */
 
 #include "config.h"
-
 #include "WebView.h"
 
 #include "CFDictionaryPropertyBag.h"
@@ -1598,6 +1597,66 @@ bool WebView::mouseWheel(WPARAM wParam, LPARAM lParam, bool isMouseHWheel)
     return coreFrame->eventHandler()->handleWheelEvent(wheelEvent);
 }
 
+bool WebView::verticalScroll(WPARAM wParam, LPARAM /*lParam*/)
+{
+    ScrollDirection direction;
+    ScrollGranularity granularity;
+    switch (LOWORD(wParam)) {
+    case SB_LINEDOWN:
+        granularity = ScrollByLine;
+        direction = ScrollDown;
+        break;
+    case SB_LINEUP:
+        granularity = ScrollByLine;
+        direction = ScrollUp;
+        break;
+    case SB_PAGEDOWN:
+        granularity = ScrollByDocument;
+        direction = ScrollDown;
+        break;
+    case SB_PAGEUP:
+        granularity = ScrollByDocument;
+        direction = ScrollUp;
+        break;
+    default:
+        return false;
+        break;
+    }
+    
+    Frame* frame = m_page->focusController()->focusedOrMainFrame();
+    return frame->eventHandler()->scrollRecursively(direction, granularity);
+}
+
+bool WebView::horizontalScroll(WPARAM wParam, LPARAM /*lParam*/)
+{
+    ScrollDirection direction;
+    ScrollGranularity granularity;
+    switch (LOWORD(wParam)) {
+    case SB_LINELEFT:
+        granularity = ScrollByLine;
+        direction = ScrollLeft;
+        break;
+    case SB_LINERIGHT:
+        granularity = ScrollByLine;
+        direction = ScrollRight;
+        break;
+    case SB_PAGELEFT:
+        granularity = ScrollByDocument;
+        direction = ScrollLeft;
+        break;
+    case SB_PAGERIGHT:
+        granularity = ScrollByDocument;
+        direction = ScrollRight;
+        break;
+    default:
+        return false;
+    }
+
+    Frame* frame = m_page->focusController()->focusedOrMainFrame();
+    return frame->eventHandler()->scrollRecursively(direction, granularity);
+}
+
+
 bool WebView::execCommand(WPARAM wParam, LPARAM /*lParam*/)
 {
     Frame* frame = m_page->focusController()->focusedOrMainFrame();
@@ -2164,6 +2223,12 @@ LRESULT CALLBACK WebView::WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam,
                 break;
 
             __fallthrough;
+        case WM_VSCROLL:
+            handled = webView->verticalScroll(wParam, lParam);
+            break;
+        case WM_HSCROLL:
+            handled = webView->horizontalScroll(wParam, lParam);
+            break;
         default:
             handled = false;
             break;
@@ -2396,6 +2461,34 @@ static void WebKitSetApplicationCachePathIfNecessary()
 
     initialized = true;
 }
+
+bool WebView::shouldInitializeTrackPointHack()
+{
+    static bool shouldCreateScrollbars;
+    static bool hasRunTrackPointCheck;
+
+    if (hasRunTrackPointCheck)
+        return shouldCreateScrollbars;
+
+    hasRunTrackPointCheck = true;
+    const TCHAR trackPointKeys[][50] = { TEXT("Software\\Lenovo\\TrackPoint"),
+        TEXT("Software\\Lenovo\\UltraNav"),
+        TEXT("Software\\Alps\\Apoint\\TrackPoint"),
+        TEXT("Software\\Synaptics\\SynTPEnh\\UltraNavUSB"),
+        TEXT("Software\\Synaptics\\SynTPEnh\\UltraNavPS2") };
+
+    for (int i = 0; i < 5; ++i) {
+        HKEY trackPointKey;
+        int readKeyResult = ::RegOpenKeyEx(HKEY_CURRENT_USER, trackPointKeys[i], 0, KEY_READ, &trackPointKey);
+        ::RegCloseKey(trackPointKey);
+        if (readKeyResult == ERROR_SUCCESS) {
+            shouldCreateScrollbars = true;
+            return shouldCreateScrollbars;
+        }
+    }
+
+    return shouldCreateScrollbars;
+}
     
 HRESULT STDMETHODCALLTYPE WebView::initWithFrame( 
     /* [in] */ RECT frame,
@@ -2417,6 +2510,14 @@ HRESULT STDMETHODCALLTYPE WebView::initWithFrame(
             frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top, m_hostWindow ? m_hostWindow : HWND_MESSAGE, 0, gInstance, 0);
 
     ASSERT(::IsWindow(m_viewWindow));
+
+    if (shouldInitializeTrackPointHack()) {
+        // If we detected a registry key belonging to a TrackPoint driver, then create fake trackpoint
+        // scrollbars, so the WebView will receive WM_VSCROLL and WM_HSCROLL messages. We create one
+        // vertical scrollbar and one horizontal to allow for receiving both types of messages.
+        ::CreateWindow(TEXT("SCROLLBAR"), TEXT("FAKETRACKPOINTHSCROLLBAR"), WS_CHILD | WS_VISIBLE | SBS_HORZ, 0, 0, 0, 0, m_viewWindow, 0, gInstance, 0);
+        ::CreateWindow(TEXT("SCROLLBAR"), TEXT("FAKETRACKPOINTVSCROLLBAR"), WS_CHILD | WS_VISIBLE | SBS_VERT, 0, 0, 0, 0, m_viewWindow, 0, gInstance, 0);
+    }
 
     hr = registerDragDrop();
     if (FAILED(hr))
@@ -2515,7 +2616,7 @@ void WebView::initializeToolTipWindow()
     if (m_hostWindow)
         parentWindow = m_viewWindow;
 
-    m_toolTipHwnd = CreateWindowEx(0, TOOLTIPS_CLASS, 0, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+    m_toolTipHwnd = CreateWindowEx(WS_EX_TRANSPARENT, TOOLTIPS_CLASS, 0, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
                                    CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                    parentWindow, 0, 0, 0);
     if (!m_toolTipHwnd)
@@ -4576,6 +4677,11 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     settings->setPluginAllowedRunTime(runTime);
 
+    hr = prefsPrivate->isFrameSetFlatteningEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings->setFrameSetFlatteningEnabled(enabled);
+
 #if USE(ACCELERATED_COMPOSITING)
     hr = prefsPrivate->acceleratedCompositingEnabled(&enabled);
     if (FAILED(hr))
@@ -4584,7 +4690,7 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
 #endif
 
 #if ENABLE(3D_CANVAS)
-    settings->setExperimentalWebGLEnabled(true);
+    settings->setWebGLEnabled(true);
 #endif  // ENABLE(3D_CANVAS)
 
     if (!m_closeWindowTimer.isActive())
@@ -4991,7 +5097,7 @@ HRESULT STDMETHODCALLTYPE WebView::shouldClose(
     }
 
     *result = TRUE;
-    if (Frame* frame = m_page->focusController()->focusedOrMainFrame())
+    if (Frame* frame = m_page->mainFrame())
         *result = frame->shouldClose() ? TRUE : FALSE;
     return S_OK;
 }
@@ -5692,7 +5798,7 @@ HRESULT WebView::setJavaScriptURLsAreAllowed(BOOL areAllowed)
 
 HRESULT WebView::setCanStartPlugins(BOOL canStartPlugins)
 {
-    m_page->setCanStartPlugins(canStartPlugins);
+    m_page->setCanStartMedia(canStartPlugins);
     return S_OK;
 }
 

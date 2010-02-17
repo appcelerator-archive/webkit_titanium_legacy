@@ -48,9 +48,9 @@
 #include "V8BindingState.h"
 #include "V8Collection.h"
 #include "V8ConsoleMessage.h"
-#include "V8CustomBinding.h"
 #include "V8DOMMap.h"
 #include "V8DOMWindow.h"
+#include "V8Document.h"
 #include "V8HiddenPropertyName.h"
 #include "V8History.h"
 #include "V8Index.h"
@@ -94,7 +94,7 @@ static Frame* getTargetFrame(v8::Local<v8::Object> host, v8::Local<v8::Value> da
     Frame* target = 0;
     switch (V8ClassIndex::FromInt(data->Int32Value())) {
     case V8ClassIndex::DOMWINDOW: {
-        v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, host);
+        v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), host);
         if (window.IsEmpty())
             return target;
 
@@ -196,7 +196,7 @@ void V8DOMWindowShell::clearForNavigation()
         clearDocumentWrapperCache();
 
         // Turn on access check on the old DOMWindow wrapper.
-        v8::Handle<v8::Object> wrapper = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, m_global);
+        v8::Handle<v8::Object> wrapper = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), m_global);
         ASSERT(!wrapper.IsEmpty());
         wrapper->TurnOnAccessCheck();
 
@@ -383,12 +383,12 @@ bool V8DOMWindowShell::installDOMWindow(v8::Handle<v8::Context> context, DOMWind
     return true;
 }
 
-void V8DOMWindowShell::updateDocumentWrapper(v8::Handle<v8::Value> wrapper)
+void V8DOMWindowShell::updateDocumentWrapper(v8::Handle<v8::Object> wrapper)
 {
     clearDocumentWrapper();
 
     ASSERT(m_document.IsEmpty());
-    m_document = v8::Persistent<v8::Value>::New(wrapper);
+    m_document = v8::Persistent<v8::Object>::New(wrapper);
 #ifndef NDEBUG
     V8GCController::registerGlobalHandle(PROXY, this, m_document);
 #endif
@@ -422,7 +422,7 @@ void V8DOMWindowShell::updateDocumentWrapperCache()
         return;
     }
 
-    v8::Handle<v8::Value> documentWrapper = V8DOMWrapper::convertNodeToV8Object(m_frame->document());
+    v8::Handle<v8::Value> documentWrapper = toV8(m_frame->document());
 
     // If instantiation of the document wrapper fails, clear the cache
     // and let the DOMWindow accessor handle access to the document.
@@ -430,6 +430,7 @@ void V8DOMWindowShell::updateDocumentWrapperCache()
         clearDocumentWrapperCache();
         return;
     }
+    ASSERT(documentWrapper->IsObject());
     m_context->Global()->ForceSet(v8::String::New("document"), documentWrapper, static_cast<v8::PropertyAttribute>(v8::ReadOnly | v8::DontDelete));
 }
 

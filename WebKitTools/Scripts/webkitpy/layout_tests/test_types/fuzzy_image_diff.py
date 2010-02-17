@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2010 The Chromium Authors. All rights reserved.
+# Copyright (C) 2010 Google Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -11,7 +11,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the Chromium name nor the names of its
+#     * Neither the name of Google Inc. nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -35,16 +35,14 @@ import errno
 import logging
 import os
 import shutil
-import subprocess
 
-from layout_package import path_utils
 from layout_package import test_failures
 from test_types import test_type_base
 
 
 class FuzzyImageDiff(test_type_base.TestTypeBase):
 
-    def compare_output(self, filename, proc, output, test_args, target):
+    def compare_output(self, filename, output, test_args, target):
         """Implementation of CompareOutput that checks the output image and
         checksum against the expected files from the LayoutTest directory.
         """
@@ -54,7 +52,7 @@ class FuzzyImageDiff(test_type_base.TestTypeBase):
         if test_args.hash is None:
             return failures
 
-        expected_png_file = path_utils.expected_filename(filename, '.png')
+        expected_png_file = self._port.expected_filename(filename, '.png')
 
         if test_args.show_sources:
             logging.debug('Using %s' % expected_png_file)
@@ -64,8 +62,7 @@ class FuzzyImageDiff(test_type_base.TestTypeBase):
             failures.append(test_failures.FailureMissingImage(self))
 
         # Run the fuzzymatcher
-        r = subprocess.call([path_utils.fuzzy_match_path(),
-                            test_args.png_path, expected_png_file])
+        r = port.fuzzy_diff(test_args.png_path, expected_png_file)
         if r != 0:
             failures.append(test_failures.FailureFuzzyFailure(self))
 

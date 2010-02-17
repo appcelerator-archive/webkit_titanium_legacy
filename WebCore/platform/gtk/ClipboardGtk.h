@@ -68,6 +68,7 @@ namespace WebCore {
         virtual void declareAndWriteDragImage(Element*, const KURL&, const String& title, Frame*);
         virtual void writeRange(Range*, Frame* frame);
         virtual void writeURL(const KURL&, const String&, Frame* frame);
+        virtual void writePlainText(const String&);
 
         PassRefPtr<DataObjectGtk> dataObject() { return m_dataObject; }
 

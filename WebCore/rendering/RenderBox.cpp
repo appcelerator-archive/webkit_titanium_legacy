@@ -974,7 +974,7 @@ void RenderBox::mapLocalToContainer(RenderBoxModelObject* repaintContainer, bool
     } else
         fixed |= isFixedPos;
     
-    IntSize containerOffset = offsetFromContainer(o);
+    IntSize containerOffset = offsetFromContainer(o, roundedIntPoint(transformState.mappedPoint()));
 
     bool preserve3D = useTransforms && (o->style()->preserves3D() || style()->preserves3D());
     if (useTransforms && shouldUseTransformFromContainer(o)) {
@@ -1015,7 +1015,7 @@ void RenderBox::mapAbsoluteToLocalPoint(bool fixed, bool useTransforms, Transfor
 
     o->mapAbsoluteToLocalPoint(fixed, useTransforms, transformState);
 
-    IntSize containerOffset = offsetFromContainer(o);
+    IntSize containerOffset = offsetFromContainer(o, IntPoint());
 
     bool preserve3D = useTransforms && (o->style()->preserves3D() || style()->preserves3D());
     if (useTransforms && shouldUseTransformFromContainer(o)) {
@@ -1026,7 +1026,7 @@ void RenderBox::mapAbsoluteToLocalPoint(bool fixed, bool useTransforms, Transfor
         transformState.move(-containerOffset.width(), -containerOffset.height(), preserve3D ? TransformState::AccumulateTransform : TransformState::FlattenTransform);
 }
 
-IntSize RenderBox::offsetFromContainer(RenderObject* o) const
+IntSize RenderBox::offsetFromContainer(RenderObject* o, const IntPoint& point) const
 {
     ASSERT(o == container());
 
@@ -1035,14 +1035,9 @@ IntSize RenderBox::offsetFromContainer(RenderObject* o) const
         offset += relativePositionOffset();
 
     if (!isInline() || isReplaced()) {
-        RenderBlock* cb;
-        if (o->isBlockFlow() && style()->position() != AbsolutePosition && style()->position() != FixedPosition
-                && (cb = toRenderBlock(o))->hasColumns()) {
-            IntRect rect(x(), y(), 1, 1);
-            cb->adjustRectForColumns(rect);
-            offset.expand(rect.x(), rect.y());
-        } else
-            offset.expand(x(), y());
+        if (style()->position() != AbsolutePosition && style()->position() != FixedPosition)
+            o->adjustForColumns(offset, IntPoint(point.x() + x(), point.y() + y()));
+        offset.expand(x(), y());
     }
 
     if (o->hasOverflowClip())
@@ -2899,9 +2894,9 @@ void RenderBox::clearLayoutOverflow()
 
 #if ENABLE(SVG)
 
-TransformationMatrix RenderBox::localTransform() const
+AffineTransform RenderBox::localTransform() const
 {
-    return TransformationMatrix(1, 0, 0, 1, x(), y());
+    return AffineTransform(1, 0, 0, 1, x(), y());
 }
 
 #endif

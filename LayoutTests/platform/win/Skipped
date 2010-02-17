@@ -167,12 +167,19 @@ svg/custom/coords-relative-units-transforms.svg
 svg/custom/marker-changes.svg
 svg/custom/use-referencing-nonexisting-symbol.svg
 svg/custom/width-full-percentage.svg
-svg/W3C-SVG-1.1/coords-viewattr-01-b.svg
 svg/W3C-SVG-1.1/fonts-elem-01-t.svg
 svg/W3C-SVG-1.1/fonts-elem-02-t.svg
 svg/W3C-SVG-1.1/fonts-elem-03-b.svg
 svg/W3C-SVG-1.1/fonts-elem-04-b.svg
 svg/W3C-SVG-1.1/fonts-elem-07-b.svg
+
+# https://bugs.webkit.org/show_bug.cgi?id=35012 (SVG entity parsing broken on SnowLeopard/Windows)
+svg/W3C-SVG-1.1/coords-viewattr-01-b.svg
+svg/zoom/page/zoom-coords-viewattr-01-b.svg
+svg/zoom/text/zoom-coords-viewattr-01-b.svg
+
+# https://bugs.webkit.org/show_bug.cgi?id=35013 (Impossible to test text-only-zoom from DRT on Windows)
+svg/zoom/text
 
 # No support for WebArchives in WebKitWin <rdar://problem/6436020>
 webarchive
@@ -740,3 +747,21 @@ http/tests/media/video-referer.html
 # Implement LayoutTestController::pageNumberForElementById().
 printing/page-break-always.html
 printing/pageNumerForElementById.html
+printing/css2.1
+
+# http/tests/security/xss-DENIED-window-open-javascript-url.html timed out on Windows Debug Bot
+# https://bugs.webkit.org/show_bug.cgi?id=33349
+http/tests/security/xss-DENIED-window-open-javascript-url.html
+
+# Skip frame flattening tests until it can be tested by this DRT
+# https://bugs.webkit.org/show_bug.cgi?id=32717
+fast/frames/flattening/
+
+# Implement LayoutTestController::numberOfPages().
+printing/numberOfPages.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=34933
+media/video-display-aspect-ratio.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=34865
+fast/text/glyph-reordering.html

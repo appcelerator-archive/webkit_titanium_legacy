@@ -830,7 +830,7 @@ public:
     void removeNodeListCache() { ASSERT(m_numNodeListCaches > 0); --m_numNodeListCaches; }
     bool hasNodeListCaches() const { return m_numNodeListCaches; }
 
-    void updateFocusAppearanceSoon();
+    void updateFocusAppearanceSoon(bool restorePreviousSelection);
     void cancelFocusAppearanceUpdate();
         
     // FF method for accessing the selection added for compatibility.
@@ -914,8 +914,6 @@ public:
 
     void updateURLForPushOrReplaceState(const KURL&);
     void statePopped(SerializedScriptValue*);
-
-    void updateSandboxFlags(); // Set sandbox flags as determined by the frame.
 
     bool processingLoadEvent() const { return m_processingLoadEvent; }
 
@@ -1079,6 +1077,7 @@ private:
     bool m_haveExplicitlyDisabledDNSPrefetch;
     bool m_frameElementsShouldIgnoreScrolling;
     bool m_containsValidityStyleRules;
+    bool m_updateFocusAppearanceRestoresSelection;
 
     String m_title;
     String m_rawTitle;
@@ -1135,7 +1134,6 @@ private:
 #endif
 
     RenderObject* m_savedRenderer;
-    int m_secureForms;
     
     RefPtr<TextResourceDecoder> m_decoder;
 

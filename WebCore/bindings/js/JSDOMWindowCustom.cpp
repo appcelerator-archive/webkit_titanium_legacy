@@ -97,7 +97,7 @@ void JSDOMWindow::markChildren(MarkStack& markStack)
 {
     Base::markChildren(markStack);
 
-    impl()->markEventListeners(markStack);
+    impl()->markJSEventListeners(markStack);
 
     JSGlobalData& globalData = *Heap::heap(this)->globalData();
 
@@ -666,9 +666,11 @@ static Frame* createWindow(ExecState* exec, Frame* lexicalFrame, Frame* dynamicF
     ASSERT(lexicalFrame);
     ASSERT(dynamicFrame);
 
-    // Sandboxed iframes cannot open new auxiliary browsing contexts.
-    if (lexicalFrame && lexicalFrame->loader()->isSandboxed(SandboxNavigation))
-        return 0;
+    if (Document* lexicalDocument = lexicalFrame->document()) {
+        // Sandboxed iframes cannot open new auxiliary browsing contexts.
+        if (lexicalDocument->securityOrigin()->isSandboxed(SandboxNavigation))
+            return 0;
+    }
 
     ResourceRequest request;
 
@@ -910,13 +912,13 @@ JSValue JSDOMWindow::postMessage(ExecState* exec, const ArgList& args)
 
 JSValue JSDOMWindow::setTimeout(ExecState* exec, const ArgList& args)
 {
-    ScheduledAction* action = ScheduledAction::create(exec, args, currentWorld(exec));
+    OwnPtr<ScheduledAction> action = ScheduledAction::create(exec, args, currentWorld(exec));
     if (exec->hadException())
         return jsUndefined();
     int delay = args.at(1).toInt32(exec);
 
     ExceptionCode ec = 0;
-    int result = impl()->setTimeout(action, delay, ec);
+    int result = impl()->setTimeout(action.release(), delay, ec);
     setDOMException(exec, ec);
 
     return jsNumber(exec, result);
@@ -924,13 +926,13 @@ JSValue JSDOMWindow::setTimeout(ExecState* exec, const ArgList& args)
 
 JSValue JSDOMWindow::setInterval(ExecState* exec, const ArgList& args)
 {
-    ScheduledAction* action = ScheduledAction::create(exec, args, currentWorld(exec));
+    OwnPtr<ScheduledAction> action = ScheduledAction::create(exec, args, currentWorld(exec));
     if (exec->hadException())
         return jsUndefined();
     int delay = args.at(1).toInt32(exec);
 
     ExceptionCode ec = 0;
-    int result = impl()->setInterval(action, delay, ec);
+    int result = impl()->setInterval(action.release(), delay, ec);
     setDOMException(exec, ec);
 
     return jsNumber(exec, result);
@@ -952,7 +954,7 @@ JSValue JSDOMWindow::atob(ExecState* exec, const ArgList& args)
     }
 
     Vector<char> in(s.size());
-    for (int i = 0; i < s.size(); ++i)
+    for (unsigned i = 0; i < s.size(); ++i)
         in[i] = static_cast<char>(s.data()[i]);
     Vector<char> out;
 
@@ -978,7 +980,7 @@ JSValue JSDOMWindow::btoa(ExecState* exec, const ArgList& args)
     }
 
     Vector<char> in(s.size());
-    for (int i = 0; i < s.size(); ++i)
+    for (unsigned i = 0; i < s.size(); ++i)
         in[i] = static_cast<char>(s.data()[i]);
     Vector<char> out;
 
@@ -997,7 +999,7 @@ JSValue JSDOMWindow::addEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false, currentWorld(exec)), args.at(2).toBoolean(exec));
+    impl()->addEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), this, false, currentWorld(exec)), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 
@@ -1011,7 +1013,7 @@ JSValue JSDOMWindow::removeEventListener(ExecState* exec, const ArgList& args)
     if (!listener.isObject())
         return jsUndefined();
 
-    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), false, currentWorld(exec)).get(), args.at(2).toBoolean(exec));
+    impl()->removeEventListener(args.at(0).toString(exec), JSEventListener::create(asObject(listener), this, false, currentWorld(exec)).get(), args.at(2).toBoolean(exec));
     return jsUndefined();
 }
 

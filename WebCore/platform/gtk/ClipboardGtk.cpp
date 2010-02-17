@@ -298,6 +298,14 @@ void ClipboardGtk::writeRange(Range* range, Frame* frame)
         m_helper->writeClipboardContents(m_clipboard);
 }
 
+void ClipboardGtk::writePlainText(const String& text)
+{
+    m_dataObject->setText(text);
+
+    if (m_clipboard)
+        m_helper->writeClipboardContents(m_clipboard);
+}
+
 bool ClipboardGtk::hasData()
 {
     if (m_clipboard)

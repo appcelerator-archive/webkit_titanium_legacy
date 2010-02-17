@@ -1,3 +1,150 @@
+2010-02-16  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Bump version to 1.1.22 so we can depend on it in applications.
+
+        * configure.ac:
+
+2010-02-12  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Holger Freyther.
+
+        Removed WMLInputElement.* from .gitattributes as the file is
+        now CRLF clean.
+
+        * .gitattributes:
+
+2010-02-10  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Make qtlauncher and qgvlauncher use the generated headers
+        path to make sure they are correctly generated.
+
+        * WebKit.pri:
+
+2010-02-10  Jocelyn Turcotte  <jocelyn.turcotte@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        [Qt] Manually add support for the install target on Symbian.
+
+        This is required to copy the headers over the ones in Qt.
+
+        * WebKit.pro:
+
+2010-02-11  Fridrich Strba  <fridrich.strba@bluewin.ch>
+
+        Reviewed by Gustavo Noronha Silva.
+
+        Detect properly different versions of libpng out there.
+
+        * configure.ac:
+
+2010-02-11  Xan Lopez  <xlopez@igalia.com>
+
+        Try to fix GTK+ build.
+
+        * configure.ac:
+
+2010-02-11  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Reviewed by Xan Lopez.
+
+        Adjust gstreamer-plugins-base minimum version check (from 0.10 to 0.10.23).
+
+        * configure.ac:
+
+2010-02-08  Maciej Stachowiak  <mjs@apple.com>
+
+        Reviewed by Cameron Zwarich.
+
+        Restore ENABLE_RUBY flag so vendors can ship with Ruby disabled if they choose.
+        https://bugs.webkit.org/show_bug.cgi?id=34698
+
+        * configure.ac:
+
+2010-02-08  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Reviewed by Xan Lopez.
+
+        Bump version to 1.1.21, and adjust library versioning accordingly.
+
+        * configure.ac:
+
+2010-02-05  Sebastian Dröge  <sebastian.droege@collabora.co.uk>
+
+        Reviewed by Gustavo Noronha.
+
+        Add gstreamer-app-0.10 to configure.ac
+        https://bugs.webkit.org/show_bug.cgi?id=34317
+
+        * configure.ac:
+
+2010-02-05  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        Reviewed by Tor Arne Vestbø.
+
+        Add .gitattributes file to tell git about files with Windows linefeeds
+        https://bugs.webkit.org/show_bug.cgi?id=34645
+
+        On Windows git defaults to "true" for core.autocrlf, meaning all text
+        files in the working directory are converted from CRLF to LF on checkin
+        time. Some files present in the repository have been checked in with
+        CRLF linefeeds and git should not try to convert them. The added
+        .gitattributes file tells git to not do any CRLF conversion.
+
+        * .gitattributes: Added.
+
+2010-02-05  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Reviewed by Simon Hausmann.
+
+        [Qt] Generate convenience headers (QWebView, etc) using qmake
+
+        In Qt this is done using syncqt, but we use a pro-file instead
+        that generates makefile-rules for each of the extra headers.
+
+        These extra headers are installed alongside the normal headers.
+
+        * DerivedSources.pro: Include API-DerivedSources
+
+2010-02-04  Tor Arne Vestbø  <tor.arne.vestbo@nokia.com>
+
+        Reviewed by Lars Knoll.
+
+        [Qt] Make 'make -f Makefile.DerivedSources qmake' work
+
+        Previously this target ended up generating a file named
+        Makefile.DerivedSources.DerivedSources, and so on.
+
+        * DerivedSources.pro:
+
+2010-02-04  Christian Dywan  <christian@twotasts.de>
+
+        Reviewed by Xan Lopez.
+
+        Require either libsoup 2.28.2 or 2.29.90.
+
+        * configure.ac:
+
+2010-02-04  Xan Lopez  <xlopez@igalia.com>
+
+        Reviewed by Gustavo Noronha.
+
+        Bump minimum libsoup requirement to 2.29.90
+
+        * configure.ac:
+
+2010-02-02  Gustavo Noronha Silva  <gns@gnome.org>
+
+        Reviewed by Xan Lopez.
+
+        Bump version, and adjust library versioning for 1.1.20.
+
+        * configure.ac:
+
 2010-01-29  Jeremy Orlow  <jorlow@chromium.org>
 
         Reviewed by Dimitri Glazkov.

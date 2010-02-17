@@ -38,16 +38,15 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "HTMLFrameOwnerElement.h"
+#include "InjectedScript.h"
 #include "InspectorClient.h"
 #include "InspectorController.h"
 #include "InspectorDOMAgent.h"
 #include "InspectorFrontend.h"
 #include "InspectorResource.h"
 #include "Pasteboard.h"
-#include "ScriptArray.h"
-#include "ScriptFunctionCall.h"
 
-#if ENABLE(JAVASCRIPT_DEBUGGER)
+#if ENABLE(JAVASCRIPT_DEBUGGER) && USE(JSC)
 #include "JavaScriptCallFrame.h"
 #include "JavaScriptDebugServer.h"
 using namespace JSC;
@@ -131,7 +130,7 @@ long InjectedScriptHost::pushNodeByPathToFrontend(const String& path)
     return domAgent->pushNodePathToFrontend(node);
 }
 
-#if ENABLE(JAVASCRIPT_DEBUGGER)
+#if ENABLE(JAVASCRIPT_DEBUGGER) && USE(JSC)
 JavaScriptCallFrame* InjectedScriptHost::currentCallFrame() const
 {
     return JavaScriptDebugServer::shared().currentCallFrame();
@@ -161,13 +160,13 @@ void InjectedScriptHost::selectDOMStorage(Storage* storage)
 }
 #endif
 
-void InjectedScriptHost::reportDidDispatchOnInjectedScript(long callId, const String& result, bool isException)
+void InjectedScriptHost::reportDidDispatchOnInjectedScript(long callId, SerializedScriptValue* result, bool isException)
 {
     if (InspectorFrontend* frontend = inspectorFrontend())
         frontend->didDispatchOnInjectedScript(callId, result, isException);
 }
 
-ScriptObject InjectedScriptHost::injectedScriptForId(long id)
+InjectedScript InjectedScriptHost::injectedScriptForId(long id)
 {
     return m_idToInjectedScript.get(id);
 }
@@ -180,13 +179,13 @@ void InjectedScriptHost::discardInjectedScripts()
 void InjectedScriptHost::releaseWrapperObjectGroup(long injectedScriptId, const String& objectGroup)
 {
     if (injectedScriptId) {
-         ScriptObject injectedScript = m_idToInjectedScript.get(injectedScriptId);
+         InjectedScript injectedScript = m_idToInjectedScript.get(injectedScriptId);
          if (!injectedScript.hasNoValue())
-             releaseWrapperObjectGroup(injectedScript, objectGroup);
+             injectedScript.releaseWrapperObjectGroup(objectGroup);
     } else {
          // Iterate over all injected scripts if injectedScriptId is not specified.
          for (IdToInjectedScriptMap::iterator it = m_idToInjectedScript.begin(); it != m_idToInjectedScript.end(); ++it)
-              releaseWrapperObjectGroup(it->second, objectGroup);
+              it->second.releaseWrapperObjectGroup(objectGroup);
     }
 }
 
@@ -202,13 +201,6 @@ InspectorFrontend* InjectedScriptHost::inspectorFrontend()
     if (!m_inspectorController)
         return 0;
     return m_inspectorController->m_frontend.get();
-}
-
-void InjectedScriptHost::releaseWrapperObjectGroup(const ScriptObject& injectedScript, const String& objectGroup)
-{
-    ScriptFunctionCall releaseFunction(injectedScript.scriptState(), injectedScript, "releaseWrapperObjectGroup");
-    releaseFunction.appendArgument(objectGroup);
-    releaseFunction.call();
 }
 
 } // namespace WebCore

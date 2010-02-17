@@ -41,10 +41,12 @@
 namespace WebCore {
 
 class Database;
+class InjectedScript;
 class InspectorDOMAgent;
 class InspectorFrontend;
 class JavaScriptCallFrame;
 class Node;
+class SerializedScriptValue;
 class Storage;
 
 class InjectedScriptHost : public RefCounted<InjectedScriptHost>
@@ -71,7 +73,7 @@ public:
     void addNodesToSearchResult(const String& nodeIds);
     long pushNodeByPathToFrontend(const String& path);
 
-#if ENABLE(JAVASCRIPT_DEBUGGER)
+#if ENABLE(JAVASCRIPT_DEBUGGER) && USE(JSC)
     JavaScriptCallFrame* currentCallFrame() const;
 #endif
 #if ENABLE(DATABASE)
@@ -81,10 +83,10 @@ public:
 #if ENABLE(DOM_STORAGE)
     void selectDOMStorage(Storage* storage);
 #endif
-    void reportDidDispatchOnInjectedScript(long callId, const String& result, bool isException);
+    void reportDidDispatchOnInjectedScript(long callId, SerializedScriptValue* result, bool isException);
 
-    ScriptObject injectedScriptFor(ScriptState*);
-    ScriptObject injectedScriptForId(long);
+    InjectedScript injectedScriptFor(ScriptState*);
+    InjectedScript injectedScriptForId(long);
     void discardInjectedScripts();
     void releaseWrapperObjectGroup(long injectedScriptId, const String& objectGroup);
 
@@ -93,12 +95,10 @@ private:
     InspectorDOMAgent* inspectorDOMAgent();
     InspectorFrontend* inspectorFrontend();
 
-    void releaseWrapperObjectGroup(const ScriptObject& injectedScript, const String& objectGroup);
-
     InspectorController* m_inspectorController;
     String m_injectedScriptSource;
     long m_nextInjectedScriptId;
-    typedef HashMap<long, ScriptObject> IdToInjectedScriptMap;
+    typedef HashMap<long, InjectedScript> IdToInjectedScriptMap;
     IdToInjectedScriptMap m_idToInjectedScript;
 };
 

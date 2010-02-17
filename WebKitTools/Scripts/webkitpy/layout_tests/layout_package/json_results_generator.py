@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2010 The Chromium Authors. All rights reserved.
+# Copyright (C) 2010 Google Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -11,7 +11,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the Chromium name nor the names of its
+#     * Neither the name of Google Inc. nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -29,18 +29,14 @@
 
 import logging
 import os
+import simplejson
 import subprocess
 import sys
 import time
 import urllib2
 import xml.dom.minidom
 
-from layout_package import path_utils
 from layout_package import test_expectations
-
-sys.path.append(path_utils.path_from_base('third_party', 'WebKit', 
-                                          'WebKitTools')) 
-import simplejson
 
 
 class JSONResultsGenerator(object):
@@ -80,7 +76,7 @@ class JSONResultsGenerator(object):
 
     RESULTS_FILENAME = "results.json"
 
-    def __init__(self, builder_name, build_name, build_number,
+    def __init__(self, port, builder_name, build_name, build_number,
         results_file_base_path, builder_base_url,
         test_timings, failures, passed_tests, skipped_tests, all_tests):
         """Modifies the results.json file. Grabs it off the archive directory
@@ -100,6 +96,7 @@ class JSONResultsGenerator(object):
           all_tests: List of all the tests that were run.  This should not
               include skipped tests.
         """
+        self._port = port
         self._builder_name = builder_name
         self._build_name = build_name
         self._build_number = build_number
@@ -122,22 +119,24 @@ class JSONResultsGenerator(object):
             results_file.write(json)
             results_file.close()
 
-    def _get_svn_revision(self, in_directory=None):
+    def _get_svn_revision(self, in_directory):
         """Returns the svn revision for the given directory.
 
         Args:
           in_directory: The directory where svn is to be run.
         """
-        output = subprocess.Popen(["svn", "info", "--xml"],
-                                  cwd=in_directory,
-                                  shell=(sys.platform == 'win32'),
-                                  stdout=subprocess.PIPE).communicate()[0]
-        try:
-            dom = xml.dom.minidom.parseString(output)
-            return dom.getElementsByTagName('entry')[0].getAttribute(
-                'revision')
-        except xml.parsers.expat.ExpatError:
-            return ""
+        if os.path.exists(os.path.join(in_directory, '.svn')):
+            output = subprocess.Popen(["svn", "info", "--xml"],
+                                      cwd=in_directory,
+                                      shell=(sys.platform == 'win32'),
+                                      stdout=subprocess.PIPE).communicate()[0]
+            try:
+                dom = xml.dom.minidom.parseString(output)
+                return dom.getElementsByTagName('entry')[0].getAttribute(
+                    'revision')
+            except xml.parsers.expat.ExpatError:
+                return ""
+        return ""
 
     def _get_archived_json_results(self):
         """Reads old results JSON file if it exists.
@@ -305,16 +304,19 @@ class JSONResultsGenerator(object):
         self._insert_item_into_raw_list(results_for_builder,
             self._build_number, self.BUILD_NUMBERS)
 
-        path_to_webkit = path_utils.path_from_base('third_party', 'WebKit',
-                                                   'WebCore')
-        self._insert_item_into_raw_list(results_for_builder,
-            self._get_svn_revision(path_to_webkit),
-            self.WEBKIT_SVN)
+        # These next two branches test to see which source repos we can
+        # pull revisions from.
+        if hasattr(self._port, 'path_from_webkit_base'):
+            path_to_webkit = self._port.path_from_webkit_base()
+            self._insert_item_into_raw_list(results_for_builder,
+                self._get_svn_revision(path_to_webkit),
+                self.WEBKIT_SVN)
 
-        path_to_chrome_base = path_utils.path_from_base()
-        self._insert_item_into_raw_list(results_for_builder,
-            self._get_svn_revision(path_to_chrome_base),
-            self.CHROME_SVN)
+        if hasattr(self._port, 'path_from_chromium_base'):
+            path_to_chrome = self._port.path_from_chromium_base()
+            self._insert_item_into_raw_list(results_for_builder,
+                self._get_svn_revision(path_to_chrome),
+                self.CHROME_SVN)
 
         self._insert_item_into_raw_list(results_for_builder,
             int(time.time()),

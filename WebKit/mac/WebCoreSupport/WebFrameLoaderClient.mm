@@ -1484,15 +1484,19 @@ public:
     {
     }
     
-    virtual void handleEvent(Event*)
+    virtual void handleEvent(Event* event)
     {
         Frame* frame = Frame::frameForWidget(this);
         if (!frame)
             return;
         
-        NSEvent* event = frame->eventHandler()->currentNSEvent();
-        if ([event type] == NSMouseMoved)
-            [(WebBaseNetscapePluginView *)platformWidget() handleMouseMoved:event];
+        NSEvent* currentNSEvent = frame->eventHandler()->currentNSEvent();
+        if (event->type() == eventNames().mousemoveEvent)
+            [(WebBaseNetscapePluginView *)platformWidget() handleMouseMoved:currentNSEvent];
+        else if (event->type() == eventNames().mouseoverEvent)
+            [(WebBaseNetscapePluginView *)platformWidget() handleMouseEntered:currentNSEvent];
+        else if (event->type() == eventNames().mouseoutEvent)
+            [(WebBaseNetscapePluginView *)platformWidget() handleMouseExited:currentNSEvent];
     }
     
 };

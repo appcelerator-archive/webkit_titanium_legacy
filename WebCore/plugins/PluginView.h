@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2006, 2007, 2008, 2009, 2010 Apple Inc. All rights reserved.
  * Copyright (C) 2008 Collabora Ltd. All rights reserved.
  * Copyright (C) 2009 Girish Ramakrishnan <girish@forwardbias.in>
  *
@@ -25,15 +25,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef PluginView_H
-#define PluginView_H
+#ifndef PluginView_h
+#define PluginView_h
 
 #include "CString.h"
 #include "FrameLoadRequest.h"
 #include "HaltablePlugin.h"
 #include "IntRect.h"
-#include "KURL.h"
-#include "PlatformString.h"
+#include "MediaCanStartListener.h"
 #include "PluginStream.h"
 #include "ResourceRequest.h"
 #include "Timer.h"
@@ -112,7 +111,7 @@ namespace WebCore {
         virtual void didFail(const ResourceError&) = 0;
     };
 
-    class PluginView : public Widget, private PluginStreamClient, public PluginManualLoader, private HaltablePlugin {
+    class PluginView : public Widget, private PluginStreamClient, public PluginManualLoader, private HaltablePlugin, private MediaCanStartListener {
     public:
         static PassRefPtr<PluginView> create(Frame* parentFrame, const IntSize&, Element*, const KURL&, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually);
         virtual ~PluginView();
@@ -179,7 +178,7 @@ namespace WebCore {
 
         virtual bool isPluginView() const { return true; }
 
-        Frame* parentFrame() const { return m_parentFrame; }
+        Frame* parentFrame() const { return m_parentFrame.get(); }
 
         void focusPluginElement();
 
@@ -213,6 +212,9 @@ namespace WebCore {
 
         bool start();
 
+        static void keepAlive(NPP);
+        void keepAlive();
+
     private:
         PluginView(Frame* parentFrame, const IntSize&, PluginPackage*, Element*, const KURL&, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually);
 
@@ -232,13 +234,15 @@ namespace WebCore {
 
         void invalidateWindowlessPluginRect(const IntRect&);
 
+        virtual void mediaCanStart();
+
 #if OS(WINDOWS) && ENABLE(NETSCAPE_PLUGIN_API)
         void paintWindowedPluginIntoContext(GraphicsContext*, const IntRect&);
         static HDC WINAPI hookedBeginPaint(HWND, PAINTSTRUCT*);
         static BOOL WINAPI hookedEndPaint(HWND, const PAINTSTRUCT*);
 #endif
 
-        Frame* m_parentFrame;
+        RefPtr<Frame> m_parentFrame;
         RefPtr<PluginPackage> m_plugin;
         Element* m_element;
         bool m_isStarted;
@@ -256,6 +260,9 @@ namespace WebCore {
 
         void popPopupsStateTimerFired(Timer<PluginView>*);
         Timer<PluginView> m_popPopupsStateTimer;
+
+        void lifeSupportTimerFired(Timer<PluginView>*);
+        Timer<PluginView> m_lifeSupportTimer;
 
 #ifndef NP_NO_CARBON
         bool dispatchNPEvent(NPEvent&);
@@ -326,7 +333,7 @@ public:
 
 private:
 
-#if defined(XP_UNIX) || PLATFORM(SYMBIAN)
+#if defined(XP_UNIX) || OS(SYMBIAN)
         void setNPWindowIfNeeded();
 #elif defined(XP_MACOSX)
         NP_CGContext m_npCgContext;

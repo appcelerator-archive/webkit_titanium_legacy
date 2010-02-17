@@ -30,7 +30,8 @@ module window {
 
     interface [OmitConstructor] Console {
 
-#if defined(ENABLE_JAVASCRIPT_DEBUGGER) && ENABLE_JAVASCRIPT_DEBUGGER
+        // Not enabled in V8 because it requires request-reply style.
+#if defined(ENABLE_JAVASCRIPT_DEBUGGER) && ENABLE_JAVASCRIPT_DEBUGGER && !(defined(V8_BINDING) && V8_BINDING)
         readonly attribute [CustomGetter] Array profiles;
 #endif
     
@@ -50,9 +51,9 @@ module window {
         [DontEnum] DOMString lastWMLErrorMessage();
 #endif
 
-#if defined(ENABLE_JAVASCRIPT_DEBUGGER) && ENABLE_JAVASCRIPT_DEBUGGER || defined(V8_BINDING) && V8_BINDING
-        [Custom] void profile(in [ConvertUndefinedOrNullToNullString] DOMString title);
-        [Custom] void profileEnd(in [ConvertUndefinedOrNullToNullString] DOMString title);
+#if defined(ENABLE_JAVASCRIPT_DEBUGGER) && ENABLE_JAVASCRIPT_DEBUGGER
+        [CustomArgumentHandling] void profile(in [ConvertUndefinedOrNullToNullString] DOMString title);
+        [CustomArgumentHandling] void profileEnd(in [ConvertUndefinedOrNullToNullString] DOMString title);
 #endif
 
         void time(in [ConvertUndefinedOrNullToNullString] DOMString title);

@@ -111,6 +111,7 @@ RenderObject* RenderObject::createObject(Node* node, RenderStyle* style)
         return image;
     }
 
+#if ENABLE(RUBY)
     if (node->hasTagName(rubyTag)) {
         if (style->display() == INLINE)
             return new (arena) RenderRubyAsInline(node);
@@ -120,6 +121,7 @@ RenderObject* RenderObject::createObject(Node* node, RenderStyle* style)
     // treat <rt> as ruby text ONLY if it still has its default treatment of block
     if (node->hasTagName(rtTag) && style->display() == BLOCK)
         return new (arena) RenderRubyText(node); 
+#endif
 
     switch (style->display()) {
         case NONE:
@@ -1683,6 +1685,15 @@ void RenderObject::styleDidChange(StyleDifference diff, const RenderStyle* oldSt
     
     if (diff == StyleDifferenceLayout) {
         RenderCounter::rendererStyleChanged(this, oldStyle, m_style.get());
+
+        // If the object already needs layout, then setNeedsLayout won't do
+        // any work. But if the containing block has changed, then we may need
+        // to mark the new containing blocks for layout. The change that can
+        // directly affect the containing block of this object is a change to
+        // the position style.
+        if (m_needsLayout && oldStyle->position() != m_style->position())
+            markContainingBlocksForLayout();
+
         setNeedsLayoutAndPrefWidthsRecalc();
     } else if (diff == StyleDifferenceLayoutPositionedMovementOnly)
         setNeedsPositionedMovementLayout();
@@ -1751,6 +1762,11 @@ void RenderObject::mapLocalToContainer(RenderBoxModelObject* repaintContainer, b
     if (!o)
         return;
 
+    IntSize columnOffset;
+    o->adjustForColumns(columnOffset, roundedIntPoint(transformState.mappedPoint()));
+    if (!columnOffset.isZero())
+        transformState.move(columnOffset);
+
     if (o->hasOverflowClip())
         transformState.move(-toRenderBox(o)->layer()->scrolledContentOffset());
 
@@ -1807,18 +1823,23 @@ void RenderObject::getTransformFromContainer(const RenderObject* containerObject
 
 FloatQuad RenderObject::localToContainerQuad(const FloatQuad& localQuad, RenderBoxModelObject* repaintContainer, bool fixed) const
 {
-    TransformState transformState(TransformState::ApplyTransformDirection, FloatPoint(), &localQuad);
+    // Track the point at the center of the quad's bounding box. As mapLocalToContainer() calls offsetFromContainer(),
+    // it will use that point as the reference point to decide which column's transform to apply in multiple-column blocks.
+    TransformState transformState(TransformState::ApplyTransformDirection, localQuad.boundingBox().center(), &localQuad);
     mapLocalToContainer(repaintContainer, fixed, true, transformState);
     transformState.flatten();
     
     return transformState.lastPlanarQuad();
 }
 
-IntSize RenderObject::offsetFromContainer(RenderObject* o) const
+IntSize RenderObject::offsetFromContainer(RenderObject* o, const IntPoint& point) const
 {
     ASSERT(o == container());
 
     IntSize offset;
+
+    o->adjustForColumns(offset, point);
+
     if (o->hasOverflowClip())
         offset -= toRenderBox(o)->layer()->scrolledContentOffset();
 
@@ -1828,6 +1849,7 @@ IntSize RenderObject::offsetFromContainer(RenderObject* o) const
 IntSize RenderObject::offsetFromAncestorContainer(RenderObject* container) const
 {
     IntSize offset;
+    IntPoint referencePoint;
     const RenderObject* currContainer = this;
     do {
         RenderObject* nextContainer = currContainer->container();
@@ -1835,7 +1857,9 @@ IntSize RenderObject::offsetFromAncestorContainer(RenderObject* container) const
         if (!nextContainer)
             break;
         ASSERT(!currContainer->hasTransform());
-        offset += currContainer->offsetFromContainer(nextContainer);
+        IntSize currentOffset = currContainer->offsetFromContainer(nextContainer, referencePoint);
+        offset += currentOffset;
+        referencePoint.move(currentOffset);
         currContainer = nextContainer;
     } while (currContainer != container);
 
@@ -2520,25 +2544,16 @@ FloatRect RenderObject::repaintRectInLocalCoordinates() const
     return FloatRect();
 }
 
-TransformationMatrix RenderObject::localTransform() const
+AffineTransform RenderObject::localTransform() const
 {
-    static const TransformationMatrix identity;
+    static const AffineTransform identity;
     return identity;
 }
 
-const TransformationMatrix& RenderObject::localToParentTransform() const
+const AffineTransform& RenderObject::localToParentTransform() const
 {
-    static const TransformationMatrix identity;
+    static const AffineTransform identity;
     return identity;
-}
-
-TransformationMatrix RenderObject::absoluteTransform() const
-{
-    // FIXME: This should use localToParentTransform(), but much of the SVG code
-    // depends on RenderBox::absoluteTransform() being the sum of the localTransform()s of all parent renderers.
-    if (parent())
-        return localTransform() * parent()->absoluteTransform();
-    return localTransform();
 }
 
 bool RenderObject::nodeAtFloatPoint(const HitTestRequest&, HitTestResult&, const FloatPoint&, HitTestAction)

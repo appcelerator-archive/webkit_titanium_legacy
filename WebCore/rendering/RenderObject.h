@@ -26,6 +26,7 @@
 #ifndef RenderObject_h
 #define RenderObject_h
 
+#include "AffineTransform.h"
 #include "CachedResourceClient.h"
 #include "Document.h"
 #include "Element.h"
@@ -282,10 +283,12 @@ public:
     virtual bool isRenderPart() const { return false; }
     virtual bool isRenderView() const { return false; }
     virtual bool isReplica() const { return false; }
+#if ENABLE(RUBY)
     virtual bool isRuby() const { return false; }
     virtual bool isRubyBase() const { return false; }
     virtual bool isRubyRun() const { return false; }
     virtual bool isRubyText() const { return false; }
+#endif
     virtual bool isSlider() const { return false; }
     virtual bool isTable() const { return false; }
     virtual bool isTableCell() const { return false; }
@@ -347,16 +350,11 @@ public:
     // FIXME: This accessor is deprecated and mostly around for SVGRenderTreeAsText.
     // This only returns the transform="" value from the element
     // most callsites want localToParentTransform() instead.
-    virtual TransformationMatrix localTransform() const;
+    virtual AffineTransform localTransform() const;
 
     // Returns the full transform mapping from local coordinates to local coords for the parent SVG renderer
     // This includes any viewport transforms and x/y offsets as well as the transform="" value off the element.
-    virtual const TransformationMatrix& localToParentTransform() const;
-
-    // Walks up the parent chain to create a transform which maps from local to document coords
-    // NOTE: This method is deprecated!  It doesn't respect scroll offsets or repaint containers.
-    // FIXME: This is only virtual so that RenderSVGHiddenContainer can override it to match old LayoutTest results.
-    virtual TransformationMatrix absoluteTransform() const;
+    virtual const AffineTransform& localToParentTransform() const;
 
     // SVG uses FloatPoint precise hit testing, and passes the point in parent
     // coordinates instead of in repaint container coordinates.  Eventually the
@@ -564,8 +562,9 @@ public:
     // Convert a local quad into the coordinate system of container, taking transforms into account.
     FloatQuad localToContainerQuad(const FloatQuad&, RenderBoxModelObject* repaintContainer, bool fixed = false) const;
 
-    // Return the offset from the container() renderer (excluding transforms)
-    virtual IntSize offsetFromContainer(RenderObject*) const;
+    // Return the offset from the container() renderer (excluding transforms). In multi-column layout,
+    // different offsets apply at different points, so return the offset that applies to the given point.
+    virtual IntSize offsetFromContainer(RenderObject*, const IntPoint&) const;
     // Return the offset from an object up the container() chain. Asserts that none of the intermediate objects have transforms.
     IntSize offsetFromAncestorContainer(RenderObject*) const;
     
@@ -643,6 +642,10 @@ public:
     // Given a rect in the object's coordinate space, compute a rect suitable for repainting
     // that rect in the coordinate space of repaintContainer.
     virtual void computeRectForRepaint(RenderBoxModelObject* repaintContainer, IntRect&, bool fixed = false);
+
+    // If multiple-column layout results in applying an offset to the given point, add the same
+    // offset to the given size.
+    virtual void adjustForColumns(IntSize&, const IntPoint&) const { }
 
     virtual unsigned int length() const { return 1; }
 

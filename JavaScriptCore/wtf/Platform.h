@@ -417,6 +417,13 @@
 #define WTF_PLATFORM_HAIKU 1
 #elif defined(BUILDING_BREWMP__)
 #define WTF_PLATFORM_BREWMP 1
+#if defined(AEE_SIMULATOR)
+#define WTF_PLATFORM_BREWMP_SIMULATOR 1
+#else
+#define WTF_PLATFORM_BREWMP_SIMULATOR 0
+#endif
+#undef WTF_OS_WINDOWS
+#undef WTF_PLATFORM_WIN
 #elif OS(DARWIN)
 #define WTF_PLATFORM_MAC 1
 #elif OS(WINDOWS)
@@ -619,6 +626,10 @@
 #define HAVE_PTHREAD_RWLOCK 1
 #define USE_SYSTEM_MALLOC 1
 #define ENABLE_NETSCAPE_PLUGIN_API 0
+#endif
+
+#if PLATFORM(BREWMP)
+#define USE_SYSTEM_MALLOC 1
 #endif
 
 #if !defined(HAVE_ACCESSIBILITY)
@@ -850,7 +861,7 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
     #define ENABLE_JIT 1
 #endif
 
-#if PLATFORM(QT)
+#if PLATFORM(QT) || PLATFORM(WX)
 #if CPU(X86_64) && OS(DARWIN)
     #define ENABLE_JIT 1
 #elif CPU(X86) && OS(DARWIN)
@@ -874,6 +885,13 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 
 #endif /* !defined(ENABLE_JIT) */
 
+/* CPU architecture specific optimizations */
+#if CPU(ARM_TRADITIONAL)
+#if ENABLE(JIT) && !defined(ENABLE_JIT_OPTIMIZE_MOD) && WTF_ARM_ARCH_AT_LEAST(5)
+#define ENABLE_JIT_OPTIMIZE_MOD 1
+#endif
+#endif
+
 #if ENABLE(JIT)
 #ifndef ENABLE_JIT_OPTIMIZE_CALL
 #define ENABLE_JIT_OPTIMIZE_CALL 1
@@ -886,6 +904,9 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #endif
 #ifndef ENABLE_JIT_OPTIMIZE_METHOD_CALLS
 #define ENABLE_JIT_OPTIMIZE_METHOD_CALLS 1
+#endif
+#ifndef ENABLE_JIT_OPTIMIZE_MOD
+#define ENABLE_JIT_OPTIMIZE_MOD 0
 #endif
 #endif
 
@@ -914,7 +935,8 @@ on MinGW. See https://bugs.webkit.org/show_bug.cgi?id=29268 */
 #if (CPU(X86) && PLATFORM(MAC)) \
     || (CPU(X86_64) && PLATFORM(MAC)) \
     || (CPU(ARM_THUMB2) && PLATFORM(IPHONE)) \
-    || (CPU(X86) && PLATFORM(WIN))
+    || (CPU(X86) && PLATFORM(WIN)) \
+    || (CPU(X86) && PLATFORM(WX))
 #define ENABLE_YARR 1
 #define ENABLE_YARR_JIT 1
 #endif

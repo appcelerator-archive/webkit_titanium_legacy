@@ -213,6 +213,7 @@ INCLUDEPATH = \
     $$PWD/platform/graphics/qt \
     $$PWD/platform/network/qt \
     $$PWD/platform/qt \
+    $$PWD/../WebKit/qt/Api \
     $$PWD/../WebKit/qt/WebCoreSupport \
     $$INCLUDEPATH
 
@@ -338,14 +339,20 @@ SOURCES += \
     bindings/js/JSLazyEventListener.cpp \
     bindings/js/JSPluginElementFunctions.cpp \
     bindings/js/JSPopStateEventCustom.cpp \
+    bindings/js/JavaScriptProfile.h \
+    bindings/js/JavaScriptProfileNode.h \
+    bindings/js/JavaScriptProfile.cpp \
+    bindings/js/JavaScriptProfileNode.cpp \
     bindings/js/ScriptArray.cpp \
     bindings/js/ScriptCachedFrameData.cpp \
     bindings/js/ScriptCallFrame.cpp \
     bindings/js/ScriptCallStack.cpp \
     bindings/js/ScriptController.cpp \
+    bindings/js/ScriptDebugServer.cpp \
     bindings/js/ScriptEventListener.cpp \
     bindings/js/ScriptFunctionCall.cpp \
     bindings/js/ScriptObject.cpp \
+    bindings/js/ScriptProfiler.cpp \
     bindings/js/ScriptState.cpp \
     bindings/js/ScriptValue.cpp \
     bindings/js/ScheduledAction.cpp \
@@ -663,6 +670,7 @@ SOURCES += \
     html/PreloadScanner.cpp \
     html/ValidityState.cpp \
     inspector/ConsoleMessage.cpp \
+    inspector/InjectedScript.cpp \
     inspector/InjectedScriptHost.cpp \
     inspector/InspectorBackend.cpp \
     inspector/InspectorController.cpp \
@@ -862,6 +870,7 @@ SOURCES += \
     plugins/PluginView.cpp \
     rendering/AutoTableLayout.cpp \
     rendering/break_lines.cpp \
+    rendering/BidiRun.cpp \
     rendering/CounterNode.cpp \
     rendering/EllipsisBox.cpp \
     rendering/FixedTableLayout.cpp \
@@ -1354,6 +1363,7 @@ HEADERS += \
     html/TimeRanges.h \
     html/ValidityState.h \
     inspector/ConsoleMessage.h \
+    inspector/InjectedScript.h \
     inspector/InjectedScriptHost.h \
     inspector/InspectorBackend.h \
     inspector/InspectorController.h \
@@ -1365,8 +1375,6 @@ HEADERS += \
     inspector/InspectorTimelineAgent.h \
     inspector/JavaScriptCallFrame.h \
     inspector/JavaScriptDebugServer.h \
-    inspector/JavaScriptProfile.h \
-    inspector/JavaScriptProfileNode.h \
     inspector/TimelineRecordFactory.h \
     loader/appcache/ApplicationCacheGroup.h \
     loader/appcache/ApplicationCacheHost.h \
@@ -1996,7 +2004,7 @@ SOURCES += \
     platform/qt/FileSystemQt.cpp \
     platform/qt/SharedBufferQt.cpp \
     platform/graphics/qt/FontCacheQt.cpp \
-    platform/graphics/qt/FontCustomPlatformData.cpp \
+    platform/graphics/qt/FontCustomPlatformDataQt.cpp \
     platform/graphics/qt/GlyphPageTreeNodeQt.cpp \
     platform/graphics/qt/SimpleFontDataQt.cpp \
     platform/qt/KURLQt.cpp \
@@ -2622,8 +2630,6 @@ contains(DEFINES, ENABLE_JAVASCRIPT_DEBUGGER=1) {
         bindings/js/JSJavaScriptCallFrameCustom.cpp \
         inspector/JavaScriptCallFrame.cpp \
         inspector/JavaScriptDebugServer.cpp \
-        inspector/JavaScriptProfile.cpp \
-        inspector/JavaScriptProfileNode.cpp
 }
 
 contains(DEFINES, ENABLE_OFFLINE_WEB_APPLICATIONS=1) {
@@ -2660,37 +2666,40 @@ SOURCES += \
 }
 
 include($$PWD/../WebKit/qt/Api/headers.pri)
+include(../include/QtWebKit/classheaders.pri)
 HEADERS += $$WEBKIT_API_HEADERS
-CONFIG(standalone_package) {
+WEBKIT_INSTALL_HEADERS = $$WEBKIT_API_HEADERS $$WEBKIT_CLASS_HEADERS
 
-    !symbian {
-        target.path = $$[QT_INSTALL_LIBS]
-        INSTALLS += target
-    }
-
-    include($$PWD/../include/QtWebKit/headers.pri)
-    headers.files = $$SYNCQT.HEADER_FILES $$SYNCQT.HEADER_CLASSES
+!symbian {
+    headers.files = $$WEBKIT_INSTALL_HEADERS
     headers.path = $$[QT_INSTALL_HEADERS]/QtWebKit
-    INSTALLS += headers
-
-} else {
     target.path = $$[QT_INSTALL_LIBS]
-    headers.files = $$WEBKIT_API_HEADERS
-    headers.path = $$[QT_INSTALL_HEADERS]/QtWebKit
-
-    VERSION=$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}.$${QT_PATCH_VERSION}
-
-    win32-*|wince* {
-        DLLDESTDIR = $$OUTPUT_DIR/bin
-        TARGET = $$qtLibraryTarget($$TARGET)
-
-        dlltarget.commands = $(COPY_FILE) $(DESTDIR)$(TARGET) $$[QT_INSTALL_BINS]
-        dlltarget.CONFIG = no_path
-        INSTALLS += dlltarget
-    }
-
 
     INSTALLS += target headers
+} else {
+    # INSTALLS is not implemented in qmake's s60 generators, copy headers manually
+    inst_headers.commands = $$QMAKE_COPY ${QMAKE_FILE_NAME} ${QMAKE_FILE_OUT}
+    inst_headers.input = WEBKIT_INSTALL_HEADERS
+    inst_headers.output = $$[QT_INSTALL_HEADERS]/QtWebKit/${QMAKE_FILE_BASE}${QMAKE_FILE_EXT}
+    QMAKE_EXTRA_COMPILERS += inst_headers
+
+    install.depends += compiler_inst_headers_make_all
+    QMAKE_EXTRA_TARGETS += install
+}
+
+# Qt will set the version for us when building in Qt's tree
+!CONFIG(QTDIR_build): VERSION=$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}.$${QT_PATCH_VERSION}
+
+win32-*|wince* {
+    DLLDESTDIR = $$OUTPUT_DIR/bin
+    TARGET = $$qtLibraryTarget($$TARGET)
+
+    dlltarget.commands = $(COPY_FILE) $(DESTDIR_TARGET) $$[QT_INSTALL_BINS]
+    dlltarget.CONFIG = no_path
+    INSTALLS += dlltarget
+}
+
+!CONFIG(standalone_package) {
 
     unix {
         CONFIG += create_pc create_prl
@@ -2715,7 +2724,7 @@ CONFIG(standalone_package) {
 
             CONFIG += lib_bundle qt_no_framework_direct_includes qt_framework
             FRAMEWORK_HEADERS.version = Versions
-            FRAMEWORK_HEADERS.files = $$WEBKIT_API_HEADERS
+            FRAMEWORK_HEADERS.files = $${headers.files}
             FRAMEWORK_HEADERS.path = Headers
             QMAKE_BUNDLE_DATA += FRAMEWORK_HEADERS
         }

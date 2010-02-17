@@ -800,6 +800,8 @@ public:
     bool onUninitMenuPopup(WPARAM, LPARAM);
     void performContextMenuAction(WPARAM, LPARAM, bool byPosition);
     bool mouseWheel(WPARAM, LPARAM, bool isMouseHWheel);
+    bool verticalScroll(WPARAM, LPARAM);
+    bool horizontalScroll(WPARAM, LPARAM);
     bool gesture(WPARAM, LPARAM);
     bool gestureNotify(WPARAM, LPARAM);
     bool execCommand(WPARAM wParam, LPARAM lParam);
@@ -926,6 +928,8 @@ protected:
     LRESULT onIMERequestCharPosition(WebCore::Frame*, IMECHARPOSITION*);
     LRESULT onIMERequestReconvertString(WebCore::Frame*, RECONVERTSTRING*);
     bool developerExtrasEnabled() const;
+
+    bool shouldInitializeTrackPointHack();
 
     // AllWebViewSet functions
     void addToAllWebViewsSet();

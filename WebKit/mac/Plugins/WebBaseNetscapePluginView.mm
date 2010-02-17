@@ -232,6 +232,16 @@ String WebHaltablePlugin::pluginName() const
     ASSERT_NOT_REACHED();
 }
 
+- (void)handleMouseEntered:(NSEvent *)event
+{
+    ASSERT_NOT_REACHED();
+}
+
+- (void)handleMouseExited:(NSEvent *)event
+{
+    ASSERT_NOT_REACHED();
+}
+
 - (void)focusChanged
 {
     ASSERT_NOT_REACHED();
@@ -545,6 +555,12 @@ String WebHaltablePlugin::pluginName() const
     return _isHalted;
 }
 
+- (BOOL)shouldClipOutPlugin
+{
+    NSWindow *window = [self window];
+    return !window || [window isMiniaturized] || [NSApp isHidden] || ![self isDescendantOf:[[self window] contentView]] || [self isHiddenOrHasHiddenAncestor];
+}
+    
 - (BOOL)hasBeenHalted
 {
     return _hasBeenHalted;

@@ -601,7 +601,7 @@ void FrameView::layout(bool allowSubtree)
         RenderObject* rootRenderer = documentElement ? documentElement->renderer() : 0;
         Node* body = document->body();
         if (body && body->renderer()) {
-            if (body->hasTagName(framesetTag)) {
+            if (body->hasTagName(framesetTag) && !m_frame->settings()->frameSetFlatteningEnabled()) {
                 body->renderer()->setChildNeedsLayout(true);
                 vMode = ScrollbarAlwaysOff;
                 hMode = ScrollbarAlwaysOff;
@@ -618,9 +618,11 @@ void FrameView::layout(bool allowSubtree)
             if (documentElement->isSVGElement()) {
                 if (!m_firstLayout && (m_size.width() != layoutWidth() || m_size.height() != layoutHeight()))
                     rootRenderer->setChildNeedsLayout(true);
-            }
-#endif
+            } else
+                applyOverflowToViewport(rootRenderer, hMode, vMode);
+#else
             applyOverflowToViewport(rootRenderer, hMode, vMode);
+#endif
         }
 #ifdef INSTRUMENT_LAYOUT_SCHEDULING
         if (m_firstLayout && !document->ownerElement())
@@ -1137,6 +1139,11 @@ void FrameView::scheduleRelayout()
         return;
     if (!m_frame->document()->shouldScheduleLayout())
         return;
+
+    // When frameset flattening is enabled, the contents of the frame affects layout of the parent frames.
+    // Also invalidate parent frame starting from the owner element of this frame.
+    if (m_frame->settings()->frameSetFlatteningEnabled() && m_frame->ownerRenderer())
+        m_frame->ownerRenderer()->setNeedsLayout(true, true);
 
     int delay = m_frame->document()->minimumLayoutDelay();
     if (m_layoutTimer.isActive() && m_delayedLayout && !delay)

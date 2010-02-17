@@ -600,7 +600,7 @@ SYMBOL_STRING(ctiOpThrowNotCaught) ":" "\n"
     "ldr r5, [sp, #0x28]" "\n"
     "ldr r4, [sp, #0x24]" "\n"
     "ldr lr, [sp, #0x20]" "\n"
-    "add sp, sp, #0x3c" "\n"
+    "add sp, sp, #0x40" "\n"
     "bx lr" "\n"
 );
 
@@ -757,7 +757,7 @@ extern "C" {
 
 JITThunks::JITThunks(JSGlobalData* globalData)
 {
-    JIT::compileCTIMachineTrampolines(globalData, &m_executablePool, &m_ctiStringLengthTrampoline, &m_ctiVirtualCallLink, &m_ctiVirtualCall, &m_ctiNativeCallThunk);
+    JIT::compileCTIMachineTrampolines(globalData, &m_executablePool, &m_trampolineStructure);
 
 #if CPU(ARM_THUMB2)
     // Unfortunate the arm compiler does not like the use of offsetof on JITStackFrame (since it contains non POD types),
@@ -1070,9 +1070,9 @@ RVCT(__asm #rtype# cti_#op#(STUB_ARGS_DECLARATION))
 RVCT({)
 RVCT(    ARM)
 RVCT(    IMPORT JITStubThunked_#op#)
-RVCT(    str lr, [sp, #32])
+RVCT(    str lr, [sp, ##offset#])
 RVCT(    bl JITStubThunked_#op#)
-RVCT(    ldr lr, [sp, #32])
+RVCT(    ldr lr, [sp, ##offset#])
 RVCT(    bx lr)
 RVCT(})
 RVCT()
@@ -3023,7 +3023,7 @@ DEFINE_STUB_FUNCTION(void*, op_switch_char)
 
     if (scrutinee.isString()) {
         UString::Rep* value = asString(scrutinee)->value(callFrame).rep();
-        if (value->size() == 1)
+        if (value->length() == 1)
             result = codeBlock->characterSwitchJumpTable(tableIndex).ctiForValue(value->data()[0]).executableAddress();
     }
 

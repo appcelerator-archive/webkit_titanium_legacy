@@ -37,14 +37,12 @@
 #include "Notification.h"
 #include "NotificationCenter.h"
 #include "V8Binding.h"
-#include "V8CustomBinding.h"
 #include "V8CustomEventListener.h"
 #include "V8CustomVoidCallback.h"
 #include "V8Notification.h"
 #include "V8Proxy.h"
 #include "V8Utilities.h"
 #include "WorkerContext.h"
-#include "WorkerContextExecutionProxy.h"
 
 namespace WebCore {
 
@@ -92,10 +90,7 @@ v8::Handle<v8::Value> V8NotificationCenter::createHTMLNotificationCallback(const
     if (ec)
         return throwError(ec);
 
-    if (notificationCenter->context()->isWorkerContext())
-        return WorkerContextExecutionProxy::convertToV8Object(V8ClassIndex::NOTIFICATION, notification.get());
-
-    return V8DOMWrapper::convertToV8Object(V8ClassIndex::NOTIFICATION, notification.get());
+    return toV8(notification.get());
 }
 
 v8::Handle<v8::Value> V8NotificationCenter::createNotificationCallback(const v8::Arguments& args)
@@ -109,10 +104,7 @@ v8::Handle<v8::Value> V8NotificationCenter::createNotificationCallback(const v8:
     if (ec)
         return throwError(ec);
 
-    if (notificationCenter->context()->isWorkerContext())
-        return WorkerContextExecutionProxy::convertToV8Object(V8ClassIndex::NOTIFICATION, notification.get());
-
-    return V8DOMWrapper::convertToV8Object(V8ClassIndex::NOTIFICATION, notification.get());
+    return toV8(notification.get());
 }
 
 v8::Handle<v8::Value> V8NotificationCenter::requestPermissionCallback(const v8::Arguments& args)

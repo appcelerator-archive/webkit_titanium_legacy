@@ -33,7 +33,6 @@
 
 #include "Document.h"
 #include "V8Binding.h"
-#include "V8CustomBinding.h"
 #include "V8Proxy.h"
 
 #if ENABLE(DATAGRID)
@@ -57,7 +56,7 @@ NAMED_PROPERTY_GETTER(DataGridColumnList)
     DataGridColumn* result = imp->itemWithName(toWebCoreString(name));
     if (!result)
         return notHandledByInterceptor();
-    return V8DOMWrapper::convertToV8Object(V8ClassIndex::DATAGRIDCOLUMN, result);
+    return toV8(result);
 }
     
 } // namespace WebCore

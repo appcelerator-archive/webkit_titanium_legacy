@@ -138,7 +138,10 @@ namespace WebCore {
 
     class DOMWrapperWorld : public RefCounted<DOMWrapperWorld> {
     public:
-        DOMWrapperWorld(JSC::JSGlobalData*, bool isNormal);
+        static PassRefPtr<DOMWrapperWorld> create(JSC::JSGlobalData* globalData, bool isNormal)
+        {
+            return adoptRef(new DOMWrapperWorld(globalData, isNormal));
+        }
         ~DOMWrapperWorld();
 
         void rememberDocument(Document* document) { documentsWithWrappers.add(document); }
@@ -149,6 +152,9 @@ namespace WebCore {
         JSStringCache m_stringCache;
 
         bool isNormal() const { return m_isNormal; }
+
+    protected:
+        DOMWrapperWorld(JSC::JSGlobalData*, bool isNormal);
 
     private:
         JSC::JSGlobalData* m_globalData;
@@ -185,13 +191,21 @@ namespace WebCore {
 
     public:
         WebCoreJSClientData(JSC::JSGlobalData* globalData)
-            : m_normalWorld(globalData, true)
+            : m_normalWorld(DOMWrapperWorld::create(globalData, true))
         {
-            m_worldSet.add(&m_normalWorld);
+            m_worldSet.add(m_normalWorld.get());
         }
-        // FIXME: add a destructor to assert m_worldSet only contains m_normalWorld?
 
-        DOMWrapperWorld* normalWorld() { return &m_normalWorld; }
+        virtual ~WebCoreJSClientData()
+        {
+            ASSERT(m_worldSet.contains(m_normalWorld.get()));
+            ASSERT(m_worldSet.size() == 1);
+            ASSERT(m_normalWorld->hasOneRef());
+            m_normalWorld.clear();
+            ASSERT(m_worldSet.isEmpty());
+        }
+
+        DOMWrapperWorld* normalWorld() { return m_normalWorld.get(); }
 
         void getAllWorlds(Vector<DOMWrapperWorld*>& worlds)
         {
@@ -212,7 +226,7 @@ namespace WebCore {
         DOMObjectHashTableMap hashTableMap;
     private:
         HashSet<DOMWrapperWorld*> m_worldSet;
-        DOMWrapperWorld m_normalWorld;
+        RefPtr<DOMWrapperWorld> m_normalWorld;
     };
 
     DOMObject* getCachedDOMObjectWrapper(JSC::ExecState*, void* objectHandle);

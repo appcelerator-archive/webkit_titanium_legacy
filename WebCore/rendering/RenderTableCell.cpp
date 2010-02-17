@@ -154,11 +154,11 @@ void RenderTableCell::setOverrideSize(int size)
     RenderBlock::setOverrideSize(size);
 }
 
-IntSize RenderTableCell::offsetFromContainer(RenderObject* o) const
+IntSize RenderTableCell::offsetFromContainer(RenderObject* o, const IntPoint& point) const
 {
     ASSERT(o == container());
 
-    IntSize offset = RenderBlock::offsetFromContainer(o);
+    IntSize offset = RenderBlock::offsetFromContainer(o, point);
     if (parent())
         offset.expand(-parentBox()->x(), -parentBox()->y());
 
@@ -629,6 +629,9 @@ int RenderTableCell::borderHalfBottom(bool outer) const
 void RenderTableCell::paint(PaintInfo& paintInfo, int tx, int ty)
 {
     if (paintInfo.phase == PaintPhaseCollapsedTableBorders && style()->visibility() == VISIBLE) {
+        if (!shouldPaintWithinRoot(paintInfo))
+            return;
+
         tx += x();
         ty += y();
         int os = 2 * maximalOutlineSize(paintInfo.phase);
@@ -787,6 +790,9 @@ void RenderTableCell::paintCollapsedBorder(GraphicsContext* graphicsContext, int
 
 void RenderTableCell::paintBackgroundsBehindCell(PaintInfo& paintInfo, int tx, int ty, RenderObject* backgroundObject)
 {
+    if (!shouldPaintWithinRoot(paintInfo))
+        return;
+
     if (!backgroundObject)
         return;
 
@@ -826,6 +832,9 @@ void RenderTableCell::paintBackgroundsBehindCell(PaintInfo& paintInfo, int tx, i
 
 void RenderTableCell::paintBoxDecorations(PaintInfo& paintInfo, int tx, int ty)
 {
+    if (!shouldPaintWithinRoot(paintInfo))
+        return;
+
     RenderTable* tableElt = table();
     if (!tableElt->collapseBorders() && style()->emptyCells() == HIDE && !firstChild())
         return;

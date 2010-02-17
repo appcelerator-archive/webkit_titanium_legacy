@@ -2,7 +2,7 @@ AC_PREREQ(2.59)
 
 m4_define([webkit_major_version], [1])
 m4_define([webkit_minor_version], [1])
-m4_define([webkit_micro_version], [19])
+m4_define([webkit_micro_version], [22])
 
 # This is the version we'll be using as part of our User-Agent string
 # e.g., AppleWebKit/$(webkit_user_agent_version) ...
@@ -35,7 +35,7 @@ AC_CONFIG_SRCDIR([WebCore/config.h])
 
 dnl # Libtool library version, not to confuse with API version
 dnl # see http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html#Libtool-versioning
-LIBWEBKITGTK_VERSION=16:1:14
+LIBWEBKITGTK_VERSION=17:1:15
 AC_SUBST([LIBWEBKITGTK_VERSION])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects tar-ustar])
@@ -131,12 +131,19 @@ fi
 AC_SUBST([JPEG_LIBS])
 
 # Check for libpng the way Gtk+ does it
-AC_MSG_CHECKING(for libpng12)
-if $PKG_CONFIG --exists libpng12 ; then
+for l in libpng libpng14 libpng12; do
+  AC_MSG_CHECKING(for $l)
+  if $PKG_CONFIG --exists $l ; then
     AC_MSG_RESULT(yes)
-    PNG_LIBS=`$PKG_CONFIG --libs libpng12`
-else
-  AC_MSG_RESULT(no)
+    PNG_LIBS=`$PKG_CONFIG --libs $l`
+    png_ok=yes
+    break
+  else
+    AC_MSG_RESULT(no)
+    png_ok=no
+  fi
+done
+if test "$png_ok" != yes; then
   AC_CHECK_LIB(png, png_read_info,
     [AC_CHECK_HEADER(png.h,
       png_ok=yes,
@@ -155,7 +162,7 @@ else
       AC_MSG_ERROR([PNG library (libpng) not found])
     fi
   else
-   AC_MSG_ERROR([PNG library (libpng) not found])
+    AC_MSG_ERROR([PNG library (libpng) not found])
   fi
 fi
 AC_SUBST([PNG_LIBS])
@@ -204,6 +211,7 @@ GTK_REQUIRED_VERSION=2.10
 LIBXSLT_REQUIRED_VERSION=1.1.7
 SQLITE_REQUIRED_VERSION=3.0
 GSTREAMER_REQUIRED_VERSION=0.10
+GSTREAMER_PLUGINS_BASE_REQUIRED_VERSION=0.10.23
 ENCHANT_REQUIRED_VERSION=0.22
 GAIL_REQUIRED_VERSION=1.8
 
@@ -370,6 +378,22 @@ AC_ARG_ENABLE(datalist,
                              [enable HTML5 datalist support [default=yes]]),
               [],[enable_datalist="yes"])
 AC_MSG_RESULT([$enable_datalist])
+
+# check whether to enable HTML5 ruby support
+AC_MSG_CHECKING([whether to enable HTML5 ruby support])
+AC_ARG_ENABLE(ruby,
+              AC_HELP_STRING([--enable-ruby],
+                             [enable HTML5 ruby support [default=yes]]),
+              [],[enable_ruby="yes"])
+AC_MSG_RESULT([$enable_ruby])
+
+# check whether to enable HTML5 ruby support
+AC_MSG_CHECKING([whether to enable HTML5 ruby support])
+AC_ARG_ENABLE(ruby,
+              AC_HELP_STRING([--enable-ruby],
+                             [enable HTML5 ruby support [default=yes]]),
+              [],[enable_ruby="yes"])
+AC_MSG_RESULT([$enable_ruby])
 
 # check whether to enable HTML5 audio/video support
 AC_MSG_CHECKING([whether to enable HTML5 video support])
@@ -643,13 +667,13 @@ PKG_CHECK_MODULES([LIBSOUP],
 AC_SUBST([LIBSOUP_CFLAGS])
 AC_SUBST([LIBSOUP_LIBS])
 
-# check if we can use libSoup 2.29.3 features
-PKG_CHECK_MODULES([LIBSOUP_2_29_3],
-                  [libsoup-2.4 >= 2.29.3],
-                  [have_libsoup_2_29_3=yes],
-                  [have_libsoup_2_29_3=no])
-if test "$have_libsoup_2_29_3" = "yes"; then
-   AC_DEFINE([HAVE_LIBSOUP_2_29_3], 1, [Whether libSoup 2.29.3 features are available])
+# check if we can use libSoup 2.29.90 features
+PKG_CHECK_MODULES([LIBSOUP_2_29_90],
+                  [libsoup-2.4 >= 2.29.90],
+                  [have_libsoup_2_29_90=yes],
+                  [have_libsoup_2_29_90=no])
+if test "$have_libsoup_2_29_90" = "yes"; then
+   AC_DEFINE([HAVE_LIBSOUP_2_29_90], 1, [Whether libSoup 2.29.90 features are available])
 fi
 
 # check if FreeType/FontConfig are available
@@ -704,9 +728,10 @@ fi
 if test "$enable_video" = "yes"; then
    PKG_CHECK_MODULES([GSTREAMER],
                      [gstreamer-0.10 >= $GSTREAMER_REQUIRED_VERSION
+                     gstreamer-app-0.10
                      gstreamer-base-0.10
                      gstreamer-pbutils-0.10
-                     gstreamer-plugins-base-0.10
+                     gstreamer-plugins-base-0.10 >= $GSTREAMER_PLUGINS_BASE_REQUIRED_VERSION
                      gstreamer-video-0.10])
    AC_SUBST([GSTREAMER_CFLAGS])
    AC_SUBST([GSTREAMER_LIBS])
@@ -766,6 +791,7 @@ AM_CONDITIONAL([ENABLE_XSLT],[test "$enable_xslt" = "yes"])
 AM_CONDITIONAL([ENABLE_FILTERS],[test "$enable_filters" = "yes"])
 AM_CONDITIONAL([ENABLE_GEOLOCATION], [test "$enable_geolocation" = "yes"])
 AM_CONDITIONAL([ENABLE_MATHML], [test "$enable_mathml" = "yes"])
+AM_CONDITIONAL([ENABLE_RUBY],[test "$enable_ruby" = "yes"])
 AM_CONDITIONAL([ENABLE_VIDEO],[test "$enable_video" = "yes"])
 AM_CONDITIONAL([ENABLE_NOTIFICATIONS],[test "$enable_notifications" = "yes"])
 AM_CONDITIONAL([ENABLE_ORIENTATION_EVENTS],[test "$enable_orientation_events" = "yes"])
@@ -820,6 +846,7 @@ Features:
  HTML5 channel messaging support                          : $enable_channel_messaging
  HTML5 client-side session and persistent storage support : $enable_dom_storage
  HTML5 client-side database storage support               : $enable_database
+ HTML5 ruby support                                       : $enable_ruby
  HTML5 server-sent events support                         : $enable_eventsource
  HTML5 video element support                              : $enable_video
  Icon database support                                    : $enable_icon_database

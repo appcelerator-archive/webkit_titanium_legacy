@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2010 The Chromium Authors. All rights reserved.
+# Copyright (C) 2010 Google Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -11,7 +11,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the Chromium name nor the names of its
+#     * Neither the name of Google Inc. nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -36,7 +36,6 @@ under that directory."""
 
 import glob
 import os
-import path_utils
 
 # When collecting test cases, we include any file with these extensions.
 _supported_file_extensions = set(['.html', '.shtml', '.xml', '.xhtml', '.pl',
@@ -45,7 +44,7 @@ _supported_file_extensions = set(['.html', '.shtml', '.xml', '.xhtml', '.pl',
 _skipped_directories = set(['.svn', '_svn', 'resources', 'script-tests'])
 
 
-def gather_test_files(paths):
+def gather_test_files(port, paths):
     """Generate a set of test files and return them.
 
     Args:
@@ -57,14 +56,14 @@ def gather_test_files(paths):
     if paths:
         for path in paths:
             # If there's an * in the name, assume it's a glob pattern.
-            path = os.path.join(path_utils.layout_tests_dir(), path)
+            path = os.path.join(port.layout_tests_dir(), path)
             if path.find('*') > -1:
                 filenames = glob.glob(path)
                 paths_to_walk.update(filenames)
             else:
                 paths_to_walk.add(path)
     else:
-        paths_to_walk.add(path_utils.layout_tests_dir())
+        paths_to_walk.add(port.layout_tests_dir())
 
     # Now walk all the paths passed in on the command line and get filenames
     test_files = set()

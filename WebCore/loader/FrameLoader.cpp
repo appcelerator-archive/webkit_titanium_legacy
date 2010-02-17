@@ -450,7 +450,7 @@ void FrameLoader::submitForm(const char* action, const String& url, PassRefPtr<F
     if (u.isEmpty())
         return;
 
-    if (isSandboxed(SandboxForms))
+    if (isDocumentSandboxed(SandboxForms))
         return;
 
     if (protocolIsJavaScript(u)) {
@@ -463,7 +463,9 @@ void FrameLoader::submitForm(const char* action, const String& url, PassRefPtr<F
     FrameLoadRequest frameRequest;
 
     String targetOrBaseTarget = target.isEmpty() ? m_frame->document()->baseTarget() : target;
-    Frame* targetFrame = findFrameForNavigation(targetOrBaseTarget);
+    Frame* targetFrame = m_frame->tree()->find(targetOrBaseTarget);
+    if (!shouldAllowNavigation(targetFrame))
+        return;
     if (!targetFrame) {
         targetFrame = m_frame;
         frameRequest.setFrameName(targetOrBaseTarget);
@@ -1277,7 +1279,7 @@ bool FrameLoader::requestObject(RenderPart* renderer, const String& url, const A
         if (!m_client->allowPlugins(settings && settings->arePluginsEnabled())
             || (!settings->isJavaEnabled() && MIMETypeRegistry::isJavaAppletMIMEType(mimeType)))
             return false;
-        if (isSandboxed(SandboxPlugins))
+        if (isDocumentSandboxed(SandboxPlugins))
             return false;
         return loadPlugin(renderer, completedURL, mimeType, paramNames, paramValues, useFallback);
     }
@@ -2240,7 +2242,7 @@ bool FrameLoader::shouldAllowNavigation(Frame* targetFrame) const
         return true;
 
     // A sandboxed frame can only navigate itself and its descendants.
-    if (isSandboxed(SandboxNavigation) && !targetFrame->tree()->isDescendantOf(m_frame))
+    if (isDocumentSandboxed(SandboxNavigation) && !targetFrame->tree()->isDescendantOf(m_frame))
         return false;
 
     // Let a frame navigate the top-level window that contains it.  This is
@@ -3496,7 +3498,7 @@ void FrameLoader::continueLoadAfterNavigationPolicy(const ResourceRequest&, Pass
     if (!m_frame->page())
         return;
 
-#if ENABLE(JAVASCRIPT_DEBUGGER) && ENABLE(INSPECTOR)
+#if ENABLE(JAVASCRIPT_DEBUGGER) && ENABLE(INSPECTOR) && USE(JSC)
     if (Page* page = m_frame->page()) {
         if (page->mainFrame() == m_frame)
             page->inspectorController()->resumeDebugger();
@@ -3949,10 +3951,13 @@ void FrameLoader::updateSandboxFlags()
 
     m_sandboxFlags = flags;
 
-    m_frame->document()->updateSandboxFlags();
-
     for (Frame* child = m_frame->tree()->firstChild(); child; child = child->tree()->nextSibling())
         child->loader()->updateSandboxFlags();
+}
+
+bool FrameLoader::isDocumentSandboxed(SandboxFlags mask) const
+{
+    return m_frame->document() && m_frame->document()->securityOrigin()->isSandboxed(mask);
 }
 
 PassRefPtr<Widget> FrameLoader::createJavaAppletWidget(const IntSize& size, HTMLAppletElement* element, const HashMap<String, String>& args)

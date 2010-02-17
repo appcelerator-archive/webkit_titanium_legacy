@@ -34,17 +34,19 @@
 #include "DOMWindow.h"
 #include "Database.h"
 #include "Frame.h"
+#include "InjectedScript.h"
 #include "InjectedScriptHost.h"
 #include "InspectorController.h"
 #include "Node.h"
 #include "Page.h"
+#include "SerializedScriptValue.h"
 
 #include "V8Binding.h"
-#include "V8CustomBinding.h"
 #include "V8Database.h"
 #include "V8Node.h"
 #include "V8Proxy.h"
 #include "V8Storage.h"
+#include <wtf/RefPtr.h>
 
 namespace WebCore {
 
@@ -58,7 +60,7 @@ static void WeakReferenceCallback(v8::Persistent<v8::Value> object, void* parame
 static v8::Local<v8::Object> createInjectedScriptHostV8Wrapper(InjectedScriptHost* host)
 {
     V8ClassIndex::V8WrapperType descriptorType = V8ClassIndex::INJECTEDSCRIPTHOST;
-    v8::Local<v8::Function> function = V8DOMWrapper::getTemplate(descriptorType)->GetFunction();
+    v8::Local<v8::Function> function = V8InjectedScriptHost::GetTemplate()->GetFunction();
     if (function.IsEmpty()) {
         // Return if allocation failed.
         return v8::Local<v8::Object>();
@@ -85,7 +87,7 @@ static ScriptObject createInjectedScript(const String& scriptSource, InjectedScr
     v8::Context::Scope contextScope(inspectedContext);
 
     // Call custom code to create InjectedScripHost wrapper specific for the context
-    // instead of calling V8DOMWrapper::convertToV8Object that would create the
+    // instead of calling toV8() that would create the
     // wrapper in the current context.
     // FIXME: make it possible to use generic bindings factory for InjectedScriptHost.
     v8::Local<v8::Object> scriptHostWrapper = createInjectedScriptHostV8Wrapper(injectedScriptHost);
@@ -130,7 +132,7 @@ v8::Handle<v8::Value> V8InjectedScriptHost::nodeForIdCallback(const v8::Argument
     if (!ic)
         return v8::Undefined();
 
-    return V8DOMWrapper::convertToV8Object(V8ClassIndex::NODE, node);
+    return toV8(node);
 }
 
 v8::Handle<v8::Value> V8InjectedScriptHost::pushNodePathToFrontendCallback(const v8::Arguments& args)
@@ -160,7 +162,7 @@ v8::Handle<v8::Value> V8InjectedScriptHost::databaseForIdCallback(const v8::Argu
     Database* database = host->databaseForId(args[0]->ToInt32()->Value());
     if (!database)
         return v8::Undefined();
-    return V8DOMWrapper::convertToV8Object<Database>(V8ClassIndex::DATABASE, database);
+    return toV8(database);
 }
 
 v8::Handle<v8::Value> V8InjectedScriptHost::selectDatabaseCallback(const v8::Arguments& args)
@@ -194,7 +196,20 @@ v8::Handle<v8::Value> V8InjectedScriptHost::selectDOMStorageCallback(const v8::A
 }
 #endif
 
-ScriptObject InjectedScriptHost::injectedScriptFor(ScriptState* inspectedScriptState)
+v8::Handle<v8::Value> V8InjectedScriptHost::reportDidDispatchOnInjectedScriptCallback(const v8::Arguments& args)
+{
+    INC_STATS("InjectedScriptHost.reportDidDispatchOnInjectedScript()");
+    if (args.Length() < 3)
+        return v8::Undefined();
+    InjectedScriptHost* host = V8InjectedScriptHost::toNative(args.Holder());
+    int callId = args[0]->ToInt32()->Value();
+    RefPtr<SerializedScriptValue> result(SerializedScriptValue::create(args[1]));
+    bool isException = args[2]->ToBoolean()->Value();
+    host->reportDidDispatchOnInjectedScript(callId, result.get(), isException);
+    return v8::Undefined();
+}
+
+InjectedScript InjectedScriptHost::injectedScriptFor(ScriptState* inspectedScriptState)
 {
     v8::HandleScope handleScope;
     v8::Local<v8::Context> context = inspectedScriptState->context();
@@ -208,14 +223,15 @@ ScriptObject InjectedScriptHost::injectedScriptFor(ScriptState* inspectedScriptS
     v8::Local<v8::String> key = v8::String::New("Devtools_InjectedScript");
     v8::Local<v8::Value> val = global->GetHiddenValue(key);
     if (!val.IsEmpty() && val->IsObject())
-        return ScriptObject(inspectedScriptState, v8::Local<v8::Object>::Cast(val));
+        return InjectedScript(ScriptObject(inspectedScriptState, v8::Local<v8::Object>::Cast(val)));
 
     ASSERT(!m_injectedScriptSource.isEmpty());
     ScriptObject injectedScriptObject = createInjectedScript(m_injectedScriptSource, this, inspectedScriptState, m_nextInjectedScriptId);
-    m_idToInjectedScript.set(m_nextInjectedScriptId, injectedScriptObject);
+    InjectedScript result(injectedScriptObject);
+    m_idToInjectedScript.set(m_nextInjectedScriptId, result);
     ++m_nextInjectedScriptId;
     global->SetHiddenValue(key, injectedScriptObject.v8Object());
-    return injectedScriptObject;
+    return result;
 }
 
 } // namespace WebCore

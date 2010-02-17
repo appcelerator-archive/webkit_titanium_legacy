@@ -70,7 +70,7 @@ class DownloadClient : public Noncopyable, public ResourceHandleClient {
 struct _WebKitDownloadPrivate {
     gchar* destinationURI;
     gchar* suggestedFilename;
-    guint currentSize;
+    guint64 currentSize;
     GTimer* timer;
     WebKitDownloadStatus status;
     GFileOutputStream* outputStream;
@@ -409,7 +409,8 @@ WebKitDownload* webkit_download_new_with_handle(WebKitNetworkRequest* request, W
     g_return_val_if_fail(request, NULL);
 
     ResourceHandleInternal* d = handle->getInternal();
-    soup_session_pause_message(webkit_get_default_session(), d->m_msg);
+    if (d->m_msg)
+        soup_session_pause_message(webkit_get_default_session(), d->m_msg);
 
     WebKitDownload* download = WEBKIT_DOWNLOAD(g_object_new(WEBKIT_TYPE_DOWNLOAD, "network-request", request, NULL));
     WebKitDownloadPrivate* priv = download->priv;
@@ -480,7 +481,8 @@ void webkit_download_start(WebKitDownload* download)
         priv->resourceHandle->setClient(priv->downloadClient);
 
         ResourceHandleInternal* d = priv->resourceHandle->getInternal();
-        soup_session_unpause_message(webkit_get_default_session(), d->m_msg);
+        if (d->m_msg)
+            soup_session_unpause_message(webkit_get_default_session(), d->m_msg);
     }
 
     priv->timer = g_timer_new();
@@ -755,7 +757,7 @@ guint64 webkit_download_get_total_size(WebKitDownload* download)
     if (!message)
         return 0;
 
-    return MAX(priv->currentSize, soup_message_headers_get_content_length(message->response_headers));
+    return MAX(priv->currentSize, static_cast<guint64>(soup_message_headers_get_content_length(message->response_headers)));
 }
 
 /**

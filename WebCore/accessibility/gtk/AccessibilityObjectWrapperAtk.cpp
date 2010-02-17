@@ -876,7 +876,7 @@ gchar* textForObject(AccessibilityRenderObject* accObject)
             g_string_append(str, "\n");
             range = accObject->doAXRangeForLine(++lineNumber);
         }
-    } else {
+    } else if (accObject->renderer()) {
         // For RenderBlocks, piece together the text from the RenderText objects they contain.
         for (RenderObject* obj = accObject->renderer()->firstChild(); obj; obj = obj->nextSibling()) {
             if (obj->isBR()) {
@@ -884,14 +884,14 @@ gchar* textForObject(AccessibilityRenderObject* accObject)
                 continue;
             }
 
-            RenderText* renderText = toRenderText(obj);
-            // Be sure we have a RenderText object we can work with.
-            if (!renderText || !obj->isText()) {
+            RenderText* renderText;
+            if (obj->isText())
+                renderText = toRenderText(obj);
+            else if (obj->firstChild() && obj->firstChild()->isText()) {
                 // Handle RenderInlines (and any other similiar RenderObjects).
                 renderText = toRenderText(obj->firstChild());
-                if (!renderText)
-                    continue;
-            }
+            } else
+                continue;
 
             InlineTextBox* box = renderText->firstTextBox();
             while (box) {

@@ -1,10 +1,10 @@
 /*
  * Copyright (C) 2009 Google Inc. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above
@@ -14,7 +14,7 @@
  *     * Neither the name of Google Inc. nor the names of its
  * contributors may be used to endorse or promote products derived from
  * this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -45,7 +45,6 @@
 #include "MediaPlayer.h"
 #include "Page.h"
 #include "PlatformScreen.h"
-#include "RuntimeEnabledFeatures.h"
 #include "ScheduledAction.h"
 #include "ScriptSourceCode.h"
 #include "SerializedScriptValue.h"
@@ -55,9 +54,10 @@
 #include "V8Binding.h"
 #include "V8BindingDOMWindow.h"
 #include "V8BindingState.h"
-#include "V8CustomBinding.h"
 #include "V8CustomEventListener.h"
+#include "V8HTMLCollection.h"
 #include "V8MessagePortCustom.h"
+#include "V8Node.h"
 #include "V8Proxy.h"
 #include "V8Utilities.h"
 #if ENABLE(WEB_SOCKETS)
@@ -94,9 +94,9 @@ v8::Handle<v8::Value> WindowSetTimeoutImpl(const v8::Arguments& args, bool singl
         else {
             v8::Handle<v8::Value> v8String = function->ToString();
 
-            // Bail out if string conversion failed. 
-            if (v8String.IsEmpty()) 
-                return v8::Undefined(); 
+            // Bail out if string conversion failed.
+            if (v8String.IsEmpty())
+                return v8::Undefined();
 
             functionString = toWebCoreString(v8String);
         }
@@ -171,7 +171,7 @@ static v8::Handle<v8::Value> convertBase64(const String& str, bool encode)
 
 v8::Handle<v8::Value> V8DOMWindow::eventAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
 {
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
+    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), info.This());
     if (holder.IsEmpty())
         return v8::Undefined();
 
@@ -192,7 +192,7 @@ v8::Handle<v8::Value> V8DOMWindow::eventAccessorGetter(v8::Local<v8::String> nam
 
 void V8DOMWindow::eventAccessorSetter(v8::Local<v8::String> name, v8::Local<v8::Value> value, const v8::AccessorInfo& info)
 {
-    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, info.This());
+    v8::Handle<v8::Object> holder = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), info.This());
     if (holder.IsEmpty())
         return;
 
@@ -227,7 +227,7 @@ void V8DOMWindow::openerAccessorSetter(v8::Local<v8::String> name, v8::Local<v8:
 
     if (!V8BindingSecurity::canAccessFrame(V8BindingState::Only(), imp->frame(), true))
         return;
-  
+
     // Opener can be shadowed if it is in the same domain.
     // Have a special handling of null value to behave
     // like Firefox. See bug http://b/1224887 & http://b/791706.
@@ -253,85 +253,6 @@ v8::Handle<v8::Value> V8DOMWindow::AudioAccessorGetter(v8::Local<v8::String> nam
     return V8DOMWrapper::getConstructor(V8ClassIndex::AUDIO, window);
 }
 
-bool V8DOMWindow::AudioEnabled()
-{
-    return MediaPlayer::isAvailable();
-}
-
-bool V8DOMWindow::HTMLMediaElementEnabled()
-{
-    return MediaPlayer::isAvailable();
-}
-
-bool V8DOMWindow::HTMLAudioElementEnabled()
-{
-    return MediaPlayer::isAvailable();
-}
-
-bool V8DOMWindow::HTMLVideoElementEnabled()
-{
-    return MediaPlayer::isAvailable();
-}
-
-bool V8DOMWindow::MediaErrorEnabled()
-{
-    return MediaPlayer::isAvailable();
-}
-
-#endif
-
-#if ENABLE(SHARED_WORKERS)
-bool V8DOMWindow::SharedWorkerEnabled()
-{
-    return SharedWorkerRepository::isAvailable();
-}
-#endif
-
-#if ENABLE(WEB_SOCKETS)
-bool V8DOMWindow::WebSocketEnabled()
-{
-    return WebSocket::isAvailable();
-}
-#endif
-
-#if ENABLE(DATABASE)
-bool V8DOMWindow::OpenDatabaseEnabled()
-{
-    return Database::isAvailable();
-}
-#endif
-
-#if ENABLE(INDEXED_DATABASE)
-bool V8DOMWindow::IndexedDBEnabled()
-{
-    return RuntimeEnabledFeatures::indexedDatabaseEnabled();
-}
-#endif
-
-#if ENABLE(DOM_STORAGE)
-bool V8DOMWindow::LocalStorageEnabled()
-{
-    return RuntimeEnabledFeatures::localStorageEnabled();
-}
-
-bool V8DOMWindow::SessionStorageEnabled()
-{
-    return RuntimeEnabledFeatures::sessionStorageEnabled();
-}
-#endif
-
-#if ENABLE(NOTIFICATIONS)
-bool V8DOMWindow::WebkitNotificationsEnabled()
-{
-    return RuntimeEnabledFeatures::notificationsEnabled();
-}
-#endif
-
-#if ENABLE(OFFLINE_WEB_APPLICATIONS)
-bool V8DOMWindow::ApplicationCacheEnabled()
-{
-    return RuntimeEnabledFeatures::applicationCacheEnabled();
-}
 #endif
 
 v8::Handle<v8::Value> V8DOMWindow::ImageAccessorGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
@@ -488,7 +409,7 @@ v8::Handle<v8::Value> V8DOMWindow::btoaCallback(const v8::Arguments& args)
 v8::Handle<v8::Value> V8DOMWindow::toStringCallback(const v8::Arguments& args)
 {
     INC_STATS("DOM.DOMWindow.toString()");
-    v8::Handle<v8::Object> domWrapper = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, args.This());
+    v8::Handle<v8::Object> domWrapper = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), args.This());
     if (domWrapper.IsEmpty())
         return args.This()->ObjectProtoToString();
     return domWrapper->ObjectProtoToString();
@@ -594,7 +515,7 @@ v8::Handle<v8::Value> V8DOMWindow::showModalDialogCallback(const v8::Arguments& 
     // default here came from frame size of dialog in MacIE.
     windowFeatures.height = WindowFeatures::floatFeature(features, "dialogheight", 100, screenRect.height(), 450);
     windowFeatures.heightSet = true;
-  
+
     windowFeatures.x = WindowFeatures::floatFeature(features, "dialogleft", screenRect.x(), screenRect.right() - windowFeatures.width, -1);
     windowFeatures.xSet = windowFeatures.x > 0;
     windowFeatures.y = WindowFeatures::floatFeature(features, "dialogtop", screenRect.y(), screenRect.bottom() - windowFeatures.height, -1);
@@ -693,11 +614,11 @@ v8::Handle<v8::Value> V8DOMWindow::openCallback(const v8::Arguments& args)
     if (topOrParent) {
         if (!shouldAllowNavigation(frame))
             return v8::Undefined();
-    
+
         String completedUrl;
         if (!urlString.isEmpty())
             completedUrl = completeURL(urlString);
-    
+
         if (!completedUrl.isEmpty() &&
             (!protocolIsJavaScript(completedUrl) || ScriptController::isSafeScript(frame))) {
             bool userGesture = processingUserGesture();
@@ -708,7 +629,7 @@ v8::Handle<v8::Value> V8DOMWindow::openCallback(const v8::Arguments& args)
 
             frame->redirectScheduler()->scheduleLocationChange(completedUrl, referrer, false, userGesture);
         }
-        return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, frame->domWindow());
+        return toV8(frame->domWindow());
     }
 
     // In the case of a named frame or a new window, we'll use the
@@ -768,7 +689,7 @@ v8::Handle<v8::Value> V8DOMWindow::openCallback(const v8::Arguments& args)
     if (!frame)
         return v8::Undefined();
 
-    return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, frame->domWindow());
+    return toV8(frame->domWindow());
 }
 
 
@@ -786,7 +707,7 @@ v8::Handle<v8::Value> V8DOMWindow::indexedPropertyGetter(uint32_t index, const v
 
     Frame* child = frame->tree()->child(index);
     if (child)
-        return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, child->domWindow());
+        return toV8(child->domWindow());
 
     return notHandledByInterceptor();
 }
@@ -809,7 +730,7 @@ v8::Handle<v8::Value> V8DOMWindow::namedPropertyGetter(v8::Local<v8::String> nam
     AtomicString propName = v8StringToAtomicWebCoreString(name);
     Frame* child = frame->tree()->child(propName);
     if (child)
-        return V8DOMWrapper::convertToV8Object(V8ClassIndex::DOMWINDOW, child->domWindow());
+        return toV8(child->domWindow());
 
     // Search IDL functions defined in the prototype
     v8::Handle<v8::Value> result = info.Holder()->GetRealNamedProperty(name);
@@ -824,8 +745,8 @@ v8::Handle<v8::Value> V8DOMWindow::namedPropertyGetter(v8::Local<v8::String> nam
             RefPtr<HTMLCollection> items = doc->windowNamedItems(propName);
             if (items->length() >= 1) {
                 if (items->length() == 1)
-                    return V8DOMWrapper::convertNodeToV8Object(items->firstItem());
-                return V8DOMWrapper::convertToV8Object(V8ClassIndex::HTMLCOLLECTION, items.release());
+                    return toV8(items->firstItem());
+                return toV8(items.release());
             }
         }
     }
@@ -880,7 +801,7 @@ v8::Handle<v8::Value> V8DOMWindow::clearIntervalCallback(const v8::Arguments& ar
 bool V8DOMWindow::namedSecurityCheck(v8::Local<v8::Object> host, v8::Local<v8::Value> key, v8::AccessType type, v8::Local<v8::Value> data)
 {
     ASSERT(V8ClassIndex::FromInt(data->Int32Value()) == V8ClassIndex::DOMWINDOW);
-    v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, host);
+    v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), host);
     if (window.IsEmpty())
         return false;  // the frame is gone.
 
@@ -906,7 +827,7 @@ bool V8DOMWindow::namedSecurityCheck(v8::Local<v8::Object> host, v8::Local<v8::V
 bool V8DOMWindow::indexedSecurityCheck(v8::Local<v8::Object> host, uint32_t index, v8::AccessType type, v8::Local<v8::Value> data)
 {
     ASSERT(V8ClassIndex::FromInt(data->Int32Value()) == V8ClassIndex::DOMWINDOW);
-    v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, host);
+    v8::Handle<v8::Object> window = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), host);
     if (window.IsEmpty())
         return false;
 
@@ -942,7 +863,7 @@ v8::Handle<v8::Value> toV8(DOMWindow* window)
     // necessarily the first global object associated with that DOMWindow.
     v8::Handle<v8::Context> currentContext = v8::Context::GetCurrent();
     v8::Handle<v8::Object> currentGlobal = currentContext->Global();
-    v8::Handle<v8::Object> windowWrapper = V8DOMWrapper::lookupDOMWrapper(V8ClassIndex::DOMWINDOW, currentGlobal);
+    v8::Handle<v8::Object> windowWrapper = V8DOMWrapper::lookupDOMWrapper(V8DOMWindow::GetTemplate(), currentGlobal);
     if (!windowWrapper.IsEmpty()) {
         if (V8DOMWindow::toNative(windowWrapper) == window)
             return currentGlobal;

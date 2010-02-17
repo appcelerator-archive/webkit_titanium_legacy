@@ -355,6 +355,7 @@ Document::Document(Frame* frame, bool isXHTML, bool isHTML)
     , m_styleRecalcTimer(this, &Document::styleRecalcTimerFired)
     , m_frameElementsShouldIgnoreScrolling(false)
     , m_containsValidityStyleRules(false)
+    , m_updateFocusAppearanceRestoresSelection(false)
     , m_title("")
     , m_rawTitle("")
     , m_titleSetExplicitly(false)
@@ -369,7 +370,6 @@ Document::Document(Frame* frame, bool isXHTML, bool isHTML)
     , m_bindingManager(new XBLBindingManager(this))
 #endif
     , m_savedRenderer(0)
-    , m_secureForms(0)
     , m_designMode(inherit)
     , m_selfOnlyRefCount(0)
 #if ENABLE(SVG)
@@ -2001,9 +2001,9 @@ void Document::updateBaseURL()
         m_baseURL = KURL();
 
     if (m_elemSheet)
-        m_elemSheet->setBaseURL(m_baseURL);
+        m_elemSheet->setFinalURL(m_baseURL);
     if (m_mappedElementSheet)
-        m_mappedElementSheet->setBaseURL(m_baseURL);
+        m_mappedElementSheet->setFinalURL(m_baseURL);
 }
 
 String Document::userAgent(const KURL& url) const
@@ -4491,14 +4491,9 @@ void Document::statePopped(SerializedScriptValue* stateObject)
         m_pendingStateObject = stateObject;
 }
 
-void Document::updateSandboxFlags()
+void Document::updateFocusAppearanceSoon(bool restorePreviousSelection)
 {
-    if (m_frame && securityOrigin())
-        securityOrigin()->setSandboxFlags(m_frame->loader()->sandboxFlags());
-}
-
-void Document::updateFocusAppearanceSoon()
-{
+    m_updateFocusAppearanceRestoresSelection = restorePreviousSelection;
     if (!m_updateFocusAppearanceTimer.isActive())
         m_updateFocusAppearanceTimer.startOneShot(0);
 }
@@ -4520,7 +4515,7 @@ void Document::updateFocusAppearanceTimerFired(Timer<Document>*)
 
     Element* element = static_cast<Element*>(node);
     if (element->isFocusable())
-        element->updateFocusAppearance(false);
+        element->updateFocusAppearance(m_updateFocusAppearanceRestoresSelection);
 }
 
 void Document::executeScriptSoonTimerFired(Timer<Document>* timer)

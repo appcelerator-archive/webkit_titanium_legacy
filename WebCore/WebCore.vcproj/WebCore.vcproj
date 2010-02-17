@@ -5373,7 +5373,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLFrameSetElement.cpp"
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLFrameSetElement.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -5425,7 +5425,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLFrameSetElement.h"
+				RelativePath="$(WebKitOutputDir)\obj\$(ProjectName)\DerivedSources\JSHTMLFrameSetElement.h"
 				>
 			</File>
 			<File
@@ -27052,6 +27052,14 @@
 				RelativePath="..\rendering\break_lines.h"
 				>
 			</File>
+                        <File
+				RelativePath="..\rendering\BidiRun.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\rendering\BidiRun.h"
+				>
+			</File>
 			<File
 				RelativePath="..\rendering\CounterNode.cpp"
 				>
@@ -27106,6 +27114,10 @@
 			</File>
 			<File
 				RelativePath="..\rendering\InlineFlowBox.h"
+				>
+			</File>
+                        <File
+				RelativePath="..\rendering\InlineIterator.h"
 				>
 			</File>
 			<File
@@ -39892,6 +39904,22 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\bindings\js\JavaScriptProfile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JavaScriptProfile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JavaScriptProfileNode.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\bindings\js\JavaScriptProfileNode.h"
+					>
+				</File>
+				<File
 					RelativePath="..\bindings\js\ScheduledAction.cpp"
 					>
 					<FileConfiguration
@@ -42565,6 +42593,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\inspector\InjectedScript.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\inspector\InjectedScript.h"
+				>
+			</File>
+			<File
 				RelativePath="..\inspector\InjectedScriptHost.cpp"
 				>
 			</File>
@@ -42669,22 +42705,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\inspector\JavaScriptProfile.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\inspector\JavaScriptProfile.h"
-				>
-			</File>
-			<File
-				RelativePath="..\inspector\JavaScriptProfileNode.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\inspector\JavaScriptProfileNode.h"
-				>
-			</File>
-			<File
 				RelativePath="..\inspector\TimelineRecordFactory.cpp"
 				>
 			</File>
@@ -42700,11 +42720,19 @@
 					>
 				</File>
 				<File
+					RelativePath="..\inspector\front-end\AuditCategories.js"
+					>
+				</File>
+				<File
 					RelativePath="..\inspector\front-end\AuditLauncherView.js"
 					>
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\AuditResultView.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\AuditRules.js"
 					>
 				</File>
 				<File
@@ -42837,10 +42865,6 @@
 				</File>
 				<File
 					RelativePath="..\inspector\front-end\MetricsSidebarPane.js"
-					>
-				</File>
-				<File
-					RelativePath="..\inspector\front-end\NativeTextViewer.js"
 					>
 				</File>
 				<File
@@ -42984,10 +43008,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\TextEditor.js"
-					>
-				</File>
-				<File
 					RelativePath="..\inspector\front-end\TextEditorHighlighter.js"
 					>
 				</File>
@@ -42996,11 +43016,15 @@
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\textEditor.css"
+					RelativePath="..\inspector\front-end\TextPrompt.js"
 					>
 				</File>
 				<File
-					RelativePath="..\inspector\front-end\TextPrompt.js"
+					RelativePath="..\inspector\front-end\TextViewer.js"
+					>
+				</File>
+				<File
+					RelativePath="..\inspector\front-end\textViewer.css"
 					>
 				</File>
 				<File

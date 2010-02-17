@@ -40,6 +40,7 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "HTMLFrameOwnerElement.h"
+#include "InjectedScript.h"
 #include "InjectedScriptHost.h"
 #include "InspectorClient.h"
 #include "InspectorController.h"
@@ -48,13 +49,13 @@
 #include "InspectorResource.h"
 #include "Pasteboard.h"
 #include "ScriptArray.h"
-#include "ScriptFunctionCall.h"
+#include "SerializedScriptValue.h"
 
 #if ENABLE(DOM_STORAGE)
 #include "Storage.h"
 #endif
 
-#if ENABLE(JAVASCRIPT_DEBUGGER)
+#if ENABLE(JAVASCRIPT_DEBUGGER) && USE(JSC)
 #include "JavaScriptCallFrame.h"
 #include "JavaScriptDebugServer.h"
 using namespace JSC;
@@ -147,7 +148,7 @@ void InspectorBackend::stopTimelineProfiler()
         m_inspectorController->stopTimelineProfiler();
 }
 
-#if ENABLE(JAVASCRIPT_DEBUGGER)
+#if ENABLE(JAVASCRIPT_DEBUGGER) && USE(JSC)
 bool InspectorBackend::debuggerEnabled() const
 {
     if (m_inspectorController)
@@ -221,6 +222,13 @@ void InspectorBackend::setPauseOnExceptionsState(long pauseState)
     JavaScriptDebugServer::shared().setPauseOnExceptionsState(static_cast<JavaScriptDebugServer::PauseOnExceptionsState>(pauseState));
 }
 
+JavaScriptCallFrame* InspectorBackend::currentCallFrame() const
+{
+    return JavaScriptDebugServer::shared().currentCallFrame();
+}
+#endif
+
+#if ENABLE(JAVASCRIPT_DEBUGGER)
 bool InspectorBackend::profilerEnabled()
 {
     if (m_inspectorController)
@@ -263,11 +271,6 @@ void InspectorBackend::getProfile(long callId, unsigned uid)
     if (m_inspectorController)
         m_inspectorController->getProfile(callId, uid);
 }
-
-JavaScriptCallFrame* InspectorBackend::currentCallFrame() const
-{
-    return JavaScriptDebugServer::shared().currentCallFrame();
-}
 #endif
 
 void InspectorBackend::setInjectedScriptSource(const String& source)
@@ -285,7 +288,7 @@ void InspectorBackend::dispatchOnInjectedScript(long callId, long injectedScript
     // FIXME: explicitly pass injectedScriptId along with node id to the frontend.
     bool injectedScriptIdIsNodeId = injectedScriptId <= 0;
 
-    ScriptObject injectedScript;
+    InjectedScript injectedScript;
     if (injectedScriptIdIsNodeId)
         injectedScript = m_inspectorController->injectedScriptForNodeId(-injectedScriptId);
     else
@@ -294,19 +297,12 @@ void InspectorBackend::dispatchOnInjectedScript(long callId, long injectedScript
     if (injectedScript.hasNoValue())
         return;
 
-    ScriptFunctionCall function(injectedScript.scriptState(), injectedScript, "dispatch");
-    function.appendArgument(methodName);
-    function.appendArgument(arguments);
-    if (async)
-        function.appendArgument(callId);
+    RefPtr<SerializedScriptValue> result;
     bool hadException = false;
-    ScriptValue result = function.call(hadException);
+    injectedScript.dispatch(callId, methodName, arguments, async, &result, &hadException);
     if (async)
         return;  // InjectedScript will return result asynchronously by means of ::reportDidDispatchOnInjectedScript.
-    if (hadException)
-        frontend->didDispatchOnInjectedScript(callId, "", true);
-    else
-        frontend->didDispatchOnInjectedScript(callId, result.toString(injectedScript.scriptState()), false);
+    frontend->didDispatchOnInjectedScript(callId, result.get(), hadException);
 }
 
 void InspectorBackend::getChildNodes(long callId, long nodeId)

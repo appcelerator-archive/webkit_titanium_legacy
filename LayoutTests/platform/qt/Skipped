@@ -7,7 +7,6 @@ editing/pasteboard/5780697-2.html
 fast/css/getComputedStyle/computed-style-without-renderer.html
 fast/css/getComputedStyle/computed-style.html
 fast/history/history_reload.html
-fast/html/text-field-input-types.html
 svg/batik/filters/feTile.svg
 
 # =========================================================================== #
@@ -15,13 +14,24 @@ svg/batik/filters/feTile.svg
 # =========================================================================== #
 
 # Disabled HTTP subdirs for now, needs investigation.
-http/tests/appcache
 http/tests/webarchive
 http/tests/globalhistory
 http/tests/incremental
 http/tests/media
 http/tests/webarchive
 http/tests/wml
+
+# Skip failed appcache test cases
+http/tests/appcache/auth.html
+http/tests/appcache/empty-manifest.html
+http/tests/appcache/fallback.html
+http/tests/appcache/foreign-iframe-main.html
+http/tests/appcache/manifest-redirect-2.html
+http/tests/appcache/manifest-with-empty-file.html
+http/tests/appcache/max-size.html
+http/tests/appcache/offline-access.html
+http/tests/appcache/resource-redirect-2.html
+http/tests/appcache/resource-redirect.html
 
 # Failing URL test
 http/tests/uri/escaped-entity.html
@@ -113,11 +123,16 @@ http/tests/cookies/simple-cookies-max-age.html
 http/tests/cookies/simple-cookies-expired.html
 http/tests/xmlhttprequest/workers/close.html
 http/tests/xmlhttprequest/workers/shared-worker-close.html
+inspector/timeline-paint.html
+
 storage/database-lock-after-reload.html
 storage/empty-statement.html
 storage/execute-sql-args.html
 storage/hash-change-with-xhr.html
 transitions/change-values-during-transition.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=34281
+fast/workers/shared-worker-frame-lifecycle.html
 
 # ------- works on 64 bit but not on 32 bit
 svg/custom/path-getTotalLength.svg
@@ -145,21 +160,6 @@ http/tests/security/local-video-source-from-remote.html
 #            Missing features in our DumpRenderTree implementation              #
 # ============================================================================= #
 
-# Missing layoutTestController.showWebInspector()
-inspector/console-format-collections.html
-inspector/styles-iframe.html
-inspector/syntax-highlight-css.html
-inspector/syntax-highlight-javascript.html
-inspector/timeline-enum-stability.html
-inspector/timeline-layout.html
-inspector/timeline-mark-timeline.html
-inspector/timeline-paint.html
-inspector/timeline-parse-html.html
-inspector/timeline-recalculate-styles.html
-inspector/timeline-script-tag-1.html
-inspector/timeline-script-tag-2.html
-inspector/timeline-trivial.html
-
 # Missing textInputController.selectedRange()
 editing/selection/5825350-1.html
 editing/selection/5825350-2.html
@@ -172,6 +172,7 @@ fast/text/international/thai-cursor-position.html
 fast/events/ime-composition-events-001.html
 
 # Missing layoutTestController.overridePreference()
+fast/events/multiline-link-arrow-navigation.html
 fast/events/pageshow-pagehide-on-back-cached.html
 fast/events/pageshow-pagehide-on-back-cached-with-frames.html
 
@@ -204,19 +205,17 @@ http/tests/misc/will-send-request-returns-null-on-redirect.html
 # Missing layoutTestController.evaluateScriptInIsolatedWorld()
 http/tests/security/isolatedWorld
 
-# Missing layoutTestController.dumpFrameLoadCallbacks()
-http/tests/security/mixedContent
-http/tests/cache/subresource-failover-to-network.html
+# Evaluate expected results for frame loader callbacks
+# https://bugs.webkit.org/show_bug.cgi?id=34839
+http/tests/security/mixedContent/about-blank-iframe-in-main-frame.html
+http/tests/security/mixedContent/data-url-iframe-in-main-frame.html
+http/tests/security/mixedContent/insecure-css-in-main-frame.html
+http/tests/security/mixedContent/insecure-iframe-in-main-frame.html
+http/tests/security/mixedContent/insecure-image-in-main-frame.html
+http/tests/security/mixedContent/redirect-http-to-https-iframe-in-main-frame.html
+http/tests/security/mixedContent/redirect-https-to-http-iframe-in-main-frame.html
 
-# Missing layoutTestController.evaluateInWebInspector()
-# https://bugs.webkit.org/show_bug.cgi?id=33096
-inspector/cookie-resource-match.html
-inspector/elements-img-tooltip.html
-inspector/elements-panel-selection-on-refresh.html
-inspector/inspected-objects-not-overriden.html
-inspector/timeline-event-dispatch.html
-inspector/timeline-network-resource.html
-inspector/elements-panel-rewrite-href.html
+http/tests/cache/subresource-failover-to-network.html
 
 # Missing layoutTestController.setSmartInsertDeleteEnabled()
 editing/selection/doubleclick-beside-cr-span.html
@@ -239,6 +238,7 @@ fast/events/drag-file-crash.html
 http/tests/security/clipboard/clipboard-file-access.html
 
 # Missing drag & drop functionality in DRT
+editing/pasteboard/drop-inputtext-acquires-style.html
 fast/images/drag-svg-as-image.html
 fast/forms/slider-delete-while-dragging-thumb.html
 
@@ -4840,15 +4840,6 @@ fast/dom/Window/slow-unload-handler-only-frame-is-stopped.html
 # This port doesn't have a global history delegate yet
 http/tests/globalhistory
 
-# Skip inspector tests
-inspector/console-dir.html
-inspector/console-dirxml.html
-inspector/console-format.html
-inspector/console-log-before-inspector-open.html
-inspector/console-tests.html
-inspector/elements-panel-structure.html
-inspector/evaluate-in-frontend.html
-
 # Skip xmlhttprequest tests - NETWORK_ERR: XMLHttpRequest Exception 101: A network error occured in synchronous requests.
 http/tests/xmlhttprequest/access-control-basic-allow-preflight-cache.html
 http/tests/xmlhttprequest/access-control-basic-get-fail-non-simple.html
@@ -4978,7 +4969,6 @@ fast/css/namespaces/namespaces-empty.xml
 # https://bugs.webkit.org/show_bug.cgi?id=31626
 fast/dom/javascript-url-crash-function.html
 fast/dom/location-new-window-no-crash.html
-inspector/console-clear.html
 http/tests/security/javascriptURL/xss-ALLOWED-from-javascript-url-window-open.html
 
 # This test requires ogg codecs
@@ -5067,6 +5057,24 @@ css2.1/t1505-c524-font-var-00-b.html
 # Relies on WebKit API [WebView _loadBackForwardListFromOtherView:]
 fast/loader/crash-copying-backforwardlist.html
 
-# Implement LayoutTestController::pageNumberForElementById().
-printing/page-break-always.html
-printing/pageNumerForElementById.html
+# Because ENABLE_DASHBOARD_SUPPORT=0 is the default option. (Apple's dashboard support in OS X)
+fast/css/dashboard-regions-attr-crash.html
+
+# Implement LayoutTestController::numberOfPages().
+printing/numberOfPages.html
+
+# [Qt] perl websocket test(s) time out
+# https://bugs.webkit.org/show_bug.cgi?id=34882
+websocket/tests/cookies/httponly-cookie.pl
+
+# New test that reports wrong values
+# See https://bugs.webkit.org/show_bug.cgi?id=34918
+fast/text/glyph-reordering.html
+
+# [Qt] fast/multicol/client-rects.html fails in QtLauncher
+# https://bugs.webkit.org/show_bug.cgi?id=34959
+fast/multicol/client-rects.html
+
+# [Qt] REGRESSION(r54811) fast/canvas/drawImage-with-negative-source-destination.html fails
+# https://bugs.webkit.org/show_bug.cgi?id=35005
+fast/canvas/drawImage-with-negative-source-destination.html
