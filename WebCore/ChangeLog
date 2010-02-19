@@ -1,3 +1,4 @@
+<<<<<<< HEAD:WebCore/ChangeLog
 2010-02-16  Yael Aharon  <yael.aharon@nokia.com>
 
         Reviewed by Nikolas Zimmermann.
@@ -4258,6 +4259,8 @@
         and all kinds of other context are passed to GStreamer for websites
         like Vimeo or YouTube.
 
+=======
+>>>>>>> 81a733c... 2010-02-05  Sebastian Dröge  <sebastian.droege@collabora.co.uk>:WebCore/ChangeLog
 2010-02-05  Nate Chapin  <japhet@chromium.org>
 
         Reviewed by Dimitri Glazkov.
